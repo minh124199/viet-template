@@ -1,0 +1,16 @@
+## Viet Template sample using VTL-compatible core syntax.
+<div class="user-card">
+  <h2>$user.displayName</h2>
+
+  #if($user.admin)
+    <span class="badge">Administrator</span>
+  #else
+    <span class="badge">User</span>
+  #end
+
+  <ul>
+  #foreach($role in $user.roles)
+    <li>$role</li>
+  #end
+  </ul>
+</div>
