@@ -265,31 +265,35 @@ Both `./gradlew check` and `./mvnw clean verify` execute all 338 TCK tests (301 
 
 ---
 
-## 5. Semantic analyzer and model typing
+## 5. Semantic analyzer and model typing (Milestone M5)
 
-- [ ] Implement symbol scopes.
-- [ ] Implement local variables introduced by `#set`.
-- [ ] Implement loop variable scopes and loop metadata.
-- [ ] Implement macro parameter scopes.
-- [ ] Implement `VType` hierarchy.
-- [ ] Represent primitive numeric types separately from boxed/reference types where useful.
-- [ ] Represent nullable/unknown/dynamic states explicitly.
-- [ ] Resolve declared template model parameters.
-- [ ] Resolve properties according to selected member-access policy.
-- [ ] Perform overload resolution only where method calls are enabled.
-- [ ] Emit compile diagnostics for missing members in typed mode.
-- [ ] Track escaping context/capability where possible.
-- [ ] Calculate template capability flags.
+- [x] Implement symbol scopes.
+- [x] Implement local variables introduced by `#set`.
+- [x] Implement loop variable scopes and loop metadata.
+- [x] Implement macro parameter scopes.
+- [x] Implement `VType` hierarchy.
+- [x] Represent primitive numeric types separately from boxed/reference types where useful.
+- [x] Represent nullable/unknown/dynamic states explicitly.
+- [x] Resolve declared template model parameters.
+- [x] Resolve properties according to selected member-access policy.
+- [x] Perform overload resolution only where method calls are enabled.
+- [x] Emit compile diagnostics for missing members in typed mode.
+- [x] Track escaping context/capability where possible.
+- [x] Calculate template capability flags.
 
 ### Capability flags to compute
 
-- [ ] requires dynamic member resolution.
-- [ ] requires arbitrary method calls.
-- [ ] requires dynamic include/parse.
-- [ ] requires runtime evaluation.
-- [ ] accesses raw/unescaped output.
-- [ ] uses unknown model types.
-- [ ] eligible for fully static AOT lowering.
+- [x] requires dynamic member resolution.
+- [x] requires arbitrary method calls.
+- [x] requires dynamic include/parse.
+- [x] requires runtime evaluation.
+- [x] accesses raw/unescaped output.
+- [x] uses unknown model types.
+- [x] eligible for fully static AOT lowering.
+
+### Exit criteria
+
+Typed templates analyze with zero diagnostics and compute `eligibleForStaticAot = true`; typos in model parameters and properties fail with stable diagnostics (`VTLS2101`, `VTLS2104`) and Levenshtein suggestions; ArchUnit verifies strict module boundaries with zero cyclic dependencies; 100% build parity and test passes maintained across Maven and Gradle.
 
 ---
 

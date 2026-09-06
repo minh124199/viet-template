@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Semantic Analysis and Model Typing (Milestone M5)**:
+  - Strong typing model (`VType` sealed hierarchy) covering `PrimitiveType`, `ClassType`, `ArrayType`, `DynamicType`, `NullType`, `UnionType`, and `ErrorType`, with explicit `Nullability` (`NON_NULL`, `NULLABLE`, `UNKNOWN`).
+  - Model declaration and schema introspection (`ModelSchema`, `@TemplateModel`) supporting Java records, interfaces, and JavaBeans.
+  - Hierarchical lexical scoping (`SymbolTable`, `SymbolScope`, `ScopeKind`) supporting root model immutability, `#set` local variables, `#foreach` loop variables, `$foreach` loop metadata (`index`, `count`, `first`, `last`, `hasNext`, `parent`, `stop()`), and macro parameter scopes.
+  - Safe typed member resolution (`MemberResolver`) with precedence: record component -> getter (`getX()`) -> boolean getter (`isX()`) -> field -> extension -> map key -> missing.
+  - Levenshtein-based typo suggestions and compile-time diagnostics with stable codes (`VTLS2104` missing property, `VTLS2101` missing root reference, `VTLS2102` invalid assignment, `VTLS2106` invalid iterable).
+  - Method overload resolution (`MethodResolver`) with parameter scoring and security denial checks (`VTLSEC2401`).
+  - Comprehensive static capability analysis (`TemplateCapabilities`) computing 7 capability flags including Ahead-Of-Time (`eligibleForStaticAot`) lowering eligibility.
+
 ## [0.1.0] - 2026-09-06
 
 ### Added
