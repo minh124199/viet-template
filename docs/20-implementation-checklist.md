@@ -299,33 +299,37 @@ Typed templates analyze with zero diagnostics and compute `eligibleForStaticAot 
 
 ## 6. Template IR
 
-- [ ] Define stable compiler-internal IR package.
-- [ ] Lower AST to control-flow-aware IR.
-- [ ] Preserve source mapping on every effectful instruction.
-- [ ] Separate values from output effects.
-- [ ] Represent static output chunks by constant-pool IDs.
-- [ ] Represent resolved member access by explicit `AccessPlan`.
-- [ ] Represent dynamic member access by explicit `DynamicAccessSite`.
-- [ ] Represent escaping strategy explicitly.
-- [ ] Preserve primitive types.
-- [ ] Verify IR invariants before and after every optimization phase in debug builds.
+- [x] Define stable compiler-internal IR package.
+- [x] Lower AST to control-flow-aware IR.
+- [x] Preserve source mapping on every effectful instruction.
+- [x] Separate values from output effects.
+- [x] Represent static output chunks by constant-pool IDs.
+- [x] Represent resolved member access by explicit `AccessPlan`.
+- [x] Represent dynamic member access by explicit `DynamicAccessSite`.
+- [x] Represent escaping strategy explicitly.
+- [x] Preserve primitive types.
+- [x] Verify IR invariants before and after every optimization phase in debug builds.
 
 ### Required IR operations
 
-- [ ] `WriteStatic`.
-- [ ] `WriteValue`.
-- [ ] `LoadParam`.
-- [ ] `LoadLocal` / `StoreLocal`.
-- [ ] `GetProperty`.
-- [ ] `InvokeAllowedMethod`.
-- [ ] `IndexGet`.
-- [ ] arithmetic/comparison/boolean operations.
-- [ ] conditional branch.
-- [ ] loop setup/next/end.
-- [ ] include/static-call.
-- [ ] dynamic dispatch callsite.
-- [ ] macro call or lowered equivalent.
-- [ ] return/stop.
+- [x] `WriteStatic`.
+- [x] `WriteValue`.
+- [x] `LoadParam`.
+- [x] `LoadLocal` / `StoreLocal`.
+- [x] `GetProperty`.
+- [x] `InvokeAllowedMethod`.
+- [x] `IndexGet`.
+- [x] arithmetic/comparison/boolean operations.
+- [x] conditional branch.
+- [x] loop setup/next/end.
+- [x] include/static-call.
+- [x] dynamic dispatch callsite.
+- [x] macro call or lowered equivalent.
+- [x] return/stop.
+
+### Exit criteria
+
+Typed and untyped ASTs lower into verifiable, control-flow-aware `IrTemplate` structures with deduplicated constant text pools, explicit access plans, explicit escaping modes, primitive operations, and complete source span mapping; `IrVerifier` enforces static AOT and scope constraints; full build parity, TCK compatibility, and ArchUnit rules pass across Maven and Gradle.
 
 ---
 

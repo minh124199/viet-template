@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Template Intermediate Representation (Milestone M6)**:
+  - Compiler-internal intermediate representation (`io.github.minh124199.viettemplate.language.vtl.ir`) modeling templates as immutable `IrTemplate` containing parameters, local slots, blocks, functions/macros, and constant pools.
+  - Constant text pool (`IrConstantPool`, `IrTextConstant`) with adjacent static text chunk collapsing and pre-computed UTF-8 byte representations.
+  - Value-effect separation: value expressions (`IrExpression`) decoupled from output writes (`IrWriteValue`, `IrWriteConst`).
+  - Explicit member access plans (`AccessPlan`) distinguishing `DirectRecord`, `DirectGetter`, `DirectField`, `MapLookup`, `ExtensionCall`, and `DynamicCallSite`.
+  - Polymorphic callsite representation via `DynamicAccessSite` with kinds `PROPERTY_GET`, `METHOD_CALL`, and `INDEX_GET`.
+  - Explicit escaping and null rendering strategies (`IrEscapeMode`, `NullRenderMode`, `NullAccessMode`).
+  - Primitive and typed arithmetic, comparison, and logical expressions (`IrBinaryOp`, `IrUnaryOp`, `IrConst`, `IrIsNull`, `IrTruthiness`, `IrConvert`).
+  - Explicit loop plans (`LoopPlan`: `ARRAY`, `LIST_INDEXED`, `ITERABLE`, `ITERATOR`, `RANGE`, `DYNAMIC`) and control flow statements (`IrLoop`, `IrLoopSetup`, `IrLoopNext`, `IrLoopEnd`, `IrIf`, `IrBranch`, `IrBranchIf`, `IrBreak`, `IrStop`, `IrReturn`, `IrCallTemplate`, `IrCallMacro`, `IrBudgetCheck`).
+  - AST-to-IR lowerer (`AstToIrLowerer`) lowering parsed AST and semantic analysis metadata into validated IR.
+  - Comprehensive IR verifier (`IrVerifier`) enforcing local variable definitions before use, type consistency, valid block/branch targets, constant pool reference integrity, and strict AOT constraints (forbidding unlinked dynamic dispatch).
 - **Semantic Analysis and Model Typing (Milestone M5)**:
   - Strong typing model (`VType` sealed hierarchy) covering `PrimitiveType`, `ClassType`, `ArrayType`, `DynamicType`, `NullType`, `UnionType`, and `ErrorType`, with explicit `Nullability` (`NON_NULL`, `NULLABLE`, `UNKNOWN`).
   - Model declaration and schema introspection (`ModelSchema`, `@TemplateModel`) supporting Java records, interfaces, and JavaBeans.

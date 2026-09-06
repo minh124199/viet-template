@@ -73,6 +73,10 @@ public final class VtlSemanticAnalyzer {
   private final TemplateCapabilities.Builder capabilitiesBuilder = TemplateCapabilities.builder();
   private final Map<VtlExpression, VType> expressionTypes = new LinkedHashMap<>();
   private final Map<VtlNode, VType> nodeTypes = new LinkedHashMap<>();
+  private final Map<VtlAccessStep.PropertyAccess, MemberResolution> memberResolutions =
+      new LinkedHashMap<>();
+  private final Map<VtlAccessStep.MethodCall, MethodResolution> methodResolutions =
+      new LinkedHashMap<>();
 
   private VtlSemanticAnalyzer(VtlSemanticOptions options) {
     this.options = Objects.requireNonNull(options, "options must not be null");
@@ -104,7 +108,14 @@ public final class VtlSemanticAnalyzer {
     }
     TemplateCapabilities capabilities = capabilitiesBuilder.build();
     return new SemanticAnalysisResult(
-        template, diagnostics, capabilities, symbolTable, expressionTypes, nodeTypes);
+        template,
+        diagnostics,
+        capabilities,
+        symbolTable,
+        expressionTypes,
+        nodeTypes,
+        memberResolutions,
+        methodResolutions);
   }
 
   private void analyzeNode(VtlNode node) {
@@ -485,11 +496,13 @@ public final class VtlSemanticAnalyzer {
       if (step instanceof VtlAccessStep.PropertyAccess prop) {
         if (currentType instanceof VType.DynamicType) {
           capabilitiesBuilder.setRequiresDynamicMemberResolution(true);
+          memberResolutions.put(prop, MemberResolution.dynamic(VTypes.DYNAMIC));
           currentType = VTypes.DYNAMIC;
         } else if (currentType instanceof VType.ErrorType) {
           currentType = VTypes.ERROR;
         } else {
           MemberResolution res = MemberResolver.resolveProperty(currentType, prop.propertyName());
+          memberResolutions.put(prop, res);
           if (res.isFound()) {
             currentType = res.resultType();
           } else {
@@ -519,10 +532,12 @@ public final class VtlSemanticAnalyzer {
                   VtlSemanticDiagnosticCodes.SECURITY_DENIED,
                   "Method calls are disabled by " + options.profile().name() + " policy",
                   call.span()));
+          methodResolutions.put(call, MethodResolution.denied("Method calls are disabled"));
           currentType = VTypes.ERROR;
         } else {
           MethodResolution res =
               MethodResolver.resolveMethod(currentType, call.methodName(), argTypes);
+          methodResolutions.put(call, res);
           if (res.isResolved()) {
             currentType = res.returnType();
           } else if (res.kind() == MethodResolution.Kind.DENIED_BY_POLICY) {

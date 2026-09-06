@@ -2,10 +2,13 @@ package io.github.minh124199.viettemplate.language.vtl.semantics;
 
 import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
+import io.github.minh124199.viettemplate.language.vtl.ast.VtlAccessStep;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlExpression;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate;
 import io.github.minh124199.viettemplate.language.vtl.semantics.capability.TemplateCapabilities;
+import io.github.minh124199.viettemplate.language.vtl.semantics.resolve.MemberResolution;
+import io.github.minh124199.viettemplate.language.vtl.semantics.resolve.MethodResolution;
 import io.github.minh124199.viettemplate.language.vtl.semantics.scope.SymbolTable;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import java.util.List;
@@ -20,7 +23,27 @@ public record SemanticAnalysisResult(
     TemplateCapabilities capabilities,
     SymbolTable symbolTable,
     Map<VtlExpression, VType> expressionTypes,
-    Map<VtlNode, VType> nodeTypes) {
+    Map<VtlNode, VType> nodeTypes,
+    Map<VtlAccessStep.PropertyAccess, MemberResolution> memberResolutions,
+    Map<VtlAccessStep.MethodCall, MethodResolution> methodResolutions) {
+
+  public SemanticAnalysisResult(
+      VtlTemplate template,
+      List<Diagnostic> diagnostics,
+      TemplateCapabilities capabilities,
+      SymbolTable symbolTable,
+      Map<VtlExpression, VType> expressionTypes,
+      Map<VtlNode, VType> nodeTypes) {
+    this(
+        template,
+        diagnostics,
+        capabilities,
+        symbolTable,
+        expressionTypes,
+        nodeTypes,
+        Map.of(),
+        Map.of());
+  }
 
   public SemanticAnalysisResult {
     Objects.requireNonNull(template, "template must not be null");
@@ -30,6 +53,10 @@ public record SemanticAnalysisResult(
     expressionTypes =
         Map.copyOf(Objects.requireNonNull(expressionTypes, "expressionTypes must not be null"));
     nodeTypes = Map.copyOf(Objects.requireNonNull(nodeTypes, "nodeTypes must not be null"));
+    memberResolutions =
+        Map.copyOf(Objects.requireNonNull(memberResolutions, "memberResolutions must not be null"));
+    methodResolutions =
+        Map.copyOf(Objects.requireNonNull(methodResolutions, "methodResolutions must not be null"));
   }
 
   public boolean hasErrors() {
@@ -42,5 +69,13 @@ public record SemanticAnalysisResult(
 
   public Optional<VType> typeOf(VtlNode node) {
     return Optional.ofNullable(nodeTypes.get(node));
+  }
+
+  public Optional<MemberResolution> memberResolutionOf(VtlAccessStep.PropertyAccess prop) {
+    return Optional.ofNullable(memberResolutions.get(prop));
+  }
+
+  public Optional<MethodResolution> methodResolutionOf(VtlAccessStep.MethodCall call) {
+    return Optional.ofNullable(methodResolutions.get(call));
   }
 }
