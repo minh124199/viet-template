@@ -74,6 +74,7 @@ The hot production path should approach handwritten Java rendering: static outpu
 | [03-lexer-parser-ast.md](docs/03-lexer-parser-ast.md) | Lexer, parser, source model, AST |
 | [04-semantics-type-system.md](docs/04-semantics-type-system.md) | Binding, typing, truthiness, nullability, diagnostics |
 | [05-template-ir.md](docs/05-template-ir.md) | Typed IR and lowering rules |
+| [06-velocity-2.4.1-compatibility.md](docs/06-velocity-2.4.1-compatibility.md) | Apache Velocity 2.4.1 differential TCK specification and report |
 | [06-optimization-pipeline.md](docs/06-optimization-pipeline.md) | Compiler optimization passes |
 | [07-execution-backends.md](docs/07-execution-backends.md) | Interpreter, dynamic, and AOT backends |
 | [08-runtime-output.md](docs/08-runtime-output.md) | Rendering API, output pipeline, escaping, allocation policy |
@@ -85,7 +86,8 @@ The hot production path should approach handwritten Java rendering: static outpu
 | [14-testing-tck.md](docs/14-testing-tck.md) | Unit, differential, compatibility, fuzz and TCK strategy |
 | [15-benchmark-plan.md](docs/15-benchmark-plan.md) | JMH benchmarks and performance gates |
 | [16-observability-debugging.md](docs/16-observability-debugging.md) | Metrics, tracing, source maps, explain-plan |
-| [17-repository-engineering.md](docs/17-repository-engineering.md) | Repository layout, CI, release process, coding rules |
+| [17-repository-engineering.md](docs/17-repository-engineering.md) | Repository layout, CI, coding rules |
+| [17-release-process.md](docs/17-release-process.md) | Canonical release procedure and Central Portal publishing |
 | [18-roadmap.md](docs/18-roadmap.md) | Milestones from parser MVP to Spring starter |
 | [19-risk-register.md](docs/19-risk-register.md) | Technical/product/legal risks and mitigations |
 | [20-implementation-checklist.md](docs/20-implementation-checklist.md) | Detailed implementation task checklist |
@@ -159,7 +161,25 @@ These are **engineering targets, not public claims**:
 
 ## Definition of “Velocity compatible”
 
-Never use a blanket statement such as “100% compatible” until the TCK proves it.
+Never use a blanket statement such as “100% compatible” when behavioral differences exist.
+
+Viet Template uses an authoritative, side-by-side differential test kit (`viet-template-tck`) that compiles and evaluates templates against official **Apache Velocity Engine 2.4.1** in real time. The generated compatibility report (`build/reports/velocity-compat/velocity-compatibility-report.json`) is the authoritative source of truth, protected by strict invariant checks.
+
+> **Current Compatibility Status**: Apache Velocity 2.4.1 differential compatibility: **295/301 scenarios exact (98.01%)**, **5 documented intentional differences**, **1 Viet Template extension**, **0 unsupported scenarios**, and **0 unclassified regressions** (**100.00% accounted behavior coverage** across **20 functional categories**).
+
+### Differential TCK Scorecard (Milestone M4)
+
+| Metric | Count | Percentage | Description |
+| :--- | :--- | :--- | :--- |
+| **Total Scenarios Evaluated** | **301** | **100.00%** | Total differential scenarios evaluated |
+| **`EXACT_MATCH`** | **295** | **98.01%** | Byte-for-byte output and outcome match |
+| **`EXPECTED_DIFFERENCE`** | **5** | **1.66%** | Documented intentional architectural differences |
+| **`VIET_EXTENSION`** | **1** | **0.33%** | Intentional Viet Template extensions |
+| **`UNSUPPORTED`** | **0** | **0.00%** | Unsupported Apache Velocity features |
+| **`BUG`** | **0** | **0.00%** | Unclassified differences or defects |
+| **Accounted Behavior Coverage** | **301** | **100.00%** | Scenarios conforming to specification |
+
+See [06-velocity-2.4.1-compatibility.md](docs/06-velocity-2.4.1-compatibility.md) for the detailed specification, ADRs for expected differences, and complete scenario breakdown across all 20 active categories.
 
 Compatibility is versioned as profiles:
 
@@ -182,3 +202,85 @@ INTENTIONALLY_UNSUPPORTED
 ## Clean-room rule
 
 Use public language documentation and black-box compatibility testing to define behavior. Do not copy Apache Velocity implementation code into Viet Template. If any code is intentionally adapted from an Apache-licensed source, retain required notices and provenance explicitly.
+
+## Installation
+
+Viet Template artifacts are published to Maven Central under group ID `io.github.minh124199`:
+
+### Maven
+
+```xml
+<dependency>
+    <groupId>io.github.minh124199</groupId>
+    <artifactId>viet-template-vtl-interpreter</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
+
+### Gradle (Kotlin DSL)
+
+```kotlin
+implementation("io.github.minh124199:viet-template-vtl-interpreter:0.1.0")
+```
+
+## Building from source
+
+Prerequisites: JDK 17+ (JDK 21 and 25 also supported for build and testing).
+
+Viet Template supports **first-class dual-build parity** under both Gradle Kotlin DSL and Apache Maven:
+
+### Gradle (Reference Build)
+
+```bash
+# Build all modules and run all verification checks and tests
+./gradlew clean build
+
+# On Windows:
+gradlew.bat clean build
+
+# Run formatting checks
+./gradlew spotlessCheck
+
+# Apply code formatting
+./gradlew spotlessApply
+```
+
+### Apache Maven
+
+```bash
+# Build all modules, package artifacts, and run tests and checks
+./mvnw clean verify
+
+# On Windows:
+mvnw.cmd clean verify
+
+# Run formatting checks
+./mvnw spotless:check
+
+# Apply code formatting
+./mvnw spotless:apply
+```
+
+### Build Parity Verification
+
+To verify that the Gradle and Maven builds remain in full parity (module definitions, versions, dependencies, Java release target, compiler flags, and compiled JAR contents):
+
+```bash
+./scripts/verify-build-parity.sh
+```
+
+## Community & Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting code:
+
+- [Contributing Guide](CONTRIBUTING.md) — Workflow, build parity requirements, and TCK guidelines.
+- [Code of Conduct](CODE_OF_CONDUCT.md) — Contributor Covenant v2.1 standards.
+- [Security Policy](SECURITY.md) — Responsible disclosure process and security boundaries.
+
+## License
+
+Viet Template is open-source software licensed under the [Apache License, Version 2.0](LICENSE).
+
+## Notice & Trademark Clarification
+
+Apache Velocity and Apache are trademarks of the Apache Software Foundation. This project is an independent clean-room implementation and is not affiliated with, sponsored by, or endorsed by the Apache Software Foundation.

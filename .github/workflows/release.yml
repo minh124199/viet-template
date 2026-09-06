@@ -1,0 +1,290 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry-run validation (validates metadata, builds, and inspects publication bundle without publishing)"
+        type: boolean
+        required: true
+        default: true
+      recovery_mode:
+        description: "RECOVERY ONLY: Re-publish a failed release. Must be false for normal testing."
+        type: boolean
+        required: true
+        default: false
+      confirm_recovery_publish:
+        description: "Type 'I CONFIRM RECOVERY PUBLISH' to execute manual recovery publication"
+        type: string
+        required: false
+        default: ""
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+
+# Least-privilege default: read-only access
+permissions:
+  contents: read
+
+# Concurrency protection: one live release workflow globally, no accidental cancellation of in-flight publishing
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == true && github.run_id || 'live' }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  validate-metadata:
+    name: 1. Validate Release Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      project_version: ${{ steps.metadata.outputs.project_version }}
+      is_snapshot: ${{ steps.metadata.outputs.is_snapshot }}
+      is_live_publish: ${{ steps.decide_publish.outputs.is_live_publish }}
+      tag_name: ${{ steps.metadata.outputs.tag_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Verify release metadata and tag agreement
+        id: metadata
+        env:
+          RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: |
+          python3 scripts/verify-release-metadata.py
+
+      - name: Determine if live publication is permitted
+        id: decide_publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          IS_SNAPSHOT="${{ steps.metadata.outputs.is_snapshot }}"
+          EVENT_NAME="${{ github.event_name }}"
+          REPO="${{ github.repository }}"
+          TAG_NAME="${{ steps.metadata.outputs.tag_name }}"
+
+          # Positive condition default: DO NOT publish unless all conditions explicitly met
+          IS_LIVE="false"
+
+          if [ "$REPO" = "minh124199/viet-template" ]; then
+            # Case 1: Tag push (vX.Y.Z) - THE ONLY NORMAL LIVE RELEASE TRIGGER
+            if [ "$EVENT_NAME" = "push" ] && [ "${{ github.ref_type }}" = "tag" ]; then
+              if [ "$IS_SNAPSHOT" = "true" ]; then
+                echo "::error::Cannot publish a release tag pointing to a SNAPSHOT project version."
+                exit 1
+              fi
+              IS_LIVE="true"
+            # Case 2: Manual workflow dispatch - strictly reserved for dry-run or emergency recovery
+            elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+              DRY_RUN="${{ github.event.inputs.dry_run }}"
+              RECOVERY_MODE="${{ github.event.inputs.recovery_mode }}"
+              CONFIRM="${{ github.event.inputs.confirm_recovery_publish }}"
+              if [ "$DRY_RUN" = "false" ]; then
+                if [ "$RECOVERY_MODE" != "true" ] || [ "$CONFIRM" != "I CONFIRM RECOVERY PUBLISH" ]; then
+                  echo "::error::Live publishing via manual dispatch is strictly reserved for recovery mode and requires recovery_mode=true and confirm_recovery_publish='I CONFIRM RECOVERY PUBLISH'. Tag push is the only normal live release trigger."
+                  exit 1
+                fi
+                if [ "$IS_SNAPSHOT" = "true" ]; then
+                  echo "::error::Cannot publish a SNAPSHOT version as a live release."
+                  exit 1
+                fi
+                if [ -z "$TAG_NAME" ]; then
+                  echo "::error::Recovery live publication requires running on an existing release tag (vX.Y.Z)."
+                  exit 1
+                fi
+                echo "WARNING: Manual recovery live publication initiated."
+                IS_LIVE="true"
+              else
+                echo "Workflow dispatch running in DRY-RUN mode. Live publishing disabled."
+              fi
+            fi
+          else
+            echo "Non-canonical repository ($REPO); live publication disabled."
+          fi
+
+          # Defense-in-depth duplicate release guard
+          if [ "$IS_LIVE" = "true" ] && [ -n "$TAG_NAME" ]; then
+            if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+              echo "::error::GitHub Release for tag '$TAG_NAME' already exists! Duplicate publication aborted to prevent re-publishing."
+              exit 1
+            fi
+          fi
+
+          echo "is_live_publish=$IS_LIVE" >> "$GITHUB_OUTPUT"
+          echo "Decision: is_live_publish=$IS_LIVE (event=$EVENT_NAME, tag=$TAG_NAME, snapshot=$IS_SNAPSHOT)"
+
+  verify-builds:
+    name: 2. Full Build Verification & TCK
+    needs: validate-metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run Gradle check
+        run: ./gradlew check --no-daemon
+
+      - name: Run Maven verify
+        run: ./mvnw clean verify -B
+
+      - name: Run Build Parity Verification
+        run: ./scripts/verify-build-parity.sh
+
+  package-and-validate-bundle:
+    name: 3. Assemble & Validate Publication Bundle
+    needs: [validate-metadata, verify-builds]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Assemble Maven Artifacts
+        run: ./mvnw clean package -P release -Dgpg.skip=true -DskipTests -B
+
+      - name: Assemble Gradle Artifacts
+        run: ./gradlew assemble --no-daemon
+
+      - name: Validate Release Publication Bundle
+        run: |
+          python3 scripts/validate-release-bundle.py --build-tool both
+
+  publish-to-central:
+    name: 4. Publish to Sonatype Central Publisher Portal
+    needs: [validate-metadata, verify-builds, package-and-validate-bundle]
+    if: needs.validate-metadata.outputs.is_live_publish == 'true'
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Verify Required Publishing Secrets
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          MISSING=""
+          [ -z "$MAVEN_CENTRAL_USERNAME" ] && MISSING="$MISSING MAVEN_CENTRAL_USERNAME"
+          [ -z "$MAVEN_CENTRAL_PASSWORD" ] && MISSING="$MISSING MAVEN_CENTRAL_PASSWORD"
+          [ -z "$SIGNING_KEY" ] && MISSING="$MISSING SIGNING_KEY"
+          [ -z "$SIGNING_PASSWORD" ] && MISSING="$MISSING SIGNING_PASSWORD"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Cannot publish live release: missing required repository secrets:$MISSING"
+            exit 1
+          fi
+          echo "All required publishing secrets are configured."
+
+      - name: Import GPG Signing Key
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          echo "$SIGNING_KEY" | gpg --batch --import
+          echo "GPG signing key imported successfully."
+
+      - name: Configure Maven Central Settings
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        run: |
+          mkdir -p ~/.m2
+          cat << 'EOF_SETTINGS' > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>central</id>
+                <username>${env.MAVEN_CENTRAL_USERNAME}</username>
+                <password>${env.MAVEN_CENTRAL_PASSWORD}</password>
+              </server>
+            </servers>
+          </settings>
+          EOF_SETTINGS
+
+      - name: Publish Production Modules to Central Portal (Maven Authoritative)
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          echo "Deploying release artifacts to Sonatype Central Publisher Portal via Apache Maven..."
+          ./mvnw clean deploy -P release -DskipTests -Dgpg.passphrase="$SIGNING_PASSWORD" -B
+
+      - name: Clean Up Sensitive Credentials & Keyring
+        if: always()
+        run: |
+          rm -f ~/.m2/settings.xml
+          gpg --batch --yes --delete-secret-keys $(gpg --list-secret-keys --with-colons 2>/dev/null | awk -F: '/^sec:/ {print $5}') 2>/dev/null || true
+
+  create-github-release:
+    name: 5. Create GitHub Release
+    needs: [validate-metadata, publish-to-central]
+    if: needs.validate-metadata.outputs.is_live_publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ needs.validate-metadata.outputs.tag_name }}
+          VERSION: ${{ needs.validate-metadata.outputs.project_version }}
+        run: |
+          if [ -n "$TAG_NAME" ]; then
+            gh release create "$TAG_NAME" \
+              --title "Viet Template $VERSION" \
+              --generate-notes \
+              --verify-tag
+            echo "GitHub release created for $TAG_NAME."
+          else
+            echo "No tag associated with workflow; skipping GitHub release creation."
+          fi

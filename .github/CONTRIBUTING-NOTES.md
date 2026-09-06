@@ -1,5 +1,6 @@
 # Repository bootstrap notes
 
-Viet Template is currently in the architecture/specification phase. Before implementing a feature, check the corresponding document under `docs/` and the ADRs under `docs/adr/`.
+Please refer to [CONTRIBUTING.md](../CONTRIBUTING.md) for contribution guidelines.
 
-Initial implementation should follow the milestone order in `docs/18-roadmap.md` and the task breakdown in `docs/20-implementation-checklist.md`.
+Before implementing a feature, consult the corresponding document under `docs/` and the ADRs under `docs/adr/`.
+Implementation follows the milestone roadmap in `docs/18-roadmap.md` and the task breakdown in `docs/20-implementation-checklist.md`.

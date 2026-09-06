@@ -1,0 +1,62 @@
+name: Bug Report
+description: Report a bug, crash, or unexpected exception in Viet Template.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Please ensure you are not reporting a security vulnerability here; use [Private Security Reporting](https://github.com/minh124199/viet-template/security/advisories/new) instead.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal Reproducible Example
+      description: Provide the template source, model context, and code snippet to reproduce.
+      placeholder: |
+        ```velocity
+        ## Template source
+        #set($x = ...)
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior & Stack Trace
+      description: What actually happened? Include full stack trace if an exception was thrown.
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: JDK Version
+      options:
+        - JDK 17
+        - JDK 21
+        - JDK 25
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Verification Checklist
+      options:
+        - label: I verified this issue is not already reported in existing issues or PRs.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

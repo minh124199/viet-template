@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability Reporting
+    url: https://github.com/minh124199/viet-template/security/advisories/new
+    about: Please report security vulnerabilities privately via GitHub Security Advisories.
+  - name: Architecture & Documentation
+    url: https://github.com/minh124199/viet-template/tree/main/docs
+    about: Read the specification, architecture documents, and ADRs.

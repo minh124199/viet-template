@@ -1,0 +1,70 @@
+name: Velocity Compatibility Mismatch
+description: Report a behavioral divergence between Apache Velocity 2.4.1 and Viet Template.
+title: "[Compat]: "
+labels: ["compatibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please report scenarios where Viet Template behaves differently from Apache Velocity 2.4.1.
+        Check [docs/06-velocity-2.4.1-compatibility.md](https://github.com/minh124199/viet-template/blob/main/docs/06-velocity-2.4.1-compatibility.md) first to see if the difference is an intentional architectural deviation.
+  - type: textarea
+    id: template
+    attributes:
+      label: VTL Template Snippet
+      description: The exact VTL template demonstrating the divergence.
+      placeholder: |
+        ```velocity
+        $user.name.trim()
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context / Model Bindings
+      description: Context variables or Java objects passed to the template.
+    validations:
+      required: true
+  - type: textarea
+    id: velocity_behavior
+    attributes:
+      label: Apache Velocity 2.4.1 Behavior
+      description: Output rendered or exception thrown by Velocity 2.4.1.
+    validations:
+      required: true
+  - type: textarea
+    id: viet_behavior
+    attributes:
+      label: Viet Template Behavior
+      description: Output rendered or exception thrown by Viet Template.
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Functional Category
+      options:
+        - REFERENCES
+        - INTROSPECTION
+        - METHOD_OVERLOADS
+        - STRICT_MODE
+        - TRUTHINESS
+        - ARITHMETIC
+        - COMPARISONS
+        - SET_DIRECTIVE
+        - CONDITIONAL
+        - SHORT_CIRCUIT
+        - FOREACH
+        - MACROS
+        - BLOCK_MACROS
+        - DEFINE_DIRECTIVE
+        - RESOURCES
+        - EVALUATE
+        - ESCAPING
+        - LEXICAL
+        - ERRORS
+        - SECURITY
+        - Other
+    validations:
+      required: true

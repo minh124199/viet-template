@@ -7,6 +7,7 @@ build/
 # Maven
 target/
 **/target/
+!.mvn/wrapper/maven-wrapper.jar
 
 # IntelliJ IDEA
 .idea/
@@ -39,3 +40,32 @@ replay_pid*
 *.jfr
 *.hprof
 benchmark-results/
+
+# Editor temporary & swap files
+*.swp
+*.swo
+*~
+*.tmp
+*.log
+
+# Environment, local credentials & keys
+.env
+.env.*
+*.gpg
+*.asc
+*.key
+secring.*
+pubring.*
+settings-local.xml
+
+# Coverage & test reports
+coverage/
+*.lcov
+
+# Maven release & dependency reduced artifacts
+release.properties
+pom.xml.releaseBackup
+pom.xml.tag
+pom.xml.next
+dependency-reduced-pom.xml
+.flattened-pom.xml

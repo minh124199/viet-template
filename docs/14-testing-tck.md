@@ -31,23 +31,25 @@ Failure cases compare stable error category and source span rather than brittle 
 
 ## 5. Velocity differential harness
 
-Apache Velocity is test/tool dependency only.
+Apache Velocity Engine 2.4.1 (`org.apache.velocity:velocity-engine-core:2.4.1`) is strictly a test-scoped dependency within `viet-template-tck`.
 
 ```java
-ReferenceResult velocity = velocityRunner.render(testCase);
-ReferenceResult vietTemplate = vietTemplateRunner.render(testCase);
-assertCompatibility(testCase.contract(), velocity, vietTemplate);
+EngineResult velocity = velocityEngine.execute(scenario, velocityContext, config, resources);
+EngineResult viet = vietEngine.execute(scenario, vietContext, config, resources);
+ScenarioResult result = comparator.compare(scenario, velocity, viet);
 ```
 
 Case classifications:
 
 ```text
-EXACT_OUTPUT
-EXACT_SEMANTIC
-DECLARED_DIFFERENCE
+EXACT_MATCH
+EXPECTED_DIFFERENCE
+VIET_EXTENSION
 UNSUPPORTED
-SECURITY_INTENTIONAL_DIFFERENCE
+BUG
 ```
+
+See [06-velocity-2.4.1-compatibility.md](06-velocity-2.4.1-compatibility.md) for the authoritative Milestone M4 specification and results (301 scenarios across 20 active categories: 295 exact parity [98.01%], 5 documented expected differences [1.66%], 1 Viet Template extension [0.33%], 0 unsupported, and 0 bugs). Canonical reports are generated at `build/reports/velocity-compat/velocity-compatibility-report.md` and `.json`.
 
 ## 6. Compatibility corpus
 

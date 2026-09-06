@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.minh124199</groupId>
+        <artifactId>viet-template-parent</artifactId>
+        <version>0.1.0</version>
+    </parent>
+
+    <artifactId>viet-template-tck</artifactId>
+    <packaging>jar</packaging>
+
+    <name>viet-template-tck</name>
+    <description>Viet Template Technology Compatibility Kit and Architectural Guardrails</description>
+
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <skipPublishing>true</skipPublishing>
+        <central.publishing.skip>true</central.publishing.skip>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <configuration>
+                    <skipPublishing>true</skipPublishing>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <!-- Project Modules -->
+        <dependency>
+            <groupId>io.github.minh124199</groupId>
+            <artifactId>viet-template-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.minh124199</groupId>
+            <artifactId>viet-template-runtime</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.minh124199</groupId>
+            <artifactId>viet-template-language-vtl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.minh124199</groupId>
+            <artifactId>viet-template-vtl-interpreter</artifactId>
+        </dependency>
+
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.velocity</groupId>
+            <artifactId>velocity-engine-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
