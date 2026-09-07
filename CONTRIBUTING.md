@@ -37,7 +37,7 @@ Viet Template maintains **first-class dual-build parity** between Gradle 9.7.1 (
 
 ### 1. Code Formatting
 
-Both builds enforce Google Java Format (v1.24.0) via Spotless:
+Both builds enforce Google Java Format (v1.28.0) via Spotless:
 
 - **Gradle**:
   ```bash

@@ -60,18 +60,8 @@ subprojects {
     configure<com.diffplug.gradle.spotless.SpotlessExtension> {
         java {
             target("src/*/java/**/*.java")
-            googleJavaFormat("1.24.0").reflowLongStrings()
+            googleJavaFormat("1.28.0").reflowLongStrings()
             formatAnnotations()
-        }
-    }
-
-    // Google Java Format 1.24.0 relies on internal javac APIs
-    // (Log$DeferredDiagnosticHandler.getDiagnostics()) which changed in JDK 25,
-    // causing NoSuchMethodError on Java 25+. Formatting enforcement is performed
-    // on baseline Java 17 and Java 21.
-    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_25)) {
-        tasks.matching { it.name.startsWith("spotless") }.configureEach {
-            enabled = false
         }
     }
 

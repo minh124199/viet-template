@@ -150,7 +150,7 @@ All phase-1 syntax fixtures parse to golden ASTs and malformed fixtures produce 
 
 - [x] Provide official Maven wrapper (`mvnw`, `mvnw.cmd`, `.mvn/wrapper/maven-wrapper.properties` pinned to Maven 3.9.9).
 - [x] Create root aggregator/parent `pom.xml` and module POMs for all 4 submodules (`viet-template-api`, `viet-template-runtime`, `viet-template-language-vtl`, `viet-template-tck`).
-- [x] Align Maven dependency versions with `gradle/libs.versions.toml` (JUnit 5.11.4, AssertJ 3.27.2, ArchUnit 1.3.0, google-java-format 1.24.0).
+- [x] Align Maven dependency versions with `gradle/libs.versions.toml` (JUnit 5.11.4, AssertJ 3.27.2, ArchUnit 1.3.0, google-java-format 1.28.0).
 - [x] Configure Maven plugins matching Gradle setup: `maven-compiler-plugin` (release 17, `-parameters`, `-Xlint:all`, `-Werror`, UTF-8), `maven-surefire-plugin`, `maven-jar-plugin`, `maven-source-plugin`, `maven-javadoc-plugin`, `spotless-maven-plugin`, and `maven-enforcer-plugin`.
 - [x] Verify Java 17 bytecode baseline (classfile 61) and test suite execution across both Java 17 and Java 21 under both `./gradlew clean build` and `./mvnw clean verify`.
 - [x] Confirm zero dependency leakage (no Spring, Velocity, or unapproved runtime dependencies).

@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Build & CI Engineering**:
   - Upgraded Gradle wrapper from 8.12 to 9.7.1; Java 25 execution is supported by Gradle 9.7.1 and remains covered by the GitHub Actions matrix.
   - Explicitly configured `org.junit.platform:junit-platform-launcher` in test runtime dependencies across all modules to ensure JUnit 5 test discovery and execution under Gradle 9.
-  - Handled Google Java Format 1.24.0 internal javac incompatibility on Java 25+ by disabling Spotless verification tasks when running under JDK 25+, preserving full formatting enforcement on baseline Java 17 and Java 21.
+  - Upgraded Google Java Format from 1.24.0 to 1.28.0 across Gradle and Maven to fix JDK 25 internal javac API compatibility (addressing NoSuchMethodError in DeferredDiagnosticHandler.getDiagnostics()), keeping formatting validation fully active and enforced across the Java 17, 21, and 25 CI matrix.
 
 ## [0.1.0] - 2026-09-06
 
