@@ -79,7 +79,8 @@ class AotInterpreterEquivalenceTest {
     list.add(
         new EquivalenceCase(
             "members records beans fields maps",
-            "Person: $person.name ($person.age) | Role: $employee.role | Item: $item.label | Map: $map.alpha,$map.beta",
+            "Person: $person.name ($person.age) | Role: $employee.role | Item: $item.label | Map:"
+                + " $map.alpha,$map.beta",
             model));
 
     list.add(
@@ -97,9 +98,7 @@ class AotInterpreterEquivalenceTest {
 
     list.add(
         new EquivalenceCase(
-            "safe content and contextual escaping",
-            "Safe: $rawHtml | Escaped: $untrusted",
-            model));
+            "safe content and contextual escaping", "Safe: $rawHtml | Escaped: $untrusted", model));
 
     list.add(
         new EquivalenceCase(
@@ -171,7 +170,9 @@ class AotInterpreterEquivalenceTest {
       aotInterpreter.render(source, ast, MapRenderContext.of(scenario.context()), aotOut);
 
       assertThat(aotOut.toString())
-          .as("AOT Bytecode output with %s must match AST for %s", optOptions.level(), scenario.name())
+          .as(
+              "AOT Bytecode output with %s must match AST for %s",
+              optOptions.level(), scenario.name())
           .isEqualTo(expected);
     }
   }

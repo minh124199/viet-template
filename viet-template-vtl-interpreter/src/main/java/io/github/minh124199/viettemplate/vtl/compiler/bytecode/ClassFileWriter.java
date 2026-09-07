@@ -503,7 +503,8 @@ public final class ClassFileWriter {
 
     public void astore(int slot) {
       setMaxLocals(slot + 1);
-      setLocalType(slot, new VerificationType.ObjectType(classFile.cp.addClass("java/lang/Object")));
+      setLocalType(
+          slot, new VerificationType.ObjectType(classFile.cp.addClass("java/lang/Object")));
       if (slot >= 0 && slot <= 3) {
         code.write(0x4B + slot); // astore_0 .. astore_3
       } else {

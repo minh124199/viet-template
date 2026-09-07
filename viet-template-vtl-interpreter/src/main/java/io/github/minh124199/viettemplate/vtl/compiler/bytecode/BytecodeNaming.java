@@ -24,9 +24,10 @@ public final class BytecodeNaming {
       sanitized = "T_" + sanitized;
     }
 
-    String hash = (fingerprint != null && !fingerprint.isBlank())
-        ? fingerprint
-        : sha256Hex(templateId.value());
+    String hash =
+        (fingerprint != null && !fingerprint.isBlank())
+            ? fingerprint
+            : sha256Hex(templateId.value());
     String shortHash = hash.length() > 12 ? hash.substring(0, 12) : hash;
 
     return "T_" + sanitized + "_" + shortHash;
@@ -35,9 +36,10 @@ public final class BytecodeNaming {
   /** Derives a deterministic fully qualified class name under the specified package. */
   public static String fullyQualifiedClassName(
       String packagePrefix, TemplateId templateId, String fingerprint) {
-    String pkg = (packagePrefix != null && !packagePrefix.isBlank())
-        ? packagePrefix
-        : "io.github.minh124199.viettemplate.generated";
+    String pkg =
+        (packagePrefix != null && !packagePrefix.isBlank())
+            ? packagePrefix
+            : "io.github.minh124199.viettemplate.generated";
     return pkg + "." + className(templateId, fingerprint);
   }
 

@@ -51,7 +51,8 @@ class BytecodeNamingTest {
     String fqcnDefault = BytecodeNaming.fullyQualifiedClassName(null, id, "feedbeef1234");
     assertThat(fqcnDefault).startsWith("io.github.minh124199.viettemplate.generated.T_order_vtl_");
 
-    String fqcnCustom = BytecodeNaming.fullyQualifiedClassName("com.example.views", id, "feedbeef1234");
+    String fqcnCustom =
+        BytecodeNaming.fullyQualifiedClassName("com.example.views", id, "feedbeef1234");
     assertThat(fqcnCustom).startsWith("com.example.views.T_order_vtl_");
   }
 

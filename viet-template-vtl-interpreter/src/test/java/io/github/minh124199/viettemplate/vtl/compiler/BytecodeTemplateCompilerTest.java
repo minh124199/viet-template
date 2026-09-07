@@ -6,19 +6,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.github.minh124199.viettemplate.api.CompiledTemplate;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
-import io.github.minh124199.viettemplate.runtime.SafeContent;
-import io.github.minh124199.viettemplate.runtime.SafeHtml;
-import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ir.lowering.AstToIrLowerer;
-import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions;
-import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
 import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysisResult;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import io.github.minh124199.viettemplate.runtime.SafeContent;
+import io.github.minh124199.viettemplate.runtime.SafeHtml;
+import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
 import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeTemplateCompiler;
 import java.io.IOException;
@@ -67,29 +65,32 @@ class BytecodeTemplateCompilerTest {
             .profile(VtlProfile.VTL_CORE)
             .allowArbitraryMethods(true)
             .build();
-    SemanticAnalysisResult analysis = VtlSemanticAnalyzer.analyze(parseResult.template(), semanticOptions);
+    SemanticAnalysisResult analysis =
+        VtlSemanticAnalyzer.analyze(parseResult.template(), semanticOptions);
     IrTemplate ir = AstToIrLowerer.lower(parseResult.template(), source, analysis, semanticOptions);
 
     BytecodeTemplateCompiler compiler = new BytecodeTemplateCompiler();
     BackendResult result = compiler.compile(ir, options);
     if (!result.isSuccess() || result.templateInstance() == null) {
-      throw new IllegalStateException("Compilation failed: " + result.status() + " " + result.diagnostics());
+      throw new IllegalStateException(
+          "Compilation failed: " + result.status() + " " + result.diagnostics());
     }
     return result.templateInstance();
   }
 
   private String render(CompiledTemplate template, Map<String, Object> model) throws IOException {
-    RenderContext ctx = new RenderContext() {
-      @Override
-      public Object get(String name) {
-        return model.get(name);
-      }
+    RenderContext ctx =
+        new RenderContext() {
+          @Override
+          public Object get(String name) {
+            return model.get(name);
+          }
 
-      @Override
-      public boolean contains(String name) {
-        return model.containsKey(name);
-      }
-    };
+          @Override
+          public boolean contains(String name) {
+            return model.containsKey(name);
+          }
+        };
     StringTemplateOutput output = new StringTemplateOutput();
     template.render(ctx, output);
     return output.toString();
@@ -149,7 +150,8 @@ class BytecodeTemplateCompilerTest {
     String vtl = "#if($user) Active: $user.name #else Inactive #end";
     CompiledTemplate template = compile(vtl);
 
-    assertThat(render(template, Map.of("user", new UserRecord("Dave", 25)))).isEqualTo(" Active: Dave ");
+    assertThat(render(template, Map.of("user", new UserRecord("Dave", 25))))
+        .isEqualTo(" Active: Dave ");
     assertThat(render(template, Map.of())).isEqualTo(" Inactive ");
   }
 
@@ -160,7 +162,7 @@ class BytecodeTemplateCompilerTest {
     CompiledTemplate template = compile(vtl);
 
     assertThat(render(template, Map.of("items", List.of("A", "B", "C")))).isEqualTo("[A][B][C]");
-    assertThat(render(template, Map.of("items", new String[]{"X", "Y"}))).isEqualTo("[X][Y]");
+    assertThat(render(template, Map.of("items", new String[] {"X", "Y"}))).isEqualTo("[X][Y]");
   }
 
   @Test
@@ -204,10 +206,7 @@ class BytecodeTemplateCompilerTest {
     CompiledTemplate template = compile("Class: $obj.getClass().getName()");
     LinkerAccessPolicy strictPolicy = LinkerAccessPolicy.standard();
 
-    BackendOptions options =
-        BackendOptions.builder()
-            .securityPolicy(strictPolicy)
-            .build();
+    BackendOptions options = BackendOptions.builder().securityPolicy(strictPolicy).build();
 
     assertThatThrownBy(() -> render(template, Map.of("obj", "test")))
         .isInstanceOf(TemplateSecurityException.class);
@@ -218,8 +217,10 @@ class BytecodeTemplateCompilerTest {
   void testEvaluateRequiresInterpreter() {
     SourceText source = SourceText.of("eval.vtl", "#evaluate('$x')");
     var parseResult = VtlParser.parse(source);
-    VtlSemanticOptions semanticOptions = VtlSemanticOptions.builder().profile(VtlProfile.VTL_CORE).build();
-    SemanticAnalysisResult analysis = VtlSemanticAnalyzer.analyze(parseResult.template(), semanticOptions);
+    VtlSemanticOptions semanticOptions =
+        VtlSemanticOptions.builder().profile(VtlProfile.VTL_CORE).build();
+    SemanticAnalysisResult analysis =
+        VtlSemanticAnalyzer.analyze(parseResult.template(), semanticOptions);
     IrTemplate ir = AstToIrLowerer.lower(parseResult.template(), source, analysis, semanticOptions);
 
     BytecodeTemplateCompiler compiler = new BytecodeTemplateCompiler();
@@ -232,10 +233,7 @@ class BytecodeTemplateCompilerTest {
   @Test
   @DisplayName("Fails compilation when failOnDynamicFallback=true and dynamic sites exist")
   void testFailOnDynamicFallback() {
-    BackendOptions options =
-        BackendOptions.builder()
-            .failOnDynamicFallback(true)
-            .build();
+    BackendOptions options = BackendOptions.builder().failOnDynamicFallback(true).build();
 
     SourceText source = SourceText.of("dyn.vtl", "$unknown.foo()");
     var parseResult = VtlParser.parse(source);
@@ -244,7 +242,8 @@ class BytecodeTemplateCompilerTest {
             .profile(VtlProfile.VTL_CORE)
             .allowArbitraryMethods(true)
             .build();
-    SemanticAnalysisResult analysis = VtlSemanticAnalyzer.analyze(parseResult.template(), semanticOptions);
+    SemanticAnalysisResult analysis =
+        VtlSemanticAnalyzer.analyze(parseResult.template(), semanticOptions);
     IrTemplate ir = AstToIrLowerer.lower(parseResult.template(), source, analysis, semanticOptions);
 
     BytecodeTemplateCompiler compiler = new BytecodeTemplateCompiler();

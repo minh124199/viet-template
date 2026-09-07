@@ -22,7 +22,10 @@ public record BackendResult(
   public boolean isSuccess() {
     return status.isSuccess()
         && artifact != null
-        && diagnostics.stream().noneMatch(d -> d.severity() == io.github.minh124199.viettemplate.api.DiagnosticSeverity.ERROR);
+        && diagnostics.stream()
+            .noneMatch(
+                d ->
+                    d.severity() == io.github.minh124199.viettemplate.api.DiagnosticSeverity.ERROR);
   }
 
   public Optional<CompiledArtifact> optArtifact() {

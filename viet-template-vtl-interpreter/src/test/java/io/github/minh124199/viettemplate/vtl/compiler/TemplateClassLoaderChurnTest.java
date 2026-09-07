@@ -41,14 +41,14 @@ class TemplateClassLoaderChurnTest {
               .packagePrefix("io.github.minh124199.viettemplate.generated.gen" + gen)
               .build();
 
-      SourceText source =
-          SourceText.of("churn_" + gen + ".vtl", "Generation " + gen + ": $val");
+      SourceText source = SourceText.of("churn_" + gen + ".vtl", "Generation " + gen + ": $val");
       var parseResult = VtlParser.parse(source);
       VtlSemanticOptions semanticOptions =
           VtlSemanticOptions.builder().profile(VtlProfile.VTL_CORE).build();
       SemanticAnalysisResult analysis =
           VtlSemanticAnalyzer.analyze(parseResult.template(), semanticOptions);
-      IrTemplate ir = AstToIrLowerer.lower(parseResult.template(), source, analysis, semanticOptions);
+      IrTemplate ir =
+          AstToIrLowerer.lower(parseResult.template(), source, analysis, semanticOptions);
 
       BackendResult result = compiler.compile(ir, options);
       assertThat(result.isSuccess()).isTrue();
@@ -75,13 +75,15 @@ class TemplateClassLoaderChurnTest {
     BackendOptions options = BackendOptions.builder().classLoader(loader).build();
 
     for (int i = 0; i < 5; i++) {
-      SourceText source = SourceText.of("template_" + i + ".vtl", "T" + i + ": #set($x = " + i + ")$x");
+      SourceText source =
+          SourceText.of("template_" + i + ".vtl", "T" + i + ": #set($x = " + i + ")$x");
       var parseResult = VtlParser.parse(source);
       VtlSemanticOptions semanticOptions =
           VtlSemanticOptions.builder().profile(VtlProfile.VTL_CORE).build();
       SemanticAnalysisResult analysis =
           VtlSemanticAnalyzer.analyze(parseResult.template(), semanticOptions);
-      IrTemplate ir = AstToIrLowerer.lower(parseResult.template(), source, analysis, semanticOptions);
+      IrTemplate ir =
+          AstToIrLowerer.lower(parseResult.template(), source, analysis, semanticOptions);
 
       BackendResult result = compiler.compile(ir, options);
       assertThat(result.isSuccess()).isTrue();

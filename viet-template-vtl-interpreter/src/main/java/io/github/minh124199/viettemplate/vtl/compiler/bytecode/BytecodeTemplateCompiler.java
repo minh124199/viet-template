@@ -3,12 +3,7 @@ package io.github.minh124199.viettemplate.vtl.compiler.bytecode;
 import io.github.minh124199.viettemplate.api.CompiledTemplate;
 import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.DiagnosticCode;
-import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
-import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.SourceSpan;
-import io.github.minh124199.viettemplate.api.TemplateDescriptor;
-import io.github.minh124199.viettemplate.api.TemplateId;
-import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrLocal;
@@ -23,7 +18,6 @@ import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrDynamicDis
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrExpression;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrGetProperty;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrIndexGet;
-import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrInvokeAllowedMethod;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrIsNull;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrLoadLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrLoadParam;
@@ -34,8 +28,6 @@ import io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBreak;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBudgetCheck;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallMacro;
-import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallTemplate;
-import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrEvaluate;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrIf;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoop;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrNoOp;
@@ -59,15 +51,11 @@ import io.github.minh124199.viettemplate.vtl.compiler.CompiledArtifact;
 import io.github.minh124199.viettemplate.vtl.compiler.TemplateBackend;
 import io.github.minh124199.viettemplate.vtl.compiler.TemplateClassLoader;
 import io.github.minh124199.viettemplate.vtl.compiler.TemplateSidecarIndex;
-import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -105,8 +93,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
               DiagnosticCode.of("VTLAOT", "1101"),
               "#evaluate directive requires dynamic interpreter execution tier",
               template.span());
-      return BackendResult.failure(
-          CompilationStatus.INTERPRETER_REQUIRED_EVALUATE, List.of(diag));
+      return BackendResult.failure(CompilationStatus.INTERPRETER_REQUIRED_EVALUATE, List.of(diag));
     }
     if (template.capabilities().requiresDynamicIncludeParse()) {
       Diagnostic diag =
@@ -114,8 +101,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
               DiagnosticCode.of("VTLAOT", "1102"),
               "#parse directive requires dynamic interpreter execution tier",
               template.span());
-      return BackendResult.failure(
-          CompilationStatus.INTERPRETER_REQUIRED_EVALUATE, List.of(diag));
+      return BackendResult.failure(CompilationStatus.INTERPRETER_REQUIRED_EVALUATE, List.of(diag));
     }
 
     // 2. Optimize template according to configured options
@@ -150,7 +136,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     String internalName = fqcn.replace('.', '/');
 
     // 5. Code generation context
-    CompilerContext context = new CompilerContext(optimized, options, internalName, fqcn, fingerprint);
+    CompilerContext context =
+        new CompilerContext(optimized, options, internalName, fqcn, fingerprint);
 
     // 6. Build bytecode
     ClassFileWriter cf = new ClassFileWriter(internalName, "java/lang/Object");
@@ -166,14 +153,10 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         ClassFileWriter.ACC_PUBLIC | ClassFileWriter.ACC_STATIC,
         "SITES",
         "[Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;");
-    cf.addField(
-        ClassFileWriter.ACC_PUBLIC | ClassFileWriter.ACC_STATIC,
-        "UTF8_CHUNKS",
-        "[[B");
+    cf.addField(ClassFileWriter.ACC_PUBLIC | ClassFileWriter.ACC_STATIC, "UTF8_CHUNKS", "[[B");
 
     // 1. Default constructor: <init>()
-    ClassFileWriter.MethodWriter init =
-        cf.addMethod(ClassFileWriter.ACC_PUBLIC, "<init>", "()V");
+    ClassFileWriter.MethodWriter init = cf.addMethod(ClassFileWriter.ACC_PUBLIC, "<init>", "()V");
     init.aload(0);
     init.invokespecial("java/lang/Object", "<init>", "()V");
     init.returnOp();
@@ -271,7 +254,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     TemplateClassLoader loader =
         options
             .classLoader()
-            .orElseGet(() -> new TemplateClassLoader(BytecodeTemplateCompiler.class.getClassLoader()));
+            .orElseGet(
+                () -> new TemplateClassLoader(BytecodeTemplateCompiler.class.getClassLoader()));
     Class<? extends CompiledTemplate> clazz = loader.defineTemplateClass(fqcn, classBytes);
 
     // Initialize static fields (SITES, UTF8_CHUNKS)
@@ -297,7 +281,11 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         DynamicSiteSpec spec = context.dynamicSites.get(i);
         sites[i] =
             BytecodeRuntimeBridge.createCallSite(
-                spec.siteId, spec.memberName, spec.operation.ordinal(), spec.arity, options.securityPolicy());
+                spec.siteId,
+                spec.memberName,
+                spec.operation.ordinal(),
+                spec.arity,
+                options.securityPolicy());
       }
       sitesField.set(null, sites);
 
@@ -529,10 +517,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       mw.iload(counterSlot);
       mw.iconst(1);
       // increment counter
-      mw.invokestatic(
-          "java/lang/Integer",
-          "sum",
-          "(II)I");
+      mw.invokestatic("java/lang/Integer", "sum", "(II)I");
       mw.istore(counterSlot);
     }
 
@@ -704,7 +689,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       mw.invokeinterface("java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", 2);
     } else {
       // Dynamic call site dispatch
-      int siteIdx = context.registerDynamicSite(prop.propertyName(), MemberOperation.PROPERTY_GET, 0);
+      int siteIdx =
+          context.registerDynamicSite(prop.propertyName(), MemberOperation.PROPERTY_GET, 0);
       mw.getstatic(
           context.internalName,
           "SITES",
@@ -783,7 +769,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
   private static void compileBinaryOp(
       IrBinaryOp bin, ClassFileWriter.MethodWriter mw, CompilerContext context) {
-    if (bin.type() instanceof io.github.minh124199.viettemplate.language.vtl.semantics.type.VType.ArrayType) {
+    if (bin.type()
+        instanceof io.github.minh124199.viettemplate.language.vtl.semantics.type.VType.ArrayType) {
       compileExpression(bin.left(), mw, context);
       compileExpression(bin.right(), mw, context);
       mw.iconst(10000); // maxRangeSize

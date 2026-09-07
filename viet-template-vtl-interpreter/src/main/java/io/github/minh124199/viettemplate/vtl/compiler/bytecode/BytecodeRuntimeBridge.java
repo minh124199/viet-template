@@ -1,6 +1,5 @@
 package io.github.minh124199.viettemplate.vtl.compiler.bytecode;
 
-import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateLimitException;
@@ -31,7 +30,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Shared runtime bridge supporting generated template bytecode execution.
@@ -43,9 +41,7 @@ public final class BytecodeRuntimeBridge {
 
   private BytecodeRuntimeBridge() {}
 
-  /**
-   * Writes a value expression to output, applying escaping and null rendering semantics.
-   */
+  /** Writes a value expression to output, applying escaping and null rendering semantics. */
   public static void writeValue(
       Object val,
       TemplateOutput output,
@@ -63,7 +59,8 @@ public final class BytecodeRuntimeBridge {
     SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
     NullRenderMode nullMode = NullRenderMode.values()[nullModeOrdinal];
     io.github.minh124199.viettemplate.language.vtl.ir.plan.IrEscapeMode irMode =
-        io.github.minh124199.viettemplate.language.vtl.ir.plan.IrEscapeMode.values()[escapeModeOrdinal];
+        io.github.minh124199.viettemplate.language.vtl.ir.plan.IrEscapeMode.values()[
+            escapeModeOrdinal];
     EscapeMode escapeMode =
         switch (irMode) {
           case RAW -> EscapeMode.RAW;
@@ -115,8 +112,8 @@ public final class BytecodeRuntimeBridge {
   }
 
   /** Writes a text constant to the output, using UTF-8 fast-path where supported. */
-  public static void writeConst(
-      TemplateOutput output, String text, byte[] utf8Bytes) throws IOException {
+  public static void writeConst(TemplateOutput output, String text, byte[] utf8Bytes)
+      throws IOException {
     if (utf8Bytes != null && output instanceof Utf8OutputStreamTemplateOutput) {
       output.writeUtf8(utf8Bytes);
     } else {
@@ -124,7 +121,10 @@ public final class BytecodeRuntimeBridge {
     }
   }
 
-  /** Streams an object value to {@link TemplateOutput} respecting contextual escaping and safe types. */
+  /**
+   * Streams an object value to {@link TemplateOutput} respecting contextual escaping and safe
+   * types.
+   */
   public static void renderEscaped(Object value, TemplateOutput output, EscapeMode escapeMode)
       throws IOException {
     if (value == null) {
@@ -234,13 +234,17 @@ public final class BytecodeRuntimeBridge {
 
     return switch (op) {
       case ADD -> VtlNumericOperations.add(unwrappedLeft, unwrappedRight, span, templateId);
-      case SUBTRACT -> VtlNumericOperations.subtract(unwrappedLeft, unwrappedRight, span, templateId);
-      case MULTIPLY -> VtlNumericOperations.multiply(unwrappedLeft, unwrappedRight, span, templateId);
+      case SUBTRACT ->
+          VtlNumericOperations.subtract(unwrappedLeft, unwrappedRight, span, templateId);
+      case MULTIPLY ->
+          VtlNumericOperations.multiply(unwrappedLeft, unwrappedRight, span, templateId);
       case DIVIDE -> VtlNumericOperations.divide(unwrappedLeft, unwrappedRight, span, templateId);
-      case REMAINDER -> VtlNumericOperations.remainder(unwrappedLeft, unwrappedRight, span, templateId);
+      case REMAINDER ->
+          VtlNumericOperations.remainder(unwrappedLeft, unwrappedRight, span, templateId);
       case EQUALS -> VtlComparisonOperations.equals(unwrappedLeft, unwrappedRight);
       case NOT_EQUALS -> !VtlComparisonOperations.equals(unwrappedLeft, unwrappedRight);
-      case LESS_THAN -> VtlComparisonOperations.compare(unwrappedLeft, unwrappedRight, span, templateId) < 0;
+      case LESS_THAN ->
+          VtlComparisonOperations.compare(unwrappedLeft, unwrappedRight, span, templateId) < 0;
       case LESS_THAN_OR_EQUAL ->
           VtlComparisonOperations.compare(unwrappedLeft, unwrappedRight, span, templateId) <= 0;
       case GREATER_THAN ->

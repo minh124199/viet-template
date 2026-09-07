@@ -42,10 +42,7 @@ class MethodSizeSplittingTest {
     IrTemplate ir = AstToIrLowerer.lower(parseResult.template(), source, analysis, semanticOptions);
 
     // Set a low threshold (20 statements) to trigger MethodSizePlanningPass chunk splitting
-    BackendOptions options =
-        BackendOptions.builder()
-            .methodSplitThreshold(20)
-            .build();
+    BackendOptions options = BackendOptions.builder().methodSplitThreshold(20).build();
 
     BytecodeTemplateCompiler compiler = new BytecodeTemplateCompiler();
     BackendResult result = compiler.compile(ir, options);

@@ -5,7 +5,9 @@ public enum CompilationStatus {
   /** Template compiled successfully to static ahead-of-time bytecode with direct access. */
   AOT_OK,
 
-  /** Template compiled successfully to bytecode with dynamic call sites linked via dynamic linker. */
+  /**
+   * Template compiled successfully to bytecode with dynamic call sites linked via dynamic linker.
+   */
   AOT_OK_WITH_DYNAMIC_SITES,
 
   /** Compilation requires interpreter fallback due to dynamic #evaluate directive. */
