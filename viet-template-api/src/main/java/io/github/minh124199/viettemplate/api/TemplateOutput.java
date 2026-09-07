@@ -28,5 +28,19 @@ public interface TemplateOutput {
 
   void writeDouble(double value) throws IOException;
 
+  default void writeFloat(float value) throws IOException {
+    writeDouble(value);
+  }
+
+  default void writeShort(short value) throws IOException {
+    writeInt(value);
+  }
+
+  default void writeByte(byte value) throws IOException {
+    writeInt(value);
+  }
+
   void writeBoolean(boolean value) throws IOException;
+
+  default void flush() throws IOException {}
 }

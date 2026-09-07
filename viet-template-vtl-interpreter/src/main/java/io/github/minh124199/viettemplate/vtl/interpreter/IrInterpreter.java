@@ -55,6 +55,8 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnaly
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import io.github.minh124199.viettemplate.runtime.EscapeMode;
+import io.github.minh124199.viettemplate.runtime.StandardEscapers;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -336,10 +338,7 @@ public final class IrInterpreter {
       return;
     }
 
-    String stringVal;
-    if (value instanceof CharSequence cs) {
-      stringVal = cs.toString();
-    } else if (value instanceof Integer i) {
+    if (value instanceof Integer i) {
       frame.output.writeInt(i);
       return;
     } else if (value instanceof Long l) {
@@ -348,59 +347,36 @@ public final class IrInterpreter {
     } else if (value instanceof Double d) {
       frame.output.writeDouble(d);
       return;
+    } else if (value instanceof Float f) {
+      frame.output.writeFloat(f);
+      return;
+    } else if (value instanceof Short s) {
+      frame.output.writeShort(s);
+      return;
+    } else if (value instanceof Byte b) {
+      frame.output.writeByte(b);
+      return;
     } else if (value instanceof Boolean b) {
       frame.output.writeBoolean(b);
       return;
+    }
+
+    CharSequence charSeq;
+    if (value instanceof CharSequence cs) {
+      charSeq = cs;
     } else {
-      stringVal = String.valueOf(value);
+      charSeq = String.valueOf(value);
     }
 
-    switch (wv.escapeMode()) {
-      case RAW -> frame.output.write(stringVal);
-      case HTML_TEXT -> frame.output.write(escapeHtml(stringVal));
-      case HTML_ATTRIBUTE_QUOTED -> frame.output.write(escapeHtmlAttribute(stringVal));
-      case URL_COMPONENT -> frame.output.write(escapeUrl(stringVal));
-    }
-  }
+    EscapeMode mode =
+        switch (wv.escapeMode()) {
+          case RAW -> EscapeMode.RAW;
+          case HTML_TEXT -> EscapeMode.HTML_TEXT;
+          case HTML_ATTRIBUTE_QUOTED -> EscapeMode.HTML_ATTRIBUTE_QUOTED;
+          case URL_COMPONENT -> EscapeMode.URL_COMPONENT;
+        };
 
-  private static String escapeHtml(String input) {
-    if (input == null) return "";
-    StringBuilder sb = new StringBuilder(input.length() + 16);
-    for (int i = 0; i < input.length(); i++) {
-      char c = input.charAt(i);
-      switch (c) {
-        case '&' -> sb.append("&amp;");
-        case '<' -> sb.append("&lt;");
-        case '>' -> sb.append("&gt;");
-        case '"' -> sb.append("&quot;");
-        case '\'' -> sb.append("&#39;");
-        default -> sb.append(c);
-      }
-    }
-    return sb.toString();
-  }
-
-  private static String escapeHtmlAttribute(String input) {
-    if (input == null) return "";
-    StringBuilder sb = new StringBuilder(input.length() + 16);
-    for (int i = 0; i < input.length(); i++) {
-      char c = input.charAt(i);
-      switch (c) {
-        case '&' -> sb.append("&amp;");
-        case '<' -> sb.append("&lt;");
-        case '>' -> sb.append("&gt;");
-        case '"' -> sb.append("&quot;");
-        case '\'' -> sb.append("&#39;");
-        case '`' -> sb.append("&#96;");
-        default -> sb.append(c);
-      }
-    }
-    return sb.toString();
-  }
-
-  private static String escapeUrl(String input) {
-    if (input == null) return "";
-    return java.net.URLEncoder.encode(input, java.nio.charset.StandardCharsets.UTF_8);
+    StandardEscapers.get(mode).escape(charSeq, frame.output);
   }
 
   private static void executeStoreLocal(IrStoreLocal sl, InterpretedFrame frame) {

@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Output Runtime Architecture (Milestone M8)**:
+  - Low-allocation, streaming output runtime implementing the complete `TemplateOutput` abstraction across `WriterTemplateOutput`, `Utf8OutputStreamTemplateOutput`, and `StringTemplateOutput`.
+  - Zero-allocation primitive numeric formatting (`NumberFormatting`) formatting `int`, `long`, `double`, `float`, `short`, `byte`, and `boolean` directly to `Writer` and byte buffers without intermediate `String` creation.
+  - Zero-allocation `CharSequence` traversal writing character chunks without forcing `.toString()` conversions.
+  - Zero-copy static UTF-8 byte chunk streaming (`writeUtf8`) directly into output streams.
+  - Contextual escaping framework (`Escaper` SPI, `StandardEscapers`, and thread-safe `EscaperRegistry`) streaming escaped output directly to `TemplateOutput`.
+  - Streaming `HtmlTextEscaper` neutralizing HTML delimiters (`&`, `<`, `>`, `"`, `'`) with fast-path scanning emitting clean content without allocation.
+  - Secure `HtmlAttributeEscaper` policy neutralizing HTML delimiters, backtick (`` ` ``), and non-printable control characters (`0x00`-`0x1F`, `0x7F`).
+  - RFC 3986 `UrlComponentEscaper` implementing percent-encoding for URI query parameters and path segments.
+  - JavaScript (`JsStringEscaper`) and CSS (`CssStringEscaper`) literal escapers neutralizing tag breakouts (`</script>`, `</style>`) and quotes.
+  - Explicit contextual escaping boundary decisions and back-pressure architecture documented in `docs/08-runtime-output.md`.
+  - Explicit safe content types (`SafeContent`, `SafeHtml`, `SafeUrl`) allowing trusted or pre-sanitized markup to bypass escaping in appropriate contexts.
 - **Reference IR Interpreter & Execution Backend (Milestone M7)**:
   - IR execution engine (`IrInterpreter`, `InterpretedFrame`) executing the exact same intermediate representation (`IrTemplate`) used by compiled backends.
   - Streaming output support in `TemplateOutput` emitting zero-copy UTF-8 bytes (`writeUtf8`) for static text constants and primitive values directly (`writeInt`, `writeLong`, `writeDouble`, `writeBoolean`) with budget limit counting (`CountingTemplateOutput`).

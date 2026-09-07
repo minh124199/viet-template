@@ -13,6 +13,7 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnaly
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.runtime.MapRenderContext;
+import io.github.minh124199.viettemplate.runtime.SafeHtml;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import java.io.IOException;
 import java.util.BitSet;
@@ -186,6 +187,33 @@ class IrInterpreterTest {
         ast, source, MapRenderContext.of(Map.of("emptyVal", "", "presentVal", "actual")), out);
 
     assertThat(out.toString()).isEqualTo("[default] [empty-fallback] [actual]");
+  }
+
+  @Test
+  void rendersPrimitivesAndSafeContent() throws IOException {
+    String template = "$shortVal $byteVal $floatVal $safeHtml";
+    SourceText source = SourceText.of("primitives.vm", template);
+    VtlTemplate ast = VtlParser.parse(source).template();
+
+    VtlInterpreter interpreter =
+        new VtlInterpreter(VtlInterpreterOptions.builder().executionTier(ExecutionTier.IR).build());
+    StringTemplateOutput out = new StringTemplateOutput();
+    interpreter.interpret(
+        ast,
+        source,
+        MapRenderContext.of(
+            Map.of(
+                "shortVal",
+                (short) 12,
+                "byteVal",
+                (byte) 7,
+                "floatVal",
+                3.5f,
+                "safeHtml",
+                SafeHtml.of("<b>bold</b>"))),
+        out);
+
+    assertThat(out.toString()).isEqualTo("12 7 3.5 <b>bold</b>");
   }
 
   static class RecordingTemplateOutput

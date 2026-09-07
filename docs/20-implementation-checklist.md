@@ -353,18 +353,18 @@ The interpreter passes the TCK before the AOT backend is allowed to claim compat
 
 ## 8. Output runtime
 
-- [ ] Define `TemplateOutput` with minimal operations.
-- [ ] Writer-backed implementation.
-- [ ] UTF-8 OutputStream-backed implementation.
-- [ ] String-building implementation for convenience APIs/tests.
-- [ ] Static UTF-8 byte chunk support.
-- [ ] Escaper SPI.
-- [ ] HTML text escaping.
-- [ ] HTML attribute escaping policy.
-- [ ] URI/JavaScript/CSS contextual escaping decision explicitly documented; do not pretend generic HTML escaping is sufficient in every context.
-- [ ] Efficient primitive-number output.
-- [ ] CharSequence output without forced `String` creation.
-- [ ] Back-pressure story documented for synchronous servlet output; reactive support is separate/non-goal until designed.
+- [x] Define `TemplateOutput` with minimal operations.
+- [x] Writer-backed implementation.
+- [x] UTF-8 OutputStream-backed implementation.
+- [x] String-building implementation for convenience APIs/tests.
+- [x] Static UTF-8 byte chunk support.
+- [x] Escaper SPI.
+- [x] HTML text escaping.
+- [x] HTML attribute escaping policy.
+- [x] URI/JavaScript/CSS contextual escaping decision explicitly documented; do not pretend generic HTML escaping is sufficient in every context.
+- [x] Efficient primitive-number output.
+- [x] CharSequence output without forced `String` creation.
+- [x] Back-pressure story documented for synchronous servlet output; reactive support is separate/non-goal until designed.
 
 ### Allocation target
 

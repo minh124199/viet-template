@@ -4,6 +4,7 @@ import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
+import io.github.minh124199.viettemplate.runtime.NumberFormatting;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -55,16 +56,22 @@ final class CountingTemplateOutput implements TemplateOutput {
   }
 
   @Override
+  public void writeUtf8(byte[] bytes, int offset, int length) throws IOException {
+    if (bytes != null) {
+      checkLimit(length);
+      delegate.writeUtf8(bytes, offset, length);
+    }
+  }
+
+  @Override
   public void writeInt(int value) throws IOException {
-    String s = Integer.toString(value);
-    checkLimit(s.length());
+    checkLimit(NumberFormatting.stringSize(value));
     delegate.writeInt(value);
   }
 
   @Override
   public void writeLong(long value) throws IOException {
-    String s = Long.toString(value);
-    checkLimit(s.length());
+    checkLimit(NumberFormatting.stringSize(value));
     delegate.writeLong(value);
   }
 
@@ -76,9 +83,33 @@ final class CountingTemplateOutput implements TemplateOutput {
   }
 
   @Override
+  public void writeFloat(float value) throws IOException {
+    String s = Float.toString(value);
+    checkLimit(s.length());
+    delegate.writeFloat(value);
+  }
+
+  @Override
+  public void writeShort(short value) throws IOException {
+    checkLimit(NumberFormatting.stringSize(value));
+    delegate.writeShort(value);
+  }
+
+  @Override
+  public void writeByte(byte value) throws IOException {
+    checkLimit(NumberFormatting.stringSize(value));
+    delegate.writeByte(value);
+  }
+
+  @Override
   public void writeBoolean(boolean value) throws IOException {
     checkLimit(value ? 4 : 5);
     delegate.writeBoolean(value);
+  }
+
+  @Override
+  public void flush() throws IOException {
+    delegate.flush();
   }
 
   long writtenCharacters() {

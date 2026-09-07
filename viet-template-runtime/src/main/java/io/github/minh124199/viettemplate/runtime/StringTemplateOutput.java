@@ -57,8 +57,28 @@ public final class StringTemplateOutput implements TemplateOutput {
   }
 
   @Override
+  public void writeFloat(float value) {
+    builder.append(value);
+  }
+
+  @Override
+  public void writeShort(short value) {
+    builder.append(value);
+  }
+
+  @Override
+  public void writeByte(byte value) {
+    builder.append(value);
+  }
+
+  @Override
   public void writeBoolean(boolean value) {
     builder.append(value);
+  }
+
+  @Override
+  public void flush() {
+    // In-memory buffer no-op
   }
 
   public int length() {
