@@ -333,5 +333,18 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <!-- Spotless / Google Java Format 1.24.0 relies on internal javac APIs
+                 (Log$DeferredDiagnosticHandler.getDiagnostics()) which changed in JDK 25,
+                 causing NoSuchMethodError on Java 25+. Formatting enforcement is performed
+                 on baseline Java 17 and Java 21. -->
+            <id>jdk25-spotless-skip</id>
+            <activation>
+                <jdk>[25,)</jdk>
+            </activation>
+            <properties>
+                <spotless.check.skip>true</spotless.check.skip>
+            </properties>
+        </profile>
     </profiles>
 </project>

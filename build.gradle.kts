@@ -65,6 +65,16 @@ subprojects {
         }
     }
 
+    // Google Java Format 1.24.0 relies on internal javac APIs
+    // (Log$DeferredDiagnosticHandler.getDiagnostics()) which changed in JDK 25,
+    // causing NoSuchMethodError on Java 25+. Formatting enforcement is performed
+    // on baseline Java 17 and Java 21.
+    if (JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_25)) {
+        tasks.matching { it.name.startsWith("spotless") }.configureEach {
+            enabled = false
+        }
+    }
+
     // Publication configuration for production modules.
     // NOTE: Apache Maven is the single authoritative release publisher for Maven Central.
     // Gradle publication is maintained for local installation (publishToMavenLocal),
