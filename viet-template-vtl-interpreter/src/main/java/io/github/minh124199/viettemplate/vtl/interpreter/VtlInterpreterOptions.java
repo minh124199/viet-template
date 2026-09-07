@@ -13,7 +13,8 @@ public record VtlInterpreterOptions(
     boolean allowBareNullLiteral,
     ExecutionLimits limits,
     VtlSecurityPolicy securityPolicy,
-    TemplateResourceResolver resourceResolver) {
+    TemplateResourceResolver resourceResolver,
+    ExecutionTier executionTier) {
 
   public static final VtlInterpreterOptions DEFAULT =
       new VtlInterpreterOptions(
@@ -25,7 +26,8 @@ public record VtlInterpreterOptions(
           false,
           ExecutionLimits.DEFAULT,
           VtlSecurityPolicy.standard(),
-          TemplateResourceResolver.empty());
+          TemplateResourceResolver.empty(),
+          ExecutionTier.AST);
 
   public VtlInterpreterOptions {
     Objects.requireNonNull(profile, "profile must not be null");
@@ -33,6 +35,30 @@ public record VtlInterpreterOptions(
     Objects.requireNonNull(limits, "limits must not be null");
     Objects.requireNonNull(securityPolicy, "securityPolicy must not be null");
     Objects.requireNonNull(resourceResolver, "resourceResolver must not be null");
+    Objects.requireNonNull(executionTier, "executionTier must not be null");
+  }
+
+  public VtlInterpreterOptions(
+      VtlProfile profile,
+      boolean strictReferences,
+      boolean setNullAllowed,
+      boolean emptyCheck,
+      SpaceGobbler.Mode spaceGobbling,
+      boolean allowBareNullLiteral,
+      ExecutionLimits limits,
+      VtlSecurityPolicy securityPolicy,
+      TemplateResourceResolver resourceResolver) {
+    this(
+        profile,
+        strictReferences,
+        setNullAllowed,
+        emptyCheck,
+        spaceGobbling,
+        allowBareNullLiteral,
+        limits,
+        securityPolicy,
+        resourceResolver,
+        ExecutionTier.AST);
   }
 
   public static Builder builder() {
@@ -49,7 +75,8 @@ public record VtlInterpreterOptions(
         .allowBareNullLiteral(allowBareNullLiteral)
         .limits(limits)
         .securityPolicy(securityPolicy)
-        .resourceResolver(resourceResolver);
+        .resourceResolver(resourceResolver)
+        .executionTier(executionTier);
   }
 
   public static final class Builder {
@@ -62,6 +89,7 @@ public record VtlInterpreterOptions(
     private ExecutionLimits limits = ExecutionLimits.DEFAULT;
     private VtlSecurityPolicy securityPolicy = VtlSecurityPolicy.standard();
     private TemplateResourceResolver resourceResolver = TemplateResourceResolver.empty();
+    private ExecutionTier executionTier = ExecutionTier.AST;
 
     public Builder profile(VtlProfile profile) {
       this.profile = Objects.requireNonNull(profile, "profile must not be null");
@@ -110,6 +138,11 @@ public record VtlInterpreterOptions(
       return this;
     }
 
+    public Builder executionTier(ExecutionTier executionTier) {
+      this.executionTier = Objects.requireNonNull(executionTier, "executionTier must not be null");
+      return this;
+    }
+
     public VtlInterpreterOptions build() {
       return new VtlInterpreterOptions(
           profile,
@@ -120,7 +153,8 @@ public record VtlInterpreterOptions(
           allowBareNullLiteral,
           limits,
           securityPolicy,
-          resourceResolver);
+          resourceResolver,
+          executionTier);
     }
   }
 }

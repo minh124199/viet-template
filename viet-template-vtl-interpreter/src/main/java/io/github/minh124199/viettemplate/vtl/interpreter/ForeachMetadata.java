@@ -1,7 +1,8 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
 /** Loop metadata exposed to templates as {@code $foreach}. */
-public final class ForeachMetadata {
+public final class ForeachMetadata
+    implements io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata {
 
   private final int index;
   private final int count;

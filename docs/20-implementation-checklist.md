@@ -337,13 +337,13 @@ Typed and untyped ASTs lower into verifiable, control-flow-aware `IrTemplate` st
 
 The interpreter is a correctness oracle and development backend, not the final performance story.
 
-- [ ] Execute the same semantic/IR representation used by compiled backends.
-- [ ] Implement streaming output.
-- [ ] Implement all VTL_CORE semantics first.
-- [ ] Implement compatibility-only features behind capability checks.
-- [ ] Match source-position error reporting.
-- [ ] Support deterministic execution limits.
-- [ ] Support development hot reload.
+- [x] Execute the same semantic/IR representation used by compiled backends.
+- [x] Implement streaming output.
+- [x] Implement all VTL_CORE semantics first.
+- [x] Implement compatibility-only features behind capability checks.
+- [x] Match source-position error reporting.
+- [x] Support deterministic execution limits.
+- [x] Support development hot reload.
 
 ### Exit criteria
 

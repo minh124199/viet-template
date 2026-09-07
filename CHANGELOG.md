@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Reference IR Interpreter & Execution Backend (Milestone M7)**:
+  - IR execution engine (`IrInterpreter`, `InterpretedFrame`) executing the exact same intermediate representation (`IrTemplate`) used by compiled backends.
+  - Streaming output support in `TemplateOutput` emitting zero-copy UTF-8 bytes (`writeUtf8`) for static text constants and primitive values directly (`writeInt`, `writeLong`, `writeDouble`, `writeBoolean`) with budget limit counting (`CountingTemplateOutput`).
+  - Full `VTL_CORE` semantic coverage across directives, expressions, assignments, foreach loops with metadata (`ForeachMetadata`), macros, and alternate values (`IrAlternateValue`).
+  - Capability-gated dynamic features including `#evaluate` (`IrEvaluate`) restricted to `VTL_DYNAMIC` profile with depth and length limits.
+  - Property and index mutation statements (`IrSetProperty`, `IrSetIndex`) for navigated and indexed assignment.
+  - Source-position error reporting mapping runtime failures back to `SourceSpan` across templates and includes.
+  - Deterministic execution safety budgets via `ExecutionLimits` (output characters, loop iterations, recursion depth, dynamic source length).
+  - Development hot reload system (`TemplateHotReloader`) supporting thread-safe atomic template swaps, SHA-256 content hashing, generation tracking, and granular cache invalidation.
+  - Multi-tier execution architecture (`ExecutionTier`: `IR`, `AST`) selectable via `VtlInterpreterOptions`.
 - **Template Intermediate Representation (Milestone M6)**:
   - Compiler-internal intermediate representation (`io.github.minh124199.viettemplate.language.vtl.ir`) modeling templates as immutable `IrTemplate` containing parameters, local slots, blocks, functions/macros, and constant pools.
   - Constant text pool (`IrConstantPool`, `IrTextConstant`) with adjacent static text chunk collapsing and pre-computed UTF-8 byte representations.

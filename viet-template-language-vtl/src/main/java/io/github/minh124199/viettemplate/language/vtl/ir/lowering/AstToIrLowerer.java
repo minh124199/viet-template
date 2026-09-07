@@ -11,6 +11,7 @@ import io.github.minh124199.viettemplate.language.vtl.ast.VtlBreakDirectiveNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlDecimalLiteralExpression;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlDefineDirectiveNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlDirectiveCallNode;
+import io.github.minh124199.viettemplate.language.vtl.ast.VtlEvaluateDirectiveNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlExpression;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlForeachDirectiveNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlGroupedExpression;
@@ -41,6 +42,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.IrLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrParameter;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool;
+import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrAlternateValue;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrBinaryOp;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrConst;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrDynamicDispatch;
@@ -64,8 +66,11 @@ import io.github.minh124199.viettemplate.language.vtl.ir.plan.UnaryOpKind;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBreak;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallMacro;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallTemplate;
+import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrEvaluate;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrIf;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoop;
+import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrSetIndex;
+import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrSetProperty;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStatement;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStop;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStoreLocal;
@@ -85,6 +90,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -118,6 +124,7 @@ public final class AstToIrLowerer {
   private final SourceText source;
   private final SemanticAnalysisResult analysis;
   private final VtlSemanticOptions options;
+  private final BitSet gobbledIndices;
   private final IrConstantPool constantPool = new IrConstantPool();
   private final Map<String, IrParameter> parameters = new LinkedHashMap<>();
   private final List<IrFunction> functions = new ArrayList<>();
@@ -125,10 +132,28 @@ public final class AstToIrLowerer {
   private int nextLocalSlot = 0;
 
   private AstToIrLowerer(
-      SourceText source, SemanticAnalysisResult analysis, VtlSemanticOptions options) {
+      SourceText source,
+      SemanticAnalysisResult analysis,
+      VtlSemanticOptions options,
+      BitSet gobbledIndices) {
     this.source = Objects.requireNonNull(source, "source must not be null");
     this.analysis = Objects.requireNonNull(analysis, "analysis must not be null");
     this.options = Objects.requireNonNull(options, "options must not be null");
+    this.gobbledIndices = gobbledIndices;
+  }
+
+  /**
+   * Lowers the analyzed template to {@link IrTemplate} with verification enabled and space gobbling
+   * applied.
+   */
+  public static IrTemplate lower(
+      VtlTemplate template,
+      SourceText source,
+      SemanticAnalysisResult analysis,
+      VtlSemanticOptions options,
+      BitSet gobbledIndices) {
+    AstToIrLowerer lowerer = new AstToIrLowerer(source, analysis, options, gobbledIndices);
+    return lowerer.run(template);
   }
 
   /** Lowers the analyzed template to {@link IrTemplate} with verification enabled. */
@@ -137,13 +162,12 @@ public final class AstToIrLowerer {
       SourceText source,
       SemanticAnalysisResult analysis,
       VtlSemanticOptions options) {
-    AstToIrLowerer lowerer = new AstToIrLowerer(source, analysis, options);
-    return lowerer.run(template);
+    return lower(template, source, analysis, options, null);
   }
 
   public static IrTemplate lower(
       VtlTemplate template, SourceText source, SemanticAnalysisResult analysis) {
-    return lower(template, source, analysis, VtlSemanticOptions.defaults());
+    return lower(template, source, analysis, VtlSemanticOptions.defaults(), null);
   }
 
   private IrTemplate run(VtlTemplate template) {
@@ -188,12 +212,15 @@ public final class AstToIrLowerer {
 
     for (VtlNode node : nodes) {
       if (node instanceof VtlTextNode txt) {
-        pendingText.append(txt.text(source));
-        pendingSpan = mergeSpans(pendingSpan, txt.span());
+        String text = extractText(txt);
+        if (!text.isEmpty()) {
+          pendingText.append(text);
+          pendingSpan = mergeSpans(pendingSpan, txt.span());
+        }
         continue;
       }
       if (node instanceof VtlRawTextNode raw) {
-        pendingText.append(raw.text(source));
+        pendingText.append(raw.innerContent(source));
         pendingSpan = mergeSpans(pendingSpan, raw.span());
         continue;
       }
@@ -218,14 +245,35 @@ public final class AstToIrLowerer {
     return new IrBlock(statements, blockSpan);
   }
 
+  private String extractText(VtlTextNode node) {
+    if (gobbledIndices == null || gobbledIndices.isEmpty()) {
+      return node.text(source);
+    }
+    SourceSpan span = node.span();
+    int start = span.startOffset();
+    int end = span.endOffset();
+    int nextGobbled = gobbledIndices.nextSetBit(start);
+    if (nextGobbled < 0 || nextGobbled >= end) {
+      return node.text(source);
+    }
+    String content = source.content();
+    StringBuilder sb = new StringBuilder(end - start);
+    for (int i = start; i < end; i++) {
+      if (!gobbledIndices.get(i)) {
+        sb.append(content.charAt(i));
+      }
+    }
+    return sb.toString();
+  }
+
   private void lowerNode(VtlNode node, List<IrStatement> statements, Scope scope) {
     if (node instanceof VtlReferenceOutputNode refOut) {
       IrExpression value = lowerReference(refOut.reference(), scope);
       NullRenderMode nullMode =
-          options.strictMode()
-              ? NullRenderMode.THROW_ERROR
-              : (refOut.reference().isQuiet()
-                  ? NullRenderMode.EMPTY_STRING
+          refOut.reference().isQuiet()
+              ? NullRenderMode.EMPTY_STRING
+              : (options.strictMode()
+                  ? NullRenderMode.THROW_ERROR
                   : NullRenderMode.LITERAL_EXPRESSION);
       statements.add(new IrWriteValue(value, IrEscapeMode.RAW, nullMode, refOut.span()));
       return;
@@ -233,10 +281,22 @@ public final class AstToIrLowerer {
 
     if (node instanceof VtlSetDirectiveNode set) {
       if (set.target() instanceof VtlAssignmentTarget.ReferenceTarget refTarget) {
-        String varName = refTarget.reference().rootName();
+        VtlReference ref = refTarget.reference();
         IrExpression rhs = lowerExpression(set.value(), scope);
-        IrLocal local = scope.getOrCreateLocal(varName, rhs.type(), set.span());
-        statements.add(new IrStoreLocal(local, rhs, set.span()));
+        if (ref.steps().isEmpty()) {
+          String varName = ref.rootName();
+          IrLocal local = scope.getOrCreateLocal(varName, rhs.type(), set.span());
+          statements.add(new IrStoreLocal(local, rhs, set.span()));
+        } else {
+          IrExpression target = lowerReferenceUpTo(ref, ref.steps().size() - 1, scope);
+          VtlAccessStep lastStep = ref.steps().get(ref.steps().size() - 1);
+          if (lastStep instanceof VtlAccessStep.PropertyAccess prop) {
+            statements.add(new IrSetProperty(target, prop.propertyName(), rhs, set.span()));
+          } else if (lastStep instanceof VtlAccessStep.IndexAccess idx) {
+            IrExpression idxExpr = lowerExpression(idx.indexExpression(), scope);
+            statements.add(new IrSetIndex(target, idxExpr, rhs, set.span()));
+          }
+        }
       }
       return;
     }
@@ -316,6 +376,12 @@ public final class AstToIrLowerer {
 
     if (node instanceof VtlStopDirectiveNode stop) {
       statements.add(new IrStop(stop.span()));
+      return;
+    }
+
+    if (node instanceof VtlEvaluateDirectiveNode eval) {
+      IrExpression expr = lowerExpression(eval.expression(), scope);
+      statements.add(new IrEvaluate(expr, eval.span()));
     }
   }
 
@@ -417,21 +483,28 @@ public final class AstToIrLowerer {
   }
 
   private void lowerMacroDefinition(VtlMacroDefinitionNode macro, Scope parentScope) {
-    Scope macroScope = new Scope(null);
-    List<IrParameter> macroParams = new ArrayList<>();
-    int slot = 0;
-    for (VtlMacroParameter mp : macro.parameters()) {
-      IrParameter param = new IrParameter(mp.name(), VTypes.DYNAMIC, slot++, mp.span());
-      macroParams.add(param);
-      macroScope.defineParam(mp.name(), param);
+    int savedLocalSlot = nextLocalSlot;
+    try {
+      Scope macroScope = new Scope(null);
+      List<IrParameter> macroParams = new ArrayList<>();
+      int slot = 0;
+      for (VtlMacroParameter mp : macro.parameters()) {
+        Optional<IrExpression> defExpr = mp.defaultValue().map(d -> lowerExpression(d, macroScope));
+        IrParameter param = new IrParameter(mp.name(), VTypes.DYNAMIC, slot++, defExpr, mp.span());
+        macroParams.add(param);
+        macroScope.defineParam(mp.name(), param);
+      }
+      nextLocalSlot = slot;
+      macroScope.getOrCreateLocal("bodyContent", VTypes.STRING, macro.span());
+
+      IrBlock body = lowerBlock(macro.body(), macroScope, macro.span());
+      List<IrLocal> locals = macroScope.allLocals();
+
+      IrFunction function = new IrFunction(macro.name(), macroParams, locals, body, macro.span());
+      functions.add(function);
+    } finally {
+      nextLocalSlot = savedLocalSlot;
     }
-    macroScope.getOrCreateLocal("bodyContent", VTypes.STRING, macro.span());
-
-    IrBlock body = lowerBlock(macro.body(), macroScope, macro.span());
-    List<IrLocal> locals = macroScope.allLocals();
-
-    IrFunction function = new IrFunction(macro.name(), macroParams, locals, body, macro.span());
-    functions.add(function);
   }
 
   public IrExpression lowerExpression(VtlExpression expr, Scope scope) {
@@ -539,6 +612,15 @@ public final class AstToIrLowerer {
   }
 
   public IrExpression lowerReference(VtlReference ref, Scope scope) {
+    IrExpression current = lowerReferenceUpTo(ref, ref.steps().size(), scope);
+    if (ref.alternateValue().isPresent()) {
+      IrExpression alt = lowerExpression(ref.alternateValue().get(), scope);
+      return IrAlternateValue.of(current, alt, ref.span());
+    }
+    return current;
+  }
+
+  public IrExpression lowerReferenceUpTo(VtlReference ref, int limitSteps, Scope scope) {
     String rootName = ref.rootName();
     IrExpression current;
 
@@ -559,7 +641,8 @@ public final class AstToIrLowerer {
     }
 
     // Traverse access steps
-    for (VtlAccessStep step : ref.steps()) {
+    for (int stepIdx = 0; stepIdx < limitSteps && stepIdx < ref.steps().size(); stepIdx++) {
+      VtlAccessStep step = ref.steps().get(stepIdx);
       if (step instanceof VtlAccessStep.PropertyAccess prop) {
         Optional<MemberResolution> optRes = analysis.memberResolutionOf(prop);
         AccessPlan plan;

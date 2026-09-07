@@ -9,8 +9,13 @@ import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateResourceException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
 import io.github.minh124199.viettemplate.language.vtl.ast.*;
+import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
+import io.github.minh124199.viettemplate.language.vtl.ir.lowering.AstToIrLowerer;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
+import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysisResult;
+import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer;
+import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -53,6 +58,21 @@ public final class VtlInterpreter {
     Objects.requireNonNull(context, "context must not be null");
     Objects.requireNonNull(output, "output must not be null");
 
+    if (options.executionTier() == ExecutionTier.IR) {
+      BitSet gobbledIndices = SpaceGobbler.computeGobbledIndices(source, options.spaceGobbling());
+      VtlSemanticOptions semanticOptions =
+          VtlSemanticOptions.builder()
+              .profile(options.profile())
+              .strictMode(options.strictReferences())
+              .allowArbitraryMethods(options.profile().isArbitraryMethodsAllowed())
+              .build();
+      SemanticAnalysisResult analysis = VtlSemanticAnalyzer.analyze(template, semanticOptions);
+      IrTemplate irTemplate =
+          AstToIrLowerer.lower(template, source, analysis, semanticOptions, gobbledIndices);
+      IrInterpreter.render(irTemplate, source, context, output, options);
+      return;
+    }
+
     CountingTemplateOutput countingOutput =
         new CountingTemplateOutput(
             output, options.limits().maxOutputCharacters(), template.templateId());
@@ -82,6 +102,19 @@ public final class VtlInterpreter {
     } catch (StopSignal ignored) {
       // Normal template termination via #stop
     }
+  }
+
+  public void render(
+      IrTemplate template, SourceText source, RenderContext renderContext, TemplateOutput output)
+      throws IOException {
+    Objects.requireNonNull(renderContext, "renderContext must not be null");
+    render(template, source, new ExecutionContext(renderContext), output);
+  }
+
+  public void render(
+      IrTemplate template, SourceText source, ExecutionContext context, TemplateOutput output)
+      throws IOException {
+    IrInterpreter.render(template, source, context, output, options);
   }
 
   public void render(
@@ -928,72 +961,6 @@ public final class VtlInterpreter {
       return list;
     }
     return null;
-  }
-
-  private static final class CountingTemplateOutput implements TemplateOutput {
-    private final TemplateOutput delegate;
-    private final long maxChars;
-    private final TemplateId templateId;
-    private long written = 0;
-
-    CountingTemplateOutput(TemplateOutput delegate, long maxChars, TemplateId templateId) {
-      this.delegate = delegate;
-      this.maxChars = maxChars;
-      this.templateId = templateId;
-    }
-
-    private void checkLimit(int added) {
-      written += added;
-      if (written > maxChars) {
-        throw new TemplateLimitException(
-            "Exceeded maximum rendered output characters limit: " + maxChars,
-            templateId,
-            SourceSpan.UNKNOWN,
-            InterpreterDiagnosticCodes.LIMIT_EXCEEDED);
-      }
-    }
-
-    @Override
-    public void write(CharSequence value) throws IOException {
-      if (value != null) {
-        checkLimit(value.length());
-        delegate.write(value);
-      }
-    }
-
-    @Override
-    public void write(char value) throws IOException {
-      checkLimit(1);
-      delegate.write(value);
-    }
-
-    @Override
-    public void writeUtf8(byte[] bytes) throws IOException {
-      if (bytes != null) {
-        checkLimit(bytes.length);
-        delegate.writeUtf8(bytes);
-      }
-    }
-
-    @Override
-    public void writeInt(int value) throws IOException {
-      write(Integer.toString(value));
-    }
-
-    @Override
-    public void writeLong(long value) throws IOException {
-      write(Long.toString(value));
-    }
-
-    @Override
-    public void writeDouble(double value) throws IOException {
-      write(Double.toString(value));
-    }
-
-    @Override
-    public void writeBoolean(boolean value) throws IOException {
-      write(Boolean.toString(value));
-    }
   }
 
   private static final class ExecutionState {

@@ -5,6 +5,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrParameter;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
+import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrAlternateValue;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrBinaryOp;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrConst;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrConvert;
@@ -28,6 +29,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBreak;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBudgetCheck;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallMacro;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallTemplate;
+import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrEvaluate;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrIf;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoop;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoopEnd;
@@ -35,6 +37,8 @@ import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoopNext;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoopSetup;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrNoOp;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrReturn;
+import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrSetIndex;
+import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrSetProperty;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStatement;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStop;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStoreLocal;
@@ -244,6 +248,27 @@ public final class IrVerifier {
       return;
     }
 
+    if (stmt instanceof IrSetProperty sp) {
+      verifyExpression(sp.target(), scope, template, errors);
+      verifyExpression(sp.value(), scope, template, errors);
+      return;
+    }
+
+    if (stmt instanceof IrSetIndex si) {
+      verifyExpression(si.target(), scope, template, errors);
+      verifyExpression(si.index(), scope, template, errors);
+      verifyExpression(si.value(), scope, template, errors);
+      return;
+    }
+
+    if (stmt instanceof IrEvaluate eval) {
+      verifyExpression(eval.expression(), scope, template, errors);
+      if (template.capabilities().eligibleForStaticAot()) {
+        errors.add("Runtime evaluate forbidden in static AOT template at " + eval.span());
+      }
+      return;
+    }
+
     if (stmt instanceof IrBreak
         || stmt instanceof IrStop
         || stmt instanceof IrNoOp
@@ -353,6 +378,12 @@ public final class IrVerifier {
 
     if (expr instanceof IrConvert cv) {
       verifyExpression(cv.expression(), scope, template, errors);
+      return;
+    }
+
+    if (expr instanceof IrAlternateValue alt) {
+      verifyExpression(alt.primary(), scope, template, errors);
+      verifyExpression(alt.fallback(), scope, template, errors);
     }
   }
 
