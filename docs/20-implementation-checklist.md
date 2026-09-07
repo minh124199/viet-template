@@ -397,18 +397,18 @@ Do **not** add `invokedynamic` only because it is sophisticated. Add it only if 
 
 Implement in this order and benchmark each pass independently:
 
-- [ ] remove unreachable IR.
-- [ ] constant folding.
-- [ ] boolean simplification.
-- [ ] merge adjacent static output.
-- [ ] pre-encode static UTF-8 chunks.
-- [ ] eliminate redundant local loads/conversions.
-- [ ] bind statically known accessors.
-- [ ] specialize primitive operations.
-- [ ] specialize common loops where semantics remain identical.
-- [ ] inline small static macros/includes.
-- [ ] split large generated render methods.
-- [ ] optional escape-hoisting only when proven safe.
+- [x] remove unreachable IR.
+- [x] constant folding.
+- [x] boolean simplification.
+- [x] merge adjacent static output.
+- [x] pre-encode static UTF-8 chunks.
+- [x] eliminate redundant local loads/conversions.
+- [x] bind statically known accessors.
+- [x] specialize primitive operations.
+- [x] specialize common loops where semantics remain identical.
+- [x] inline small static macros/includes.
+- [x] split large generated render methods.
+- [x] optional escape-hoisting only when proven safe.
 
 ### Optimization invariant
 

@@ -11,6 +11,7 @@ import io.github.minh124199.viettemplate.api.TemplateSecurityException;
 import io.github.minh124199.viettemplate.language.vtl.ast.*;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ir.lowering.AstToIrLowerer;
+import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
 import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysisResult;
@@ -69,7 +70,9 @@ public final class VtlInterpreter {
       SemanticAnalysisResult analysis = VtlSemanticAnalyzer.analyze(template, semanticOptions);
       IrTemplate irTemplate =
           AstToIrLowerer.lower(template, source, analysis, semanticOptions, gobbledIndices);
-      IrInterpreter.render(irTemplate, source, context, output, options);
+      IrTemplate optimizedTemplate =
+          IrOptimizer.optimize(irTemplate, options.optimizationOptions());
+      IrInterpreter.render(optimizedTemplate, source, context, output, options);
       return;
     }
 
@@ -114,7 +117,8 @@ public final class VtlInterpreter {
   public void render(
       IrTemplate template, SourceText source, ExecutionContext context, TemplateOutput output)
       throws IOException {
-    IrInterpreter.render(template, source, context, output, options);
+    IrTemplate optimizedTemplate = IrOptimizer.optimize(template, options.optimizationOptions());
+    IrInterpreter.render(optimizedTemplate, source, context, output, options);
   }
 
   public void render(

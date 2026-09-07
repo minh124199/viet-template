@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Intermediate Representation Optimizer (Milestone M10)**:
+  - Architecture Tier 2/3 optimizer pipeline (`io.github.minh124199.viettemplate.language.vtl.ir.optimization`) operating directly on compiler-internal `IrTemplate`.
+  - Configurable optimization levels (`OptimizationLevel`: `O0`, `O1`, `O2`, `O3`) with granular per-pass toggles (`IrOptimizationOptions`).
+  - Thread-safe optimization metrics collector (`OptimizationStatistics`) capturing counts for all 12 optimization categories.
+  - Complete implementation of all 12 canonical optimization passes:
+    - Dead code elimination (`DeadCodeEliminationPass`): removes unreachable blocks after terminal statements (`IrReturn`, `IrStop`, `IrBreak`), statically determines dead branches, and strips redundant `IrNoOp` statements.
+    - Constant folding (`ConstantFoldingPass`): folds compile-time constants for binary arithmetic, comparisons, string concatenation, logical operations, unary negation/not, and truthiness checks while strictly preserving runtime range iteration semantics.
+    - Boolean simplification (`BooleanSimplificationPass`): applies boolean algebra reductions (`true && x -> x`, `false || x -> x`, `!(!x) -> x`), eliminates redundant truthiness conversions on booleans, and inverts negated conditionals with both branches.
+    - Text constant merging (`MergeTextConstantsPass`): combines adjacent static text writes (`IrWriteConst`) into unified text chunks to minimize dispatch and buffer overhead.
+    - UTF-8 chunk pre-encoding (`PreEncodeUtf8Pass`): pre-computes UTF-8 byte arrays for static text constants into the constant pool for zero-copy streaming.
+    - Redundant local load and conversion elimination (`RedundantConversionPass`): strips identity and redundant type conversions and stores.
+    - Direct accessor binding (`DirectAccessorBindingPass`): statically binds known record components, getters, fields, and map accessors to eliminate dynamic PIC lookups.
+    - Primitive operation specialization (`PrimitiveSpecializationPass`): specializes primitive arithmetic and comparison operations, removing boxing and unboxing wrappers.
+    - Loop specialization (`LoopSpecializationPass`): specializes loop iteration plans to `ARRAY`, `LIST_INDEXED`, `ITERABLE`, `ITERATOR`, and `RANGE` based on static collection types.
+    - Macro inlining (`MacroInliningPass`): inlines small non-recursive macros within statement and depth budgets with local slot remapping.
+    - Method size planning (`MethodSizePlanningPass`): segments oversized blocks exceeding bytecode method limits into partitioned helper chunk functions (`IrFunction`).
+    - Escape hoisting and pre-escaping (`EscapeSpecializationPass`): pre-escapes static strings and hoists constant writes to static constant pool chunks when safe.
+  - Unconditional invariant verification (`O160 Verify`): executes `IrVerifier.verify(optimizedTemplate)` on every optimization run.
+  - Explain plan diagnostic utility (`IrExplainPlan`): formats structured plan diagnostics with access plans, loop specializations, constant stats, and pass metrics.
+  - Integration with reference runtime: `VtlInterpreterOptions` and `VtlInterpreter` transparently optimize lowered IR templates across execution tiers.
 - **Dynamic Linker & Inline Caches (Milestone M9)**:
   - Architecture Tier 2 dynamic linker (`io.github.minh124199.viettemplate.runtime.linker`) for high-performance dynamic dispatch across unspecialized and evolving call sites.
   - Member identifier `MemberKey` modeling operation kind (`PROPERTY_GET`, `PROPERTY_SET`, `METHOD_CALL`, `INDEX_GET`, `INDEX_SET`), member name, and arity.

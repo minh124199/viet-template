@@ -28,6 +28,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrLoadParam;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrTruthiness;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrUnaryOp;
 import io.github.minh124199.viettemplate.language.vtl.ir.lowering.AstToIrLowerer;
+import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullAccessMode;
@@ -602,6 +603,7 @@ public final class IrInterpreter {
     IrTemplate subIr =
         AstToIrLowerer.lower(
             parseResult.template(), subSource, analysis, semanticOptions, subGobbled);
+    subIr = IrOptimizer.optimize(subIr, frame.options.optimizationOptions());
 
     for (IrFunction function : subIr.functions()) {
       frame.functions.put(function.name(), function);
@@ -669,6 +671,7 @@ public final class IrInterpreter {
     IrTemplate subIr =
         AstToIrLowerer.lower(
             parseResult.template(), subSource, analysis, semanticOptions, subGobbled);
+    subIr = IrOptimizer.optimize(subIr, frame.options.optimizationOptions());
 
     for (IrFunction function : subIr.functions()) {
       frame.functions.put(function.name(), function);
