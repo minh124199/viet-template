@@ -1,5 +1,6 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
+import io.github.minh124199.viettemplate.api.MutableRenderContext;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -58,6 +59,9 @@ public final class ExecutionContext {
 
     // Otherwise, assign at template context level (Velocity-compatible global/template scope)
     templateVariables.put(name, value);
+    if (rootContext instanceof MutableRenderContext mrc) {
+      mrc.put(name, value.asObjectOrNull());
+    }
   }
 
   public void pushScope(Map<String, EvaluationValue> bindings, boolean isolateSet) {

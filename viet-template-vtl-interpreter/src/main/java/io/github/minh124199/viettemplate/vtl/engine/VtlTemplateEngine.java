@@ -17,15 +17,25 @@ import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeTemplateC
 import io.github.minh124199.viettemplate.vtl.engine.cache.CompileCacheKey;
 import io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle;
 import io.github.minh124199.viettemplate.vtl.engine.cache.TemplateCompileCache;
+import io.github.minh124199.viettemplate.vtl.engine.context.ContributingContextComposer;
+import io.github.minh124199.viettemplate.vtl.engine.dependency.DefaultTemplateDependencyGraph;
+import io.github.minh124199.viettemplate.vtl.engine.dependency.StaticDependencyExtractor;
+import io.github.minh124199.viettemplate.vtl.engine.layout.DefaultLayoutRenderPlan;
+import io.github.minh124199.viettemplate.vtl.engine.macro.GlobalMacroManager;
 import io.github.minh124199.viettemplate.vtl.engine.watcher.DevelopmentFileWatcher;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler;
+import io.github.minh124199.viettemplate.vtl.interpreter.TemplateResource;
+import io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.BitSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /** Canonical reference implementation of {@link TemplateEngine}. */
 public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
@@ -42,6 +52,14 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
   private final VtlInterpreterOptions interpreterOptions;
   private final Optional<DevelopmentFileWatcher> fileWatcher;
 
+  private final TemplateDependencyGraph dependencyGraph;
+  private final GlobalMacroManager globalMacroManager;
+  private final List<RenderContextContributor> contextContributors;
+  private final ContextCollisionPolicy contextCollisionPolicy;
+  private final LayoutConfiguration layoutConfiguration;
+  private final ThreadLocal<Set<TemplateId>> compilingTemplates =
+      ThreadLocal.withInitial(java.util.HashSet::new);
+
   VtlTemplateEngine(
       TemplateRepository repository,
       TemplateCompileCache cache,
@@ -52,7 +70,13 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
       VtlSemanticOptions semanticOptions,
       VtlInterpreterOptions interpreterOptions,
       boolean enableWatcher,
-      long watchDebounceMillis) {
+      long watchDebounceMillis,
+      TemplateDependencyGraph dependencyGraph,
+      List<TemplateId> globalMacroLibraries,
+      GlobalMacroPrecedence globalMacroPrecedence,
+      List<RenderContextContributor> contextContributors,
+      ContextCollisionPolicy contextCollisionPolicy,
+      LayoutConfiguration layoutConfiguration) {
     this.repository = Objects.requireNonNull(repository, "repository must not be null");
     this.cache = Objects.requireNonNull(cache, "cache must not be null");
     this.rejectRuntimeCompilation = rejectRuntimeCompilation;
@@ -63,8 +87,51 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
         Objects.requireNonNull(optimizationOptions, "optimizationOptions must not be null");
     this.semanticOptions =
         Objects.requireNonNull(semanticOptions, "semanticOptions must not be null");
+
+    TemplateResourceResolver originalResolver =
+        interpreterOptions != null
+            ? interpreterOptions.resourceResolver()
+            : TemplateResourceResolver.empty();
+    TemplateResourceResolver engineResolver =
+        (current, path) -> {
+          Optional<TemplateResource> custom = originalResolver.resolve(current, path);
+          if (custom.isPresent()) {
+            return custom;
+          }
+          try {
+            TemplateId targetId = TemplateId.normalize(path);
+            try {
+              get(targetId);
+            } catch (Exception ignored) {
+            }
+            return repository
+                .find(targetId)
+                .map(src -> new TemplateResource(src.id(), src.content()));
+          } catch (Exception e) {
+            return Optional.empty();
+          }
+        };
+
     this.interpreterOptions =
-        Objects.requireNonNull(interpreterOptions, "interpreterOptions must not be null");
+        (interpreterOptions != null ? interpreterOptions : VtlInterpreterOptions.DEFAULT)
+            .toBuilder().resourceResolver(engineResolver).build();
+
+    this.dependencyGraph =
+        dependencyGraph != null ? dependencyGraph : new DefaultTemplateDependencyGraph();
+    this.globalMacroManager =
+        new GlobalMacroManager(
+            repository,
+            globalMacroLibraries != null ? globalMacroLibraries : List.of(),
+            globalMacroPrecedence != null ? globalMacroPrecedence : GlobalMacroPrecedence.LAST_WINS,
+            semanticOptions,
+            interpreterOptions,
+            optimizationOptions);
+    this.contextContributors =
+        contextContributors != null ? List.copyOf(contextContributors) : List.of();
+    this.contextCollisionPolicy =
+        contextCollisionPolicy != null ? contextCollisionPolicy : ContextCollisionPolicy.MODEL_WINS;
+    this.layoutConfiguration =
+        layoutConfiguration != null ? layoutConfiguration : LayoutConfiguration.builder().build();
 
     if (enableWatcher && repository instanceof FilesystemTemplateRepository fsRepo) {
       try {
@@ -77,7 +144,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
                       try {
                         Path rel = fsRepo.rootDirectory().relativize(changedPath);
                         TemplateId id = TemplateId.normalize(rel.toString());
-                        cache.invalidate(id);
+                        invalidateWithDependents(id);
                       } catch (Exception ignored) {
                       }
                     }));
@@ -123,6 +190,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     String accessPolicyId = interpreterOptions.securityPolicy().getClass().getName();
     String modelSignature = semanticOptions.modelSchema().parameters().toString();
     String backendHash = "v1";
+    String macroFingerprint = globalMacroManager.computeFingerprint();
 
     CompileCacheKey key =
         CompileCacheKey.of(
@@ -133,7 +201,8 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
             executionTier,
             accessPolicyId,
             modelSignature,
-            backendHash);
+            backendHash,
+            macroFingerprint);
 
     // 4. Cache hit check
     Optional<CompiledTemplateHandle> cachedHandle = cache.get(key);
@@ -168,6 +237,48 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
   }
 
   @Override
+  public void render(RenderRequest request, TemplateOutput output) throws IOException {
+    Objects.requireNonNull(request, "request must not be null");
+    Objects.requireNonNull(output, "output must not be null");
+
+    ContributingContextComposer.CompositionResult composition =
+        ContributingContextComposer.compose(
+            request,
+            contextContributors,
+            contextCollisionPolicy,
+            Set.of(layoutConfiguration.screenContentKey()),
+            Map.of());
+
+    Optional<TemplateId> layout =
+        layoutConfiguration.resolver().resolveLayout(request.templateId(), composition.context());
+    if (layout.isPresent()) {
+      LayoutRenderPlan plan = prepareLayoutPlan(request.templateId(), composition.context());
+      plan.render(composition.context(), output);
+    } else {
+      Template template = get(request.templateId());
+      template.render(composition.context(), output);
+    }
+  }
+
+  @Override
+  public LayoutRenderPlan prepareLayoutPlan(TemplateId screenId, RenderContext context) {
+    Objects.requireNonNull(screenId, "screenId must not be null");
+    return new DefaultLayoutRenderPlan(this, screenId, layoutConfiguration, interpreterOptions);
+  }
+
+  @Override
+  public TemplateDependencyGraph dependencyGraph() {
+    return dependencyGraph;
+  }
+
+  @Override
+  public Set<TemplateId> invalidateWithDependents(TemplateId id) {
+    Objects.requireNonNull(id, "id must not be null");
+    globalMacroManager.invalidate(id);
+    return cache.invalidateWithDependents(id, dependencyGraph);
+  }
+
+  @Override
   public TemplateRepository repository() {
     return repository;
   }
@@ -182,17 +293,19 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
   }
 
   public void invalidate(TemplateId id) {
+    globalMacroManager.invalidate(id);
     cache.invalidate(id);
   }
 
   public void invalidateAll() {
+    globalMacroManager.invalidateAll();
     cache.invalidateAll();
   }
 
   @Override
   public void close() {
     fileWatcher.ifPresent(DevelopmentFileWatcher::close);
-    cache.invalidateAll();
+    invalidateAll();
   }
 
   private CompiledTemplateHandle compileTemplate(
@@ -215,6 +328,35 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
         AstToIrLowerer.lower(
             parseResult.template(), sourceText, analysis, semanticOptions, gobbled);
     IrTemplate optimizedIr = IrOptimizer.optimize(irTemplate, optimizationOptions);
+
+    // Merge global macros into template compilation
+    optimizedIr = globalMacroManager.mergeWithTemplate(optimizedIr);
+
+    // Extract static dependencies and update dependency graph
+    Set<TemplateDependency> deps =
+        StaticDependencyExtractor.extract(
+            optimizedIr,
+            globalMacroManager.libraryIds(),
+            layoutConfiguration.resolver().resolveLayout(id, RenderContext.empty()));
+    dependencyGraph.replaceDependencies(id, deps);
+
+    Set<TemplateId> compiling = compilingTemplates.get();
+    if (compiling.add(id)) {
+      try {
+        for (TemplateDependency dep : deps) {
+          if ((dep.kind() == TemplateDependencyKind.STATIC_PARSE
+                  || dep.kind() == TemplateDependencyKind.STATIC_INCLUDE)
+              && !compiling.contains(dep.target())) {
+            try {
+              get(dep.target());
+            } catch (Exception ignored) {
+            }
+          }
+        }
+      } finally {
+        compiling.remove(id);
+      }
+    }
 
     long gen = cache.nextGeneration();
 

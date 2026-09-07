@@ -248,8 +248,10 @@ In-flight renders may finish on the old generation; mixed-generation output is n
 - `TemplateResourceException`
 - `TemplateLimitException`
 - `TemplateCompilationException`
+- `TemplateLayoutException`
+- `ContextCollisionException`
 
-Each carries template id, source span, template stack, stable diagnostic code and optional cause.
+Each carries template id, source span, template stack, stable diagnostic code and optional cause. See [12a — Velocity Application Compatibility Architecture](12a-velocity-application-compatibility.md) for context composition, dependency graphs, global macros, and layout rendering.
 
 ## 10. Architectural invariants
 

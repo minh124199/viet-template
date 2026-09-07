@@ -460,6 +460,29 @@ Every optimization must preserve:
 
 ---
 
+## 12.5. Velocity application compatibility architecture
+
+- [x] Directed template dependency graph (`TemplateDependencyGraph`, `TemplateDependencyKind`).
+- [x] Static dependency extraction from IR (`#parse`, `#include`, global macros, layout).
+- [x] Transitive dependent cache invalidation (`invalidateWithDependents`).
+- [x] Cycle-safe graph traversal protecting against recursive `#parse` cycles.
+- [x] Multi-source context composition (`RenderRequest`, `ContributorContext`, `RenderContextContributor`).
+- [x] Configurable context collision policies (`FAIL`, `MODEL_WINS`, `CONTRIBUTOR_WINS`).
+- [x] Protection of engine-reserved variables against contributor overwrite.
+- [x] Global Velocimacro library caching and fingerprinting (`velocimacro.library`).
+- [x] Global macro library precedence (`FIRST_WINS`, `LAST_WINS`).
+- [x] Invariant that local template macros unconditionally shadow global macros.
+- [x] Constant pool merging and statement ID remapping for global macros.
+- [x] Two-stage layout rendering plan (`LayoutRenderPlan`, `LayoutResolver`, `LayoutConfiguration`).
+- [x] Output character limit enforcement during screen template capture.
+- [x] Post-screen layout resolution supporting in-template `#set($layout = ...)` override/bypass.
+- [x] Layout recursion cycle detection and maximum depth limits (`maxLayoutDepth`).
+- [x] Shared vs. isolated layout context scope (`LayoutContextScope`).
+- [x] Zero production dependencies on Spring Framework or Apache Velocity.
+- [x] ArchUnit architectural rules ensuring zero forbidden dependency leakage.
+
+---
+
 ## 13. Security hardening
 
 - [ ] Deny class loading/reflection/system/runtime/process by default.

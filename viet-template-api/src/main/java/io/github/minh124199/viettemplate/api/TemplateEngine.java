@@ -1,5 +1,9 @@
 package io.github.minh124199.viettemplate.api;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+
 /** Primary entrypoint contract for loading and managing templates. */
 public interface TemplateEngine {
 
@@ -23,6 +27,64 @@ public interface TemplateEngine {
   default Template get(String name) {
     return get(TemplateId.normalize(name));
   }
+
+  /**
+   * Renders a request through the full engine lifecycle (including context contributors and
+   * optional layout rendering).
+   *
+   * @param request render request
+   * @param output destination template output
+   * @throws IOException on I/O write failures
+   */
+  void render(RenderRequest request, TemplateOutput output) throws IOException;
+
+  /**
+   * Renders a screen template through the full engine lifecycle (including context contributors and
+   * optional layout rendering).
+   *
+   * @param screenId normalized screen template identifier
+   * @param context user model context
+   * @param output destination template output
+   * @throws IOException on I/O write failures
+   */
+  default void render(TemplateId screenId, RenderContext context, TemplateOutput output)
+      throws IOException {
+    render(new RenderRequest(screenId, context, java.util.Map.of()), output);
+  }
+
+  /**
+   * Convenience method to render a screen template by name string.
+   *
+   * @param screenName screen template name or path
+   * @param context user model context
+   * @param output destination template output
+   * @throws IOException on I/O write failures
+   */
+  default void render(String screenName, RenderContext context, TemplateOutput output)
+      throws IOException {
+    render(TemplateId.normalize(screenName), context, output);
+  }
+
+  /**
+   * Prepares an executable {@link LayoutRenderPlan} for the specified screen template and context.
+   *
+   * @param screenId screen template identifier
+   * @param context current evaluation context
+   * @return prepared layout render plan
+   */
+  LayoutRenderPlan prepareLayoutPlan(TemplateId screenId, RenderContext context);
+
+  /** Returns the template dependency graph tracking dependency relationships in this engine. */
+  TemplateDependencyGraph dependencyGraph();
+
+  /**
+   * Invalidates the specified template and all its transitive dependents from the compilation
+   * cache.
+   *
+   * @param id template identifier
+   * @return set of all invalidated template identifiers
+   */
+  Set<TemplateId> invalidateWithDependents(TemplateId id);
 
   /** Returns the underlying {@link TemplateRepository} associated with this engine. */
   TemplateRepository repository();
@@ -50,6 +112,18 @@ public interface TemplateEngine {
     Builder hotReload(boolean enabled);
 
     Builder watchDebounceMillis(long millis);
+
+    Builder globalMacroLibraries(List<TemplateId> libraries);
+
+    Builder globalMacroPrecedence(GlobalMacroPrecedence precedence);
+
+    Builder addContextContributor(RenderContextContributor contributor);
+
+    Builder contextContributors(List<RenderContextContributor> contributors);
+
+    Builder contextCollisionPolicy(ContextCollisionPolicy policy);
+
+    Builder layoutConfiguration(LayoutConfiguration configuration);
 
     TemplateEngine build();
   }

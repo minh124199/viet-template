@@ -93,7 +93,7 @@ viet:
       expose-session-attributes: false
 ```
 
-Define collisions: `MODEL_WINS`, `REQUEST_WINS`, `ERROR_ON_COLLISION`.
+Define collisions: `MODEL_WINS`, `REQUEST_WINS`, `ERROR_ON_COLLISION` (mapped to `ContextCollisionPolicy.MODEL_WINS`, `ContextCollisionPolicy.CONTRIBUTOR_WINS`, and `ContextCollisionPolicy.FAIL` via `RenderContextContributor` defined in Milestone M12.5; see [12a — Velocity Application Compatibility Architecture](12a-velocity-application-compatibility.md)).
 
 ## 8. Boot namespace
 

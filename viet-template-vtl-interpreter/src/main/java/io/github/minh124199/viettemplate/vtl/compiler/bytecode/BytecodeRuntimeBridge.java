@@ -1,5 +1,7 @@
 package io.github.minh124199.viettemplate.vtl.compiler.bytecode;
 
+import io.github.minh124199.viettemplate.api.MutableRenderContext;
+import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateLimitException;
@@ -478,5 +480,16 @@ public final class BytecodeRuntimeBridge {
       return SourceSpan.UNKNOWN;
     }
     return SourceSpan.of(0, 0, startLine, startCol, endLine, endCol);
+  }
+
+  /**
+   * Records a template-level variable assignment back into the execution context if the supplied
+   * context is mutable (e.g. during shared layout rendering).
+   */
+  public static void recordContextVariable(RenderContext context, String name, Object value) {
+    if (context instanceof MutableRenderContext mrc && name != null) {
+      Object unwrapped = (value instanceof EvaluationValue ev) ? ev.value() : value;
+      mrc.put(name, unwrapped);
+    }
   }
 }

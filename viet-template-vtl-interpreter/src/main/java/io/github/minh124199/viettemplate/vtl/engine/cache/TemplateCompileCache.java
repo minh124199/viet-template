@@ -1,11 +1,15 @@
 package io.github.minh124199.viettemplate.vtl.engine.cache;
 
+import io.github.minh124199.viettemplate.api.TemplateDependencyGraph;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -156,6 +160,27 @@ public final class TemplateCompileCache {
               }
               return false;
             });
+  }
+
+  /**
+   * Invalidates the specified template and all its transitive dependents found in the dependency
+   * graph.
+   *
+   * @param id root template identifier being invalidated
+   * @param graph dependency graph tracking relationships
+   * @return set of all invalidated template identifiers (including the root template)
+   */
+  public Set<TemplateId> invalidateWithDependents(TemplateId id, TemplateDependencyGraph graph) {
+    Objects.requireNonNull(id, "id must not be null");
+    Set<TemplateId> toInvalidate = new LinkedHashSet<>();
+    toInvalidate.add(id);
+    if (graph != null) {
+      toInvalidate.addAll(graph.transitiveDependentsOf(id));
+    }
+    for (TemplateId target : toInvalidate) {
+      invalidate(target);
+    }
+    return Collections.unmodifiableSet(toInvalidate);
   }
 
   /** Completely clears all cached compiled templates and negative entries. */

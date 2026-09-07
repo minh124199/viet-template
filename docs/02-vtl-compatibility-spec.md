@@ -214,3 +214,11 @@ For each case:
 5. run typed backend when applicable;
 6. compare output/side effects/error semantics;
 7. classify exact or declared difference.
+
+## 20. Application-Level Compatibility Architecture (Milestone M12.5)
+
+For migration of real-world multi-template Velocity applications:
+- **Dependency Invalidation**: `#parse` and `#include` form directed dependency edges in `TemplateDependencyGraph`. Modifying any dependency transitively invalidates all dependent callers.
+- **Global Macro Libraries**: Configured via `velocimacro.library`, parsed once into IR functions, and cached with a SHA-256 fingerprint in compilation cache keys. Local template macros shadow global macros of the same name.
+- **Context Composition**: Controller model maps, request/session attributes, and tools merge via `RenderContextContributor` according to `ContextCollisionPolicy` (`FAIL`, `MODEL_WINS`, `CONTRIBUTOR_WINS`).
+- **Layout Rendering**: Emulates `VelocityLayoutServlet` via two-stage `LayoutRenderPlan` with screen capture and post-screen layout resolution, enforcing output character and recursion depth limits. See [12a — Velocity Application Compatibility Architecture](12a-velocity-application-compatibility.md).

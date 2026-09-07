@@ -1,14 +1,23 @@
 package io.github.minh124199.viettemplate.vtl.engine;
 
 import io.github.minh124199.viettemplate.api.ClasspathTemplateRepository;
+import io.github.minh124199.viettemplate.api.ContextCollisionPolicy;
+import io.github.minh124199.viettemplate.api.GlobalMacroPrecedence;
+import io.github.minh124199.viettemplate.api.LayoutConfiguration;
+import io.github.minh124199.viettemplate.api.RenderContextContributor;
+import io.github.minh124199.viettemplate.api.TemplateDependencyGraph;
 import io.github.minh124199.viettemplate.api.TemplateEngine;
+import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateRepository;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.vtl.engine.cache.TemplateCompileCache;
+import io.github.minh124199.viettemplate.vtl.engine.dependency.DefaultTemplateDependencyGraph;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /** Fluent builder for constructing {@link VtlTemplateEngine} instances. */
@@ -28,6 +37,13 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
       IrOptimizationOptions.forLevel(OptimizationLevel.O2);
   private VtlSemanticOptions semanticOptions = VtlSemanticOptions.builder().build();
   private VtlInterpreterOptions interpreterOptions = VtlInterpreterOptions.DEFAULT;
+
+  private TemplateDependencyGraph dependencyGraph = new DefaultTemplateDependencyGraph();
+  private List<TemplateId> globalMacroLibraries = List.of();
+  private GlobalMacroPrecedence globalMacroPrecedence = GlobalMacroPrecedence.LAST_WINS;
+  private final List<RenderContextContributor> contextContributors = new ArrayList<>();
+  private ContextCollisionPolicy contextCollisionPolicy = ContextCollisionPolicy.MODEL_WINS;
+  private LayoutConfiguration layoutConfiguration = LayoutConfiguration.builder().build();
 
   public VtlTemplateEngineBuilder() {}
 
@@ -96,6 +112,53 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
     return this;
   }
 
+  public VtlTemplateEngineBuilder dependencyGraph(TemplateDependencyGraph dependencyGraph) {
+    this.dependencyGraph =
+        Objects.requireNonNull(dependencyGraph, "dependencyGraph must not be null");
+    return this;
+  }
+
+  @Override
+  public VtlTemplateEngineBuilder globalMacroLibraries(List<TemplateId> libraries) {
+    this.globalMacroLibraries =
+        List.copyOf(Objects.requireNonNull(libraries, "libraries must not be null"));
+    return this;
+  }
+
+  @Override
+  public VtlTemplateEngineBuilder globalMacroPrecedence(GlobalMacroPrecedence precedence) {
+    this.globalMacroPrecedence = Objects.requireNonNull(precedence, "precedence must not be null");
+    return this;
+  }
+
+  @Override
+  public VtlTemplateEngineBuilder addContextContributor(RenderContextContributor contributor) {
+    Objects.requireNonNull(contributor, "contributor must not be null");
+    this.contextContributors.add(contributor);
+    return this;
+  }
+
+  @Override
+  public VtlTemplateEngineBuilder contextContributors(List<RenderContextContributor> contributors) {
+    Objects.requireNonNull(contributors, "contributors must not be null");
+    this.contextContributors.clear();
+    this.contextContributors.addAll(contributors);
+    return this;
+  }
+
+  @Override
+  public VtlTemplateEngineBuilder contextCollisionPolicy(ContextCollisionPolicy policy) {
+    this.contextCollisionPolicy = Objects.requireNonNull(policy, "policy must not be null");
+    return this;
+  }
+
+  @Override
+  public VtlTemplateEngineBuilder layoutConfiguration(LayoutConfiguration configuration) {
+    this.layoutConfiguration =
+        Objects.requireNonNull(configuration, "configuration must not be null");
+    return this;
+  }
+
   @Override
   public VtlTemplateEngine build() {
     TemplateCompileCache cache =
@@ -110,6 +173,12 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
         semanticOptions,
         interpreterOptions,
         hotReload,
-        watchDebounceMillis);
+        watchDebounceMillis,
+        dependencyGraph,
+        globalMacroLibraries,
+        globalMacroPrecedence,
+        contextContributors,
+        contextCollisionPolicy,
+        layoutConfiguration);
   }
 }

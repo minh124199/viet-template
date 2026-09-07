@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Velocity Application Compatibility Architecture (Milestone M12.5)**:
+  - Directed template dependency graph (`TemplateDependencyGraph`, `TemplateDependencyKind`, `TemplateDependency`) with thread-safe atomic updates, cycle-safe graph traversal, and precise transitive dependent eviction (`invalidateWithDependents`).
+  - Static dependency extraction pass (`StaticDependencyExtractor`) identifying `#parse`, `#include`, global macro library, and layout template dependencies directly from canonical IR.
+  - Multi-source context composition (`RenderRequest`, `ContributorContext`, `RenderContextContributor`, `ContributingContextComposer`) allowing clean, framework-neutral injection of model maps, helper facades, request/session attributes, and tools.
+  - Granular context collision policies (`ContextCollisionPolicy`: `FAIL`, `MODEL_WINS`, `CONTRIBUTOR_WINS`) and value origin tracking (`ValueOrigin`), with strict protection preventing external overwrite of engine-reserved variables (`$screen_content`).
+  - Thread-confined mutable rendering context (`MutableRenderContext`, `DefaultMutableRenderContext`) providing write-through support for in-template `#set` directives during evaluation across both IR interpreter and AOT bytecode tiers.
+  - Global Velocimacro library caching and management (`GlobalMacroManager`, `GlobalMacroPrecedence`) parsing `velocimacro.library` templates once into IR functions, hashing fingerprints into compilation cache keys (`globalMacrosFingerprint`), remapping constant pool IDs, and enforcing the invariant that local template macros unconditionally shadow global macros.
+  - Reusable two-stage layout rendering plan (`LayoutRenderPlan`, `DefaultLayoutRenderPlan`, `LayoutResolver`, `LayoutConfiguration`) executing screen capture to bounded in-memory output (`maxOutputCharacters`), post-screen layout resolution supporting in-template `#set($layout = ...)` override and bypass, recursion cycle detection (`LAYOUT:CYCLE_DETECTED`), depth limits (`maxLayoutDepth`), and configurable context propagation (`LayoutContextScope`).
+  - Zero external production dependencies: core engine remains completely framework-neutral with no runtime dependencies on Spring Framework or Apache Velocity.
+  - Complete ArchUnit verification ensuring zero architecture boundary violations across all modules.
 - **Template Repository, Cache, and Hot Reload (Milestone M12)**:
   - Traversal-safe, normalized template identifiers (`TemplateId.normalize`, `TemplateId.isTraversalSafe`) guarding against directory traversal attacks, root escapes (`../`), duplicate/redundant slashes, and null-byte injection.
   - Pluggable template repository SPI (`TemplateRepository`) with factory methods and production implementations:

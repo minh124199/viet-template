@@ -58,6 +58,12 @@ MethodHandle linker, monomorphic/PIC cache, Velocity property compatibility, pol
 
 Macros, full break/stop, ranges/collections, dynamic parse, opt-in evaluate, migration scanner.
 
+## Milestone M12.5 — Velocity Application Compatibility Architecture
+
+Template dependency graph, static dependency extraction, transitive dependent cache invalidation, context composition (`RenderRequest`, `RenderContextContributor`), collision policies (`FAIL`, `MODEL_WINS`, `CONTRIBUTOR_WINS`), global macro libraries (`velocimacro.library`), and two-stage layout rendering (`LayoutRenderPlan`). Completed before M13 Security Hardening and M14 Public API stabilization.
+
+**Exit:** Clean framework-neutral compatibility architecture verified with ArchUnit and full TCK test coverage.
+
 ## Phase 10 — Spring 7 / Boot 4
 
 MVC View/Resolver, auto-config/starter, properties, hot reload, AOT hints.

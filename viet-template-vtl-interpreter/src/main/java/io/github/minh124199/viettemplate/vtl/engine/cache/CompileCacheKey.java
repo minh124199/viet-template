@@ -18,6 +18,7 @@ import java.util.Objects;
  * @param accessPolicyId unique identifier for the active linker access policy
  * @param modelSignature cryptographic signature or schema descriptor of the typed model
  * @param backendOptionsHash hash capturing backend compiler options
+ * @param globalMacrosFingerprint cryptographic fingerprint of configured global macro libraries
  */
 public record CompileCacheKey(
     TemplateId templateId,
@@ -27,7 +28,8 @@ public record CompileCacheKey(
     ExecutionTier executionTier,
     String accessPolicyId,
     String modelSignature,
-    String backendOptionsHash)
+    String backendOptionsHash,
+    String globalMacrosFingerprint)
     implements Serializable {
 
   public CompileCacheKey {
@@ -39,6 +41,7 @@ public record CompileCacheKey(
     Objects.requireNonNull(accessPolicyId, "accessPolicyId must not be null");
     Objects.requireNonNull(modelSignature, "modelSignature must not be null");
     Objects.requireNonNull(backendOptionsHash, "backendOptionsHash must not be null");
+    Objects.requireNonNull(globalMacrosFingerprint, "globalMacrosFingerprint must not be null");
   }
 
   public static CompileCacheKey of(
@@ -58,6 +61,29 @@ public record CompileCacheKey(
         executionTier,
         accessPolicyId,
         modelSignature,
-        backendOptionsHash);
+        backendOptionsHash,
+        "");
+  }
+
+  public static CompileCacheKey of(
+      TemplateId templateId,
+      String sourceFingerprint,
+      String compilerVersion,
+      OptimizationLevel optimizationLevel,
+      ExecutionTier executionTier,
+      String accessPolicyId,
+      String modelSignature,
+      String backendOptionsHash,
+      String globalMacrosFingerprint) {
+    return new CompileCacheKey(
+        templateId,
+        sourceFingerprint,
+        compilerVersion,
+        optimizationLevel,
+        executionTier,
+        accessPolicyId,
+        modelSignature,
+        backendOptionsHash,
+        globalMacrosFingerprint);
   }
 }

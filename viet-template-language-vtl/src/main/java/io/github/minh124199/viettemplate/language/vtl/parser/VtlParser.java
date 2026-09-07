@@ -280,7 +280,7 @@ public final class VtlParser {
         return new VtlErrorNode("Missing block macro name", cursor.current().span());
       }
       VtlToken nameTok = cursor.advance();
-      String macroName = cursor.text(nameTok);
+      String macroName = cursor.text(nameTok).toLowerCase();
       List<VtlExpression> args = List.of();
       if (cursor.match(VtlTokenKind.LEFT_PAREN)) {
         args = parseDirectiveArguments();
@@ -497,7 +497,7 @@ public final class VtlParser {
           cursor.current().span());
     }
     VtlToken nameTok = cursor.advance();
-    String macroName = cursor.text(nameTok);
+    String macroName = cursor.text(nameTok).toLowerCase();
 
     List<VtlMacroParameter> params = new ArrayList<>();
     while (!cursor.check(VtlTokenKind.RIGHT_PAREN) && !cursor.isAtEnd()) {

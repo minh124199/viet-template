@@ -28,6 +28,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBreak;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBudgetCheck;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallMacro;
+import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrIf;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoop;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrNoOp;
@@ -95,7 +96,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
               template.span());
       return BackendResult.failure(CompilationStatus.INTERPRETER_REQUIRED_EVALUATE, List.of(diag));
     }
-    if (template.capabilities().requiresDynamicIncludeParse()) {
+    if (template.capabilities().requiresDynamicIncludeParse() || containsCallTemplate(template)) {
       Diagnostic diag =
           Diagnostic.warning(
               DiagnosticCode.of("VTLAOT", "1102"),
@@ -362,6 +363,13 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     } else if (stmt instanceof IrStoreLocal sl) {
       compileExpression(sl.value(), mw, context);
       mw.astore(sl.local().slot() + SLOT_OFFSET);
+      mw.aload(1);
+      mw.ldc(sl.local().name());
+      mw.aload(sl.local().slot() + SLOT_OFFSET);
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "recordContextVariable",
+          "(Lio/github/minh124199/viettemplate/api/RenderContext;Ljava/lang/String;Ljava/lang/Object;)V");
     } else if (stmt instanceof IrIf ifStmt) {
       compileIf(ifStmt, mw, context);
     } else if (stmt instanceof IrLoop loop) {
@@ -970,5 +978,41 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     Integer currentForeachMetaSlot() {
       return foreachMetaSlotStack.peek();
     }
+  }
+
+  private static boolean containsCallTemplate(IrTemplate template) {
+    if (hasCallTemplate(template.root())) {
+      return true;
+    }
+    for (IrFunction fn : template.functions()) {
+      if (hasCallTemplate(fn.body())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean hasCallTemplate(IrBlock block) {
+    for (IrStatement stmt : block.statements()) {
+      if (stmt instanceof IrCallTemplate) {
+        return true;
+      }
+      if (stmt instanceof IrIf ifStmt) {
+        if (hasCallTemplate(ifStmt.thenBlock())) {
+          return true;
+        }
+        if (ifStmt.elseBlock().isPresent() && hasCallTemplate(ifStmt.elseBlock().get())) {
+          return true;
+        }
+      } else if (stmt instanceof IrLoop loop) {
+        if (hasCallTemplate(loop.body())) {
+          return true;
+        }
+        if (loop.elseBody().isPresent() && hasCallTemplate(loop.elseBody().get())) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

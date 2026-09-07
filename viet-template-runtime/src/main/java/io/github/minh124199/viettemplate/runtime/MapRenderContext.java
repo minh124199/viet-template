@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /** Immutable thread-safe implementation of {@link RenderContext} backed by a Map. */
 public final class MapRenderContext implements RenderContext {
@@ -37,6 +38,11 @@ public final class MapRenderContext implements RenderContext {
   @Override
   public boolean contains(String name) {
     return variables.containsKey(name);
+  }
+
+  @Override
+  public Set<String> keys() {
+    return variables.keySet();
   }
 
   public Map<String, Object> asMap() {

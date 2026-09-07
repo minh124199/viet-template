@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /** Read-only evaluation context supplied during template rendering. */
 public interface RenderContext {
@@ -11,6 +12,10 @@ public interface RenderContext {
   Object get(String name);
 
   boolean contains(String name);
+
+  default Set<String> keys() {
+    return Set.of();
+  }
 
   default Optional<Object> find(String name) {
     return contains(name) ? Optional.ofNullable(get(name)) : Optional.empty();
@@ -88,5 +93,10 @@ final class MapBackedRenderContext implements RenderContext {
   @Override
   public boolean contains(String name) {
     return map.containsKey(name);
+  }
+
+  @Override
+  public Set<String> keys() {
+    return map.keySet();
   }
 }
