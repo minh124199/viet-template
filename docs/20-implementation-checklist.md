@@ -374,18 +374,18 @@ For a simple typed template with an externally supplied output buffer, compiler/
 
 ## 9. Dynamic linker
 
-- [ ] Define `MemberKey` by operation/name/arity.
-- [ ] Define access policy as an input to linkage.
-- [ ] Implement monomorphic inline cache.
-- [ ] Extend to small polymorphic inline cache only after benchmarks.
-- [ ] Use `MethodHandle`-based targets where safe and measurable.
-- [ ] Implement megamorphic fallback.
-- [ ] Bound every cache.
-- [ ] Make ClassLoader references weak/collectable where necessary.
-- [ ] Add cache statistics.
-- [ ] Verify denied members never become linkable through cache reuse.
-- [ ] Stress test concurrent linkage.
-- [ ] Stress test redeploy/classloader churn.
+- [x] Define `MemberKey` by operation/name/arity.
+- [x] Define access policy as an input to linkage.
+- [x] Implement monomorphic inline cache.
+- [x] Extend to small polymorphic inline cache only after benchmarks.
+- [x] Use `MethodHandle`-based targets where safe and measurable.
+- [x] Implement megamorphic fallback.
+- [x] Bound every cache.
+- [x] Make ClassLoader references weak/collectable where necessary.
+- [x] Add cache statistics.
+- [x] Verify denied members never become linkable through cache reuse.
+- [x] Stress test concurrent linkage.
+- [x] Stress test redeploy/classloader churn.
 
 ### `invokedynamic` gate
 

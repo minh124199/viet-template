@@ -36,7 +36,7 @@ public final class VtlInterpreter {
 
   public VtlInterpreter(VtlInterpreterOptions options) {
     this.options = Objects.requireNonNull(options, "options must not be null");
-    this.referenceAccess = new DefaultReferenceAccess(options.securityPolicy());
+    this.referenceAccess = new LinkedReferenceAccess(options.securityPolicy());
   }
 
   public VtlInterpreterOptions options() {

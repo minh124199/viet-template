@@ -114,7 +114,7 @@ public final class IrInterpreter {
             template.constants(),
             functionMap,
             options,
-            new DefaultReferenceAccess(options.securityPolicy()),
+            new LinkedReferenceAccess(options.securityPolicy()),
             0,
             0,
             0);

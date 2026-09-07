@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dynamic Linker & Inline Caches (Milestone M9)**:
+  - Architecture Tier 2 dynamic linker (`io.github.minh124199.viettemplate.runtime.linker`) for high-performance dynamic dispatch across unspecialized and evolving call sites.
+  - Member identifier `MemberKey` modeling operation kind (`PROPERTY_GET`, `PROPERTY_SET`, `METHOD_CALL`, `INDEX_GET`, `INDEX_SET`), member name, and arity.
+  - Explicit capability-governing `LinkerAccessPolicy` security abstraction isolating cache entries across security contexts.
+  - Adaptive inline cache call sites (`DynamicCallSite`) with monomorphic fast-path, small polymorphic inline cache (PIC, depth 4), and megamorphic fallback.
+  - Thread-safe, bounded class cache (`BoundedWeakClassCache`) utilizing `ReferenceQueue` and `WeakReference<Class<?>>` keys to strictly prevent ClassLoader leaks during redeployments and dynamic code generation.
+  - Low-overhead atomic statistics tracking (`LinkerStatistics`) recording call site hits, misses, link creations, and security denials.
+  - Denied member invariant verification ensuring that disallowed methods, fields, and classes never become executable through cache reuse.
+  - High-performance `LinkedReferenceAccess` adapter in `viet-template-vtl-interpreter` connecting the reference IR interpreter to inline-cached dynamic call sites with transparent fallback.
 - **Output Runtime Architecture (Milestone M8)**:
   - Low-allocation, streaming output runtime implementing the complete `TemplateOutput` abstraction across `WriterTemplateOutput`, `Utf8OutputStreamTemplateOutput`, and `StringTemplateOutput`.
   - Zero-allocation primitive numeric formatting (`NumberFormatting`) formatting `int`, `long`, `double`, `float`, `short`, `byte`, and `boolean` directly to `Writer` and byte buffers without intermediate `String` creation.
