@@ -18,6 +18,10 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysis
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import io.github.minh124199.viettemplate.vtl.compiler.BackendOptions;
+import io.github.minh124199.viettemplate.vtl.compiler.BackendResult;
+import io.github.minh124199.viettemplate.vtl.compiler.CompilationStatus;
+import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeTemplateCompiler;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.*;
@@ -59,7 +63,8 @@ public final class VtlInterpreter {
     Objects.requireNonNull(context, "context must not be null");
     Objects.requireNonNull(output, "output must not be null");
 
-    if (options.executionTier() == ExecutionTier.IR) {
+    if (options.executionTier() == ExecutionTier.IR
+        || options.executionTier() == ExecutionTier.AOT_BYTECODE) {
       BitSet gobbledIndices = SpaceGobbler.computeGobbledIndices(source, options.spaceGobbling());
       VtlSemanticOptions semanticOptions =
           VtlSemanticOptions.builder()
@@ -72,6 +77,38 @@ public final class VtlInterpreter {
           AstToIrLowerer.lower(template, source, analysis, semanticOptions, gobbledIndices);
       IrTemplate optimizedTemplate =
           IrOptimizer.optimize(irTemplate, options.optimizationOptions());
+
+      if (options.executionTier() == ExecutionTier.AOT_BYTECODE) {
+        BytecodeTemplateCompiler compiler = new BytecodeTemplateCompiler();
+        BackendResult result = compiler.compile(optimizedTemplate, BackendOptions.defaultOptions());
+        if (result.isSuccess() && result.compiledTemplate().isPresent()) {
+          try {
+            result.compiledTemplate().get().render(context.rootContext(), output);
+            return;
+          } catch (TemplateRenderException tre) {
+            throw tre;
+          } catch (IOException ioe) {
+            throw ioe;
+          } catch (Exception e) {
+            throw new TemplateRenderException(
+                "AOT execution failed: " + e.getMessage(),
+                template.templateId(),
+                SourceSpan.UNKNOWN,
+                InterpreterDiagnosticCodes.SYNTAX_ERROR,
+                e);
+          }
+        } else if (result.status() == CompilationStatus.INTERPRETER_REQUIRED_EVALUATE) {
+          IrInterpreter.render(optimizedTemplate, source, context, output, options);
+          return;
+        } else {
+          throw new TemplateRenderException(
+              "AOT compilation failed: " + result.diagnostics(),
+              template.templateId(),
+              SourceSpan.UNKNOWN,
+              InterpreterDiagnosticCodes.SYNTAX_ERROR);
+        }
+      }
+
       IrInterpreter.render(optimizedTemplate, source, context, output, options);
       return;
     }
@@ -118,6 +155,36 @@ public final class VtlInterpreter {
       IrTemplate template, SourceText source, ExecutionContext context, TemplateOutput output)
       throws IOException {
     IrTemplate optimizedTemplate = IrOptimizer.optimize(template, options.optimizationOptions());
+    if (options.executionTier() == ExecutionTier.AOT_BYTECODE) {
+      BytecodeTemplateCompiler compiler = new BytecodeTemplateCompiler();
+      BackendResult result = compiler.compile(optimizedTemplate, BackendOptions.defaultOptions());
+      if (result.isSuccess() && result.compiledTemplate().isPresent()) {
+        try {
+          result.compiledTemplate().get().render(context.rootContext(), output);
+          return;
+        } catch (TemplateRenderException tre) {
+          throw tre;
+        } catch (IOException ioe) {
+          throw ioe;
+        } catch (Exception e) {
+          throw new TemplateRenderException(
+              "AOT execution failed: " + e.getMessage(),
+              template.id(),
+              SourceSpan.UNKNOWN,
+              InterpreterDiagnosticCodes.SYNTAX_ERROR,
+              e);
+        }
+      } else if (result.status() == CompilationStatus.INTERPRETER_REQUIRED_EVALUATE) {
+        IrInterpreter.render(optimizedTemplate, source, context, output, options);
+        return;
+      } else {
+        throw new TemplateRenderException(
+            "AOT compilation failed: " + result.diagnostics(),
+            template.id(),
+            SourceSpan.UNKNOWN,
+            InterpreterDiagnosticCodes.SYNTAX_ERROR);
+      }
+    }
     IrInterpreter.render(optimizedTemplate, source, context, output, options);
   }
 

@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **AOT Bytecode Backend (Milestone M11)**:
+  - Architecture Tier 3 direct bytecode compiler (`io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeTemplateCompiler`) implementing `TemplateBackend` SPI.
+  - Zero-external-dependency, pure Java JVM SE 17 classfile writer (`ClassFileWriter`) producing major version 61 classfiles with full constant pool, line number tables, and JVM split-verifier compliant `StackMapTable` (`full_frame`, tag 255) local variable and branch target tracking.
+  - Deterministic class naming (`BytecodeNaming`) generating collision-free class names `T_<sanitizedId>_<sha256Hex>` and chunk method names `renderChunk_<name>`.
+  - Canonical public ABI interface `CompiledTemplate` in `io.github.minh124199.viettemplate.api` declaring `void render(RenderContext, TemplateOutput)` and metadata accessors.
+  - Runtime bridge (`BytecodeRuntimeBridge`) handling contextual escaping, safe content unwrapping, truthiness and null checking, range generation, dynamic property and method dispatch, and foreach budget limits.
+  - Dynamic member and method calls routed exclusively through M9 `DynamicCallSite` and `DynamicLinker` with zero runtime reflection and zero unapproved `invokedynamic`.
+  - Static accessor specialization for Java Records, JavaBeans getters, and public fields.
+  - Automatic method splitting support integrating M10 `MethodSizePlanningPass` to segment oversized template blocks into partitioned chunk methods (`renderChunk_*`).
+  - Generation-level classloader isolation (`TemplateClassLoader`) allowing clean garbage collection and development hot reload without classloader leaks.
+  - Capability reporting via `CompilationStatus` (`AOT_OK`, `AOT_OK_WITH_DYNAMIC_SITES`, `INTERPRETER_REQUIRED_EVALUATE`, `DENIED_SECURITY`, `UNSUPPORTED_LANGUAGE_FEATURE`).
+  - Seamless tier execution integration in `VtlInterpreter` with automatic compilation and fallback for `ExecutionTier.AOT_BYTECODE`.
+  - Sidecar metadata indexing (`TemplateSidecarIndex`, `CompiledArtifact`) providing bytecode offset-to-source line mappings and parameter metadata.
+  - Verified across Java 17, 21, and 25 with 100% test pass rate and dual-build parity between Apache Maven and Gradle Kotlin DSL.
 - **Intermediate Representation Optimizer (Milestone M10)**:
   - Architecture Tier 2/3 optimizer pipeline (`io.github.minh124199.viettemplate.language.vtl.ir.optimization`) operating directly on compiler-internal `IrTemplate`.
   - Configurable optimization levels (`OptimizationLevel`: `O0`, `O1`, `O2`, `O3`) with granular per-pass toggles (`IrOptimizationOptions`).

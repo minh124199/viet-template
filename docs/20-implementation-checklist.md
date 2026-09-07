@@ -424,24 +424,24 @@ Every optimization must preserve:
 
 ## 11. AOT bytecode backend
 
-- [ ] Define generated class ABI.
-- [ ] Define deterministic generated class naming.
-- [ ] Generate constructor only when required.
-- [ ] Generate `render(...)` with direct output calls.
-- [ ] Map primitive VTypes to JVM primitive descriptors.
-- [ ] Emit direct calls for statically resolved access plans.
-- [ ] Emit dynamic linker calls only for explicitly dynamic sites.
-- [ ] Emit source-map metadata in a sidecar index or class metadata.
-- [ ] Verify generated classes with JVM verification plus project-specific tests.
-- [ ] Handle method-size limits with deterministic splitting.
-- [ ] Generate no Java source in the direct bytecode backend.
+- [x] Define generated class ABI.
+- [x] Define deterministic generated class naming.
+- [x] Generate constructor only when required.
+- [x] Generate `render(...)` with direct output calls.
+- [x] Map primitive VTypes to JVM primitive descriptors.
+- [x] Emit direct calls for statically resolved access plans.
+- [x] Emit dynamic linker calls only for explicitly dynamic sites.
+- [x] Emit source-map metadata in a sidecar index or class metadata.
+- [x] Verify generated classes with JVM verification plus project-specific tests.
+- [x] Handle method-size limits with deterministic splitting.
+- [x] Generate no Java source in the direct bytecode backend.
 
 ### JDK strategy
 
-- [ ] Runtime remains Java 17-compatible.
+- [x] Runtime remains Java 17-compatible.
 - [ ] `compiler-jdk25` can use `java.lang.classfile` on JDK 25.
-- [ ] Prototype the exact class-file target versions produced by that module and test on Java 17/21/25; do not assume cross-target behavior.
-- [ ] Keep compiler SPI isolated so another backend (e.g. ASM) can exist if needed.
+- [x] Prototype the exact class-file target versions produced by that module and test on Java 17/21/25; do not assume cross-target behavior.
+- [x] Keep compiler SPI isolated so another backend (e.g. ASM) can exist if needed.
 
 ---
 
@@ -483,7 +483,7 @@ Every optimization must preserve:
 
 - [ ] `TemplateEngine`.
 - [ ] `Template`.
-- [ ] `CompiledTemplate`.
+- [x] `CompiledTemplate`.
 - [ ] `TemplateRepository`.
 - [ ] `TemplateCompiler`.
 - [ ] `TemplateModelDescriptor`.
