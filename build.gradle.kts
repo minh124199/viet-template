@@ -58,9 +58,15 @@ subprojects {
     }
 
     configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+        val spotlessCheckSkip = providers.gradleProperty("spotless.check.skip")
+            .map { it.toBoolean() }
+            .orElse(providers.systemProperty("spotless.check.skip").map { it.toBoolean() })
+            .getOrElse(false)
+        setEnforceCheck(!spotlessCheckSkip)
+
         java {
             target("src/*/java/**/*.java")
-            googleJavaFormat("1.28.0").reflowLongStrings()
+            googleJavaFormat("1.30.0").reflowLongStrings()
             formatAnnotations()
         }
     }

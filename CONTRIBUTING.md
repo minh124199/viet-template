@@ -37,7 +37,7 @@ Viet Template maintains **first-class dual-build parity** between Gradle 9.7.1 (
 
 ### 1. Code Formatting
 
-Both builds enforce Google Java Format (v1.28.0) via Spotless:
+Both builds enforce Google Java Format (v1.30.0) via Spotless. Canonical formatting runs on JDK 21:
 
 - **Gradle**:
   ```bash
@@ -49,6 +49,8 @@ Both builds enforce Google Java Format (v1.28.0) via Spotless:
   ./mvnw spotless:check
   ./mvnw spotless:apply
   ```
+
+In CI or cross-JDK compatibility runs, Spotless may be skipped using `-Dspotless.check.skip=true` while tests and compilation execute. Spotless is strictly enforced in the dedicated JDK 21 formatting CI quality gate.
 
 ### 2. Building and Testing
 
