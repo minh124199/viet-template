@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Template Repository, Cache, and Hot Reload (Milestone M12)**:
+  - Traversal-safe, normalized template identifiers (`TemplateId.normalize`, `TemplateId.isTraversalSafe`) guarding against directory traversal attacks, root escapes (`../`), duplicate/redundant slashes, and null-byte injection.
+  - Pluggable template repository SPI (`TemplateRepository`) with factory methods and production implementations:
+    - `ClasspathTemplateRepository`: Resource-confined classpath loader verifying path boundaries and resolving templates with configurable prefixes and UTF-8 charset defaults.
+    - `FilesystemTemplateRepository`: Root-confined filesystem loader enforcing strict path confinement, symlink resolution boundaries, and preventing directory escaping.
+    - `CompositeTemplateRepository`: Deterministic multi-repository chain with first-match-wins ordering.
+    - `InMemoryTemplateRepository`: Concurrency-safe registry supporting dynamic registration and testing.
+  - Multi-dimensional compilation cache key (`CompileCacheKey`) capturing template identifier, source fingerprint (SHA-256), compiler version, optimization level, execution tier, access policy ID, model signature, and backend options hash.
+  - High-performance, bounded template compile cache (`TemplateCompileCache`) with LRU eviction and generation tracking:
+    - Atomic replacement of compiled template handles (`CompiledTemplateHandle`) ensuring in-flight renders safely complete against their generation without interruption or race conditions.
+    - Configurable negative caching (`NegativeCacheEntry`) preventing denial-of-service from repeated lookups of non-existent templates, with millisecond-precision TTL eviction.
+    - Zero global `ClassLoader` leaks: evicting or replacing a compiled template drops all references to its generation-scoped `TemplateClassLoader`, enabling clean garbage collection of dynamic bytecode classes.
+  - Development file watcher (`DevelopmentFileWatcher`) using NIO `WatchService` with configurable debounce windows (default 200ms) coalescing rapid filesystem events and triggering asynchronous cache invalidation.
+  - Strict production mode enforcement (`rejectRuntimeCompilation`): optionally rejects all on-the-fly compilation in production deployments, enforcing pre-compiled AOT bytecode artifacts and preventing arbitrary code generation.
+  - Unified public engine API (`TemplateEngine`, `TemplateEngineProvider`, `VtlTemplateEngine`, `VtlTemplateEngineBuilder`) discovering engines via `ServiceLoader` and exposing high-level template retrieval, descriptor inspection, and rendering.
 - **AOT Bytecode Backend (Milestone M11)**:
   - Architecture Tier 3 direct bytecode compiler (`io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeTemplateCompiler`) implementing `TemplateBackend` SPI.
   - Zero-external-dependency, pure Java JVM SE 17 classfile writer (`ClassFileWriter`) producing major version 61 classfiles with full constant pool, line number tables, and JVM split-verifier compliant `StackMapTable` (`full_frame`, tag 255) local variable and branch target tracking.

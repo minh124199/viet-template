@@ -447,16 +447,16 @@ Every optimization must preserve:
 
 ## 12. Template repository/cache/hot reload
 
-- [ ] Template IDs are normalized and traversal-safe.
-- [ ] Classpath repository.
-- [ ] Filesystem repository only where explicitly configured.
-- [ ] Composite repository with deterministic precedence.
-- [ ] Compile cache keyed by source fingerprint + compiler config + model signature + compiler version.
-- [ ] Negative caching policy.
-- [ ] Development watcher/debounce.
-- [ ] Atomic replacement of compiled template handles.
-- [ ] No global ClassLoader leaks.
-- [ ] Production mode can reject runtime compilation entirely.
+- [x] Template IDs are normalized and traversal-safe.
+- [x] Classpath repository.
+- [x] Filesystem repository only where explicitly configured.
+- [x] Composite repository with deterministic precedence.
+- [x] Compile cache keyed by source fingerprint + compiler config + model signature + compiler version.
+- [x] Negative caching policy.
+- [x] Development watcher/debounce.
+- [x] Atomic replacement of compiled template handles.
+- [x] No global ClassLoader leaks.
+- [x] Production mode can reject runtime compilation entirely.
 
 ---
 

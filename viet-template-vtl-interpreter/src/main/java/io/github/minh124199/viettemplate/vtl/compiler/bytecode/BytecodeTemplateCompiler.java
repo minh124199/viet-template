@@ -494,10 +494,14 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     mw.astore(iterSlot);
 
     int counterSlot = -1;
+    Integer parentMetaSlot = context.currentForeachMetaSlot();
+    int metaSlot = -1;
     if (loop.loopStateLocal().isPresent()) {
+      metaSlot = loop.loopStateLocal().get().slot() + SLOT_OFFSET;
       counterSlot = context.nextTempSlot();
       mw.iconst(0);
       mw.istore(counterSlot);
+      context.pushForeachMetaSlot(metaSlot);
     }
 
     mw.bindLabel(loopHeader);
@@ -511,8 +515,18 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
     if (counterSlot != -1) {
       mw.iload(counterSlot);
-      mw.invokestatic("java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;");
-      mw.astore(loop.loopStateLocal().get().slot() + SLOT_OFFSET);
+      mw.aload(iterSlot);
+      mw.invokeinterface("java/util/Iterator", "hasNext", "()Z", 1);
+      if (parentMetaSlot != null) {
+        mw.aload(parentMetaSlot);
+      } else {
+        mw.aconst_null();
+      }
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "createForeachMetadata",
+          "(IZLjava/lang/Object;)Lio/github/minh124199/viettemplate/language/vtl/semantics/scope/ForeachMetadata;");
+      mw.astore(metaSlot);
 
       mw.iload(counterSlot);
       mw.iconst(1);
@@ -524,6 +538,9 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     context.pushLoop(loopExit);
     compileBlock(loop.body(), mw, context);
     context.popLoop();
+    if (loop.loopStateLocal().isPresent()) {
+      context.popForeachMetaSlot();
+    }
 
     mw.gotoOp(loopHeader);
     mw.bindLabel(loopExit);
@@ -666,6 +683,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       mw.checkcast(owner);
       String desc = "()" + rec.returnType().descriptorString();
       mw.invokevirtual(owner, rec.componentName(), desc);
+      boxIfPrimitive(rec.returnType(), mw);
     } else if (plan instanceof AccessPlan.DirectGetter getter) {
       compileExpression(prop.receiver(), mw, context);
       String owner = getter.owner().getName().replace('.', '/');
@@ -676,12 +694,14 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       } else {
         mw.invokevirtual(owner, getter.methodName(), desc);
       }
+      boxIfPrimitive(getter.returnType(), mw);
     } else if (plan instanceof AccessPlan.DirectField field) {
       compileExpression(prop.receiver(), mw, context);
       String owner = field.owner().getName().replace('.', '/');
       mw.checkcast(owner);
       String desc = field.fieldType().descriptorString();
       mw.getfield(owner, field.fieldName(), desc);
+      boxIfPrimitive(field.fieldType(), mw);
     } else if (plan instanceof AccessPlan.MapLookup mapLookup) {
       compileExpression(prop.receiver(), mw, context);
       mw.checkcast("java/util/Map");
@@ -702,6 +722,29 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
           "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
           "dynamicGetProperty",
           "(Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;Ljava/lang/Object;)Ljava/lang/Object;");
+    }
+  }
+
+  private static void boxIfPrimitive(Class<?> clazz, ClassFileWriter.MethodWriter mw) {
+    if (!clazz.isPrimitive()) {
+      return;
+    }
+    if (clazz == boolean.class) {
+      mw.invokestatic("java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;");
+    } else if (clazz == byte.class) {
+      mw.invokestatic("java/lang/Byte", "valueOf", "(B)Ljava/lang/Byte;");
+    } else if (clazz == short.class) {
+      mw.invokestatic("java/lang/Short", "valueOf", "(S)Ljava/lang/Short;");
+    } else if (clazz == char.class) {
+      mw.invokestatic("java/lang/Character", "valueOf", "(C)Ljava/lang/Character;");
+    } else if (clazz == int.class) {
+      mw.invokestatic("java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;");
+    } else if (clazz == long.class) {
+      mw.invokestatic("java/lang/Long", "valueOf", "(J)Ljava/lang/Long;");
+    } else if (clazz == float.class) {
+      mw.invokestatic("java/lang/Float", "valueOf", "(F)Ljava/lang/Float;");
+    } else if (clazz == double.class) {
+      mw.invokestatic("java/lang/Double", "valueOf", "(D)Ljava/lang/Double;");
     }
   }
 
@@ -867,6 +910,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     final List<byte[]> utf8Chunks = new ArrayList<>();
     final List<TemplateSidecarIndex.SourceMapping> sourceMappings = new ArrayList<>();
     final Deque<ClassFileWriter.Label> loopStack = new ArrayDeque<>();
+    final Deque<Integer> foreachMetaSlotStack = new ArrayDeque<>();
     int tempSlotOffset;
 
     CompilerContext(
@@ -913,6 +957,18 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
     ClassFileWriter.Label currentLoopExit() {
       return loopStack.peek();
+    }
+
+    void pushForeachMetaSlot(int slot) {
+      foreachMetaSlotStack.push(slot);
+    }
+
+    void popForeachMetaSlot() {
+      foreachMetaSlotStack.pop();
+    }
+
+    Integer currentForeachMetaSlot() {
+      return foreachMetaSlotStack.peek();
     }
   }
 }

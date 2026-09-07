@@ -14,6 +14,10 @@ public class TemplateSecurityException extends TemplateException {
     super(message, templateId, span, code, null);
   }
 
+  public TemplateSecurityException(String message, TemplateId templateId, SourceSpan span) {
+    this(message, templateId, span, DiagnosticCode.of("SECURITY", "ACCESS_DENIED"));
+  }
+
   public TemplateSecurityException(
       String message,
       TemplateId templateId,

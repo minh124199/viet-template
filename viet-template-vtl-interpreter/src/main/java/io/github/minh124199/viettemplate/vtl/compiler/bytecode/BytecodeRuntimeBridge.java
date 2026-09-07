@@ -20,6 +20,7 @@ import io.github.minh124199.viettemplate.runtime.linker.LinkerStatistics;
 import io.github.minh124199.viettemplate.runtime.linker.MemberKey;
 import io.github.minh124199.viettemplate.runtime.linker.MemberOperation;
 import io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue;
+import io.github.minh124199.viettemplate.vtl.interpreter.ForeachMetadata;
 import io.github.minh124199.viettemplate.vtl.interpreter.InterpreterDiagnosticCodes;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlComparisonOperations;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlNumericOperations;
@@ -354,6 +355,16 @@ public final class BytecodeRuntimeBridge {
       return list.iterator();
     }
     return Collections.singleton(collection).iterator();
+  }
+
+  /** Creates ForeachMetadata for loop state tracking. */
+  public static io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata
+      createForeachMetadata(int index, boolean hasNext, Object parent) {
+    int count = index + 1;
+    boolean first = (index == 0);
+    boolean last = !hasNext;
+    ForeachMetadata parentMeta = (parent instanceof ForeachMetadata fm) ? fm : null;
+    return new ForeachMetadata(index, count, first, last, hasNext, parentMeta);
   }
 
   /** Checks loop iteration budget limit. */

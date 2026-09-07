@@ -1,0 +1,103 @@
+package io.github.minh124199.viettemplate.api;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Objects;
+import java.util.Optional;
+
+/**
+ * Filesystem-backed {@link TemplateRepository} that loads template sources from an explicitly
+ * configured directory root.
+ *
+ * <p>Enforces strict root confinement and canonical path verification to prevent path traversal
+ * ('..') and symlink directory escapes.
+ */
+public final class FilesystemTemplateRepository implements TemplateRepository {
+
+  private final Path rootDir;
+  private final Charset charset;
+  private final boolean followSymlinks;
+
+  public FilesystemTemplateRepository(Path rootDir, Charset charset, boolean followSymlinks) {
+    Objects.requireNonNull(rootDir, "rootDir must not be null");
+    this.rootDir = rootDir.toAbsolutePath().normalize();
+    this.charset = Objects.requireNonNull(charset, "charset must not be null");
+    this.followSymlinks = followSymlinks;
+  }
+
+  public FilesystemTemplateRepository(Path rootDir) {
+    this(rootDir, StandardCharsets.UTF_8, false);
+  }
+
+  public static FilesystemTemplateRepository of(Path rootDir) {
+    return new FilesystemTemplateRepository(rootDir);
+  }
+
+  public static FilesystemTemplateRepository of(Path rootDir, Charset charset) {
+    return new FilesystemTemplateRepository(rootDir, charset, false);
+  }
+
+  public static FilesystemTemplateRepository of(
+      Path rootDir, Charset charset, boolean followSymlinks) {
+    return new FilesystemTemplateRepository(rootDir, charset, followSymlinks);
+  }
+
+  @Override
+  public Optional<TemplateSource> find(TemplateId id) {
+    Objects.requireNonNull(id, "id must not be null");
+
+    TemplateId normalized = TemplateId.normalize(id.value());
+    Path candidate = rootDir.resolve(normalized.value()).normalize();
+
+    // Confinement check 1: Candidate path must start with root directory
+    if (!candidate.startsWith(rootDir)) {
+      throw new TemplateSecurityException(
+          "Path traversal outside root directory is forbidden: " + id.value(),
+          id,
+          SourceSpan.UNKNOWN);
+    }
+
+    if (!Files.exists(candidate) || !Files.isRegularFile(candidate)) {
+      return Optional.empty();
+    }
+
+    // Confinement check 2: Real path verification against symlink escapes
+    if (!followSymlinks) {
+      try {
+        Path realCandidate = candidate.toRealPath();
+        Path realRoot = rootDir.toRealPath();
+        if (!realCandidate.startsWith(realRoot)) {
+          throw new TemplateSecurityException(
+              "Symlink directory escape outside root directory is forbidden: " + id.value(),
+              id,
+              SourceSpan.UNKNOWN);
+        }
+      } catch (IOException e) {
+        return Optional.empty();
+      }
+    }
+
+    try {
+      String content = Files.readString(candidate, charset);
+      long lastModified = Files.getLastModifiedTime(candidate).toMillis();
+      return Optional.of(TemplateSource.of(id, candidate.toUri(), charset, content, lastModified));
+    } catch (IOException e) {
+      return Optional.empty();
+    }
+  }
+
+  public Path rootDirectory() {
+    return rootDir;
+  }
+
+  public Charset charset() {
+    return charset;
+  }
+
+  public boolean followSymlinks() {
+    return followSymlinks;
+  }
+}

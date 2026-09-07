@@ -127,6 +127,15 @@ public record IrOptimizationOptions(
     return o2();
   }
 
+  public static IrOptimizationOptions forLevel(OptimizationLevel level) {
+    return switch (level) {
+      case O0 -> o0();
+      case O1 -> o1();
+      case O2 -> o2();
+      case O3 -> o3();
+    };
+  }
+
   public static Builder builder() {
     return new Builder(o2());
   }
