@@ -15,4 +15,5 @@ dependencies {
     testImplementation(libs.archunit.junit5)
     testImplementation(libs.velocity.engine.core)
     testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }

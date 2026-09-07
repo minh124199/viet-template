@@ -33,7 +33,7 @@ Before starting work or proposing architectural changes, please review the relev
 
 ## Development Workflow & Dual-Build Parity
 
-Viet Template maintains **first-class dual-build parity** between Gradle 8.12 (Kotlin DSL) and Apache Maven 3.9.9. Every pull request must pass cleanly under both build systems.
+Viet Template maintains **first-class dual-build parity** between Gradle 9.7.1 (Kotlin DSL) and Apache Maven 3.9.9. Every pull request must pass cleanly under both build systems.
 
 ### 1. Code Formatting
 

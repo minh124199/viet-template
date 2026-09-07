@@ -207,7 +207,7 @@ All phase-1 syntax fixtures parse to golden ASTs and malformed fixtures produce 
 - [x] Audit and correct Area 7: Alternate-value fallback (`${x|'fallback'}`) evaluation (always performs empty checking via `DuckType.asBoolean(val, true)`, falling back on `0`, `""`, and empty collections regardless of `directive.if.empty_check`).
 - [x] Keep `org.apache.velocity:velocity-engine-core:2.4.1` test-only in `viet-template-tck` (verified by ArchUnit; zero runtime leakage).
 - [x] Implement comprehensive side-by-side differential tests (`SemanticCompatibilityDifferentialTest`) and probe suites (`SemanticCompatibilityProbeTest`, `AdditionalSemanticProbeTest`).
-- [x] Validate 100% build parity across Gradle 8.12 and Maven 3.9.9 on both Java 17 and Java 21.
+- [x] Validate 100% build parity across Gradle 9.7.1 and Maven 3.9.9 on both Java 17 and Java 21.
 
 ### Exit criteria
 

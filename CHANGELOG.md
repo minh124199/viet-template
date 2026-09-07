@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Method overload resolution (`MethodResolver`) with parameter scoring and security denial checks (`VTLSEC2401`).
   - Comprehensive static capability analysis (`TemplateCapabilities`) computing 7 capability flags including Ahead-Of-Time (`eligibleForStaticAot`) lowering eligibility.
 
+### Changed
+- **Build & CI Engineering**:
+  - Upgraded Gradle wrapper from 8.12 to 9.7.1; Java 25 execution is supported by Gradle 9.7.1 and remains covered by the GitHub Actions matrix.
+  - Explicitly configured `org.junit.platform:junit-platform-launcher` in test runtime dependencies across all modules to ensure JUnit 5 test discovery and execution under Gradle 9.
+
 ## [0.1.0] - 2026-09-06
 
 ### Added
