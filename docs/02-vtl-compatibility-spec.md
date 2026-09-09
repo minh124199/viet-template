@@ -222,3 +222,14 @@ For migration of real-world multi-template Velocity applications:
 - **Global Macro Libraries**: Configured via `velocimacro.library`, parsed once into IR functions, and cached with a SHA-256 fingerprint in compilation cache keys. Local template macros shadow global macros of the same name.
 - **Context Composition**: Controller model maps, request/session attributes, and tools merge via `RenderContextContributor` according to `ContextCollisionPolicy` (`FAIL`, `MODEL_WINS`, `CONTRIBUTOR_WINS`).
 - **Layout Rendering**: Emulates `VelocityLayoutServlet` via two-stage `LayoutRenderPlan` with screen capture and post-screen layout resolution, enforcing output character and recursion depth limits. See [12a — Velocity Application Compatibility Architecture](12a-velocity-application-compatibility.md).
+
+## 21. Security Hardening and Execution Safety (Milestone M13)
+
+For secure execution across untrusted, semi-trusted, and production multi-tenant environments:
+- **Unified Render Budget**: A monotonic `RenderBudget` is enforced across all top-level renders, `#parse`, `#include`, `#evaluate`, macros, and screen/layout plans, bounding character output, loop iterations, and execution duration (`maxExecutionTimeMillis`).
+- **Resource Confinement**: `TemplateId` rejects null bytes, URL-encoded traversal sequences (`%2e`, `%2f`, `%5c`, `%00`), URI schemes, and Windows drive roots. Filesystem repositories enforce real-path boundary confinement and reject symlinks escaping the repository root.
+- **Member Access and Classifier**: Granular `MemberAccessPolicy` blocks dangerous runtime pivots (reflection, classloading, processes, threads, executors, system calls), with support for explicit safe-allowlist profiles. `SensitiveObjectClassifier` performs zero-dependency structural checks against framework and runtime internals.
+- **Protected Variables**: Engine-reserved variables (such as `$screen_content`) are protected against in-template mutation (`#set`) and contributor overwrite.
+- **Cache Isolation**: Compilation cache keys partition compiled artifacts by the SHA-256 fingerprint of the effective `MemberAccessPolicy`, preventing cache pollution or security privilege escalation.
+- **Cross-Tier Invariant Parity**: Identical security denials, limits, and semantics are enforced across AST interpreter, IR interpreter, dynamic linker PIC, and AOT bytecode backends.
+

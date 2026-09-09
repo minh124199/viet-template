@@ -206,7 +206,9 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
     // Compile root block statements
     compileBlock(optimized.root(), render, context);
-    render.returnOp();
+    if (!blockAlwaysTerminates(optimized.root())) {
+      render.returnOp();
+    }
 
     // Compile helper functions (from MethodSizePlanningPass or macros)
     for (IrFunction function : optimized.functions()) {
@@ -233,7 +235,9 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       }
 
       compileBlock(function.body(), funcMw, context);
-      funcMw.returnOp();
+      if (!blockAlwaysTerminates(function.body())) {
+        funcMw.returnOp();
+      }
     }
 
     // Static initializer: <clinit>()
@@ -345,6 +349,11 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       IrBlock block, ClassFileWriter.MethodWriter mw, CompilerContext context) {
     for (IrStatement stmt : block.statements()) {
       compileStatement(stmt, mw, context);
+      if (stmt instanceof IrStop
+          || stmt instanceof IrReturn
+          || (stmt instanceof IrBreak && context.currentLoopExit() == null)) {
+        break;
+      }
     }
   }
 
@@ -378,6 +387,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       ClassFileWriter.Label exitLabel = context.currentLoopExit();
       if (exitLabel != null) {
         mw.gotoOp(exitLabel);
+      } else {
+        mw.returnOp();
       }
     } else if (stmt instanceof IrStop || stmt instanceof IrReturn) {
       mw.returnOp();
@@ -479,11 +490,15 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   }
 
   private static boolean blockAlwaysTerminates(IrBlock block) {
-    if (block.isEmpty()) {
+    if (block == null || block.isEmpty()) {
       return false;
     }
-    IrStatement last = block.statements().get(block.statements().size() - 1);
-    return last instanceof IrBreak || last instanceof IrStop || last instanceof IrReturn;
+    for (IrStatement s : block.statements()) {
+      if (s instanceof IrStop || s instanceof IrReturn || s instanceof IrBreak) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static void compileLoop(

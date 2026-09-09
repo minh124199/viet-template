@@ -53,14 +53,25 @@ public final class ContributingContextComposer {
     Objects.requireNonNull(policy, "policy must not be null");
 
     // 1. Run contributors
-    DefaultContributorContext contributorContext = new DefaultContributorContext();
+    Map<String, Object> contributed = new LinkedHashMap<>();
     if (contributors != null) {
       for (RenderContextContributor contributor : contributors) {
+        DefaultContributorContext contributorContext = new DefaultContributorContext();
         contributor.contribute(contributorContext, request);
+        for (Map.Entry<String, Object> entry : contributorContext.variables().entrySet()) {
+          String k = entry.getKey();
+          if (contributed.containsKey(k) && policy == ContextCollisionPolicy.ERROR_ON_COLLISION) {
+            throw new ContextCollisionException(
+                "Variable name collision on '" + k + "' between multiple context contributors",
+                k,
+                ValueOrigin.CONTRIBUTOR,
+                ValueOrigin.CONTRIBUTOR);
+          }
+          contributed.put(k, entry.getValue());
+        }
       }
     }
 
-    Map<String, Object> contributed = contributorContext.variables();
     RenderContext userModel = request.userModel();
 
     Map<String, Object> finalVariables = new LinkedHashMap<>();
@@ -136,7 +147,8 @@ public final class ContributingContextComposer {
       }
     }
 
-    MutableRenderContext ctx = MutableRenderContext.of(finalVariables);
+    MutableRenderContext ctx =
+        MutableRenderContext.of(finalVariables, reservedKeys != null ? reservedKeys : Set.of());
     return new CompositionResult(ctx, origins);
   }
 

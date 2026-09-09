@@ -13,6 +13,7 @@ import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateLayoutException;
 import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
+import io.github.minh124199.viettemplate.runtime.RenderBudget;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
 import java.io.IOException;
@@ -89,22 +90,34 @@ public final class DefaultLayoutRenderPlan implements LayoutRenderPlan {
       initialSnapshot.put(key, context.get(key));
     }
 
+    Set<String> protectedKeys = Set.of(configuration.screenContentKey());
     if (context instanceof MutableRenderContext mrc) {
-      screenContext = mrc;
+      screenContext = MutableRenderContext.of(mrc.asMap(), protectedKeys);
     } else {
-      screenContext = MutableRenderContext.of(initialSnapshot);
+      screenContext = MutableRenderContext.of(initialSnapshot, protectedKeys);
     }
 
     // Stage 1: Render screen template to bounded in-memory buffer
+    RenderBudget budget =
+        (output
+                instanceof
+                io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput cto)
+            ? cto.budget()
+            : interpreterOptions.limits().createRenderBudget();
+
     StringTemplateOutput screenBuffer = new StringTemplateOutput();
     Template screenTemplate = engine.get(screenId);
 
     // Enforce output size limit during screen capture
     long maxChars = interpreterOptions.limits().maxOutputCharacters();
-    BoundedScreenOutput boundedOutput = new BoundedScreenOutput(screenBuffer, maxChars, screenId);
+    BoundedScreenOutput boundedOutput =
+        new BoundedScreenOutput(screenBuffer, maxChars, screenId, budget);
     screenTemplate.render(screenContext, boundedOutput);
 
     String renderedScreen = screenBuffer.toString();
+
+    // Account for captured screen characters in overall render budget
+    budget.consumeCharacters(renderedScreen.length(), screenId, SourceSpan.UNKNOWN);
 
     // Resolve layout template after screen rendering (allowing screen #set($layout = ...) to
     // override)
@@ -139,116 +152,59 @@ public final class DefaultLayoutRenderPlan implements LayoutRenderPlan {
     }
 
     // Stage 2: Prepare layout context based on scope policy
-    MutableRenderContext layoutContext;
+    Map<String, Object> layoutVars = new HashMap<>();
     if (configuration.contextScope() == LayoutContextScope.SHARED_COMPATIBILITY_SCOPE) {
-      layoutContext = screenContext;
+      for (String key : screenContext.keys()) {
+        layoutVars.put(key, screenContext.get(key));
+      }
     } else {
-      // ISOLATED_SCREEN_SCOPE: discard screen mutations, restore initial variables
-      layoutContext = MutableRenderContext.of(initialSnapshot);
+      layoutVars.putAll(initialSnapshot);
     }
+    layoutVars.put(configuration.screenContentKey(), renderedScreen);
+    MutableRenderContext layoutContext = MutableRenderContext.of(layoutVars, protectedKeys);
 
-    // Expose screen content under configured key
-    layoutContext.put(configuration.screenContentKey(), renderedScreen);
-
-    // Render layout template
+    // Render layout template with shared budget
     Set<TemplateId> nextActive = new LinkedHashSet<>(activeLayouts);
     nextActive.add(layoutId);
 
     Template layoutTemplate = engine.get(layoutId);
-    layoutTemplate.render(layoutContext, output);
+    TemplateOutput layoutOutput =
+        (output
+                instanceof
+                io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput cto)
+            ? cto
+            : new io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput(
+                output, budget, layoutId);
+    layoutTemplate.render(layoutContext, layoutOutput);
   }
 
-  private static final class BoundedScreenOutput implements TemplateOutput {
-    private final TemplateOutput delegate;
+  private static final class BoundedScreenOutput
+      extends io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput {
     private final long maxChars;
-    private final TemplateId templateId;
     private long written = 0;
 
-    BoundedScreenOutput(TemplateOutput delegate, long maxChars, TemplateId templateId) {
-      this.delegate = delegate;
+    BoundedScreenOutput(
+        TemplateOutput delegate,
+        long maxChars,
+        TemplateId templateId,
+        io.github.minh124199.viettemplate.runtime.RenderBudget budget) {
+      super(delegate, budget, templateId);
       this.maxChars = maxChars;
-      this.templateId = templateId;
     }
 
-    private void checkBudget(int added) {
+    @Override
+    protected void checkLimit(int added) {
       written += added;
+      if (budget() != null) {
+        budget().checkDeadline(templateId(), SourceSpan.UNKNOWN);
+      }
       if (written > maxChars) {
         throw new TemplateLimitException(
             "Screen output exceeded maximum character limit (" + maxChars + ")",
-            templateId,
+            templateId(),
             SourceSpan.UNKNOWN,
             DiagnosticCode.of("LIMIT", "EXCEEDED"));
       }
-    }
-
-    @Override
-    public void write(CharSequence value) throws IOException {
-      if (value != null) {
-        checkBudget(value.length());
-        delegate.write(value);
-      }
-    }
-
-    @Override
-    public void write(char value) throws IOException {
-      checkBudget(1);
-      delegate.write(value);
-    }
-
-    @Override
-    public void writeUtf8(byte[] bytes) throws IOException {
-      if (bytes != null) {
-        checkBudget(bytes.length);
-        delegate.writeUtf8(bytes);
-      }
-    }
-
-    @Override
-    public void writeUtf8(byte[] bytes, int offset, int length) throws IOException {
-      if (bytes != null) {
-        checkBudget(length);
-        delegate.writeUtf8(bytes, offset, length);
-      }
-    }
-
-    @Override
-    public void writeInt(int value) throws IOException {
-      delegate.writeInt(value);
-    }
-
-    @Override
-    public void writeLong(long value) throws IOException {
-      delegate.writeLong(value);
-    }
-
-    @Override
-    public void writeDouble(double value) throws IOException {
-      delegate.writeDouble(value);
-    }
-
-    @Override
-    public void writeFloat(float value) throws IOException {
-      delegate.writeFloat(value);
-    }
-
-    @Override
-    public void writeShort(short value) throws IOException {
-      delegate.writeShort(value);
-    }
-
-    @Override
-    public void writeByte(byte value) throws IOException {
-      delegate.writeByte(value);
-    }
-
-    @Override
-    public void writeBoolean(boolean value) throws IOException {
-      delegate.writeBoolean(value);
-    }
-
-    @Override
-    public void flush() throws IOException {
-      delegate.flush();
     }
   }
 }

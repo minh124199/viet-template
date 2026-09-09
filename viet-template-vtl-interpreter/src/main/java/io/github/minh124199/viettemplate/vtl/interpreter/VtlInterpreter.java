@@ -80,10 +80,20 @@ public final class VtlInterpreter {
 
       if (options.executionTier() == ExecutionTier.AOT_BYTECODE) {
         BytecodeTemplateCompiler compiler = new BytecodeTemplateCompiler();
-        BackendResult result = compiler.compile(optimizedTemplate, BackendOptions.defaultOptions());
+        BackendOptions backendOptions =
+            BackendOptions.builder()
+                .securityPolicy(options.securityPolicy().toLinkerAccessPolicy())
+                .optimizationOptions(options.optimizationOptions())
+                .build();
+        BackendResult result = compiler.compile(optimizedTemplate, backendOptions);
         if (result.isSuccess() && result.compiledTemplate().isPresent()) {
           try {
-            result.compiledTemplate().get().render(context.rootContext(), output);
+            TemplateOutput wrappedOutput =
+                (output instanceof CountingTemplateOutput cto)
+                    ? cto
+                    : new CountingTemplateOutput(
+                        output, options.limits().createRenderBudget(), template.templateId());
+            result.compiledTemplate().get().render(context.rootContext(), wrappedOutput);
             return;
           } catch (TemplateRenderException tre) {
             throw tre;
@@ -114,8 +124,10 @@ public final class VtlInterpreter {
     }
 
     CountingTemplateOutput countingOutput =
-        new CountingTemplateOutput(
-            output, options.limits().maxOutputCharacters(), template.templateId());
+        (output instanceof CountingTemplateOutput cto)
+            ? cto
+            : new CountingTemplateOutput(
+                output, options.limits().createRenderBudget(), template.templateId());
     MacroRegistry macroRegistry = new MacroRegistry();
 
     // 1. Discover top-level macros before execution (supporting call-before-definition)
@@ -139,8 +151,8 @@ public final class VtlInterpreter {
 
     try {
       executeNodes(template.children(), state);
-    } catch (StopSignal ignored) {
-      // Normal template termination via #stop
+    } catch (StopSignal | BreakSignal ignored) {
+      // Normal template termination via #stop or #break
     }
   }
 
@@ -157,10 +169,20 @@ public final class VtlInterpreter {
     IrTemplate optimizedTemplate = IrOptimizer.optimize(template, options.optimizationOptions());
     if (options.executionTier() == ExecutionTier.AOT_BYTECODE) {
       BytecodeTemplateCompiler compiler = new BytecodeTemplateCompiler();
-      BackendResult result = compiler.compile(optimizedTemplate, BackendOptions.defaultOptions());
+      BackendOptions backendOptions =
+          BackendOptions.builder()
+              .securityPolicy(options.securityPolicy().toLinkerAccessPolicy())
+              .optimizationOptions(options.optimizationOptions())
+              .build();
+      BackendResult result = compiler.compile(optimizedTemplate, backendOptions);
       if (result.isSuccess() && result.compiledTemplate().isPresent()) {
         try {
-          result.compiledTemplate().get().render(context.rootContext(), output);
+          TemplateOutput wrappedOutput =
+              (output instanceof CountingTemplateOutput cto)
+                  ? cto
+                  : new CountingTemplateOutput(
+                      output, options.limits().createRenderBudget(), template.id());
+          result.compiledTemplate().get().render(context.rootContext(), wrappedOutput);
           return;
         } catch (TemplateRenderException tre) {
           throw tre;
@@ -476,6 +498,9 @@ public final class VtlInterpreter {
 
     try {
       while (iterator.hasNext()) {
+        if (state.output instanceof CountingTemplateOutput counting) {
+          counting.budget().countLoopIteration(state.templateId, node.span());
+        }
         if (index >= limit) {
           throw new TemplateLimitException(
               "Exceeded maximum foreach iterations: " + limit,
@@ -591,7 +616,11 @@ public final class VtlInterpreter {
         subState =
             subState.withTemplate(macro.sourceTemplateId(), macro.sourceText(), macroGobbled);
       }
-      executeNodes(macro.body(), subState);
+      try {
+        executeNodes(macro.body(), subState);
+      } catch (BreakSignal ignored) {
+        // #break inside macro body terminates macro execution
+      }
     } finally {
       state.context.popScope();
     }
@@ -661,7 +690,11 @@ public final class VtlInterpreter {
             .withParseDepth(state.parseDepth + 1)
             .withTemplate(res.get().templateId(), subSource, subGobbled);
 
-    executeNodes(parseResult.template().children(), subState);
+    try {
+      executeNodes(parseResult.template().children(), subState);
+    } catch (BreakSignal ignored) {
+      // #break inside parsed template terminates parsed template
+    }
   }
 
   private void executeEvaluateDirective(VtlEvaluateDirectiveNode node, ExecutionState state)

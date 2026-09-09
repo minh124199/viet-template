@@ -485,20 +485,20 @@ Every optimization must preserve:
 
 ## 13. Security hardening
 
-- [ ] Deny class loading/reflection/system/runtime/process by default.
-- [ ] Deny Spring `ApplicationContext`, bean factory, raw request/response/session exposure by default.
-- [ ] Safe-profile allowlist rules.
-- [ ] Resource root confinement.
-- [ ] Include/parse traversal protection.
-- [ ] Maximum source size.
-- [ ] Maximum AST nodes.
-- [ ] Maximum expression depth.
-- [ ] Maximum macro/include recursion.
-- [ ] Configurable loop/output/time budgets.
-- [ ] Disable `#evaluate` by default.
-- [ ] Raw output is explicit and auditable.
-- [ ] Security regression corpus.
-- [ ] Fuzz parser/linker/path resolution.
+- [x] Deny class loading/reflection/system/runtime/process by default.
+- [x] Deny Spring `ApplicationContext`, bean factory, raw request/response/session exposure by default.
+- [x] Safe-profile allowlist rules.
+- [x] Resource root confinement.
+- [x] Include/parse traversal protection.
+- [x] Maximum source size.
+- [x] Maximum AST nodes.
+- [x] Maximum expression depth.
+- [x] Maximum macro/include recursion.
+- [x] Configurable loop/output/time budgets.
+- [x] Disable `#evaluate` by default.
+- [x] Raw output is explicit and auditable.
+- [x] Security regression corpus.
+- [x] Fuzz parser/linker/path resolution.
 
 ---
 

@@ -71,7 +71,31 @@ public final class VtlParser {
   private final VtlParserOptions options;
   private final VtlTokenCursor cursor;
   private final List<Diagnostic> diagnostics;
-  private int nestingDepth = 0;
+  private int directiveNesting = 0;
+  private int expressionDepth = 0;
+  private int astNodeCount = 0;
+  private boolean limitExceeded = false;
+
+  private boolean checkAstNodeLimit() {
+    if (limitExceeded) {
+      return false;
+    }
+    if (astNodeCount >= options.maxAstNodes()) {
+      limitExceeded = true;
+      diagnostics.add(
+          Diagnostic.error(
+              DiagnosticCode.of("LIMIT", "AST_NODE_LIMIT"),
+              "Total AST node count ("
+                  + (astNodeCount + 1)
+                  + ") exceeds configured limit ("
+                  + options.maxAstNodes()
+                  + ")",
+              cursor.current().span()));
+      return false;
+    }
+    astNodeCount++;
+    return true;
+  }
 
   private VtlParser(
       SourceText source,
@@ -104,6 +128,23 @@ public final class VtlParser {
     Objects.requireNonNull(lexResult, "lexResult must not be null");
     Objects.requireNonNull(options, "options must not be null");
 
+    // Pre-check static source character length before parsing
+    if (source.content().length() > options.maxSourceCharacters()) {
+      List<Diagnostic> diags = new ArrayList<>(lexResult.diagnostics());
+      diags.add(
+          Diagnostic.error(
+              DiagnosticCode.of("LIMIT", "SOURCE_TOO_LARGE"),
+              "Template source character count ("
+                  + source.content().length()
+                  + ") exceeds configured limit ("
+                  + options.maxSourceCharacters()
+                  + ")",
+              SourceSpan.of(0, 0, 1, 1, 1, 1)));
+      VtlTemplate emptyTemplate =
+          new VtlTemplate(source.templateId(), SourceSpan.of(0, 0, 1, 1, 1, 1), List.of());
+      return new VtlParseResult(emptyTemplate, diags, source);
+    }
+
     List<VtlToken> nonTrivia = new ArrayList<>();
     for (VtlToken token : lexResult.tokens()) {
       if (!token.isTrivia()) {
@@ -124,6 +165,9 @@ public final class VtlParser {
   private VtlTemplate parseTemplate() {
     List<VtlNode> children = new ArrayList<>();
     while (!cursor.isAtEnd()) {
+      if (limitExceeded) {
+        break;
+      }
       VtlNode node = parseTemplateItem();
       if (node != null) {
         children.add(node);
@@ -134,6 +178,13 @@ public final class VtlParser {
   }
 
   private VtlNode parseTemplateItem() {
+    if (!checkAstNodeLimit()) {
+      if (!cursor.isAtEnd()) {
+        cursor.advance();
+      }
+      return null;
+    }
+
     if (cursor.check(VtlTokenKind.TEXT)) {
       VtlToken token = cursor.advance();
       return new VtlTextNode(token.span());
@@ -191,6 +242,13 @@ public final class VtlParser {
     Optional<VtlExpression> alternateValue = Optional.empty();
 
     while (!cursor.isAtEnd()) {
+      if (steps.size() >= options.maxExpressionDepth()) {
+        reportError(
+            "MAX_NESTING_EXCEEDED",
+            "Maximum reference navigation depth of " + options.maxExpressionDepth() + " exceeded",
+            cursor.current().span());
+        break;
+      }
       if (cursor.match(VtlTokenKind.DOT)) {
         int dotStart = cursor.previous().span().startOffset();
         if (cursor.check(VtlTokenKind.IDENTIFIER)) {
@@ -558,18 +616,19 @@ public final class VtlParser {
   // =========================================================================
 
   private List<VtlNode> parseBlockUntil(String... terminators) {
-    nestingDepth++;
+    directiveNesting++;
     try {
-      if (nestingDepth > options.maxNestingDepth()) {
+      int effectiveMax = Math.min(options.maxDirectiveNesting(), options.maxNestingDepth());
+      if (directiveNesting > effectiveMax) {
         reportError(
             "MAX_NESTING_EXCEEDED",
-            "Maximum nesting depth of " + options.maxNestingDepth() + " exceeded",
+            "Maximum directive nesting depth of " + effectiveMax + " exceeded",
             cursor.current().span());
         return List.of();
       }
 
       List<VtlNode> nodes = new ArrayList<>();
-      while (!cursor.isAtEnd()) {
+      while (!cursor.isAtEnd() && !limitExceeded) {
         if (isDirective(terminators)) {
           break;
         }
@@ -580,7 +639,7 @@ public final class VtlParser {
       }
       return nodes;
     } finally {
-      nestingDepth--;
+      directiveNesting--;
     }
   }
 
@@ -647,19 +706,23 @@ public final class VtlParser {
   // =========================================================================
 
   private VtlExpression parseExpression(int minBp) {
-    nestingDepth++;
+    if (!checkAstNodeLimit()) {
+      return new VtlErrorExpression("AST node limit exceeded", cursor.current().span());
+    }
+    expressionDepth++;
     try {
-      if (nestingDepth > options.maxNestingDepth()) {
+      int effectiveMax = Math.min(options.maxExpressionDepth(), options.maxNestingDepth());
+      if (expressionDepth > effectiveMax) {
         reportError(
             "MAX_NESTING_EXCEEDED",
-            "Maximum nesting depth of " + options.maxNestingDepth() + " exceeded",
+            "Maximum expression depth of " + effectiveMax + " exceeded",
             cursor.current().span());
         return new VtlErrorExpression("Max nesting exceeded", cursor.current().span());
       }
 
       VtlExpression left = parsePrefixExpression();
 
-      while (!cursor.isAtEnd()) {
+      while (!cursor.isAtEnd() && !limitExceeded) {
         InfixOp op = getInfixOp(cursor.current().kind());
         if (op == null || op.leftBp < minBp) {
           break;
@@ -672,7 +735,7 @@ public final class VtlParser {
 
       return left;
     } finally {
-      nestingDepth--;
+      expressionDepth--;
     }
   }
 

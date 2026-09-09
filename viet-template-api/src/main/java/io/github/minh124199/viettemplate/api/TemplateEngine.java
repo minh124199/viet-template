@@ -125,6 +125,8 @@ public interface TemplateEngine {
 
     Builder layoutConfiguration(LayoutConfiguration configuration);
 
+    Builder memberAccessPolicy(MemberAccessPolicy policy);
+
     TemplateEngine build();
   }
 }

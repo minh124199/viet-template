@@ -262,10 +262,30 @@ public final class GlobalMacroManager {
 
     SourceText sourceText = SourceText.of(libId, source.content());
     VtlParseResult parseResult = VtlParser.parse(sourceText);
+    if (parseResult.hasErrors()) {
+      throw new io.github.minh124199.viettemplate.api.TemplateSecurityException(
+          "Global macro library has syntax errors: "
+              + libId.value()
+              + ": "
+              + parseResult.diagnostics(),
+          libId,
+          parseResult.template().span(),
+          DiagnosticCode.of("SECURITY", "MALFORMED_GLOBAL_MACRO_LIBRARY"));
+    }
     BitSet gobbled =
         SpaceGobbler.computeGobbledIndices(sourceText, interpreterOptions.spaceGobbling());
     SemanticAnalysisResult analysis =
         VtlSemanticAnalyzer.analyze(parseResult.template(), semanticOptions);
+    if (analysis.hasErrors()) {
+      throw new io.github.minh124199.viettemplate.api.TemplateSecurityException(
+          "Global macro library has semantic errors: "
+              + libId.value()
+              + ": "
+              + analysis.diagnostics(),
+          libId,
+          parseResult.template().span(),
+          DiagnosticCode.of("SECURITY", "MALFORMED_GLOBAL_MACRO_LIBRARY"));
+    }
     IrTemplate irTemplate =
         AstToIrLowerer.lower(
             parseResult.template(), sourceText, analysis, semanticOptions, gobbled);

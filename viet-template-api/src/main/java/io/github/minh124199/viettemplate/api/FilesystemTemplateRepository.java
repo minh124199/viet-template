@@ -64,20 +64,26 @@ public final class FilesystemTemplateRepository implements TemplateRepository {
       return Optional.empty();
     }
 
-    // Confinement check 2: Real path verification against symlink escapes
-    if (!followSymlinks) {
-      try {
-        Path realCandidate = candidate.toRealPath();
-        Path realRoot = rootDir.toRealPath();
-        if (!realCandidate.startsWith(realRoot)) {
-          throw new TemplateSecurityException(
-              "Symlink directory escape outside root directory is forbidden: " + id.value(),
-              id,
-              SourceSpan.UNKNOWN);
-        }
-      } catch (IOException e) {
-        return Optional.empty();
+    // Confinement check 2: Symlink policy enforcement
+    if (!followSymlinks && Files.isSymbolicLink(candidate)) {
+      throw new TemplateSecurityException(
+          "Symlinks are forbidden by repository configuration: " + id.value(),
+          id,
+          SourceSpan.UNKNOWN);
+    }
+
+    // Confinement check 3: Canonical real-path verification against out-of-root escapes
+    try {
+      Path realCandidate = candidate.toRealPath();
+      Path realRoot = rootDir.toRealPath();
+      if (!realCandidate.startsWith(realRoot)) {
+        throw new TemplateSecurityException(
+            "Symlink directory escape outside root directory is forbidden: " + id.value(),
+            id,
+            SourceSpan.UNKNOWN);
       }
+    } catch (IOException e) {
+      return Optional.empty();
     }
 
     try {

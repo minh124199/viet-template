@@ -2,35 +2,48 @@ package io.github.minh124199.viettemplate.vtl.interpreter;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateId;
-import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.runtime.NumberFormatting;
+import io.github.minh124199.viettemplate.runtime.RenderBudget;
 import java.io.IOException;
 import java.util.Objects;
 
 /** Output wrapper that counts written characters and enforces character budget limits. */
-final class CountingTemplateOutput implements TemplateOutput {
+public class CountingTemplateOutput implements TemplateOutput {
 
   private final TemplateOutput delegate;
-  private final long maxChars;
+  private final RenderBudget budget;
   private final TemplateId templateId;
-  private long written = 0;
 
-  CountingTemplateOutput(TemplateOutput delegate, long maxChars, TemplateId templateId) {
+  public CountingTemplateOutput(
+      TemplateOutput delegate, RenderBudget budget, TemplateId templateId) {
     this.delegate = Objects.requireNonNull(delegate, "delegate must not be null");
-    this.maxChars = maxChars;
+    this.budget = Objects.requireNonNull(budget, "budget must not be null");
     this.templateId = Objects.requireNonNull(templateId, "templateId must not be null");
   }
 
-  private void checkLimit(int added) {
-    written += added;
-    if (written > maxChars) {
-      throw new TemplateLimitException(
-          "Exceeded maximum rendered output characters limit: " + maxChars,
-          templateId,
-          SourceSpan.UNKNOWN,
-          InterpreterDiagnosticCodes.LIMIT_EXCEEDED);
-    }
+  public CountingTemplateOutput(TemplateOutput delegate, long maxChars, TemplateId templateId) {
+    this(delegate, new RenderBudget(maxChars, 0L, Integer.MAX_VALUE), templateId);
+  }
+
+  public TemplateOutput delegate() {
+    return delegate;
+  }
+
+  public RenderBudget budget() {
+    return budget;
+  }
+
+  public TemplateId templateId() {
+    return templateId;
+  }
+
+  public long written() {
+    return budget.charactersWritten();
+  }
+
+  protected void checkLimit(int added) {
+    budget.consumeCharacters(added, templateId, SourceSpan.UNKNOWN);
   }
 
   @Override
@@ -113,6 +126,6 @@ final class CountingTemplateOutput implements TemplateOutput {
   }
 
   long writtenCharacters() {
-    return written;
+    return written();
   }
 }

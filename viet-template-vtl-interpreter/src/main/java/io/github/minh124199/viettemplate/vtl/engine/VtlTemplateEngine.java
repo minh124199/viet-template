@@ -187,9 +187,10 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     TemplateSource source = sourceOpt.get();
 
     // 3. Multi-dimensional cache key
-    String accessPolicyId = interpreterOptions.securityPolicy().getClass().getName();
+    String accessPolicyId = interpreterOptions.securityPolicy().policyFingerprint();
     String modelSignature = semanticOptions.modelSchema().parameters().toString();
-    String backendHash = "v1";
+    String backendHash =
+        interpreterOptions.profile().name() + ":" + semanticOptions.profile().name();
     String macroFingerprint = globalMacroManager.computeFingerprint();
 
     CompileCacheKey key =
@@ -249,14 +250,22 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
             Set.of(layoutConfiguration.screenContentKey()),
             Map.of());
 
+    io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput countingOutput =
+        (output
+                instanceof
+                io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput cto)
+            ? cto
+            : new io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput(
+                output, interpreterOptions.limits().createRenderBudget(), request.templateId());
+
     Optional<TemplateId> layout =
         layoutConfiguration.resolver().resolveLayout(request.templateId(), composition.context());
     if (layout.isPresent()) {
       LayoutRenderPlan plan = prepareLayoutPlan(request.templateId(), composition.context());
-      plan.render(composition.context(), output);
+      plan.render(composition.context(), countingOutput);
     } else {
       Template template = get(request.templateId());
-      template.render(composition.context(), output);
+      template.render(composition.context(), countingOutput);
     }
   }
 
@@ -362,7 +371,12 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
 
     if (executionTier == ExecutionTier.AOT_BYTECODE) {
       BytecodeTemplateCompiler compiler = new BytecodeTemplateCompiler();
-      BackendResult result = compiler.compile(optimizedIr, BackendOptions.builder().build());
+      BackendOptions backendOptions =
+          BackendOptions.builder()
+              .securityPolicy(interpreterOptions.securityPolicy().toLinkerAccessPolicy())
+              .optimizationOptions(optimizationOptions)
+              .build();
+      BackendResult result = compiler.compile(optimizedIr, backendOptions);
 
       if (result.isSuccess() && result.compiledTemplate().isPresent()) {
         CompiledTemplate ct = result.compiledTemplate().get();

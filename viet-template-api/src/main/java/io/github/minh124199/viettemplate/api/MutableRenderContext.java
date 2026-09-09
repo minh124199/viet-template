@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.api;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -26,17 +27,25 @@ public interface MutableRenderContext extends RenderContext {
   }
 
   static MutableRenderContext of(Map<String, Object> initial) {
-    return new DefaultMutableRenderContext(initial);
+    return new DefaultMutableRenderContext(initial, Set.of());
+  }
+
+  static MutableRenderContext of(Map<String, Object> initial, Set<String> protectedKeys) {
+    return new DefaultMutableRenderContext(initial, protectedKeys);
   }
 }
 
 final class DefaultMutableRenderContext implements MutableRenderContext {
 
   private final Map<String, Object> variables = new ConcurrentHashMap<>();
+  private final Set<String> protectedKeys;
 
-  DefaultMutableRenderContext() {}
+  DefaultMutableRenderContext() {
+    this(Map.of(), Set.of());
+  }
 
-  DefaultMutableRenderContext(Map<String, Object> initial) {
+  DefaultMutableRenderContext(Map<String, Object> initial, Set<String> protectedKeys) {
+    this.protectedKeys = protectedKeys != null ? Set.copyOf(protectedKeys) : Set.of();
     if (initial != null) {
       for (Map.Entry<String, Object> e : initial.entrySet()) {
         if (e.getKey() != null && e.getValue() != null) {
@@ -64,6 +73,13 @@ final class DefaultMutableRenderContext implements MutableRenderContext {
   @Override
   public void put(String key, Object value) {
     Objects.requireNonNull(key, "key must not be null");
+    if (protectedKeys.contains(key)) {
+      throw new TemplateSecurityException(
+          "Cannot overwrite protected context variable: " + key,
+          TemplateId.of("unknown"),
+          SourceSpan.UNKNOWN,
+          DiagnosticCode.of("SECURITY", "PROTECTED_VARIABLE"));
+    }
     if (value == null) {
       variables.remove(key);
     } else {
@@ -74,11 +90,18 @@ final class DefaultMutableRenderContext implements MutableRenderContext {
   @Override
   public void remove(String key) {
     Objects.requireNonNull(key, "key must not be null");
+    if (protectedKeys.contains(key)) {
+      throw new TemplateSecurityException(
+          "Cannot remove protected context variable: " + key,
+          TemplateId.of("unknown"),
+          SourceSpan.UNKNOWN,
+          DiagnosticCode.of("SECURITY", "PROTECTED_VARIABLE"));
+    }
     variables.remove(key);
   }
 
   @Override
   public Map<String, Object> asMap() {
-    return Collections.unmodifiableMap(variables);
+    return Collections.unmodifiableMap(new HashMap<>(variables));
   }
 }

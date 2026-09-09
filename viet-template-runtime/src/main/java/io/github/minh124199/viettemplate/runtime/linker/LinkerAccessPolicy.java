@@ -48,6 +48,15 @@ public interface LinkerAccessPolicy {
   static LinkerAccessPolicy denyAll() {
     return DenyAllLinkerAccessPolicy.INSTANCE;
   }
+
+  /**
+   * Wraps a high-level {@link io.github.minh124199.viettemplate.api.MemberAccessPolicy} as a {@link
+   * LinkerAccessPolicy}.
+   */
+  static LinkerAccessPolicy of(io.github.minh124199.viettemplate.api.MemberAccessPolicy policy) {
+    java.util.Objects.requireNonNull(policy, "policy must not be null");
+    return new MemberAccessPolicyLinkerAdapter(policy);
+  }
 }
 
 final class StandardLinkerAccessPolicy implements LinkerAccessPolicy {
@@ -141,5 +150,35 @@ final class DenyAllLinkerAccessPolicy implements LinkerAccessPolicy {
   @Override
   public boolean isFieldPermitted(Class<?> receiverClass, Field field) {
     return false;
+  }
+}
+
+final class MemberAccessPolicyLinkerAdapter implements LinkerAccessPolicy {
+  private final io.github.minh124199.viettemplate.api.MemberAccessPolicy policy;
+  private final String policyId;
+
+  MemberAccessPolicyLinkerAdapter(io.github.minh124199.viettemplate.api.MemberAccessPolicy policy) {
+    this.policy = java.util.Objects.requireNonNull(policy, "policy must not be null");
+    this.policyId = policy.policyFingerprint();
+  }
+
+  @Override
+  public String policyId() {
+    return policyId;
+  }
+
+  @Override
+  public boolean isClassPermitted(Class<?> clazz) {
+    return policy.isClassPermitted(clazz);
+  }
+
+  @Override
+  public boolean isMethodPermitted(Class<?> receiverClass, Method method) {
+    return policy.isMethodPermitted(receiverClass, method);
+  }
+
+  @Override
+  public boolean isFieldPermitted(Class<?> receiverClass, Field field) {
+    return policy.isFieldPermitted(receiverClass, field);
   }
 }

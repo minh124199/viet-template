@@ -77,9 +77,11 @@ When the model and one or more contributors supply conflicting keys, the engine 
 | `MODEL_WINS` | The controller/user model takes precedence; conflicting contributor values are discarded. |
 | `CONTRIBUTOR_WINS` | The later contributor takes precedence over the user model. |
 
-### 3.3 Engine Reserved Variables
+### 3.3 Engine Reserved and Protected Variables
 
 Engine-reserved variables (e.g., layout keys such as `$screen_content`) cannot be overwritten by contributors. Attempting to contribute a reserved key raises `ContextCollisionException`.
+
+Furthermore, in Milestone M13, reserved variables are registered as `protectedKeys` in `MutableRenderContext`. In-template `#set` directives or malicious templates attempting to mutate or remove a protected variable are strictly blocked at runtime, throwing `TemplateSecurityException`.
 
 ---
 
@@ -120,6 +122,7 @@ To support `VelocityLayoutServlet` patterns without servlet container dependenci
 
 - Self-wrapping cycles (`screenId == layoutId`) and cyclic layout chains are detected immediately, failing with `TemplateLayoutException` (`LAYOUT:CYCLE_DETECTED`).
 - Recursion depth is capped by `maxLayoutDepth` (default 5), preventing runaway layout nesting (`LAYOUT:DEPTH_EXCEEDED`).
+- In Milestone M13, screen rendering integrates directly into the unified monotonic `RenderBudget`, preventing layout rendering from resetting output or execution deadlines.
 
 ---
 

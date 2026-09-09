@@ -132,8 +132,8 @@ public final class IrInterpreter {
 
     try {
       executeBlock(template.root(), frame);
-    } catch (StopSignal ignored) {
-      // Normal template termination via #stop
+    } catch (StopSignal | BreakSignal ignored) {
+      // Normal template termination via #stop or #break
     }
   }
 
@@ -176,8 +176,10 @@ public final class IrInterpreter {
       throw StopSignal.INSTANCE;
     } else if (stmt instanceof IrReturn) {
       return;
-    } else if (stmt instanceof IrBudgetCheck) {
-      // Safety budget is dynamically verified on output, loops, and recursion
+    } else if (stmt instanceof IrBudgetCheck bc) {
+      if (frame.output instanceof CountingTemplateOutput counting) {
+        counting.budget().checkDeadline(frame.templateId, bc.span());
+      }
     } else if (stmt instanceof IrNoOp) {
       // no-op
     }
@@ -452,6 +454,9 @@ public final class IrInterpreter {
 
     try {
       while (iterator.hasNext()) {
+        if (frame.output instanceof CountingTemplateOutput counting) {
+          counting.budget().countLoopIteration(frame.templateId, loop.span());
+        }
         if (index >= limit) {
           throw new TemplateLimitException(
               "Exceeded maximum foreach iterations: " + limit,
@@ -546,6 +551,8 @@ public final class IrInterpreter {
     try {
       InterpretedFrame macroFrame = frame.withMacroDepth(frame.macroDepth + 1, macroLocals);
       executeBlock(function.body(), macroFrame);
+    } catch (BreakSignal ignored) {
+      // #break inside macro body terminates macro execution
     } finally {
       frame.context.popScope();
     }
@@ -612,7 +619,11 @@ public final class IrInterpreter {
     InterpretedFrame subFrame =
         frame.withParseDepth(
             frame.parseDepth + 1, res.get().templateId(), subSource, subIr.constants());
-    executeBlock(subIr.root(), subFrame);
+    try {
+      executeBlock(subIr.root(), subFrame);
+    } catch (BreakSignal ignored) {
+      // #break inside parsed template terminates parsed template
+    }
   }
 
   private static void executeEvaluate(IrEvaluate eval, InterpretedFrame frame) throws IOException {

@@ -44,6 +44,7 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
   private final List<RenderContextContributor> contextContributors = new ArrayList<>();
   private ContextCollisionPolicy contextCollisionPolicy = ContextCollisionPolicy.MODEL_WINS;
   private LayoutConfiguration layoutConfiguration = LayoutConfiguration.builder().build();
+  private io.github.minh124199.viettemplate.api.MemberAccessPolicy memberAccessPolicy = null;
 
   public VtlTemplateEngineBuilder() {}
 
@@ -109,6 +110,7 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
 
   public VtlTemplateEngineBuilder interpreterOptions(VtlInterpreterOptions options) {
     this.interpreterOptions = Objects.requireNonNull(options, "options must not be null");
+    this.executionTier = options.executionTier();
     return this;
   }
 
@@ -160,7 +162,23 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
   }
 
   @Override
+  public VtlTemplateEngineBuilder memberAccessPolicy(
+      io.github.minh124199.viettemplate.api.MemberAccessPolicy policy) {
+    this.memberAccessPolicy = Objects.requireNonNull(policy, "policy must not be null");
+    return this;
+  }
+
+  @Override
   public VtlTemplateEngine build() {
+    VtlInterpreterOptions effectiveInterpreterOptions = interpreterOptions;
+    if (memberAccessPolicy != null) {
+      effectiveInterpreterOptions =
+          effectiveInterpreterOptions.toBuilder()
+              .securityPolicy(
+                  io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy.of(
+                      memberAccessPolicy))
+              .build();
+    }
     TemplateCompileCache cache =
         new TemplateCompileCache(maxCacheEntries, negativeCacheTtlMillis, maxNegativeEntries);
     return new VtlTemplateEngine(
@@ -171,7 +189,7 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
         optimizationLevel,
         optimizationOptions,
         semanticOptions,
-        interpreterOptions,
+        effectiveInterpreterOptions,
         hotReload,
         watchDebounceMillis,
         dependencyGraph,

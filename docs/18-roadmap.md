@@ -64,6 +64,13 @@ Template dependency graph, static dependency extraction, transitive dependent ca
 
 **Exit:** Clean framework-neutral compatibility architecture verified with ArchUnit and full TCK test coverage.
 
+## Milestone M13 — Security Hardening
+
+Defense-in-depth security model: safe allowlist rules and deny policies (`MemberAccessPolicy`, `SensitiveObjectClassifier`), cryptographic policy fingerprinting (`SecurityPolicyFingerprint`), parser limits (`maxSourceCharacters`, `maxAstNodes`, `maxExpressionDepth`, `maxDirectiveNesting`), unified monotonic execution budget (`RenderBudget`, `ExecutionLimits`, wall-clock deadlines), hardened resource root confinement, protected context variables (`protectedKeys`), compilation cache partitioning, and cross-tier parity across AST interpreter, IR interpreter, dynamic linker PIC, and AOT bytecode. Completed before M14 Public API stabilization.
+
+**Exit:** 100% pass across 22-category security regression corpus, multi-tier fuzz tests, and concurrency stress tests.
+
+
 ## Phase 10 — Spring 7 / Boot 4
 
 MVC View/Resolver, auto-config/starter, properties, hot reload, AOT hints.

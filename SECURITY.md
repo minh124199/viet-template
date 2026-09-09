@@ -14,16 +14,21 @@ Only the latest active development line is supported with security updates.
 Viet Template is designed to execute templates safely across different trust environments. To prevent vulnerabilities such as remote code execution, denial of service, and sensitive data leakage, Viet Template implements strict execution profiles:
 
 1. **`VTL_SAFE` (Recommended for Untrusted Content)**:
-   - **Sandbox Policy**: Arbitrary Java reflection is strictly denied. Access to dangerous runtime classes (`Class`, `ClassLoader`, `Runtime`, `ProcessBuilder`, `Thread`, `System`, etc.) is blocked by default (`VtlSecurityPolicy`).
-   - **Resource Limits**: Configurable execution limits (`ExecutionLimits`) guard against algorithmic complexity attacks, infinite loops (`maxLoopIterations`), deep recursion (`maxMacroDepth`, `maxParseDepth`), and memory exhaustion (`maxOutputCharacters`).
-   - **Template Path Sandboxing**: `TemplateId` strictly forbids root access (`/`), Windows backslashes (`\`), and path traversal sequences (`..`).
+   - **Sandbox & Member Access Policy**: Arbitrary Java reflection is strictly denied. Access to dangerous runtime classes (`Class`, `ClassLoader`, `Runtime`, `ProcessBuilder`, `Thread`, `System`, concurrency executors, etc.) is blocked by default (`MemberAccessPolicy`, `VtlSecurityPolicy`). Granular safe allowlists can be defined via `MemberAccessPolicy.allowlistBuilder()`.
+   - **Sensitive Object Classifier**: `SensitiveObjectClassifier` performs zero-dependency structural hierarchy analysis to block internal runtime and container objects (e.g., Spring `ApplicationContext`, `BeanFactory`).
+   - **Unified Monotonic Render Budget**: Monotonic execution budget (`RenderBudget`) enforces limits on output characters (`maxOutputCharacters`), loop iterations (`maxLoopIterations`), and wall-clock execution time (`maxExecutionTimeMillis` via `System.nanoTime()`). The budget is strictly shared across `#parse`, `#include`, `#evaluate`, macros, and screen/layout plans.
+   - **Static Parser & AST Complexity Limits**: `VtlParser` enforces static limits on input size (`maxSourceCharacters`), AST node count (`maxAstNodes`), expression depth (`maxExpressionDepth`), and directive nesting depth (`maxDirectiveNesting`).
+   - **Template Path Sandboxing & Root Confinement**: `TemplateId` strictly rejects null bytes (`\0`), URL-encoded traversal sequences (`%2e`, `%2f`, `%5c`, `%00`), URI schemes (`:`), and Windows drive roots (`C:`). Filesystem repositories enforce real-path confinement and reject escaping symlinks.
+   - **Protected Context Variables**: Engine variables such as layout `$screen_content` are registered as protected keys (`MutableRenderContext.protectedKeys()`), preventing in-template `#set` overwrites.
+   - **Cache Partitioning**: Compilation cache keys incorporate the cryptographic SHA-256 fingerprint (`SecurityPolicyFingerprint`) of the active policy.
 
 2. **`VTL_CORE` & `VTL_MIGRATION`**:
    - Standard reference and directive resolution adhering to Velocity 2.4.1 compatibility.
-   - Respects configured `ExecutionLimits` and reflection restrictions unless explicitly widened.
+   - Respects configured `ExecutionLimits`, parser limits, and reflection restrictions unless explicitly widened.
 
 3. **`VTL_DYNAMIC`**:
    - Explicit opt-in for dynamic features such as `#evaluate` and arbitrary method invocation.
+   - `#evaluate` is disabled by default in other profiles and strictly bounded when enabled.
    - Must only be used with trusted template sources.
 
 ## Reporting a Vulnerability
