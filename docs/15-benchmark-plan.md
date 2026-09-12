@@ -263,6 +263,15 @@ Milestone M19.1 establishes the benchmark methodology and measured baseline befo
   slower respectively after indexing because the reverse index and mutation synchronization add
   write-path bookkeeping; this measured regression is accepted alongside the algorithmic
   invalidation improvement.
+  The post-finalization invalidation run was produced from clean commit
+  `16aa089f3e041587a561379000976192b2aecfc0` with OpenJDK 17.0.20.1 and JMH 1.37. It used one
+  fork, three one-second warmup iterations, five one-second measurement iterations, one thread,
+  throughput mode, and `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC`. The command was
+  `java -jar viet-template-benchmarks/build/libs/benchmarks.jar 'CacheInvalidationBenchmark' -rf
+  json -rff
+  viet-template-benchmarks/build/reports/jmh/m19.2a-16aa089-java17-invalidation.json`. The result
+  file therefore corresponds exactly to the committed executable source; this documentation-only
+  provenance entry was added afterward.
 - **M19.2b (Variable Slots + ExecutionFrame - Pending)**: variable representation remains unchanged.
 
 All cross-engine benchmarks will compare Viet Template against current stable versions of:
