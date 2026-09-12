@@ -1,0 +1,135 @@
+{
+  "$schema": "./benchmark-runtime-profiles.schema.json",
+  "defaultProfile": "J17-G1",
+  "profiles": {
+    "J17-G1": {
+      "description": "Historical canonical baseline: OpenJDK 17 with G1 GC",
+      "javaVersion": 17,
+      "historicallyComparable": true,
+      "heap": "2g fixed",
+      "alwaysPreTouch": true,
+      "garbageCollector": "G1",
+      "compactObjectHeaders": false,
+      "virtualThreads": false,
+      "aot": false,
+      "jvmFlags": [
+        "-server",
+        "-Xms2g",
+        "-Xmx2g",
+        "-XX:+AlwaysPreTouch",
+        "-XX:+UseG1GC"
+      ]
+    },
+    "J21-G1": {
+      "description": "LTS baseline: OpenJDK 21 with G1 GC",
+      "javaVersion": 21,
+      "historicallyComparable": false,
+      "heap": "2g fixed",
+      "alwaysPreTouch": true,
+      "garbageCollector": "G1",
+      "compactObjectHeaders": false,
+      "virtualThreads": true,
+      "aot": false,
+      "jvmFlags": [
+        "-server",
+        "-Xms2g",
+        "-Xmx2g",
+        "-XX:+AlwaysPreTouch",
+        "-XX:+UseG1GC"
+      ]
+    },
+    "J21-ZGC": {
+      "description": "LTS low-latency: OpenJDK 21 with Generational ZGC",
+      "javaVersion": 21,
+      "historicallyComparable": false,
+      "heap": "2g fixed",
+      "alwaysPreTouch": true,
+      "garbageCollector": "ZGC",
+      "compactObjectHeaders": false,
+      "virtualThreads": true,
+      "aot": false,
+      "jvmFlags": [
+        "-server",
+        "-Xms2g",
+        "-Xmx2g",
+        "-XX:+AlwaysPreTouch",
+        "-XX:+UseZGC",
+        "-XX:+ZGenerational"
+      ]
+    },
+    "J25-G1": {
+      "description": "Modern baseline: OpenJDK 25 with G1 GC",
+      "javaVersion": 25,
+      "historicallyComparable": false,
+      "heap": "2g fixed",
+      "alwaysPreTouch": true,
+      "garbageCollector": "G1",
+      "compactObjectHeaders": false,
+      "virtualThreads": true,
+      "aot": false,
+      "jvmFlags": [
+        "-server",
+        "-Xms2g",
+        "-Xmx2g",
+        "-XX:+AlwaysPreTouch",
+        "-XX:+UseG1GC"
+      ]
+    },
+    "J25-G1-COH": {
+      "description": "Modern memory-efficient: OpenJDK 25 with Compact Object Headers (JEP 519)",
+      "javaVersion": 25,
+      "historicallyComparable": false,
+      "heap": "2g fixed",
+      "alwaysPreTouch": true,
+      "garbageCollector": "G1",
+      "compactObjectHeaders": true,
+      "virtualThreads": true,
+      "aot": false,
+      "jvmFlags": [
+        "-server",
+        "-Xms2g",
+        "-Xmx2g",
+        "-XX:+AlwaysPreTouch",
+        "-XX:+UseG1GC",
+        "-XX:+UnlockExperimentalVMOptions",
+        "-XX:+UseCompactObjectHeaders"
+      ]
+    },
+    "J25-ZGC": {
+      "description": "Modern low-latency: OpenJDK 25 with Generational ZGC",
+      "javaVersion": 25,
+      "historicallyComparable": false,
+      "heap": "2g fixed",
+      "alwaysPreTouch": true,
+      "garbageCollector": "ZGC",
+      "compactObjectHeaders": false,
+      "virtualThreads": true,
+      "aot": false,
+      "jvmFlags": [
+        "-server",
+        "-Xms2g",
+        "-Xmx2g",
+        "-XX:+AlwaysPreTouch",
+        "-XX:+UseZGC"
+      ]
+    },
+    "J25-AOT": {
+      "description": "Modern fast-startup: OpenJDK 25 with JVM AOT Cache (JEP 483 / JEP 514)",
+      "javaVersion": 25,
+      "historicallyComparable": false,
+      "heap": "2g fixed",
+      "alwaysPreTouch": true,
+      "garbageCollector": "G1",
+      "compactObjectHeaders": false,
+      "virtualThreads": true,
+      "aot": true,
+      "jvmFlags": [
+        "-server",
+        "-Xms2g",
+        "-Xmx2g",
+        "-XX:+AlwaysPreTouch",
+        "-XX:+UseG1GC"
+      ]
+    }
+  }
+}

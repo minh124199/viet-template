@@ -178,36 +178,134 @@ java -jar viet-template-benchmarks/build/libs/benchmarks.jar -prof gc RenderingE
 
 #### 7. Profile CPU via Java Flight Recorder (JFR)
 ```bash
-# Record CPU execution profiles and flame graphs using JFR profiler
-./gradlew :viet-template-benchmarks:jmh -PjmhArgs="-prof jfr:dir=./jfr-reports RenderingEndToEndBenchmark"
+# Record CPU execution profiles using JFR on JDK 25
+./scripts/perf/jfr-profile.sh --summary --args "500"
 
-# Standalone execution
-java -jar viet-template-benchmarks/build/libs/benchmarks.jar -prof jfr:dir=./jfr-reports RenderingEndToEndBenchmark
+# Extract specific diagnostic views from an existing JFR recording
+./scripts/perf/jfr-summary.sh build/performance/jfr/profile.jfr --output-dir build/performance/jfr/views
 ```
 
 #### 8. Record Environment Metadata
 ```bash
-# Capture OS, CPU, Git commit SHA, and JVM metadata into JSON
+# Capture OS, CPU, Git commit SHA, and JVM metadata into JSON (preserving legacy positional syntax)
 ./scripts/record-benchmark-env.sh benchmark-env.json
+
+# Capture environment for a specific runtime profile
+./scripts/record-benchmark-env.sh --profile J21-G1 --output build/performance/env.json
+```
+
+#### 9. Execute Profile-Aware Benchmarks
+```bash
+# Run specific benchmark under JDK 21 G1 runtime profile
+./scripts/perf/run-benchmarks.sh --profile J21-G1 --benchmark VariableLookupBenchmark
+
+# Run with Compact Object Headers (COH) under JDK 25
+./scripts/perf/run-benchmarks.sh --profile J25-G1-COH --benchmark CallSiteBenchmark --forks 1 --warmup 2 --iterations 3
+```
+
+#### 10. Compare JMH Results
+```bash
+# Compare only configuration-compatible entries using conservative directional language
+./scripts/perf/compare-jmh.py baseline.json candidate.json
+
+# Output as GitHub Flavored Markdown
+./scripts/perf/compare-jmh.py baseline.json candidate.json --markdown --threshold 5.0
+```
+
+#### 11. Run Virtual-Thread Concurrency Stress Suite
+```bash
+# Run virtual-thread stress tests across all concurrency fixtures
+./scripts/perf/run-virtual-thread-stress.sh --mode full
+
+# Fast smoke run
+./scripts/perf/run-virtual-thread-stress.sh --mode smoke
+```
+
+#### 12. Measure Process Startup Latency
+```bash
+# Smoke mode validates plumbing only; it must not support performance claims
+./scripts/perf/measure-startup.sh --profile J17-G1 --mode smoke --iterations 3 --markdown
+
+# Measurement mode uses at least 20 independent JVM launches (30 by default)
+./scripts/perf/measure-startup.sh --profile J17-G1 --mode measurement --markdown
+```
+
+#### 13. Run Java 25 JVM AOT Experiment
+```bash
+# Record AOT configuration, dump AOT cache archive, and alternate 30 normal/AOT launches
+./scripts/perf/jdk-aot-experiment.sh --iterations 30
 ```
 
 ---
 
-## 6. Nine Benchmark Classes
+## 6. Ten Canonical Benchmark Classes
 
-The benchmark suite contains nine focused JMH benchmark classes covering every critical rendering and compilation phase:
+The benchmark suite contains ten focused JMH benchmark classes covering every critical rendering, compilation, caching, and dispatch phase:
 
 | Class | Benchmark Name | Target Workload & Primary Focus |
 |---|---|---|
-| 1 | `StaticHtmlBenchmark` | Workload **B01**: 20 KB static HTML chunk rendering. Measures raw streaming throughput, zero-allocation literal writing, and buffer flushing efficiency. |
-| 2 | `ScalarVariableBenchmark` | Workload **B02**: 50 scalar variable substitutions. Measures variable resolution, compiler-assigned variable slots (`EvaluationValue[] slots`), and primitive conversion. |
-| 3 | `DeepPropertyChainBenchmark` | Workload **B03**: Repeated deep property navigation (`$order.customer.address.city`). Measures getter linkage, null-checking overhead, and call-site stability. |
-| 4 | `ConditionalBranchBenchmark` | Workload **B04**: 100 mixed conditionals (`#if/#elseif/#else`) with varying truthiness rules. Measures branch prediction, short-circuit evaluation, and `VtlTruthiness` dispatch. |
-| 5 | `ForeachLoopBenchmark` | Workloads **B05, B06, B07**: Iteration over 10-row, 1,000-row, and nested 100×10 loops across collections, arrays, and ranges. Measures loop metadata (`$foreach`), iterator allocation, and index access. |
-| 6 | `EscapingBenchmark` | Workload **B08**: Escaping-heavy HTML strings and attribute contexts. Measures `Escaper` streaming throughput, SIMD-friendly scanning, and temporary string allocation avoidance. |
-| 7 | `DynamicCallSitePicBenchmark` | Workloads **B09, B10**: Dynamic property resolution under monomorphic, 2-to-4 shape polymorphic (PIC), and megamorphic conditions. Measures `AccessLink[]` array scan vs. hash lookup vs. megamorphic cache. |
-| 8 | `TemplateCompilationCacheBenchmark` | Workload **B15**: Parsing, analyzing, compiling, and invalidating 1,000 templates. Measures cache concurrency, lock contention, and secondary index invalidation (`TemplateId -> Set<CompileCacheKey>`). |
-| 9 | `MacroAndLayoutBenchmark` | Workloads **B11, B12**: Macro-heavy rendering, block macros (`#@blockMacro`), global macro library dispatch, and two-stage layout rendering (`LayoutRenderPlan`). Measures context stacking and template recursion budgets. |
+| 1 | `CacheInvalidationBenchmark` | Workload **B15**: Targeted vs full-scan compile-cache invalidation across independent dimensions $N$ (100 to 10,000 live templates) and $K$ (1 to 20 keys per template), including transitive dependent cleanup. |
+| 2 | `CallSiteBenchmark` | Workloads **B09, B10**: Dynamic property resolution under unlinked, monomorphic, and polymorphic (2-to-4 shapes) inline cache link traversal. |
+| 3 | `CompileCacheBenchmark` | Workload **B15**: Isolated compile cache operations: active and exact key reads, repeated-key puts, active handle replacements, bounded capacity insertion, and negative caching. |
+| 4 | `ConcurrentCacheBenchmark` | Workload **B15**: Multi-threaded compile cache throughput and lock contention across 1, 4, and 8 concurrent worker threads. |
+| 5 | `ForeachRenderingBenchmark` | Workloads **B05, B06, B07**: Iteration over 10-row small tables, 1,000-row large tables, and nested 100×10 loops across collections, arrays, and ranges. |
+| 6 | `MegamorphicCallSiteBenchmark` | Workload **B10**: Dynamic call-site dispatch under 14+ distinct receiver shapes beyond PIC depth 4, verifying `BoundedWeakClassCache` hits and eviction safety. |
+| 7 | `NestedScopeBenchmark` | Workloads **B02, B07**: Lexical scope stack push/pop, foreach scopes with `$foreach.parent` navigation, and macro invocation scope bindings. |
+| 8 | `RenderingEndToEndBenchmark` | Workloads **B01, B02, B03, B04, B08, B11, B12**: Comprehensive real-world workloads: 20 KB static HTML, 50 scalars, deep property chains, 100 conditionals, HTML escaping, macros, and two-stage layout rendering. |
+| 9 | `VariableAssignmentBenchmark` | Workload **B02**: Template-local and local scope variable assignment paths, frame slots, and mutable root write-through. |
+| 10 | `VariableLookupBenchmark` | Workload **B02**: Direct array-slot indexing (`ExecutionFrame` slots) vs dynamic name-based lookup across lexical scope depths 0 to 8. |
+
+---
+
+### 6.1 Authoritative Runtime Profiles & Multi-JDK Matrix
+
+Benchmark results and environment measurements are organized around authoritative runtime profiles defined in `config/benchmark-runtime-profiles.json` and validated by `scripts/perf/runtime_profiles.py` and `scripts/perf/check-java-runtime.sh`:
+
+| Profile ID | Java Version | Garbage Collector | Compact Object Headers (COH) | Virtual Threads | JVM AOT Cache | Standard JVM Flags |
+|---|---|---|---|---|---|---|
+| `J17-G1` | 17 | G1 | No | No | No | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC` |
+| `J21-G1` | 21 | G1 | No | Yes | No | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC` |
+| `J21-ZGC` | 21 | ZGC (Generational) | No | Yes | No | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseZGC -XX:+ZGenerational` |
+| `J25-G1` | 25 | G1 | No | Yes | No | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC` |
+| `J25-G1-COH` | 25 | G1 | Yes (JEP 519) | Yes | No | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+UseCompactObjectHeaders` |
+| `J25-ZGC` | 25 | ZGC (Generational) | No | Yes | No | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseZGC` |
+| `J25-AOT` | 25 | G1 | No | Yes | Yes (JEP 483 / 514 / 515) | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC` |
+
+---
+
+### 6.2 Virtual-Thread Concurrency Testing & Isolation Invariants
+
+The virtual-thread stress suite (`viet-template-benchmarks/src/test/java/.../stress/`) validates concurrency invariants under high-density thread scheduling:
+- **`VirtualThreadSupport`**: Maintains strict `--release 17` binary compatibility by dynamically looking up `Executors.newVirtualThreadPerTaskExecutor()` via `MethodHandle`. It runs natively on virtual threads under JDK 21+ and seamlessly falls back to platform threads on JDK 17.
+- **`SharedEngineVirtualThreadStressTest`**: Executes 1,000 to 10,000 concurrent renders on a shared `TemplateEngine`, proving complete thread isolation across `RenderContext`, `RenderRequest`, and `StringTemplateOutput`.
+- **`DynamicCallSiteConcurrencyStressTest`**: Stresses concurrent inline cache state transitions and verifies security isolation (`LinkerAccessPolicy.standard()` vs `denyAll()`).
+- **`CompileCacheConcurrencyStressTest`**: Validates M19.2a linearization contracts: put-before-invalidate, put-after-invalidate, concurrent invalidation idempotency, and LRU eviction + reverse-index consistency.
+- **`HotReloadConcurrencyStressTest`**: Verifies that in-flight renders complete safely during generation A to B template swaps while new renders see generation B.
+- **`DependencyGraphConcurrencyStressTest`**: Stresses transitive dependent cache invalidation across realistic hierarchical layouts during concurrent rendering.
+- **`RenderBudgetIsolationStressTest`**: Proves that execution budget exhaustion (character limits, loop limits, timeouts) in one thread does not bleed into concurrent threads.
+- **`PlatformThreadComparisonHarness`**: Quantifies throughput and task latency comparisons between platform threads and virtual threads.
+
+---
+
+### 6.3 Diagnostic Profiling & Startup Measurement
+
+1. **Java Flight Recorder (JFR) Profiling**:
+   `scripts/perf/jfr-profile.sh` and `scripts/perf/jfr-summary.sh` leverage JDK 25 JFR event streams (including JEP 520 method timing & tracing) and the `jfr view` CLI to inspect execution characteristics:
+   - `hot-methods`: Identifies CPU execution hotspots across template evaluation and bytecode.
+   - `allocation-by-class`: Tracks object churn and heap allocation distributions.
+   - `contention-by-site`: Detects lock wait times and monitor contention points.
+   - `gc-pauses`: Measures garbage collection pause times and latency impacts.
+   - `thread-allocation`: Analyzes thread-specific allocation rates.
+   - `pinned-threads`: Detects virtual threads pinned to carrier threads during synchronized blocks or native calls.
+   Allocation percentages are candidates, not attribution. For each claimed hotspot, retain the view/event name, event count, recording duration, workload, and relevant stack traces; classify frames as Viet Template, JDK collection/classfile code, JVM startup/runtime, or harness code. Repeat cold-startup, steady-state-rendering, compile-heavy, and cache-heavy recordings before promoting any M19.3 candidate. Startup allocation prominence does not establish rendering relevance or retained-memory ownership.
+2. **Process Startup Measurement Harness**:
+   `StartupBenchmarkEntrypoint.java` measures nanosecond checkpoints across JVM bootstrap, repository population, engine initialization, template compilation, first render, and small batch execution. `scripts/perf/measure-startup.py` reports min, median, mean, p95, max, and sample standard deviation. `SMOKE` mode is restricted to 2–3 launches and validates plumbing only; `MEASUREMENT` mode requires at least 20 independent launches and defaults to 30. Two-run observations are development history, not authoritative performance evidence.
+3. **Ahead-of-Time (AOT) Cache Experiments**:
+   `scripts/perf/jdk-aot-experiment.sh` characterizes Java 25 Ahead-of-Time class loading and linking (JEP 483), command-line ergonomics (JEP 514), and method profiling (JEP 515) using `-XX:AOTMode=record` and `-XX:AOTMode=create`. It alternates normal and AOT-cache launches and reports raw observations plus descriptive checkpoint deltas. Empirical evidence from AOT cache measurements specifically characterizes JVM bootstrap, class loading, engine initialization, and initial compilation warmup; it does not alter or imply a steady-state template rendering effect.
+
+### 6.4 ThreadLocal Audit
+
+The Java-source audit finds one use: `VtlTemplateEngine.compilingTemplates`, a per-thread `HashSet<TemplateId>` used only while recursively precompiling static parse/include dependencies. Entries are removed in `finally`; the set holds template identifiers only and its size is bounded by the active dependency recursion depth. On virtual threads, each render/compile task receives an isolated, short-lived value. On reused platform-pool threads, an empty small set may remain attached to the thread. No request data, rendered output, security policy, or compiled template is retained. Replacement is not justified without evidence because the state is inherently call-chain-local recursion protection and no cross-thread propagation is intended.
 
 ---
 

@@ -90,57 +90,63 @@ attribution:
   slots and array-backed `ExecutionFrame` activations for IR and AOT tiers, preserving Velocity 3-state
   evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`), dynamic fallback coherence
   (`#foreach`, `#macro`, `#evaluate`, `#parse`), and mutable root write-through, without variable slot reuse.
+- **M19.2c — Performance Engineering Infrastructure & Cross-JDK Analysis: COMPLETE.** Comprehensive
+  performance engineering harness established under 0.2.1-SNAPSHOT:
+  1. Authoritative runtime profile definitions (`config/benchmark-runtime-profiles.json`, `scripts/perf/runtime_profiles.py`) and runtime validator (`scripts/perf/check-java-runtime.sh`) covering profiles `J17-G1`, `J21-G1`, `J21-ZGC`, `J25-G1`, `J25-G1-COH`, `J25-ZGC`, and `J25-AOT`.
+  2. Extended environment metadata recorder (`scripts/record-benchmark-env.sh`) capturing profile ID, Git dirty state, CPU cores, RAM, GC collector, Compact Object Headers (COH), and AOT status.
+  3. Profile-aware benchmark runner (`scripts/perf/run-benchmarks.sh`) with standardized directory layouts (`build/performance/<timestamp>-<sha>/<profile>/`).
+  4. JMH benchmark comparison utility (`scripts/perf/compare-jmh.py`) with automated direction detection (throughput vs latency), confidence interval overlap evaluation, and Markdown table output.
+  5. Java 21 Virtual-Thread stress suite (`viet-template-benchmarks/src/test/.../stress/`) maintaining `--release 17` binary compatibility via `MethodHandle` dynamic resolution, testing shared engine isolation, dynamic call-site transitions, M19.2a linearization invariants, hot reloading, transitive dependency invalidation, and execution budget confinement under high thread concurrency.
+  6. Java 25 JFR profiling tools (`scripts/perf/jfr-profile.sh`, `scripts/perf/jfr-summary.sh`) extracting `hot-methods`, `allocation-by-class`, `contention-by-site`, `gc-pauses`, `thread-allocation`, and `pinned-threads`.
+  7. Multi-checkpoint process startup measurement harness (`StartupBenchmarkEntrypoint.java`, `scripts/perf/measure-startup.py`, `scripts/perf/measure-startup.sh`).
+  8. Java 25 JVM Ahead-of-Time (AOT) cache experiment script (`scripts/perf/jdk-aot-experiment.sh`). Earlier two-run observations (~253 ms normal and ~112 ms with an AOT cache) are initial smoke observations only: they are not statistically reliable, are not authoritative benchmark results, and must not be used as release claims.
+  9. Scheduled and manual performance CI pipeline (`.github/workflows/performance.yml`).
 
-1. **Compiler-Assigned Variable Slots (`EvaluationValue[] slots`)**:
-   - In 0.1.x, template variable evaluation relies on `ExecutionContext` managing an `ArrayDeque<LocalScope>` containing `HashMap<String, EvaluationValue>`.
-   - In 0.2.0, semantic analysis and IR optimization assign every statically declared and inferred local variable (parameters, `#set` targets, loop counters, macro parameters) to a stable compiler-assigned integer slot ID.
-   - The execution frame in both the reference interpreter and AOT bytecode backend evolves to an indexed `ExecutionFrame` backed by `EvaluationValue[] slots`.
-   - Variable reads and writes compile to direct array slot accesses (`ALOAD`/`AALOAD`/`AASTORE`), reducing variable resolution from an hash map lookup with string hashing and object node traversal to a direct array index operation.
-   - **Preservation of 3-State Semantics**: The runtime explicitly preserves `UNDEFINED`, `DEFINED_NULL`, and `DEFINED_VALUE`. `ExecutionFrame` explicitly initializes each slot to `EvaluationValue.undefined()`. Because Java reference arrays themselves initialize to `null`, the runtime never exposes `null` or conflates it with `DEFINED_NULL`.
-   - **Name-Based Fallback**: A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
-   - **Slot Reuse Deferred**: Current measured workloads do not demonstrate a need for slot packing in 0.2.0, so slot reuse remains deferred.
-2. **Indexed Template Cache Invalidation**:
-   - In 0.1.x, `TemplateCompileCache.invalidate(TemplateId)` performs an $O(N)$ linear scan over all cache keys: `entries.keySet().removeIf(...)`.
-   - In 0.2.0, `TemplateCompileCache` introduces a concurrent secondary reverse index: `ConcurrentMap<TemplateId, Set<CompileCacheKey>>`.
-   - The indexed approach performs an average $O(1)$ lookup of `TemplateId` $\to$ associated key set plus $O(K)$ removal of the $K$ associated entries, reducing overall invalidation work to $O(K)$. It is never described as "instant $O(1)$ eviction", because removing $K$ entries is proportional to $K$.
-   - `put` and `invalidate` for the same template serialize on a stable lock stripe. An insertion
-     therefore linearizes wholly before invalidation and is removed, or wholly after invalidation
-     and remains. Concurrent invalidations are idempotent. Eviction removes reverse-index and
-     conditional active-key membership after releasing the LRU lock, preventing lock-order cycles.
-   - The bookkeeping tradeoff is one reverse-map entry and concurrent set per indexed template,
-     plus one set membership per compile key. Empty sets are removed during eviction/invalidation,
-     and full reset clears the complete index.
-   - Positive mutations use a fixed set of 64 template lock stripes. This bounds synchronization
-     object overhead while allowing unrelated template mutations to proceed concurrently. The
-     stripe count is an implementation parameter, not a performance guarantee, and should be
-     revisited only if profiling justifies it.
-3. **Variable Slot Assignment Optimizer Pass (`O45 AssignVariableSlots`)**:
-   - Adds pass `O45` to the optimization pipeline between local constant propagation (`O40`) and dead branch elimination (`O50`).
-   - Assigns stable integer slot IDs to statically resolvable variables without slot reuse, preserving explicit symbol boundaries and 3-state evaluation semantics.
-4. **JMH Benchmark Verification**:
-   - Measure throughput and allocation deltas on `ScalarVariableBenchmark`, `ForeachLoopBenchmark`, and `TemplateCompilationCacheBenchmark`.
-   - Verify performance and allocation profiles against 0.1.x baselines under the balanced tradeoff rule.
+### Java Runtime Roles & Baseline Policy
+
+Viet Template explicitly differentiates the roles of supported JDK releases:
+
+- **Java 17 (Authoritative Production Baseline)**:
+  - The minimal compiler and runtime bytecode target (`options.release.set(17)`).
+  - All published production artifacts (`viet-template-api`, `viet-template-runtime`, `viet-template-language-vtl`, `viet-template-vtl-interpreter`) are compiled to Java 17 classfiles without preview features or Java 21+ API dependencies.
+  - Ensures seamless adoption across enterprise Java 17 LTS deployments without bytecode incompatibility.
+- **Java 21 (LTS Runtime Target & Virtual Threads Platform)**:
+  - Supported runtime execution environment for deployment under modern LTS JVMs.
+  - Validates full compatibility with Virtual Threads (JEP 444) and Generational ZGC (JEP 439).
+  - High-concurrency stress suites verify that shared engine instances, thread-local contexts, and cache locks execute under high concurrency with no pinning-related correctness or deadlock failure observed in the tested workload.
+- **Java 25 (Advanced Runtime & Experimentation Platform)**:
+  - Forward-looking performance exploration target.
+  - Evaluates memory footprint optimizations via Compact Object Headers (JEP 519).
+  - Measures process-level startup and class-loading acceleration via JVM AOT Cache (JEP 483 / JEP 514 / JEP 515).
+  - Powers diagnostic profiling via Java Flight Recorder (JFR, including JEP 520) and `jfr view` CLI analysis.
+
+#### Production Baseline Decision Gate
+
+The Java 17 production baseline remains strictly frozen for the entire 0.x release series. Any future proposal to raise the production baseline to Java 21 or 25 requires:
+1. An approved Architecture Decision Record (ADR).
+2. Broad community consensus and documented enterprise LTS adoption metrics.
+3. Quantifiable, statistically significant empirical performance justification satisfying all 7 parts of the DSA Acceptance Rule.
 
 ---
 
-## Release Phase 0.3.x+ — Evidence-Driven Optimizations
+## Release Phase 0.3.x+ — Evidence-Driven Optimizations (Gated on Empirical Hotspot Evidence)
 
-Guided strictly by JMH profiling and JFR allocation flame graphs from 0.1.x and 0.2.0 baselines, 0.3.x introduces targeted optimizations satisfying the 7-part DSA acceptance rule, the Four-Tier Implementation Preference Hierarchy, and the balanced tradeoff evaluation. Optimizations are undertaken only for components that post-0.2.0 profiling identifies as proven hotspots.
+Milestone M19.3 remains **NOT STARTED** and strictly **GATED**.
 
-### Candidate Optimization Areas (Milestone M19.3)
+Guided strictly by JMH profiling, JFR allocation flame graphs, and virtual-thread stress results from M19.2c, 0.3.x introduces targeted optimizations satisfying the 7-part DSA acceptance rule, the Four-Tier Implementation Preference Hierarchy, and the balanced tradeoff evaluation. Optimizations are undertaken **only** for components that post-0.2.0 profiling proves to be dominant hotspots ($\ge 5\%$ of runtime or allocation volume). Speculative or unverified optimizations are strictly prohibited.
+
+### Candidate Optimization Areas (Milestone M19.3 - Gated on Evidence)
 
 1. **LRU Cache Contention Mitigation**:
-   - If concurrency stress testing on `TemplateCompilationCacheBenchmark` reveals lock contention on LRU eviction queues, introduce a concurrent striped or segmented eviction structure (e.g., modern ConcurrentLinkedHashMap or TinyLFU design) while preserving bounded memory guarantees.
+   - If multi-threaded stress tests on `TemplateCompileCache` or `ConcurrentCacheBenchmark` demonstrate measurable lock contention on LRU eviction queues, evaluate concurrent striped or segmented eviction structures while preserving bounded memory guarantees. Gated on proven hotspot evidence.
 2. **Lexer & Parser Allocation Reductions**:
-   - Evaluate zero-copy token slice representation to eliminate intermediate `String` allocations during template parsing.
-   - Investigate flyweight token recycling pools for high-frequency tokens (identifiers, punctuation).
+   - If allocation profiling demonstrates that lexer token objects represent $\ge 5\%$ of allocation churn during cold compilation, evaluate zero-copy token slice representation to eliminate intermediate `String` allocations.
 3. **Dependency Graph Concurrency Refinements**:
-   - Refine read/write concurrency in `TemplateDependencyGraph` for continuous hot-reload environments with deep dependency trees.
+   - If high-frequency hot-reload stress testing reveals read/write lock bottlenecks in `TemplateDependencyGraph`, evaluate copy-on-write or concurrent read-path refinements.
 4. **MethodHandle `invokedynamic` Prototype**:
-   - Benchmark an `invokedynamic` (Indy) call-site implementation against the existing contiguous `AccessLink[]` PIC array scan.
-   - Advance Indy only if it demonstrates measurable throughput wins without native-image or classloader leak penalties.
+   - Benchmark an `invokedynamic` (Indy) call-site implementation against the existing contiguous `AccessLink[]` PIC array scan. Advance only if measurable throughput gains occur without classloader leaks or native-image penalties.
 5. **Streaming Output Buffer Enhancements**:
-   - Optimize `TemplateOutput` buffer pooling and primitive byte encoding (e.g., zero-allocation integer and decimal direct UTF-8 byte encoders).
+   - Optimize `TemplateOutput` buffer pooling and primitive byte encoding (e.g., direct UTF-8 byte encoders for primitives).
 
 ---
 
