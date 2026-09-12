@@ -129,15 +129,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Set up Java 17
+      - name: Set up Java 21 for Spotless
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
+
+      - name: Run Gradle Spotless check
+        run: ./gradlew spotlessCheck --no-daemon
+
+      - name: Run Maven Spotless check
+        run: ./mvnw spotless:check -B
+
+      - name: Set up Java 17 for Build Verification & TCK
         uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: 'temurin'
           java-version: '17'
           cache: 'maven'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
 
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
@@ -145,10 +158,10 @@ jobs:
           python-version: '3.x'
 
       - name: Run Gradle check
-        run: ./gradlew check --no-daemon
+        run: ./gradlew check --no-daemon -Dspotless.check.skip=true
 
       - name: Run Maven verify
-        run: ./mvnw clean verify -B
+        run: ./mvnw clean verify -B -Dspotless.check.skip=true
 
       - name: Run Build Parity Verification
         run: ./scripts/verify-build-parity.sh
@@ -177,10 +190,10 @@ jobs:
           python-version: '3.x'
 
       - name: Assemble Maven Artifacts
-        run: ./mvnw clean package -P release -Dgpg.skip=true -DskipTests -B
+        run: ./mvnw clean package -P release -Dgpg.skip=true -DskipTests -Dspotless.check.skip=true -B
 
       - name: Assemble Gradle Artifacts
-        run: ./gradlew assemble --no-daemon
+        run: ./gradlew assemble --no-daemon -Dspotless.check.skip=true
 
       - name: Validate Release Publication Bundle
         run: |
@@ -254,7 +267,7 @@ jobs:
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
           echo "Deploying release artifacts to Sonatype Central Publisher Portal via Apache Maven..."
-          ./mvnw clean deploy -P release -DskipTests -Dgpg.passphrase="$SIGNING_PASSWORD" -B
+          ./mvnw clean deploy -P release -DskipTests -Dspotless.check.skip=true -Dgpg.passphrase="$SIGNING_PASSWORD" -B
 
       - name: Clean Up Sensitive Credentials & Keyring
         if: always()
