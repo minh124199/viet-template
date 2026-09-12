@@ -1,213 +1,81 @@
-# Viet Template — Implementation Documentation Pack
+# Viet Template
 
-> **Goal:** Build a new, framework-independent JVM template engine with a Velocity-compatible surface language, a modern compiler/runtime architecture, strong security defaults, and first-class Spring Framework 7 / Spring Boot 4 integration.
->
-> **Status:** Architecture and implementation specification, revision 0.2, 2026-09-05.
+A compile-first, low-allocation JVM template engine featuring Velocity Template Language (VTL) compatibility, modern execution backends, and defense-in-depth security defaults.
 
+[![CI](https://github.com/minh124199/viet-template/actions/workflows/ci.yml/badge.svg)](https://github.com/minh124199/viet-template/actions/workflows/ci.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.minh124199/viet-template-api)](https://central.sonatype.com/artifact/io.github.minh124199/viet-template-api)
+[![Java 17+](https://img.shields.io/badge/Java-17%2B-blue.svg)](https://adoptium.net/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-## Project identity
+Viet Template is a clean-room JVM template engine designed for applications that value the concise syntax of Velocity templates but require modern JVM performance, type checking, low object allocation, and strict security isolation.
 
-The project identity is fixed for the initial implementation and public repository:
+---
+
+## Why Viet Template?
+
+Many existing JVM template engines require teams to choose between familiar, flexible syntax and modern runtime efficiency:
+
+- **Clean-Room VTL Surface**: Retains familiar Velocity Template Language (VTL) syntax without carrying legacy runtime architecture or deprecated reflection mechanisms.
+- **Compile-First Architecture**: Parses templates into an immutable AST, lowers them to a control-flow-aware Intermediate Representation (IR), and applies 12 compiler optimization passes before rendering.
+- **Multi-Tier Execution**: Supports AST interpretation for rapid development, an optimized IR interpreter, dynamic method handles with Polymorphic Inline Caches (PIC), and direct Java 17 bytecode generation (AOT).
+- **Streaming & Low Allocation**: Emits static text as pre-encoded UTF-8 byte chunks, formats primitive numbers without intermediate `String` allocations, and streams output directly to `Writer` or `OutputStream`.
+- **Defense-in-Depth Security**: Denies access to reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), classloaders, processes, threads, and system resources by default. Enforces monotonic execution budgets (`RenderBudget`) across includes, macros, and layouts.
+- **Zero Core Framework Bloat**: The core engine and runtime have zero mandatory dependencies on Spring, servlet containers, logging frameworks, or third-party bytecode manipulators.
+
+---
+
+## Project Status
 
 | Item | Value |
-|---|---|
-| Project / brand | **Viet Template** |
-| GitHub repository | `minh124199/viet-template` |
-| Maven group | `io.github.minh124199` |
-| Java root package | `io.github.minh124199.viettemplate` |
-| Artifact prefix | `viet-template-*` |
-| Spring Boot property prefix | `viet.template` |
-| Metrics prefix | `viet.template` |
-| CLI / build-tool prefix | `viet-template` |
+| :--- | :--- |
+| **Current Published Release** | `0.1.0` (2026-09-06) |
+| **Development Branch** | `0.1.1-SNAPSHOT` |
+| **Maturity Level** | **Pre-1.0 (`0.1.x`)** |
+| **Maven Group** | `io.github.minh124199` |
+| **Java Baseline** | Java 17 (`--release 17`) |
 
-The project starts under the maintainer's personal GitHub account. Creating an organization is not a prerequisite. If the repository is transferred to an organization later, existing published Maven coordinates and Java packages should remain stable unless there is a compelling compatibility reason to change them.
+> [!NOTE]
+> Viet Template is in active pre-1.0 development. The core public API, runtime, and differential TCK are thoroughly tested and published to Maven Central, but interfaces and internal representations may evolve prior to the 1.0 release. It should not be treated as a finalized, production-frozen library.
 
-## Design thesis
+### Feature Maturity Matrix
 
-Viet Template is **not** an Apache Velocity fork. It is a clean-room implementation of a new template engine that intentionally supports a large, explicitly versioned subset of Velocity Template Language (VTL) syntax while using a different internal architecture.
+- **Implemented**:
+  - Clean-room lexer and Pratt expression parser with compiler-grade source span diagnostics.
+  - AST interpreter and lower-level IR interpreter.
+  - 12-pass IR compiler optimization pipeline (dead code elimination, constant folding, loop specialization, text chunk merging, and escape hoisting).
+  - Dynamic linker with monomorphic and Polymorphic Inline Caches (PIC, depth 4) backed by classloader-safe weak references.
+  - Architecture Tier 3 direct Java 17 bytecode compiler (`ClassFileWriter`) producing major version 61 classfiles with full `StackMapTable` tracking.
+  - Bounded, thread-safe template compilation cache with LRU eviction and atomic handle swapping.
+  - Pluggable template repository SPI (`Classpath`, `Filesystem`, `Composite`, `InMemory`) with directory traversal protection.
+  - Two-stage layout rendering plans (`DefaultLayoutRenderPlan`) and global Velocimacro library caching.
+  - Pluggable member access policies (`MemberAccessPolicy`, `SensitiveObjectClassifier`) and monotonic render budgets (`RenderBudget`).
+  - Authoritative Technology Compatibility Kit (`viet-template-tck`) evaluating 301 differential scenarios against Apache Velocity 2.4.1.
+- **Experimental**:
+  - Dynamic call-site specialization in AOT bytecode when complete type signatures are absent.
+  - File-system hot-reload watcher (`DevelopmentFileWatcher`) using NIO `WatchService`.
+- **Planned (Future Releases)**:
+  - Spring Framework 7 MVC `ViewResolver` and Spring Boot 4 auto-configuration starter.
+  - Dedicated Maven (`viet-template-maven-plugin`) and Gradle (`viet-template-gradle-plugin`) AOT pre-compilation plugins.
+  - Compiler-assigned flat variable slot execution frames (`0.2.0`).
+  - Standalone JMH benchmark module (`viet-template-benchmarks`) under Milestone M19.1.
+  - GraalVM Native Image reachability metadata verification.
 
-```text
-Velocity-like source
-      │
-      ▼
-Lexer / Parser
-      │
-      ▼
-Normalized AST
-      │
-      ▼
-Semantic analysis + type information
-      │
-      ▼
-Template IR
-      │
-      ├──────────────► Interpreter backend          (development / fallback)
-      ├──────────────► Dynamic optimized backend   (MethodHandle / inline cache)
-      └──────────────► AOT bytecode backend         (production / typed)
-                              │
-                              ▼
-                      streaming output
-```
-
-The hot production path should approach handwritten Java rendering: static output chunks plus direct typed property access and branches, with little or no AST traversal, generic resolver dispatch, reflection, or intermediate string construction.
-
-## Core principles
-
-1. **Velocity-compatible syntax is a frontend, not the architecture.**
-2. **Compile first.** Parse and validate before production traffic whenever possible.
-3. **Typed when possible, dynamic when necessary.**
-4. **Zero/low-allocation streaming is a primary objective.**
-5. **Secure by default.** Templates must not automatically gain arbitrary Java reflection or application-container access.
-6. **Framework independent core.** Spring, Quarkus, Micronaut, servlet, reactive, CLI, and email use cases are adapters.
-7. **Compatibility claims are testable.** Every claimed Velocity behavior must have a compatibility test.
-8. **Performance claims are reproducible.** JMH, hardware metadata, JVM flags, allocations, and latency distributions are mandatory.
-9. **Diagnostics are compiler-grade.** Template errors should include source spans, suggestions, type information, and include/macro stack.
-10. **No hidden slow path.** Generated plans expose why an expression is direct, cached-dynamic, reflective, or rejected.
-
-## Documentation map
-
-| Document | Purpose |
-|---|---|
-| [00-project-charter.md](docs/00-project-charter.md) | Product scope, goals, non-goals, success criteria |
-| [01-system-architecture.md](docs/01-system-architecture.md) | Module boundaries and end-to-end architecture |
-| [02-vtl-compatibility-spec.md](docs/02-vtl-compatibility-spec.md) | VTL syntax/behavior compatibility contract |
-| [03-lexer-parser-ast.md](docs/03-lexer-parser-ast.md) | Lexer, parser, source model, AST |
-| [04-semantics-type-system.md](docs/04-semantics-type-system.md) | Binding, typing, truthiness, nullability, diagnostics |
-| [05-template-ir.md](docs/05-template-ir.md) | Typed IR and lowering rules |
-| [06-velocity-2.4.1-compatibility.md](docs/06-velocity-2.4.1-compatibility.md) | Apache Velocity 2.4.1 differential TCK specification and report |
-| [06-optimization-pipeline.md](docs/06-optimization-pipeline.md) | Compiler optimization passes |
-| [07-execution-backends.md](docs/07-execution-backends.md) | Interpreter, dynamic, and AOT backends |
-| [08-runtime-output.md](docs/08-runtime-output.md) | Rendering API, output pipeline, escaping, allocation policy |
-| [09-dynamic-resolution.md](docs/09-dynamic-resolution.md) | MethodHandle/PIC/`invokedynamic` design |
-| [10-security-model.md](docs/10-security-model.md) | Threat model, capability policy, sandboxing |
-| [11-public-api-spi.md](docs/11-public-api-spi.md) | Stable Java API and extension points |
-| [12-spring-integration.md](docs/12-spring-integration.md) | Spring Framework 7 / Boot 4 integration |
-| [13-build-aot-native.md](docs/13-build-aot-native.md) | Maven/Gradle, precompile, JPMS, native-image strategy |
-| [14-testing-tck.md](docs/14-testing-tck.md) | Unit, differential, compatibility, fuzz and TCK strategy |
-| [15-benchmark-plan.md](docs/15-benchmark-plan.md) | JMH benchmarks and performance gates |
-| [16-observability-debugging.md](docs/16-observability-debugging.md) | Metrics, tracing, source maps, explain-plan |
-| [17-repository-engineering.md](docs/17-repository-engineering.md) | Repository layout, CI, coding rules |
-| [17-release-process.md](docs/17-release-process.md) | Canonical release procedure and Central Portal publishing |
-| [18-roadmap.md](docs/18-roadmap.md) | Milestones from parser MVP to Spring starter |
-| [19-risk-register.md](docs/19-risk-register.md) | Technical/product/legal risks and mitigations |
-| [20-implementation-checklist.md](docs/20-implementation-checklist.md) | Detailed implementation task checklist |
-| [SOURCES.md](docs/SOURCES.md) | Current upstream references used in this specification |
-
-Architecture decisions are recorded under [`docs/adr/`](docs/adr/).
-
-## Recommended implementation order
-
-```text
-M0 repository + test harness
-M1 source model + lexer
-M2 parser + AST
-M3 interpreter for core VTL
-M4 compatibility corpus and differential tests against Velocity
-M5 semantic/type model
-M6 Template IR
-M7 typed direct-call compiler
-M8 dynamic inline-cache backend
-M9 Spring MVC adapter + Boot starter
-M10 hardening, native image, optimization
-```
-
-The first meaningful end-to-end target is:
-
-```velocity
-Hello $user.name
-#if($user.admin)
-  Admin
-#else
-  User
-#end
-
-#foreach($item in $items)
-  $item.name
-#end
-```
-
-rendered through both the interpreter and compiled backend with byte-for-byte identical output and diagnostics that point to precise template spans.
-
-## Baseline recommendation
-
-### Runtime
-
-- Java 17 minimum for `core`, `parser`, `runtime`, and Spring 7 compatibility.
-- Test Java 17, 21, and 25.
-- No mandatory dependency on Spring, servlet APIs, or logging implementation in core modules.
-
-### Compiler
-
-- Keep the compiler behind an SPI.
-- Support a Java-17-compatible backend strategy.
-- Add a JDK 25 compiler module that can use the standard `java.lang.classfile` API.
-- Treat exact generated class-file target levels as a tested build feature, not an assumption.
-
-### Spring
-
-- Primary stable target at the time of this document: Spring Framework 7.0.x and Spring Boot 4.1.x.
-- Keep Spring 7.1 compatibility in CI as preview until it reaches GA.
-
-## Performance objectives
-
-These are **engineering targets, not public claims**:
-
-- Typed/AOT render throughput: within 85–98% of equivalent handwritten Java rendering for simple templates.
-- Allocation: approach output-buffer-only allocation for fully typed templates.
-- Velocity: target 1.5–3× render throughput on representative templates.
-- Thymeleaf: target 3–7× render throughput on representative templates.
-- Qute typed mode: target meaningful improvement, initially 10–50%, while preserving equivalent functionality.
-- Track p50/p95/p99, allocation bytes/op, GC, startup, compile time, class size, and generated method size.
-
-## Definition of “Velocity compatible”
-
-Never use a blanket statement such as “100% compatible” when behavioral differences exist.
-
-Viet Template uses an authoritative, side-by-side differential test kit (`viet-template-tck`) that compiles and evaluates templates against official **Apache Velocity Engine 2.4.1** in real time. The generated compatibility report (`build/reports/velocity-compat/velocity-compatibility-report.json`) is the authoritative source of truth, protected by strict invariant checks.
-
-> **Current Compatibility Status**: Apache Velocity 2.4.1 differential compatibility: **295/301 scenarios exact (98.01%)**, **5 documented intentional differences**, **1 Viet Template extension**, **0 unsupported scenarios**, and **0 unclassified regressions** (**100.00% accounted behavior coverage** across **20 functional categories**).
-
-### Differential TCK Scorecard (Milestone M4)
-
-| Metric | Count | Percentage | Description |
-| :--- | :--- | :--- | :--- |
-| **Total Scenarios Evaluated** | **301** | **100.00%** | Total differential scenarios evaluated |
-| **`EXACT_MATCH`** | **295** | **98.01%** | Byte-for-byte output and outcome match |
-| **`EXPECTED_DIFFERENCE`** | **5** | **1.66%** | Documented intentional architectural differences |
-| **`VIET_EXTENSION`** | **1** | **0.33%** | Intentional Viet Template extensions |
-| **`UNSUPPORTED`** | **0** | **0.00%** | Unsupported Apache Velocity features |
-| **`BUG`** | **0** | **0.00%** | Unclassified differences or defects |
-| **Accounted Behavior Coverage** | **301** | **100.00%** | Scenarios conforming to specification |
-
-See [06-velocity-2.4.1-compatibility.md](docs/06-velocity-2.4.1-compatibility.md) for the detailed specification, ADRs for expected differences, and complete scenario breakdown across all 20 active categories.
-
-Compatibility is versioned as profiles:
-
-- `VTL_CORE`: references, formal/quiet references, `#set`, `#if`, `#foreach`, static `#include`, static `#parse`, comments, core operators.
-- `VTL_MIGRATION`: broader Velocity behavior including legacy property resolution, macros, dynamic includes/parses where allowed.
-- `VTL_DYNAMIC`: explicit opt-in to runtime-evaluated constructs such as `#evaluate` and arbitrary method invocation.
-- `VTL_SAFE`: strict sandbox profile designed for untrusted or externally editable template source when the host follows the documented embedding requirements. It constrains template-visible Java capabilities, model mutation, dynamic evaluation, resource access, output handling, and execution budgets across AST, IR, and AOT execution. Application security still depends on which objects and data the host places in the template context, which trusted capabilities it grants, the configured template repository, and the selected output context.
-
-Feature states:
-
-```text
-SUPPORTED_EXACT
-SUPPORTED_WITH_DECLARED_DIFFERENCE
-SUPPORTED_ONLY_IN_DYNAMIC_MODE
-SUPPORTED_ONLY_IN_INTERPRETER
-PLANNED
-INTENTIONALLY_UNSUPPORTED
-```
-
-## Clean-room rule
-
-Use public language documentation and black-box compatibility testing to define behavior. Do not copy Apache Velocity implementation code into Viet Template. If any code is intentionally adapted from an Apache-licensed source, retain required notices and provenance explicitly.
+---
 
 ## Installation
 
-Viet Template artifacts are published to Maven Central under group ID `io.github.minh124199`:
+Viet Template artifacts are published to Maven Central under group ID `io.github.minh124199`.
 
-### Maven
+### Dependency Selection
+
+- **`viet-template-vtl-interpreter`** *(Recommended)*: The complete template engine for standard applications. Declaring this dependency transitively brings in `viet-template-api`, `viet-template-runtime`, and `viet-template-language-vtl`, providing the full parser, runtime, compiler, cache, and execution backends.
+- **`viet-template-api`**: Core public interfaces and records only. Useful for libraries or modules defining template contracts without pulling in the runtime engine.
+- **`viet-template-runtime`**: Streaming output primitives, escapers, and dynamic linker. Only declared directly when developing custom output buffers or standalone escapers without the interpreter.
+- **`viet-template-language-vtl`**: VTL grammar parser, AST model, semantic analyzer, and IR compiler.
+
+### Apache Maven
+
+Add the engine dependency to your `pom.xml`:
 
 ```xml
 <dependency>
@@ -219,67 +87,378 @@ Viet Template artifacts are published to Maven Central under group ID `io.github
 
 ### Gradle (Kotlin DSL)
 
+Add the dependency to your `build.gradle.kts`:
+
 ```kotlin
 implementation("io.github.minh124199:viet-template-vtl-interpreter:0.1.0")
 ```
 
-## Building from source
+### Gradle (Groovy DSL)
 
-Prerequisites: JDK 17+ (JDK 21 and 25 also supported for build and testing).
+```groovy
+implementation 'io.github.minh124199:viet-template-vtl-interpreter:0.1.0'
+```
 
-Viet Template supports **first-class dual-build parity** under both Gradle Kotlin DSL and Apache Maven:
+---
+
+## Quick Start
+
+### 1. Create a Template
+
+Place your template file (e.g. `src/main/resources/templates/user-card.vm`):
+
+```velocity
+<div class="user-card">
+  <h2>$user.name</h2>
+  #if($user.admin)
+    <span class="badge admin">Administrator</span>
+  #else
+    <span class="badge user">Standard User</span>
+  #end
+
+  <ul>
+  #foreach($role in $user.roles)
+    <li>[$foreach.count] $role</li>
+  #end
+  </ul>
+</div>
+```
+
+### 2. Parse and Render in Java (Published 0.1.0 API)
+
+In the published `0.1.0` release on Maven Central, templates are parsed directly using `VtlParser` and rendered using `VtlInterpreter`:
+
+```java
+import io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate;
+import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
+import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import io.github.minh124199.viettemplate.runtime.MapRenderContext;
+import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
+import io.github.minh124199.viettemplate.runtime.WriterTemplateOutput;
+import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+public class QuickStartExample {
+
+  public record User(String name, boolean admin, List<String> roles) {}
+
+  public static void main(String[] args) throws IOException {
+    // 1. Read template source (from classpath, filesystem, or String)
+    String templateString;
+    try (InputStream in = QuickStartExample.class.getResourceAsStream("/templates/user-card.vm")) {
+      if (in == null) {
+        throw new IllegalStateException("Template resource not found: /templates/user-card.vm");
+      }
+      templateString = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    SourceText source = SourceText.of("user-card.vm", templateString);
+
+    // 2. Parse into an immutable AST
+    VtlTemplate ast = VtlParser.parse(source).template();
+
+    // 3. Populate render context
+    User user = new User("Alice", true, List.of("DEVELOPER", "SECURITY_AUDITOR"));
+    MapRenderContext context = MapRenderContext.of("user", user);
+
+    // 4. Render with VtlInterpreter
+    VtlInterpreter interpreter = new VtlInterpreter();
+    StringTemplateOutput output = new StringTemplateOutput();
+    interpreter.interpret(ast, source, context, output);
+
+    System.out.println(output);
+
+    // Or stream directly to a Writer without String buffering:
+    // interpreter.interpret(ast, source, context, new WriterTemplateOutput(response.getWriter()));
+  }
+}
+```
+
+#### Programmatic In-Memory Testing (0.1.0)
+
+For unit testing without filesystem resources:
+
+```java
+SourceText source = SourceText.of("hello.vm", "Hello $name from Viet Template!");
+VtlTemplate ast = VtlParser.parse(source).template();
+
+StringTemplateOutput output = new StringTemplateOutput();
+new VtlInterpreter().interpret(ast, source, MapRenderContext.of("name", "World"), output);
+
+assert output.toString().equals("Hello World from Viet Template!");
+```
+
+### 3. Unified TemplateEngine API (0.1.1-SNAPSHOT / Milestone M12+)
+
+Starting in `0.1.1-SNAPSHOT` (Milestone M12+), Viet Template provides a high-level `TemplateEngine` facade and pluggable `TemplateRepository` abstraction:
+
+```java
+import io.github.minh124199.viettemplate.api.*;
+import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
+import io.github.minh124199.viettemplate.runtime.WriterTemplateOutput;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.List;
+
+public class TemplateEngineExample {
+
+  public record User(String name, boolean admin, List<String> roles) {}
+
+  public static void main(String[] args) throws IOException {
+    // 1. Build the engine with a classpath template repository
+    TemplateRepository repository = TemplateRepository.classpath("templates/");
+    TemplateEngine engine = TemplateEngine.builder()
+        .repository(repository)
+        .build();
+
+    // 2. Retrieve the template
+    Template template = engine.get("user-card.vm");
+
+    // 3. Populate the render context
+    User user = new User("Alice", true, List.of("DEVELOPER", "SECURITY_AUDITOR"));
+    RenderContext context = RenderContext.builder()
+        .put("user", user)
+        .build();
+
+    // 4. Render to an in-memory buffer
+    StringTemplateOutput output = new StringTemplateOutput();
+    template.render(context, output);
+    System.out.println(output);
+
+    // Or stream directly to a Writer (e.g. HTTP response writer) without String buffering:
+    // template.render(context, new WriterTemplateOutput(response.getWriter()));
+  }
+}
+```
+
+#### Programmatic In-Memory Testing (0.1.1-SNAPSHOT)
+
+For unit testing without filesystem resources, use `InMemoryTemplateRepository`:
+
+```java
+InMemoryTemplateRepository repository = InMemoryTemplateRepository.create();
+repository.put("hello.vm", "Hello $name from Viet Template!");
+
+TemplateEngine engine = TemplateEngine.builder()
+    .repository(repository)
+    .build();
+
+StringTemplateOutput output = new StringTemplateOutput();
+engine.get("hello.vm").render(RenderContext.of("name", "World"), output);
+
+assert output.toString().equals("Hello World from Viet Template!");
+```
+
+---
+
+## Velocity / VTL Compatibility
+
+Viet Template targets compatibility with **Apache Velocity Engine 2.4.1** syntax and evaluation semantics, while rejecting unsafe legacy behaviors.
+
+Compatibility claims are verified by an automated differential Technology Compatibility Kit (`viet-template-tck`) that executes identical test scenarios simultaneously against official Apache Velocity 2.4.1 and Viet Template.
+
+The 295 / 301 (98.01%) exact match rate represents the evaluated differential TCK corpus across 20 functional categories against Apache Velocity 2.4.1, rather than an unqualified blanket claim of universal Velocity compatibility.
+
+### Differential TCK Scorecard (Milestone M4)
+
+| Metric | Scenarios | Percentage | Description |
+| :--- | :--- | :--- | :--- |
+| **Total Scenarios Evaluated** | **301** | **100.00%** | Total differential scenarios executed |
+| **`EXACT_MATCH`** | **295** | **98.01%** | Byte-for-byte output and outcome match |
+| **`EXPECTED_DIFFERENCE`** | **5** | **1.66%** | Documented intentional architectural divergences |
+| **`VIET_EXTENSION`** | **1** | **0.33%** | Intentional Viet Template extensions |
+| **`UNSUPPORTED`** | **0** | **0.00%** | Unsupported features within target scope |
+| **`BUG`** | **0** | **0.00%** | Unclassified discrepancies or defects |
+| **Accounted Behavior Coverage** | **301** | **100.00%** | Conforming to specification across 20 categories |
+
+### Documented Intentional Differences
+
+Viet Template intentionally diverges from Apache Velocity 2.4.1 in five specific scenarios:
+
+1. **Divide-by-Zero (`arithmetic.divide-by-zero`)**:
+   - *Velocity 2.4.1*: Logs a warning, evaluates expression to `null`, and renders the literal syntax (e.g. `$x`).
+   - *Viet Template*: Fails fast by throwing `TemplateRenderException` (`DIVISION_BY_ZERO`) to prevent silent computation errors.
+2. **`.class` Property Denial (`security.denial.class-property`)**:
+   - *Velocity 2.4.1*: Permits reflection via `$object.class`.
+   - *Viet Template*: Denies `.class` access under safe member policies to prevent ClassLoader escapes.
+3. **`getClass()` Method Denial (`security.denial.get-class-method`)**:
+   - *Velocity 2.4.1*: Permits invocation of `$object.getClass()`.
+   - *Viet Template*: Blocks `getClass()` in standard execution profiles.
+4. **Legacy Null-RHS Preservation for Undefined (`set.null-rhs.legacy-preserved.undefined`)**:
+   - *Velocity 2.4.1*: `#set($x = $undefined)` unconditionally overwrites `$x` with `null`.
+   - *Viet Template*: Supports an optional compatibility flag preserving Velocity 1.x behavior where prior variable values are retained when the RHS is undefined.
+5. **Legacy Null-RHS Preservation for Null Method Returns (`set.null-rhs.legacy-preserved.method-null`)**:
+   - *Velocity 2.4.1*: Overwrites `$x` with `null` when `#set($x = $service.returnsNull())`.
+   - *Viet Template*: Supports preserving prior values under legacy compatibility mode.
+
+See [docs/06-velocity-2.4.1-compatibility.md](docs/06-velocity-2.4.1-compatibility.md) and [docs/02-vtl-compatibility-spec.md](docs/02-vtl-compatibility-spec.md) for full TCK reports, category breakdowns, and Architecture Decision Records (ADRs).
+
+---
+
+## Viet Template Extensions
+
+Viet Template provides targeted extensions to ease migration and support safe modern patterns:
+
+- **`$foreach.stop()` Loop Termination**: Programmatic loop termination method retained as a convenience alongside standard `#break`.
+- **Alternate Value Fallback Syntax**: `${variable|'default value'}` for clean null-coalescing and fallback rendering without verbose `#if` blocks.
+- **Configurable Execution Tiers**: Explicit control over whether a template runs via AST interpretation (`AST`), intermediate representation (`IR`), or ahead-of-time bytecode compilation (`AOT_BYTECODE`).
+- **Resource Execution Budgets (`RenderBudget`)**: Monotonic safeguards tracking character output length, loop iteration counts, and wall-clock timeouts across nested `#parse`, `#include`, and layout calls.
+- **Defense-in-Depth Member Access**: Pluggable `MemberAccessPolicy` implementations with allowlist and deny-list builders.
+
+---
+
+## Repository Modules
+
+The repository is organized into five focused modules:
+
+| Module | Published Artifact | Description | Target Consumer |
+| :--- | :--- | :--- | :--- |
+| **`viet-template-api`** | `viet-template-api` | Stable public contracts: `TemplateEngine`, `Template`, `RenderContext`, `TemplateOutput`, `TemplateRepository`, security policies, and diagnostics. | Library authors, embedding applications, compile-only dependencies. |
+| **`viet-template-runtime`** | `viet-template-runtime` | Low-allocation streaming output buffers (`StringTemplateOutput`, `WriterTemplateOutput`, `Utf8OutputStreamTemplateOutput`), contextual escaping (`HTML`, `XML`, `JAVASCRIPT`), `SafeHtml`, and dynamic linker call sites. | Direct streaming consumers and custom escaper developers. |
+| **`viet-template-language-vtl`** | `viet-template-language-vtl` | Clean-room VTL lexer, Pratt parser, AST model, semantic analyzer, IR, and 12-pass optimization pipeline. | Compiler tooling, template analyzers, and AST inspectors. |
+| **`viet-template-vtl-interpreter`** | `viet-template-vtl-interpreter` | Canonical template engine implementation (`VtlTemplateEngine`), reference AST and IR interpreters, AOT bytecode compiler, compile cache, layout rendering, and global macro manager. | **Normal application developers** (main runtime dependency). |
+| **`viet-template-tck`** | *(Internal / Not Published)* | Technology Compatibility Kit and differential test suite running side-by-side verification against official Apache Velocity 2.4.1. | Repository contributors and verification tooling. |
+
+---
+
+## Requirements
+
+Viet Template targets Java 17 bytecode and requires Java 17 or later at runtime. CI currently verifies the project on Java 17, 21, and 25. Repository formatting checks use Google Java Format through Spotless and are run with JDK 21.
+
+### Runtime Requirements
+
+- **Minimum Java Baseline**: Java 17 (`--release 17`). Bytecode target is major version 61 classfiles.
+- **CI Verification**: Verified on Java 17, 21, and 25 in continuous integration.
+- **Dependencies**: No external runtime dependencies in core production modules.
+
+### Build & Tooling Requirements
+
+- **Build JDK**: JDK 17 or higher (Gradle 9.7.1 wrapper or Apache Maven 3.9+ via `mvnw`).
+- **Code Formatting**: Code formatting is standardized on Google Java Format 1.30.0 via Spotless. Spotless requires JDK 21 for the complete contributor workflow. In multi-JDK cross-compilation matrix runs on JDK 17 or 25, Spotless may be bypassed using `-Dspotless.check.skip=true`.
+- **Operating Systems**: Continuously tested on Linux, macOS, and Windows.
+
+---
+
+## Performance & Benchmarks
+
+Viet Template is engineered around low-allocation streaming and direct JVM execution:
+
+1. **Pre-Encoded Chunks**: Static template text is pre-encoded to UTF-8 byte arrays during compilation, allowing zero-copy streaming to output streams.
+2. **Non-Allocating Numeric Formatting**: Primitive numeric types (`int`, `long`, `double`, `boolean`) are formatted directly into destination buffers without intermediate `String` object creation.
+3. **Compiler Optimization Pipeline**: 12 IR passes eliminate dead branches, fold constants, specialize loop iterators, and hoist static escaping.
+4. **Direct Bytecode & Inline Caches**: Known typed properties compile to direct getters; dynamic properties dispatch through monomorphic or small polymorphic inline caches (`AccessLink[]` array scan for depth $\le 4$).
+
+### Benchmark Infrastructure Notice
+
+> [!NOTE]
+> Headline performance claims and comparative multiples are deliberately withheld pending the execution of Milestone M19.1.
+> Per [docs/15-benchmark-plan.md](docs/15-benchmark-plan.md), a dedicated JMH benchmark module (`viet-template-benchmarks`) covering 15 workloads (B01–B15) across JDK 17, 21, and 25 is currently planned. Viet Template enforces a strict 7-part DSA acceptance rule: performance claims must be backed by reproducible, committed JMH benchmark results and JFR allocation profiles rather than aspirational targets.
+
+---
+
+## Building from Source
+
+Viet Template maintains **first-class dual-build parity** between Gradle (Kotlin DSL) and Apache Maven. Both build systems produce byte-for-byte verified artifacts.
 
 ### Gradle (Reference Build)
 
 ```bash
-# Build all modules and run all verification checks and tests
+# Compile all modules, execute all unit and differential tests, and check formatting
 ./gradlew clean build
 
 # On Windows:
 gradlew.bat clean build
 
-# Run formatting checks
+# Check code formatting (runs on JDK 21)
 ./gradlew spotlessCheck
 
-# Apply code formatting
+# Apply code formatting automatically
 ./gradlew spotlessApply
 ```
 
 ### Apache Maven
 
 ```bash
-# Build all modules, package artifacts, and run tests and checks
+# Build all modules, package JARs, and run test suite
 ./mvnw clean verify
 
 # On Windows:
 mvnw.cmd clean verify
 
-# Run formatting checks
+# Check code formatting
 ./mvnw spotless:check
 
-# Apply code formatting
+# Apply code formatting automatically
 ./mvnw spotless:apply
 ```
 
 ### Build Parity Verification
 
-To verify that the Gradle and Maven builds remain in full parity (module definitions, versions, dependencies, Java release target, compiler flags, and compiled JAR contents):
+To verify that module definitions, versions, compiler flags, and JAR contents remain in complete parity across Gradle and Maven:
 
 ```bash
 ./scripts/verify-build-parity.sh
 ```
 
-## Community & Contributing
+---
 
-Contributions are welcome! Please read our contributing guidelines before submitting code:
+## Documentation
 
-- [Contributing Guide](CONTRIBUTING.md) — Workflow, build parity requirements, and TCK guidelines.
-- [Code of Conduct](CODE_OF_CONDUCT.md) — Contributor Covenant v2.1 standards.
-- [Security Policy](SECURITY.md) — Responsible disclosure process and security boundaries.
+Comprehensive architecture, design, and specification documents are maintained in the [`docs/`](docs/) directory:
+
+- [Project Charter (`docs/00-project-charter.md`)](docs/00-project-charter.md) — Scope, design goals, non-goals, and product criteria.
+- [System Architecture (`docs/01-system-architecture.md`)](docs/01-system-architecture.md) — Module hierarchy and end-to-end compilation flow.
+- [Velocity Compatibility TCK (`docs/06-velocity-2.4.1-compatibility.md`)](docs/06-velocity-2.4.1-compatibility.md) — Differential test suite report and compatibility scorecard.
+- [VTL Compatibility Specification (`docs/02-vtl-compatibility-spec.md`)](docs/02-vtl-compatibility-spec.md) — Detailed syntax and behavior compatibility contract.
+- [Security Model (`docs/10-security-model.md`)](docs/10-security-model.md) — Threat model, capability policies, and sandbox architecture.
+- [Security Policy (`SECURITY.md`)](SECURITY.md) — Supported versions, boundaries, and vulnerability reporting.
+- [IR Optimization Pipeline (`docs/06-optimization-pipeline.md`)](docs/06-optimization-pipeline.md) — Specification of the 12 compiler optimization passes.
+- [Execution Backends (`docs/07-execution-backends.md`)](docs/07-execution-backends.md) — AST, IR, dynamic, and AOT execution tier designs.
+- [Output Runtime & Escaping (`docs/08-runtime-output.md`)](docs/08-runtime-output.md) — Streaming architecture and contextual escaping rules.
+- [Dynamic Resolution (`docs/09-dynamic-resolution.md`)](docs/09-dynamic-resolution.md) — MethodHandle and polymorphic inline cache (PIC) design.
+- [Benchmark Plan (`docs/15-benchmark-plan.md`)](docs/15-benchmark-plan.md) — JMH benchmark methodology and 7-part DSA acceptance rule.
+- [Implementation Roadmap (`docs/18-roadmap.md`)](docs/18-roadmap.md) — Release phases from 0.1.x through 1.0.
+- [Implementation Checklist (`docs/20-implementation-checklist.md`)](docs/20-implementation-checklist.md) — Detailed engineering task checklist.
+- [Architecture Decision Records (`docs/adr/`)](docs/adr/) — Technical context behind major architectural choices.
+- [Release 0.1.0 Notes (`docs/releases/0.1.0.md`)](docs/releases/0.1.0.md) — Initial public release notes.
+- [Contributing Guide (`CONTRIBUTING.md`)](CONTRIBUTING.md) — Workflow, build parity, and coding standards.
+- [Changelog (`CHANGELOG.md`)](CHANGELOG.md) — Chronological record of notable changes.
+
+---
+
+## Contributing
+
+Contributions are welcome! Please review [CONTRIBUTING.md](CONTRIBUTING.md) before submitting pull requests.
+
+Key contributor rules:
+1. **Clean-room rule**: Do not copy or decompile Apache Velocity source code. Behavior must be established via public documentation and black-box tests.
+2. **Dual-build parity**: All code changes must pass `./scripts/verify-build-parity.sh` and build cleanly under both `./gradlew clean build` and `./mvnw clean verify`.
+3. **TCK regression protection**: Differential compatibility tests must pass under `viet.tck.mode=STRICT`.
+
+Please also review our [Code of Conduct](CODE_OF_CONDUCT.md) and [Security Policy](SECURITY.md).
+
+---
+
+## Roadmap
+
+Viet Template follows an evidence-driven, benchmark-verified phased roadmap:
+
+- **Phase 0.1.x (Current)**: Baseline stabilization, adversarial security fuzzing, and Milestone M19.1 JMH benchmark infrastructure.
+- **Phase 0.2.0**: High-performance runtime architecture with compiler-assigned variable slot execution frames (`EvaluationValue[] slots`) and indexed compilation cache invalidation.
+- **Phase 0.3.x+**: Evidence-driven optimizations guided by profiling (cache contention reduction, zero-copy token slices).
+- **Phase 1.0**: Stable public API freeze, Spring Framework 7 MVC `ViewResolver`, Spring Boot 4 starter (`viet-template-spring-boot-starter`), Maven and Gradle AOT pre-compilation build plugins, and GraalVM Native Image verification.
+
+For complete details on upcoming milestones, see [docs/18-roadmap.md](docs/18-roadmap.md).
+
+---
 
 ## License
 
 Viet Template is open-source software licensed under the [Apache License, Version 2.0](LICENSE).
+
+---
 
 ## Notice & Trademark Clarification
 
