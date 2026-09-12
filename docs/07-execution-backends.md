@@ -57,9 +57,9 @@ final class ExecutionFrame {
 
 - **Direct Index Access**: Statically analyzed variables are assigned stable compiler-assigned integer slot IDs at compile time. Variable access compiles to direct array indexing (`slots[slotIndex]`), eliminating hash calculations, bucket resolution, and node traversal.
 - **Preservation of 3-State Semantics**: Both array slots and the fallback map store `EvaluationValue` (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`), strictly preserving Velocity null-rendering, strict mode, and alternate value semantics.
-- **Empty Slot Representation**: Java reference-array elements are initially `null`, requiring the runtime implementation to explicitly decide and test how internal empty slots represent undefined.
+- **Empty Slot Representation**: `ExecutionFrame` explicitly initializes each slot to `EvaluationValue.undefined()`. Java reference arrays themselves initialize to `null`, so the runtime never exposes `null` or conflates it with `DEFINED_NULL`.
 - **Name-Based Fallback**: A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
-- **Slot Reuse Deferred**: Slot reuse remains explicitly deferred as a later optional optimization requiring separate correctness and benchmark evidence.
+- **Slot Reuse Deferred**: Current measured workloads do not demonstrate a need for slot packing in 0.2.0, so slot reuse remains deferred.
 
 ## 3. Optimized dynamic backend
 

@@ -241,9 +241,9 @@ public final class ExecutionFrame {
 
 - **Array Slot Performance**: Statically analyzed variables map to fixed integer indices (`int slotIndex`). Reading or writing a variable compiles to a direct array index load or store (`ALOAD`/`ASTORE`), completely bypassing string hashing, bucket resolution, and entry node traversal.
 - **3-State Semantics**: Both slots and the dynamic map explicitly preserve the 3-state evaluation model (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`), guaranteeing full Velocity semantic compatibility.
-- **Empty Slot Representation**: Java reference-array elements are initially `null`, requiring the runtime implementation to explicitly decide and test how internal empty slots represent undefined.
+- **Empty Slot Representation**: `ExecutionFrame` explicitly initializes each slot to `EvaluationValue.undefined()`. Java reference arrays themselves initialize to `null`, so the runtime never exposes `null` or conflates it with `DEFINED_NULL`.
 - **Name-Based Fallback**: A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
-- **Slot Reuse Deferred**: Slot reuse remains explicitly deferred as a later optional optimization requiring separate correctness and benchmark evidence.
+- **Slot Reuse Deferred**: Current measured workloads do not demonstrate a need for slot packing in 0.2.0, so slot reuse remains deferred.
 - **Stack Structures**: Lexical scopes, macro invocations, and layout pipelines utilize standard `ArrayDeque` for LIFO/FIFO operations, providing low constant factors and avoiding pointer overhead associated with linked lists.
 
 ### Direct Typed Facade

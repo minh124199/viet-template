@@ -60,11 +60,11 @@ In 0.2.0 (Milestone M19.2b), the interpreter runtime and compiler backend introd
     - `ITERATION_MANAGED`: Managed directly per iteration by the loop driver (element local and `$foreach` metadata).
     - `INVOCATION_PARAM`: Initialized at macro invocation boundary from evaluated arguments.
 - **Direct Array Access**: Reading or writing a variable compiles to a direct array load (`slots[slotIndex]`) or store (`slots[slotIndex] = value`), bypassing string hashing, bucket index calculation, and node traversal entirely.
-- **Empty Slot Representation & 3-State Model**: Array elements are initialized to `EvaluationValue.undefined()`. Java reference `null` is never exposed or treated as `DEFINED_NULL`. The three states (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) are strictly distinct across all slot operations.
+- **Empty Slot Representation & 3-State Model**: `ExecutionFrame` explicitly initializes each slot to `EvaluationValue.undefined()`. Because Java reference arrays themselves initialize to `null`, the runtime never exposes `null` or conflates it with `DEFINED_NULL`. The three states (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) are strictly distinct across all slot operations.
 - **Loop Iteration Isolation**: Loop-owned local slots (`FOREACH_LOCAL`) are reset to `EvaluationValue.undefined()` before each iteration and at loop exit in a `finally` block, preventing variable leakage across iterations while outer template locals persist.
 - **Macro Frame Isolation and Recursion**: Each macro invocation instantiates an isolated child `ExecutionFrame` sized exactly to `IrSlotLayout.frameSize(function)`. Caller frame state remains preserved on the Java stack, enabling clean macro recursion up to depth limits.
 - **Dynamic Fallback Coherence & Root Write-Through**: Slotted writes synchronize with `ExecutionContext.set(name, value)` (or `context.setLocalScope(name, value)` for loop/macro scoped variables, writing through to `MutableRenderContext` when applicable). Dynamic writes occurring via `#evaluate` or `#parse` trigger `frame.syncFromContext(layout.slots().values())` upon return to ensure immediate coherence.
-- **Slot Reuse Deferred**: Slot reuse remains explicitly deferred to a later milestone to prioritize invariant stability. Monotonic, contiguous slot assignments guarantee zero aliasing bugs.
+- **Slot Reuse Deferred**: Current measured workloads do not demonstrate a need for slot packing in 0.2.0, so slot reuse remains deferred to prioritize invariant stability. Monotonic, contiguous slot assignments guarantee zero aliasing bugs.
 
 ---
 

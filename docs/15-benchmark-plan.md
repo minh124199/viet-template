@@ -273,7 +273,7 @@ Milestone M19.1 establishes the benchmark methodology and measured baseline befo
   file therefore corresponds exactly to the committed executable source; this documentation-only
   provenance entry was added afterward.
 - **M19.2b (Variable Slots + ExecutionFrame - Completed)**: Static lexical bindings, model parameters, loop variables, and macro arguments are assigned deterministic, compiler-assigned variable slots and executed through array-backed `ExecutionFrame` activations while preserving Velocity 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) and dynamic fallback coherence.
-  Apples-to-apples comparative benchmarking between pre-M19.2b baseline (`cef07d5`) and post-M19.2b (`HEAD`) under identical configuration (`-f 1 -wi 3 -i 5 -w 2s -r 2s -prof gc` with `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC` on OpenJDK 17.0.20.1) demonstrated:
+  Apples-to-apples comparative benchmarking between pre-M19.2b baseline (`cef07d5`) and post-M19.2b (`HEAD`) on the same machine and environment under identical configuration (`-f 1 -wi 3 -i 5 -w 2s -r 2s -prof gc` with `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC` on OpenJDK 17.0.20.1) demonstrated:
   - **Microbenchmark Speedup**:
     - `assignStaticSlot`: 406.35M ± 22.74M ops/s vs dynamic `assignTemplateLocal`: 27.52M ± 1.69M ops/s (14.8x advantage).
     - `lookupStaticSlot`: 764.5M to 861.4M ops/s across all scope depths (depth 0 to 8), demonstrating true O(1) performance compared to dynamic `lookupTemplateLocalVariable` (136.2M ops/s at depth 0, degrading to 23.6M ops/s at depth 8, a 32.4x advantage at depth 8).
@@ -284,7 +284,7 @@ Milestone M19.1 establishes the benchmark methodology and measured baseline befo
     - B05 / B06 (single loop): 2 slots (`$row`, `$foreach`).
     - B07 (nested loop): 4 slots (`$row`, `$foreach`, `$item`, `$foreach`).
     - B11 (macros): template 2 slots (`$card`, `$foreach`), `renderbadge` 3 slots (`$label`, `$type`, `$bodyContent`), `rendercard` 4 slots (`$title`, `$desc`, `$tag`, `$bodyContent`).
-    - Synthetic 200-variable template: 200 slots (~1.6 KB reference array), proving monotonic slot assignment is compact and completely avoids register-packing complexity.
+    - Synthetic 200-variable template: 200 slots (~1.6 KB reference array). Current measured workloads do not demonstrate a need for slot packing in 0.2.0, so slot reuse remains deferred.
   - **Throughput Gains (Apples-to-Apples Pre vs Post M19.2b)**:
     - B02 (scalar variables): AOT +27.6% (95,907 ± 1,833 vs 75,184 ± 26,485 ops/s); IR +3.9% (20,063 ± 2,005 vs 19,316 ± 3,902 ops/s).
     - B05 (small table): AOT +18.3% (100,690 ± 6,478 vs 85,132 ± 7,070 ops/s); IR +18.7% (13,432 ± 876 vs 11,312 ± 2,620 ops/s).
@@ -292,9 +292,9 @@ Milestone M19.1 establishes the benchmark methodology and measured baseline befo
     - B07 (nested loops): AOT +13.1% (1,168.9 ± 205.7 vs 1,033.7 ± 93.3 ops/s); IR +4.4% (373.3 ± 177.9 vs 357.6 ± 50.5 ops/s).
     - B11 (macros): AOT +32.9% (48,058 ± 1,447 vs 36,150 ± 15,433 ops/s); IR -1.9% (9,013 ± 1,052 vs 9,189 ± 1,770 ops/s, stable within error margin).
   - **True Allocation Evidence (`-prof gc`)**:
-    - AOT Bytecode: 0.0% allocation delta across all workloads (14,464.1 B/op for B02, 9,168.1 B/op for B05, 978,455.7 B/op for B06, 707,302.4 B/op for B07, 21,680.2 B/op for B11). Bytecode executes direct array and output stream writes without intermediate allocations.
-    - IR Interpreter: Minor +0.1% to +3.5% allocation overhead for frame array instantiation and context seeding (B02: 84,920.4 vs 82,528.4 B/op [+2.9%]; B05: 88,949.7 vs 85,968.7 B/op [+3.5%]; B06: 2,922,216.4 vs 2,919,188.0 B/op [+0.1%]; B07: 1,776,924.9 vs 1,730,462.9 B/op [+2.7%]; B11: 118,184.8 vs 106,808.8 B/op [+10.7%]).
-    - Note on Attribution: The previously reported 5.9x–9.7x GC difference was an inter-tier comparison (AOT vs IR), not a slot architecture delta. Within each execution tier, slot assignment preserves allocation parity for AOT and introduces negligible overhead for IR while delivering double-digit throughput gains.
+    - AOT Bytecode: No material AOT allocation change was observed in the measured workloads (14,464.1 B/op for B02, 9,168.1 B/op for B05, 978,455.7 B/op for B06, 707,302.4 B/op for B07, 21,680.2 B/op for B11). Bytecode executes direct array and output stream writes without intermediate allocations.
+    - IR Interpreter: B02/B05/B06/B07 exhibited a small bounded allocation increase (+0.1% to +3.5%), while B11 exhibited a ~10.7% B/op increase alongside throughput impact (B02: 84,920.4 vs 82,528.4 B/op [+2.9%]; B05: 88,949.7 vs 85,968.7 B/op [+3.5%]; B06: 2,922,216.4 vs 2,919,188.0 B/op [+0.1%]; B07: 1,776,924.9 vs 1,730,462.9 B/op [+2.7%]; B11: 118,184.8 vs 106,808.8 B/op [+10.7%]).
+    - Note on Attribution: The previously reported 5.9x–9.7x GC difference was an inter-tier comparison (AOT vs IR), not a slot architecture delta. Within each execution tier, no material AOT allocation change was observed in measured workloads, while IR experiences a small bounded increase for double-digit throughput gains.
   Raw data files: `viet-template-benchmarks/build/reports/jmh/m19.2b-pre-gc-java17.json`, `viet-template-benchmarks/build/reports/jmh/m19.2b-post-gc-java17.json`, `viet-template-benchmarks/build/reports/jmh/m19.2b-micro-post-java17.json`.
 
 All cross-engine benchmarks will compare Viet Template against current stable versions of:

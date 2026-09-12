@@ -89,9 +89,9 @@ attribution:
    - In 0.2.0, semantic analysis and IR optimization assign every statically declared and inferred local variable (parameters, `#set` targets, loop counters, macro parameters) to a stable compiler-assigned integer slot ID.
    - The execution frame in both the reference interpreter and AOT bytecode backend evolves to an indexed `ExecutionFrame` backed by `EvaluationValue[] slots`.
    - Variable reads and writes compile to direct array slot accesses (`ALOAD`/`AALOAD`/`AASTORE`), reducing variable resolution from an hash map lookup with string hashing and object node traversal to a direct array index operation.
-   - **Preservation of 3-State Semantics**: The runtime explicitly preserves `UNDEFINED`, `DEFINED_NULL`, and `DEFINED_VALUE`. In Java, reference-array elements are initially `null`, requiring the runtime implementation to explicitly decide and test how internal empty slots represent undefined.
+   - **Preservation of 3-State Semantics**: The runtime explicitly preserves `UNDEFINED`, `DEFINED_NULL`, and `DEFINED_VALUE`. `ExecutionFrame` explicitly initializes each slot to `EvaluationValue.undefined()`. Because Java reference arrays themselves initialize to `null`, the runtime never exposes `null` or conflates it with `DEFINED_NULL`.
    - **Name-Based Fallback**: A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
-   - **Slot Reuse Deferred**: Slot reuse remains explicitly deferred as a later optional optimization requiring separate correctness and benchmark evidence.
+   - **Slot Reuse Deferred**: Current measured workloads do not demonstrate a need for slot packing in 0.2.0, so slot reuse remains deferred.
 2. **Indexed Template Cache Invalidation**:
    - In 0.1.x, `TemplateCompileCache.invalidate(TemplateId)` performs an $O(N)$ linear scan over all cache keys: `entries.keySet().removeIf(...)`.
    - In 0.2.0, `TemplateCompileCache` introduces a concurrent secondary reverse index: `ConcurrentMap<TemplateId, Set<CompileCacheKey>>`.

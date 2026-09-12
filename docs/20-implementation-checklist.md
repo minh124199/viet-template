@@ -629,9 +629,9 @@ Every optimization must preserve:
 
 #### M19.2b — Variable slots and ExecutionFrame (complete)
 
-- [x] Implement IR and optimizer variable slot assignment pass (`O45 AssignVariableSlots`) to assign stable compiler-assigned integer slot IDs without slot reuse (slot reuse explicitly deferred).
+- [x] Implement IR and optimizer variable slot assignment pass (`O45 AssignVariableSlots`) to assign stable compiler-assigned integer slot IDs without slot reuse (slot reuse deferred in 0.2.0).
 - [x] Implement `ExecutionFrame` backed by `EvaluationValue[] slots` for fast indexed variable access.
-- [x] Java reference-array elements are initially `null`, requiring the runtime implementation to explicitly decide and test how internal empty slots represent undefined.
+- [x] `ExecutionFrame` explicitly initializes each slot to `EvaluationValue.undefined()`, ensuring Java reference arrays (which initialize to `null`) never expose `null` or conflate it with `DEFINED_NULL`.
 - [x] A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
 - [x] Preserve 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) and full Velocity compatibility across all slot read/write operations.
 - [x] Update VTL reference interpreter to execute variable accesses via `ExecutionFrame` slots.

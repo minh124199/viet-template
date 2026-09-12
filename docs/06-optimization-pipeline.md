@@ -65,10 +65,10 @@ can become unconditional static output if `x` is truly local and unchanged.
 Introduced in Release 0.2.0:
 
 Analyzes symbol scopes, variable declarations (`#set`), loop variables (`#foreach`), and macro parameters to assign local variables to stable compiler-assigned integer slot IDs in `ExecutionFrame.slots` (`EvaluationValue[] slots`).
-- **Stable Slot Assignment**: Assigns stable integer slot IDs without slot reuse; slot reuse remains explicitly deferred as a later optional optimization requiring separate correctness and benchmark evidence.
+- **Stable Slot Assignment**: Assigns stable integer slot IDs without slot reuse. Current measured workloads do not demonstrate a need for slot packing in 0.2.0, so slot reuse remains deferred.
 - **Lowering**: Replaces named variable references (`LoadLocal("name")`, `StoreLocal("name")`) with direct indexed instructions (`LoadSlot(slotIndex)`, `StoreSlot(slotIndex)`).
 - **Direct $O(1)$ Array Indexing**: Variable loads and stores compile to direct array accesses (`ALOAD`/`ASTORE` or `slots[slotIndex]`), completely eliminating hash calculations, bucket searches, and map entry allocations.
-- **3-State Semantics**: Preserves the 3-state evaluation model (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`). Because Java reference-array elements are initially `null`, the runtime implementation explicitly decides and tests how internal empty slots represent undefined.
+- **3-State Semantics**: Preserves the 3-state evaluation model (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`). `ExecutionFrame` explicitly initializes each slot to `EvaluationValue.undefined()`. Because Java reference arrays themselves initialize to `null`, the runtime never exposes `null` or conflates it with `DEFINED_NULL`.
 - **Name-Based Fallback**: A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
 
 ## 8. Dead branch elimination (O50)
