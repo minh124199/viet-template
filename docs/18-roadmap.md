@@ -48,7 +48,10 @@ Milestone M19.1 is complete, establishing the dedicated benchmark and profiling 
   7. `DynamicCallSitePicBenchmark` (B09, B10)
   8. `TemplateCompilationCacheBenchmark` (B15)
   9. `MacroAndLayoutBenchmark` (B11, B12)
-- **Baseline Capture**: Record baseline measurements across all 15 workloads (B01–B15) comparing Viet Template against handwritten Java, Apache Velocity 2.4.1, Quarkus Qute, jte, and Thymeleaf.
+- **Baseline Capture**:
+  - **M19.1a (Internal Java 17 Baseline - Completed)**: Official internal baseline captured on commit `aad9d35` across all canonical benchmark suites (`viet-template-benchmarks/build/reports/jmh/baseline-java17.json`).
+  - **M19.1b (Cross-Engine Comparators - Pending)**: Comparative benchmarks against handwritten Java, Apache Velocity 2.4.1, Quarkus Qute, jte, and Thymeleaf remain planned as separate comparator suites before adopting cross-engine claims.
+  - **M19.1c (Cross-JDK Validation - Pending)**: Validation on JDK 21 and JDK 25 remains pending.
   - Viet Template aims to reduce rendering overhead relative to reflection-heavy interpreted template execution while approaching generated or compiled Java performance where its semantics permit. Comparative performance claims against other template engines must be based on reproducible benchmarks using equivalent workloads, configuration, escaping behavior, data models, warmup, and runtime conditions.
   - M19.1 establishes the benchmark methodology and measured baseline before numerical claims are adopted.
 - **Scope Discipline in 0.1.x**: In 0.1.x, work is restricted to benchmark infrastructure, baseline measurements, profiler methodology, and isolated evidence-backed fixes only.
