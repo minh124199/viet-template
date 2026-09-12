@@ -1,0 +1,32 @@
+name: Check Deployment Status
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_id:
+        description: 'Sonatype Central Deployment ID'
+        required: true
+        default: '7c8cd16e-b123-4422-81c9-b19a324570cb'
+
+permissions:
+  contents: read
+
+jobs:
+  check-status:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Check Status
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          DEPLOYMENT_ID: ${{ github.event.inputs.deployment_id }}
+        run: |
+          AUTH=$(echo -n "${MAVEN_CENTRAL_USERNAME}:${MAVEN_CENTRAL_PASSWORD}" | base64)
+          echo "Querying status for deployment: $DEPLOYMENT_ID"
+          HTTP_CODE=$(curl -s -o /tmp/status.json -w "%{http_code}" -X POST \
+            -H "Authorization: UserToken ${AUTH}" \
+            "https://central.sonatype.com/api/v1/publisher/status?id=${DEPLOYMENT_ID}")
+          echo "HTTP Status Code: $HTTP_CODE"
+          cat /tmp/status.json
+          echo ""
