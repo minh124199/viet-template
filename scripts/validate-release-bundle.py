@@ -2,8 +2,8 @@
 """
 scripts/validate-release-bundle.py
 
-Validates the release publication bundle across all production modules:
-1. Verifies that all 4 production modules produce:
+Validates the release publication bundle across the public release coordinates:
+1. Verifies the parent POM and that all 4 production modules produce:
    - main JAR (classes)
    - sources JAR
    - Javadoc JAR
@@ -45,6 +45,8 @@ EXCLUDED_MODULES = [
     "viet-template-tck",
     "viet-template-benchmarks",
 ]
+
+PARENT_MODULE = "viet-template-parent"
 
 def get_project_version():
     pom_tree = ET.parse(ROOT_DIR / "pom.xml")
@@ -127,7 +129,7 @@ def validate_javadoc_jar(javadoc_jar_path, errors):
 
     print(f"  [PASS] {javadoc_jar_path.name} is valid Javadoc archive.")
 
-def validate_pom_metadata(pom_path, module_name, expected_version, errors):
+def validate_pom_metadata(pom_path, module_name, expected_version, errors, enforce_production_dependencies=True):
     print(f"  [CHECK] Inspecting publication POM for {module_name}...")
     if not pom_path.exists():
         errors.append(f"Missing publication POM: {pom_path}")
@@ -167,7 +169,7 @@ def validate_pom_metadata(pom_path, module_name, expected_version, errors):
         errors.append(f"Invalid version '{version}' in {pom_path} (expected '{expected_version}')")
 
     # Dependencies check: ensure strict clean-room isolation and zero test/Velocity leakage
-    for dep in pom_root.findall(f".//{prefix}dependency", ns):
+    for dep in pom_root.findall(f".//{prefix}dependency", ns) if enforce_production_dependencies else []:
         dep_group = dep.find(f"./{prefix}groupId", ns)
         dep_art = dep.find(f"./{prefix}artifactId", ns)
         dep_scope = dep.find(f"./{prefix}scope", ns)
@@ -226,6 +228,14 @@ def validate_tck_defense_in_depth(root_dir, errors):
 
     print("  [PASS] Non-published modules (viet-template-tck, viet-template-benchmarks) are explicitly prevented from publishing in both Maven and Gradle.")
 
+
+def validate_parent_pom(root_dir, expected_version, errors):
+    """The root POM is a deliberate public coordinate, not merely reactor metadata."""
+    print(f"\nEvaluating parent coordinate '{PARENT_MODULE}':")
+    validate_pom_metadata(
+        root_dir / "pom.xml", PARENT_MODULE, expected_version, errors, enforce_production_dependencies=False
+    )
+
 def main():
     parser = argparse.ArgumentParser(description="Validate release publication bundle.")
     parser.add_argument("--build-tool", choices=["maven", "gradle", "both"], default="maven",
@@ -253,6 +263,11 @@ def main():
     print(f"[INFO] Evaluating build tool artifacts: {args.build_tool}")
 
     tools = ["maven", "gradle"] if args.build_tool == "both" else [args.build_tool]
+
+    # Maven Central receives the root parent POM. Gradle remains a parity/local-publication build
+    # and does not authoritatively publish this coordinate.
+    if "maven" in tools:
+        validate_parent_pom(target_dir, version, errors)
 
     if args.assemble:
         import subprocess
@@ -295,7 +310,7 @@ def main():
             print(f"  - {err}")
         sys.exit(1)
     else:
-        print("\n[SUCCESS] Release publication bundle validation PASSED! All 4 production modules are release-ready.")
+        print("\n[SUCCESS] Release publication bundle validation PASSED! Parent POM and all 4 production modules are release-ready.")
         sys.exit(0)
 
 if __name__ == "__main__":

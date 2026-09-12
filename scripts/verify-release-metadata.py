@@ -16,7 +16,126 @@ import argparse
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+import yaml
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
+
+
+def as_needs(job):
+    needs = job.get("needs", [])
+    return {needs} if isinstance(needs, str) else set(needs)
+
+
+def combined_run(job):
+    return "\n".join(step.get("run", "") for step in job.get("steps", []) if isinstance(step, dict))
+
+
+def validate_workflow_contract(errors):
+    pom_tree = ET.parse(ROOT_DIR / "pom.xml")
+    pom_root = pom_tree.getroot()
+    ns = {"m": pom_root.tag.split("}")[0].strip("{")}
+    plugins = pom_root.findall(".//m:plugin", ns)
+    central = next(
+        (p for p in plugins if p.findtext("m:artifactId", namespaces=ns) == "central-publishing-maven-plugin"),
+        None,
+    )
+    if central is None:
+        errors.append("pom.xml is missing central-publishing-maven-plugin")
+    else:
+        config = central.find("m:configuration", ns)
+        values = {
+            child.tag.split("}")[-1]: (child.text or "").strip()
+            for child in (list(config) if config is not None else [])
+        }
+        if values.get("publishingServerId") != "central":
+            errors.append("Central publisher must use publishingServerId=central")
+        if values.get("autoPublish") != "true":
+            errors.append("Central publisher must keep autoPublish=true")
+        if values.get("waitUntil") != "validated":
+            errors.append("Central publisher must use waitUntil=validated; publication polling belongs to CI")
+
+    workflow_path = ROOT_DIR / ".github" / "workflows" / "release.yml"
+    try:
+        workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        errors.append(f"release workflow cannot be parsed as YAML: {exc}")
+        return
+    jobs = workflow.get("jobs", {}) if isinstance(workflow, dict) else {}
+    required = {
+        "validate-metadata",
+        "verify-builds",
+        "package-and-validate-bundle",
+        "guard-publication",
+        "publish-to-central",
+        "wait-for-central-publication",
+        "verify-public-artifacts",
+        "central-consumer-smoke",
+        "create-github-release",
+    }
+    missing = required - set(jobs)
+    if missing:
+        errors.append(f"release workflow missing jobs: {', '.join(sorted(missing))}")
+        return
+    if "publish-to-central" not in as_needs(jobs["wait-for-central-publication"]):
+        errors.append("publication monitor must depend on publish-to-central")
+    if "wait-for-central-publication" not in as_needs(jobs["verify-public-artifacts"]):
+        errors.append("public artifact verification must depend on publication monitor")
+    if "verify-public-artifacts" not in as_needs(jobs["central-consumer-smoke"]):
+        errors.append("Central-only consumer smoke must depend on public artifact verification")
+    release_needs = as_needs(jobs["create-github-release"])
+    if "central-consumer-smoke" not in release_needs or "publish-to-central" in release_needs:
+        errors.append("GitHub Release must depend on verified Central consumers, not directly on Maven deploy")
+    release_run = combined_run(jobs["create-github-release"])
+    if "gh release view" not in release_run or "gh release create" not in release_run:
+        errors.append("GitHub Release finalization must be idempotent (verify existing or create absent)")
+    for job_name in ("verify-public-artifacts", "central-consumer-smoke", "create-github-release"):
+        condition = str(jobs[job_name].get("if", ""))
+        if "always()" not in condition or ".result == 'success'" not in condition:
+            errors.append(
+                f"{job_name} must explicitly tolerate skipped upload ancestors while requiring its predecessor to succeed"
+            )
+
+    publish_run = combined_run(jobs["publish-to-central"])
+    if "./mvnw clean deploy -P release" not in publish_run:
+        errors.append("publish-to-central must invoke the Maven release deploy")
+    if "gpg.passphrase" in publish_run:
+        errors.append("release workflow must not pass deprecated gpg.passphrase on the command line")
+    if "MAVEN_GPG_PASSPHRASE" not in str(jobs["publish-to-central"]):
+        errors.append("publish-to-central must supply the supported secret-safe MAVEN_GPG_PASSPHRASE environment variable")
+    if "extract-central-deployment-id.py" not in publish_run:
+        errors.append("publish-to-central must strictly capture the deployment ID")
+    monitor_run = combined_run(jobs["wait-for-central-publication"])
+    if "check-central-deployment.py" not in monitor_run or "--timeout 7200" not in monitor_run:
+        errors.append("publication monitor must use the shared checker with the 120-minute policy")
+    if jobs["publish-to-central"].get("environment") != "release":
+        errors.append("publish-to-central must retain the protected release environment")
+    if jobs["wait-for-central-publication"].get("environment") != "release":
+        errors.append("authenticated Central monitoring must retain the protected release environment")
+    if workflow.get("concurrency", {}).get("cancel-in-progress") is not False:
+        errors.append("release concurrency must set cancel-in-progress=false")
+    if "github.run_attempt" not in workflow_path.read_text(encoding="utf-8"):
+        errors.append("release workflow must prevent tag workflow reruns from redeploying")
+    if "github.run_attempt" not in str(jobs["publish-to-central"]):
+        errors.append("publish-to-central must independently block rerun attempts")
+    if "GH_REPO" not in str(jobs["create-github-release"]):
+        errors.append("GitHub Release finalization must explicitly identify the repository")
+    cleanup_run = "\n".join(
+        step.get("run", "")
+        for step in jobs["publish-to-central"].get("steps", [])
+        if isinstance(step, dict) and "Clean up" in step.get("name", "")
+    )
+    if "fpr:" not in cleanup_run or "--delete-secret-keys \"$fingerprint\"" not in cleanup_run:
+        errors.append("GPG cleanup must delete imported secret keys by full fingerprint")
+
+    for module in ("viet-template-tck", "viet-template-benchmarks"):
+        module_text = (ROOT_DIR / module / "pom.xml").read_text(encoding="utf-8")
+        for setting in ("<maven.deploy.skip>true</maven.deploy.skip>", "<skipPublishing>true</skipPublishing>"):
+            if setting not in module_text:
+                errors.append(f"{module} publication exclusion missing {setting}")
+    gradle_text = (ROOT_DIR / "build.gradle.kts").read_text(encoding="utf-8")
+    for module in ("viet-template-tck", "viet-template-benchmarks"):
+        if f'project.name != "{module}"' not in gradle_text:
+            errors.append(f"Gradle publication exclusion missing for {module}")
 
 def get_gradle_version():
     build_gradle = (ROOT_DIR / "build.gradle.kts").read_text(encoding="utf-8")
@@ -65,7 +184,15 @@ def main():
     if (args.require_non_snapshot or args.require_release) and is_snapshot:
         errors.append(f"Release requirement failed: version '{version}' is a SNAPSHOT version. Live releases require a release version (e.g. 0.1.0).")
 
-    tag = args.tag or os.environ.get("RELEASE_TAG") or os.environ.get("GITHUB_REF_NAME")
+    if args.tag is not None:
+        tag = args.tag
+    elif "RELEASE_TAG" in os.environ:
+        # An explicit empty value means a branch-based dry run, not "fall back to branch name".
+        tag = os.environ["RELEASE_TAG"]
+    elif os.environ.get("GITHUB_REF_TYPE") == "tag":
+        tag = os.environ.get("GITHUB_REF_NAME")
+    else:
+        tag = None
     if tag and tag.startswith("refs/tags/"):
         tag = tag.replace("refs/tags/", "")
 
@@ -90,34 +217,10 @@ def main():
 
     if args.check_workflow_contract:
         print("\n[CHECK] Validating release workflow contract and publishing configuration...")
-        pom_text = (ROOT_DIR / "pom.xml").read_text(encoding="utf-8")
-        if "<central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>" not in pom_text:
-            errors.append("pom.xml does not use central-publishing-maven-plugin version 0.11.0")
-        if "<autoPublish>true</autoPublish>" not in pom_text:
-            errors.append("pom.xml missing <autoPublish>true</autoPublish> in central-publishing-maven-plugin")
-        if "<waitUntil>published</waitUntil>" not in pom_text:
-            errors.append("pom.xml missing <waitUntil>published</waitUntil> in central-publishing-maven-plugin")
-        if "<publishingServerId>central</publishingServerId>" not in pom_text:
-            errors.append("pom.xml missing <publishingServerId>central</publishingServerId>")
-
-        workflow_path = ROOT_DIR / ".github" / "workflows" / "release.yml"
-        if not workflow_path.exists():
-            errors.append(".github/workflows/release.yml missing")
-        else:
-            wf_text = workflow_path.read_text(encoding="utf-8")
-            if "publish-to-central" not in wf_text:
-                errors.append("release.yml missing explicit 'publish-to-central' job")
-            if "needs: [validate-metadata, publish-to-central]" not in wf_text and "needs: [validate-metadata, publish]" not in wf_text:
-                errors.append("create-github-release job must depend on publish-to-central")
-            if "cancel-in-progress: false" not in wf_text:
-                errors.append("release.yml concurrency missing 'cancel-in-progress: false'")
-            if "permissions:\n  contents: read" not in wf_text:
-                errors.append("release.yml top-level missing 'permissions: contents: read'")
-            if "permissions:\n      contents: write" not in wf_text:
-                errors.append("create-github-release missing scoped 'permissions: contents: write'")
-            if "./mvnw clean deploy -P release" not in wf_text:
-                errors.append("publish-to-central must invoke './mvnw clean deploy -P release'")
-        print("  [PASS] Release workflow contract verified successfully.")
+        before = len(errors)
+        validate_workflow_contract(errors)
+        if len(errors) == before:
+            print("  [PASS] Release workflow contract verified successfully.")
 
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:

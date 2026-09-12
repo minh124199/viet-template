@@ -4,46 +4,42 @@ on:
   workflow_dispatch:
     inputs:
       deployment_id:
-        description: 'Sonatype Central Deployment ID'
+        description: 'Sonatype Central deployment UUID'
         required: true
-        default: '7c8cd16e-b123-4422-81c9-b19a324570cb'
+        type: string
+      one_shot:
+        description: 'Query once instead of waiting for a terminal state'
+        required: true
+        type: boolean
+        default: false
+      timeout_minutes:
+        description: 'Total observation timeout in minutes'
+        required: true
+        type: number
+        default: 120
 
 permissions:
   contents: read
+
+concurrency:
+  group: check-central-${{ inputs.deployment_id }}
+  cancel-in-progress: false
 
 jobs:
   check-status:
     runs-on: ubuntu-latest
     environment: release
     steps:
-      - name: Check Status
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Query Central through shared status checker
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          DEPLOYMENT_ID: ${{ github.event.inputs.deployment_id }}
+          DEPLOYMENT_ID: ${{ inputs.deployment_id }}
+          TIMEOUT_MINUTES: ${{ inputs.timeout_minutes }}
+          ONE_SHOT: ${{ inputs.one_shot }}
         run: |
-          AUTH=$(echo -n "${MAVEN_CENTRAL_USERNAME}:${MAVEN_CENTRAL_PASSWORD}" | base64)
-          echo "Querying status for deployment: $DEPLOYMENT_ID"
-          for i in {1..120}; do
-            STATUS_JSON=$(curl -s -X POST \
-              -H "Authorization: UserToken ${AUTH}" \
-              "https://central.sonatype.com/api/v1/publisher/status?id=${DEPLOYMENT_ID}")
-            STATE=$(echo "$STATUS_JSON" | jq -r .deploymentState)
-            echo "Attempt $i ($(date -u +%T)): state = $STATE"
-            if [ "$STATE" = "PUBLISHED" ]; then
-              echo "Deployment has PUBLISHED successfully!"
-              echo "$STATUS_JSON" | jq .
-              break
-            elif [ "$STATE" = "FAILED" ]; then
-              echo "Deployment FAILED!"
-              echo "$STATUS_JSON" | jq .
-              exit 1
-            fi
-            sleep 15
-          done
-
-          echo "Checking published endpoint:"
-          curl -s -X GET \
-            -H "Authorization: UserToken ${AUTH}" \
-            "https://central.sonatype.com/api/v1/publisher/published?namespace=io.github.minh124199&name=viet-template-api&version=0.2.0" \
-            | jq .
+          args=("$DEPLOYMENT_ID" --timeout "$((TIMEOUT_MINUTES * 60))" --poll-interval 30)
+          [[ "$ONE_SHOT" == "true" ]] && args+=(--one-shot)
+          python3 scripts/check-central-deployment.py "${args[@]}"
