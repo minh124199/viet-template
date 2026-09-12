@@ -240,7 +240,7 @@ Viet Template aims to reduce rendering overhead relative to reflection-heavy int
 Milestone M19.1 establishes the benchmark methodology and measured baseline before numerical claims are adopted:
 - **M19.1a (Internal Java 17 Baseline - Completed)**: Official internal baseline captured on commit `aad9d35` across all 10 canonical benchmark suites (`viet-template-benchmarks/build/reports/jmh/baseline-java17.json`).
 - **M19.1b (Cross-Engine Comparators - Pending)**: Comparative benchmarks against external template engines will be executed as dedicated comparator suites before adopting cross-engine comparative claims.
-- **M19.1c (Cross-JDK Validation - Pending)**: Additional baseline runs on JDK 21 and JDK 25 are planned.
+- **M19.1c (Cross-JDK Validation - Completed)**: Cross-JDK validation across Java 17, 21, and 25 completed with identical methodology on clean commit `26567ca` (`baseline-java17.json`, `baseline-java21.json`, `baseline-java25.json`).
 
 All cross-engine benchmarks will compare Viet Template against current stable versions of:
 

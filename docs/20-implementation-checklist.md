@@ -612,7 +612,7 @@ Every optimization must preserve:
 - [x] Implement Workloads B11, B12: `MacroAndLayoutBenchmark` (macro parameter passing, block macros, and two-stage layout rendering).
 - [x] Milestone M19.1a: Internal Java 17 benchmark infrastructure & baseline measurement completed on clean commit `aad9d35` (`baseline-java17.json`).
 - [ ] Milestone M19.1b: Set up comparator baselines in benchmark suite: handwritten Java, Apache Velocity 2.4.1, Quarkus Qute (dynamic and typed), jte, and Thymeleaf.
-- [ ] Milestone M19.1c: Capture official baseline measurements across additional JDK versions (JDK 21, JDK 25) with fixed JVM flags (`-Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC`).
+- [x] Milestone M19.1c: Cross-JDK validation across Java 17, 21, and 25 completed with identical methodology on clean commit `26567ca` (`baseline-java17.json`, `baseline-java21.json`, `baseline-java25.json`).
 - [x] Document preservation of 0.1.x simple high-performance data structures: contiguous `AccessLink[]` array scan for PIC depth <= 4 (low constant factors, good locality, avoiding unnecessary hashing or node overhead), dependency graph reverse index `Map<TemplateId, Set<TemplateId>>` + cycle-safe BFS traversal using standard `ArrayDeque` and visited `HashSet`, `ExecutionContext` with `ArrayDeque<LocalScope>` and `HashMap`.
 
 ### 19.2 Milestone M19.2 — 0.2.0 High-Performance Runtime Architecture
