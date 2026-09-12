@@ -7,6 +7,10 @@ import java.util.Optional;
  * Capability token representing a validated or trusted URL that bypasses {@code URL_COMPONENT}
  * percent-encoding when emitted into URL contexts.
  *
+ * <p>{@code SafeUrl} instances should normally be created through validated factories such as
+ * {@link #of}, {@link #ofValidated}, or {@link #tryOf}. The only public unchecked creation path is
+ * {@link #ofTrusted}, which is a security-sensitive host escape hatch.
+ *
  * <p><b>SECURITY-SENSITIVE CAPABILITY:</b>
  *
  * <ul>
@@ -23,10 +27,17 @@ import java.util.Optional;
  *       destination itself is trustworthy.
  * </ul>
  */
-public record SafeUrl(CharSequence content) implements SafeContent, CharSequence {
+public final class SafeUrl implements SafeContent, CharSequence {
 
-  public SafeUrl {
-    Objects.requireNonNull(content, "content must not be null");
+  private final CharSequence content;
+
+  private SafeUrl(CharSequence content) {
+    this.content = Objects.requireNonNull(content, "content must not be null");
+  }
+
+  @Override
+  public CharSequence content() {
+    return content;
   }
 
   /**
@@ -134,5 +145,21 @@ public record SafeUrl(CharSequence content) implements SafeContent, CharSequence
   @Override
   public String toString() {
     return content.toString();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof SafeUrl other)) {
+      return false;
+    }
+    return Objects.equals(content, other.content);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(content);
   }
 }
