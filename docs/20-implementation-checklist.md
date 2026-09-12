@@ -654,7 +654,7 @@ Every optimization must preserve:
 
 This follow-up is release infrastructure work only. It does not start M19.3 or M15.
 
-### 19.2.2 Milestone M19.2c — Performance Engineering Infrastructure & Cross-JDK Analysis (IMPLEMENTED — VALIDATION PENDING)
+### 19.2.2 Milestone M19.2c — Performance Engineering Infrastructure & Cross-JDK Analysis (COMPLETE)
 
 - [x] Define authoritative runtime profiles (`config/benchmark-runtime-profiles.json`) and CLI query tool (`scripts/perf/runtime_profiles.py`) for `J17-G1`, `J21-G1`, `J21-ZGC`, `J25-G1`, `J25-G1-COH`, `J25-ZGC`, `J25-AOT`.
 - [x] Implement JDK runtime validation tool (`scripts/perf/check-java-runtime.sh`) verifying target version, VM, vendor, architecture, and executable paths.
