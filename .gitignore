@@ -39,7 +39,15 @@ replay_pid*
 # Generated benchmark/profiling output
 *.jfr
 *.hprof
+*.aot
+*.aotconfig
 benchmark-results/
+benchmark-env*.json
+jfr-reports/
+
+# Python
+__pycache__/
+*.pyc
 
 # Editor temporary & swap files
 *.swp

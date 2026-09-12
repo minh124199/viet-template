@@ -55,6 +55,12 @@ At the time this design pack was written (September 2026), target the current st
 - JVM Specification: <https://docs.oracle.com/javase/specs/>
 - MethodHandle API: <https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/invoke/MethodHandle.html>
 - CallSite API: <https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/invoke/CallSite.html>
+- JEP 444: Virtual Threads (Java 21): <https://openjdk.org/jeps/444>
+- JEP 439: Generational ZGC (Java 21): <https://openjdk.org/jeps/439>
+- JEP 450: Compact Object Headers (Java 25): <https://openjdk.org/jeps/450>
+- JEP 483: Ahead-of-Time Class Loading & Compilation (Java 25): <https://openjdk.org/jeps/483>
+- JEP 514: Ahead-of-Time Method Compilation (Java 25): <https://openjdk.org/jeps/514>
+- Java Flight Recorder (JFR) & `jfr view` CLI diagnostic tool: <https://docs.oracle.com/en/java/javase/25/docs/specs/man/jfr.html>
 
 Design rule: runtime API compatibility and compiler implementation JDK are separate concerns. The optional JDK-25 compiler module may use the standard Class-File API, while runtime modules retain the declared Java 17 baseline. Exact generated class-file targets must be validated empirically in CI.
 

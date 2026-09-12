@@ -654,7 +654,23 @@ Every optimization must preserve:
 
 This follow-up is release infrastructure work only. It does not start M19.3 or M15.
 
-### 19.3 Milestone M19.3 — 0.3.x+ Evidence-Driven Optimizations
+### 19.2.2 Milestone M19.2c — Performance Engineering Infrastructure & Cross-JDK Analysis (IMPLEMENTED — VALIDATION PENDING)
+
+- [x] Define authoritative runtime profiles (`config/benchmark-runtime-profiles.json`) and CLI query tool (`scripts/perf/runtime_profiles.py`) for `J17-G1`, `J21-G1`, `J21-ZGC`, `J25-G1`, `J25-G1-COH`, `J25-ZGC`, `J25-AOT`.
+- [x] Implement JDK runtime validation tool (`scripts/perf/check-java-runtime.sh`) verifying target version, VM, vendor, architecture, and executable paths.
+- [x] Extend environment metadata recorder (`scripts/record-benchmark-env.sh`) to support `--profile`, capturing Git dirty status, CPU cores, RAM, GC collector, Compact Object Headers, and AOT capabilities.
+- [x] Implement profile-aware benchmark runner (`scripts/perf/run-benchmarks.sh`) with standardized directory layout (`build/performance/<timestamp>-<sha>/<profile>/`).
+- [x] Implement JMH benchmark comparison tool (`scripts/perf/compare-jmh.py`) with parameter/configuration compatibility checks, metric direction awareness, conservative interval interpretation, regression thresholds, and Markdown reporting.
+- [x] Implement Java 21 Virtual-Thread support (`VirtualThreadSupport.java`) maintaining `--release 17` binary compatibility across production and benchmark sources via `MethodHandle` dynamic resolution.
+- [x] Implement comprehensive concurrency stress suite (`SharedEngineVirtualThreadStressTest`, `DynamicCallSiteConcurrencyStressTest`, `CompileCacheConcurrencyStressTest`, `HotReloadConcurrencyStressTest`, `DependencyGraphConcurrencyStressTest`, `RenderBudgetIsolationStressTest`, `PlatformThreadComparisonHarness`).
+- [x] Implement virtual-thread stress runner script (`scripts/perf/run-virtual-thread-stress.sh`).
+- [x] Implement Java 25 JFR profiling tools (`scripts/perf/jfr-profile.sh`, `scripts/perf/jfr-summary.sh`) extracting views: `hot-methods`, `allocation-by-class`, `contention-by-site`, `gc-pauses`, `thread-allocation`, and `pinned-threads`.
+- [x] Implement process startup measurement harness (`StartupBenchmarkEntrypoint.java`, `scripts/perf/measure-startup.py`, `scripts/perf/measure-startup.sh`) capturing nanosecond checkpoints from JVM bootstrap to batch rendering.
+- [x] Implement Java 25 JVM AOT cache experiment script (`scripts/perf/jdk-aot-experiment.sh`) demonstrating class-loading and startup acceleration.
+- [x] Implement dedicated scheduled and manual performance CI pipeline (`.github/workflows/performance.yml`).
+- [x] Update documentation inventory with the 10 canonical benchmark classes and complete profiling methodology (`docs/15-benchmark-plan.md`, `docs/18-roadmap.md`, `docs/20-implementation-checklist.md`, `docs/SOURCES.md`, `.gitignore`).
+
+### 19.3 Milestone M19.3 — 0.3.x+ Evidence-Driven Optimizations (Gated on Empirical Evidence)
 
 - [ ] Profile LRU cache contention in `TemplateCompileCache` under high concurrent load; evaluate lock-free or striped eviction (e.g. concurrent bounded cache) if lock contention is proven.
 - [ ] Profile lexer and parser allocation hotspots; introduce zero-copy token slice representation to reduce temporary `String` allocations.
