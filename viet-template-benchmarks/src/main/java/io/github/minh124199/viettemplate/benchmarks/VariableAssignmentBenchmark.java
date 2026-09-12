@@ -4,6 +4,7 @@ import io.github.minh124199.viettemplate.api.MutableRenderContext;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionContext;
+import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionFrame;
 import io.github.minh124199.viettemplate.vtl.interpreter.ForeachMetadata;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,6 +40,7 @@ public class VariableAssignmentBenchmark {
   private ExecutionContext localScopeContext;
   private ExecutionContext foreachScopeContext;
   private ExecutionContext writeThroughContext;
+  private ExecutionFrame frame;
 
   private EvaluationValue testValue;
   private EvaluationValue updateValue;
@@ -47,6 +49,7 @@ public class VariableAssignmentBenchmark {
   public void setUp() {
     testValue = EvaluationValue.of("assignedValue");
     updateValue = EvaluationValue.of("updatedValue");
+    frame = new ExecutionFrame(1);
 
     // 1. Template Local Context
     RenderContext immutableRoot = RenderContext.builder().put("initRoot", "val").build();
@@ -80,6 +83,11 @@ public class VariableAssignmentBenchmark {
   @Benchmark
   public void assignTemplateLocal() {
     templateContext.set("tempKey", testValue);
+  }
+
+  @Benchmark
+  public void assignStaticSlot() {
+    frame.set(0, testValue);
   }
 
   @Benchmark

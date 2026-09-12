@@ -3,6 +3,7 @@ package io.github.minh124199.viettemplate.benchmarks;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionContext;
+import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionFrame;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -38,6 +39,7 @@ public class VariableLookupBenchmark {
   private int scopeDepth;
 
   private ExecutionContext context;
+  private ExecutionFrame frame;
   private String rootVarName;
   private String templateVarName;
   private String outermostVarName;
@@ -49,6 +51,8 @@ public class VariableLookupBenchmark {
     RenderContext rootContext =
         RenderContext.builder().put("rootVar", "rootValue").put("globalSetting", 42).build();
     context = new ExecutionContext(rootContext);
+    frame = new ExecutionFrame(1);
+    frame.set(0, EvaluationValue.of("slotValue"));
     context.set("templateVar", EvaluationValue.of("templateValue"));
 
     rootVarName = "rootVar";
@@ -81,6 +85,12 @@ public class VariableLookupBenchmark {
   @Benchmark
   public EvaluationValue lookupRootVariable() {
     return context.lookup(rootVarName);
+  }
+
+  /** Static semantic binding lookup; scopeDepth is intentionally orthogonal to the slot index. */
+  @Benchmark
+  public EvaluationValue lookupStaticSlot() {
+    return frame.get(0);
   }
 
   @Benchmark
