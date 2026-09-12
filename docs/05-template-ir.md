@@ -193,3 +193,11 @@ IR verifier checks:
 ## 14. Serialization
 
 Internal build cache format may be serialized but is not a v1 public contract. Include magic/version/source/schema/policy/compiler fingerprints and invalidate aggressively across compiler changes.
+
+## 15. Variable Slot Assignment (0.2.0)
+
+Deterministic, stable integer slots are assigned to parameters, locals, and loop variables:
+- `IrSlotLayout`: Computes frame size, active slot map, context-seeded slots, and loop-owned locals for templates and functions.
+- `SlotMetadata`: Retains slot ID, identifier name, `BindingKind`, `InitializationPolicy`, and source span.
+- Slots are monotonic and deterministic across compilations; slot reuse is deferred.
+- Verified by mandatory pass `O45 AssignVariableSlots` and `IrVerifier`.

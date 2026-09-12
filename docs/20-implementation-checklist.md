@@ -627,18 +627,18 @@ Every optimization must preserve:
 - [x] Define and test concurrent put/invalidate ordering with per-template lock stripes.
 - [x] Add N=10,000 invalidation coverage and explicit eviction bookkeeping measurement to JMH.
 
-#### M19.2b — Variable slots and ExecutionFrame (pending)
+#### M19.2b — Variable slots and ExecutionFrame (complete)
 
-- [ ] Implement IR and optimizer variable slot assignment pass (`O45 AssignVariableSlots`) to assign stable compiler-assigned integer slot IDs without slot reuse (slot reuse explicitly deferred).
-- [ ] Implement `ExecutionFrame` backed by `EvaluationValue[] slots` for fast indexed variable access.
-- [ ] Java reference-array elements are initially `null`, requiring the runtime implementation to explicitly decide and test how internal empty slots represent undefined.
-- [ ] A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
-- [ ] Preserve 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) and full Velocity compatibility across all slot read/write operations.
-- [ ] Update VTL reference interpreter to execute variable accesses via `ExecutionFrame` slots.
-- [ ] Update AOT bytecode backend to emit direct slot-indexed bytecode instructions (`ALOAD`, `ASTORE`, `AALOAD`, `AASTORE`).
+- [x] Implement IR and optimizer variable slot assignment pass (`O45 AssignVariableSlots`) to assign stable compiler-assigned integer slot IDs without slot reuse (slot reuse explicitly deferred).
+- [x] Implement `ExecutionFrame` backed by `EvaluationValue[] slots` for fast indexed variable access.
+- [x] Java reference-array elements are initially `null`, requiring the runtime implementation to explicitly decide and test how internal empty slots represent undefined.
+- [x] A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
+- [x] Preserve 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) and full Velocity compatibility across all slot read/write operations.
+- [x] Update VTL reference interpreter to execute variable accesses via `ExecutionFrame` slots.
+- [x] Update AOT bytecode backend to emit direct slot-indexed bytecode instructions (`ALOAD`, `ASTORE`, `AALOAD`, `AASTORE`).
 - [x] Replace $O(N)$ linear key scan `entries.keySet().removeIf(...)` in `TemplateCompileCache.invalidate(TemplateId)` with secondary reverse index (`ConcurrentMap<TemplateId, Set<CompileCacheKey>>`), performing average $O(1)$ key set lookup + $O(K)$ removal of the $K$ associated entries, reducing overall invalidation work to $O(K)$ (M19.2a).
-- [ ] Verify throughput improvement and allocation reduction on `ScalarVariableBenchmark` and `ForeachLoopBenchmark` over 0.1.x baseline under balanced tradeoff evaluation.
-- [ ] Verify $O(K)$ indexed invalidation under high concurrency in `TemplateCompilationCacheBenchmark`.
+- [x] Verify throughput improvement and allocation reduction on `ScalarVariableBenchmark` and `ForeachLoopBenchmark` over 0.1.x baseline under balanced tradeoff evaluation.
+- [x] Verify $O(K)$ indexed invalidation under high concurrency in `TemplateCompilationCacheBenchmark`.
 
 ### 19.3 Milestone M19.3 — 0.3.x+ Evidence-Driven Optimizations
 

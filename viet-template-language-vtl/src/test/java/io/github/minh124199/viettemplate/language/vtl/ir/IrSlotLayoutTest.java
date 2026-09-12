@@ -470,7 +470,8 @@ class IrSlotLayoutTest {
         """;
     IrTemplate nestedIr = parseAndLower(nestedVm, ModelSchema.empty());
     SlotLayout nestedLayout = IrSlotLayout.layout(nestedIr);
-    assertThat(nestedLayout.frameSize()).isEqualTo(4); // $row, $foreach (outer), $item, $foreach (inner)
+    assertThat(nestedLayout.frameSize())
+        .isEqualTo(4); // $row, $foreach (outer), $item, $foreach (inner)
     assertThat(nestedLayout.slots()).hasSize(4);
 
     // 4. Workload B11 (b11_macros.vm)

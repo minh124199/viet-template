@@ -79,8 +79,10 @@ attribution:
   average O(1) index lookup followed by O(K) affected-entry cleanup instead of scanning N cache
   entries. Per-template lock stripes define put/invalidate ordering without changing the existing
   access-order LRU lock.
-- **M19.2b — Variable slots and `ExecutionFrame`: PENDING.** No variable representation, slot
-  assignment, interpreter, or AOT changes are part of M19.2a.
+- **M19.2b — Variable slots and `ExecutionFrame`: COMPLETE.** Deterministic compiler-assigned variable
+  slots and array-backed `ExecutionFrame` activations for IR and AOT tiers, preserving Velocity 3-state
+  evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`), dynamic fallback coherence
+  (`#foreach`, `#macro`, `#evaluate`, `#parse`), and mutable root write-through, without variable slot reuse.
 
 1. **Compiler-Assigned Variable Slots (`EvaluationValue[] slots`)**:
    - In 0.1.x, template variable evaluation relies on `ExecutionContext` managing an `ArrayDeque<LocalScope>` containing `HashMap<String, EvaluationValue>`.

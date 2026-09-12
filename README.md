@@ -42,7 +42,9 @@ Many existing JVM template engines require teams to choose between familiar, fle
 - **Implemented**:
   - Clean-room lexer and Pratt expression parser with compiler-grade source span diagnostics.
   - AST interpreter and lower-level IR interpreter.
-  - 12-pass IR compiler optimization pipeline (dead code elimination, constant folding, loop specialization, text chunk merging, and escape hoisting).
+  - 13-pass IR compiler optimization pipeline (dead code elimination, constant folding, loop specialization, text chunk merging, escape hoisting, and O45 variable slot assignment).
+  - 0.2.0 High-performance `ExecutionFrame` backed by compiler-assigned variable slots (`EvaluationValue[] slots`) for IR interpreter and AOT bytecode backends, preserving 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) and dynamic fallback coherence.
+  - Indexed compilation cache invalidation (`TemplateId -> Set<CompileCacheKey>` reverse index) with per-template lock striping.
   - Dynamic linker with monomorphic and Polymorphic Inline Caches (PIC, depth 4) backed by classloader-safe weak references.
   - Architecture Tier 3 direct Java 17 bytecode compiler (`ClassFileWriter`) producing major version 61 classfiles with full `StackMapTable` tracking.
   - Bounded, thread-safe template compilation cache with LRU eviction and atomic handle swapping.
@@ -57,7 +59,6 @@ Many existing JVM template engines require teams to choose between familiar, fle
 - **Planned (Future Releases)**:
   - Spring Framework 7 MVC `ViewResolver` and Spring Boot 4 auto-configuration starter.
   - Dedicated Maven (`viet-template-maven-plugin`) and Gradle (`viet-template-gradle-plugin`) AOT pre-compilation plugins.
-  - Compiler-assigned flat variable slot execution frames (`0.2.0`).
   - GraalVM Native Image reachability metadata verification.
 
 ---
