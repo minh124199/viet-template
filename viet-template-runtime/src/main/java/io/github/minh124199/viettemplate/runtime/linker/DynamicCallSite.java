@@ -90,6 +90,18 @@ public final class DynamicCallSite {
     return link.invoke(target, arg);
   }
 
+  /** Invokes a two-argument operation (e.g. index write) through the inline cache. */
+  public Object invoke(Object target, Object arg1, Object arg2) throws Throwable {
+    if (target == null) {
+      return null;
+    }
+    AccessLink link = resolveLink(target.getClass());
+    if (link.isMissing()) {
+      return null;
+    }
+    return link.invokeIndexSet(target, arg1, arg2);
+  }
+
   /** Invokes a multi-argument operation (e.g. method call) through the inline cache. */
   public Object invokeWithArgs(Object target, Object[] args) throws Throwable {
     if (target == null) {

@@ -40,6 +40,10 @@ public record VtlInterpreterOptions(
     Objects.requireNonNull(resourceResolver, "resourceResolver must not be null");
     Objects.requireNonNull(executionTier, "executionTier must not be null");
     Objects.requireNonNull(optimizationOptions, "optimizationOptions must not be null");
+
+    if (profile == VtlProfile.VTL_SAFE) {
+      securityPolicy = VtlSecurityPolicy.enforceSafe(securityPolicy);
+    }
   }
 
   public VtlInterpreterOptions(

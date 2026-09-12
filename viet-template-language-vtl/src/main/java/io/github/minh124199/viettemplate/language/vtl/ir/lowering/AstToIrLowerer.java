@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.language.vtl.ir.lowering;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlAccessStep;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlAssignmentTarget;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlBinaryExpression;
@@ -275,7 +276,9 @@ public final class AstToIrLowerer {
               : (options.strictMode()
                   ? NullRenderMode.THROW_ERROR
                   : NullRenderMode.LITERAL_EXPRESSION);
-      statements.add(new IrWriteValue(value, IrEscapeMode.RAW, nullMode, refOut.span()));
+      IrEscapeMode escapeMode =
+          (options.profile() == VtlProfile.VTL_SAFE) ? IrEscapeMode.HTML_TEXT : IrEscapeMode.RAW;
+      statements.add(new IrWriteValue(value, escapeMode, nullMode, refOut.span()));
       return;
     }
 

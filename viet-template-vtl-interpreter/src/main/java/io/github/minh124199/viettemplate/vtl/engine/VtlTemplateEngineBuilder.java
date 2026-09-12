@@ -179,16 +179,36 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
                       memberAccessPolicy))
               .build();
     }
+    ExecutionTier effectiveExecutionTier = executionTier;
+    if (interpreterOptions != VtlInterpreterOptions.DEFAULT
+        && interpreterOptions.executionTier() != null) {
+      effectiveExecutionTier = interpreterOptions.executionTier();
+    }
+    if (effectiveInterpreterOptions.executionTier() != effectiveExecutionTier) {
+      effectiveInterpreterOptions =
+          effectiveInterpreterOptions.toBuilder().executionTier(effectiveExecutionTier).build();
+    }
+    VtlSemanticOptions effectiveSemanticOptions = semanticOptions;
+    if (effectiveInterpreterOptions.profile() != null
+        && (effectiveSemanticOptions.profile() != effectiveInterpreterOptions.profile()
+            || effectiveSemanticOptions.strictMode()
+                != effectiveInterpreterOptions.strictReferences())) {
+      effectiveSemanticOptions =
+          effectiveSemanticOptions.toBuilder()
+              .profile(effectiveInterpreterOptions.profile())
+              .strictMode(effectiveInterpreterOptions.strictReferences())
+              .build();
+    }
     TemplateCompileCache cache =
         new TemplateCompileCache(maxCacheEntries, negativeCacheTtlMillis, maxNegativeEntries);
     return new VtlTemplateEngine(
         repository,
         cache,
         rejectRuntimeCompilation,
-        executionTier,
+        effectiveExecutionTier,
         optimizationLevel,
         optimizationOptions,
-        semanticOptions,
+        effectiveSemanticOptions,
         effectiveInterpreterOptions,
         hotReload,
         watchDebounceMillis,

@@ -59,12 +59,46 @@ public interface MemberAccessPolicy extends Serializable {
         && isFieldPermitted(receiverClass, field.getName());
   }
 
+  /**
+   * Checks whether property mutation (#set on a property or setter) on the receiver class is
+   * permitted.
+   */
+  default boolean isPropertyMutationPermitted(Class<?> receiverClass, String propertyName) {
+    return true;
+  }
+
+  /**
+   * Checks whether index mutation (#set on an index or element) on the receiver class is permitted.
+   */
+  default boolean isIndexMutationPermitted(Class<?> receiverClass) {
+    return true;
+  }
+
+  /**
+   * Checks whether invoking the given method as a property reader (getter, record accessor, or
+   * zero-arg property match) is permitted.
+   */
+  default boolean isPropertyMethodPermitted(
+      Class<?> receiverClass, Method method, String propertyName) {
+    return isMethodPermitted(receiverClass, method);
+  }
+
   /** Returns the stable, configuration-sensitive cryptographic fingerprint for this policy. */
   SecurityPolicyFingerprint fingerprint();
 
   /** Returns the string representation of the policy fingerprint. */
   default String policyFingerprint() {
     return fingerprint().value();
+  }
+
+  /** Returns whether this policy enforces the strict safe-allowlist sandbox profile. */
+  default boolean isSafeProfile() {
+    return false;
+  }
+
+  /** Returns an equivalent policy that unconditionally enforces the safe sandbox profile. */
+  default MemberAccessPolicy toSafeProfile() {
+    return new MandatorySafeMemberAccessPolicy(this);
   }
 
   /** Returns the standard defense-in-depth security policy. */
@@ -99,6 +133,11 @@ public interface MemberAccessPolicy extends Serializable {
     private final Map<String, Set<String>> allowedProperties = new HashMap<>();
     private final Set<String> allowedHelperClasses = new HashSet<>();
     private SensitiveObjectClassifier sensitiveClassifier = SensitiveObjectClassifier.standard();
+
+    private final Map<String, Set<String>> allowedPropertyMutations = new HashMap<>();
+    private final Set<String> allowedIndexMutations = new HashSet<>();
+    private boolean allowAllPropertyMutations = false;
+    private boolean allowAllIndexMutations = false;
 
     public Builder() {
       // Seed with standard defense-in-depth deny rules
@@ -156,6 +195,31 @@ public interface MemberAccessPolicy extends Serializable {
       return this;
     }
 
+    public Builder allowPropertyMutation(Class<?> clazz, String propertyName) {
+      Objects.requireNonNull(clazz, "clazz must not be null");
+      Objects.requireNonNull(propertyName, "propertyName must not be null");
+      allowedPropertyMutations
+          .computeIfAbsent(clazz.getName(), k -> new HashSet<>())
+          .add(propertyName);
+      return this;
+    }
+
+    public Builder allowIndexMutation(Class<?> clazz) {
+      Objects.requireNonNull(clazz, "clazz must not be null");
+      allowedIndexMutations.add(clazz.getName());
+      return this;
+    }
+
+    public Builder allowAllPropertyMutations(boolean allow) {
+      this.allowAllPropertyMutations = allow;
+      return this;
+    }
+
+    public Builder allowAllIndexMutations(boolean allow) {
+      this.allowAllIndexMutations = allow;
+      return this;
+    }
+
     public Builder denyClass(Class<?> clazz) {
       Objects.requireNonNull(clazz, "clazz must not be null");
       deniedClasses.add(clazz.getName());
@@ -190,7 +254,11 @@ public interface MemberAccessPolicy extends Serializable {
           allowedMethods,
           allowedProperties,
           allowedHelperClasses,
-          sensitiveClassifier);
+          sensitiveClassifier,
+          allowedPropertyMutations,
+          allowedIndexMutations,
+          allowAllPropertyMutations,
+          allowAllIndexMutations);
     }
   }
 }
@@ -315,6 +383,11 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
   private final Map<String, Set<String>> allowedProperties;
   private final Set<String> allowedHelperClasses;
   private final SensitiveObjectClassifier sensitiveClassifier;
+
+  private final Map<String, Set<String>> allowedPropertyMutations;
+  private final Set<String> allowedIndexMutations;
+  private final boolean allowAllPropertyMutations;
+  private final boolean allowAllIndexMutations;
   private final SecurityPolicyFingerprint fingerprint;
 
   DefaultMemberAccessPolicy(
@@ -326,7 +399,11 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
       Map<String, Set<String>> allowedMethods,
       Map<String, Set<String>> allowedProperties,
       Set<String> allowedHelperClasses,
-      SensitiveObjectClassifier sensitiveClassifier) {
+      SensitiveObjectClassifier sensitiveClassifier,
+      Map<String, Set<String>> allowedPropertyMutations,
+      Set<String> allowedIndexMutations,
+      boolean allowAllPropertyMutations,
+      boolean allowAllIndexMutations) {
     this.safeProfile = safeProfile;
     this.deniedClasses = Collections.unmodifiableSet(new HashSet<>(deniedClasses));
     this.deniedPackagePrefixes = Collections.unmodifiableSet(new HashSet<>(deniedPackagePrefixes));
@@ -337,7 +414,37 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
     this.allowedHelperClasses = Collections.unmodifiableSet(new HashSet<>(allowedHelperClasses));
     this.sensitiveClassifier =
         sensitiveClassifier != null ? sensitiveClassifier : SensitiveObjectClassifier.standard();
+    this.allowedPropertyMutations = deepUnmodifiableMap(allowedPropertyMutations);
+    this.allowedIndexMutations = Collections.unmodifiableSet(new HashSet<>(allowedIndexMutations));
+    this.allowAllPropertyMutations = allowAllPropertyMutations;
+    this.allowAllIndexMutations = allowAllIndexMutations;
     this.fingerprint = computeFingerprint();
+  }
+
+  DefaultMemberAccessPolicy(
+      boolean safeProfile,
+      Set<String> deniedClasses,
+      Set<String> deniedPackagePrefixes,
+      Set<String> deniedMethodNames,
+      Set<String> allowedClasses,
+      Map<String, Set<String>> allowedMethods,
+      Map<String, Set<String>> allowedProperties,
+      Set<String> allowedHelperClasses,
+      SensitiveObjectClassifier sensitiveClassifier) {
+    this(
+        safeProfile,
+        deniedClasses,
+        deniedPackagePrefixes,
+        deniedMethodNames,
+        allowedClasses,
+        allowedMethods,
+        allowedProperties,
+        allowedHelperClasses,
+        sensitiveClassifier,
+        Map.of(),
+        Set.of(),
+        false,
+        false);
   }
 
   private static Map<String, Set<String>> deepUnmodifiableMap(Map<String, Set<String>> map) {
@@ -348,6 +455,32 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
       }
     }
     return Collections.unmodifiableMap(copy);
+  }
+
+  @Override
+  public boolean isSafeProfile() {
+    return safeProfile;
+  }
+
+  @Override
+  public MemberAccessPolicy toSafeProfile() {
+    if (safeProfile && !allowAllPropertyMutations && !allowAllIndexMutations) {
+      return this;
+    }
+    return new DefaultMemberAccessPolicy(
+        true,
+        deniedClasses,
+        deniedPackagePrefixes,
+        deniedMethodNames,
+        allowedClasses,
+        allowedMethods,
+        allowedProperties,
+        allowedHelperClasses,
+        sensitiveClassifier,
+        allowedPropertyMutations,
+        allowedIndexMutations,
+        false,
+        false);
   }
 
   @Override
@@ -382,32 +515,101 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
     return true;
   }
 
-  private boolean isAllowlistedClass(Class<?> clazz) {
-    if (clazz == null) {
+  boolean isDirectlyApproved(Class<?> clazz) {
+    if (clazz == null || clazz == Object.class) {
       return false;
     }
-    // Standard JDK safe types are always allowed in safe profile
-    if (isStandardJdkSafeType(clazz)) {
+    if (clazz.isAnnotationPresent(TemplateData.class) || clazz.isRecord()) {
       return true;
+    }
+    for (Method m : clazz.getDeclaredMethods()) {
+      if (m.isAnnotationPresent(TemplateCallable.class)) {
+        return true;
+      }
     }
     String name = clazz.getName();
-    if (allowedClasses.contains(name) || allowedHelperClasses.contains(name)) {
+    return allowedClasses.contains(name) || allowedHelperClasses.contains(name);
+  }
+
+  boolean hasApprovedAncestor(Class<?> clazz) {
+    if (clazz == null || clazz == Object.class) {
+      return false;
+    }
+    if (isDirectlyApproved(clazz)) {
       return true;
     }
-    // Check interfaces and superclasses
     for (Class<?> intf : clazz.getInterfaces()) {
-      if (isAllowlistedClass(intf)) {
+      if (hasApprovedAncestor(intf)) {
         return true;
       }
     }
     Class<?> superClazz = clazz.getSuperclass();
     if (superClazz != null && superClazz != Object.class) {
-      return isAllowlistedClass(superClazz);
+      return hasApprovedAncestor(superClazz);
     }
     return false;
   }
 
-  private static boolean isStandardJdkSafeType(Class<?> clazz) {
+  private boolean isAllowlistedClass(Class<?> clazz) {
+    if (clazz == null) {
+      return false;
+    }
+    // Standard safe types are always allowed in safe profile
+    if (isStandardSafeType(clazz)) {
+      return true;
+    }
+    return hasApprovedAncestor(clazz);
+  }
+
+  boolean isApprovedAncestorMethod(Class<?> receiverClass, Method method) {
+    if (receiverClass == null || method == null) {
+      return false;
+    }
+    String name = method.getName();
+    Class<?>[] params = method.getParameterTypes();
+
+    Class<?> curr = receiverClass.getSuperclass();
+    while (curr != null && curr != Object.class) {
+      if (isDirectlyApproved(curr)) {
+        try {
+          Method m = curr.getDeclaredMethod(name, params);
+          if (java.lang.reflect.Modifier.isPublic(m.getModifiers())) {
+            return true;
+          }
+        } catch (NoSuchMethodException ignored) {
+        }
+      }
+      if (searchApprovedInterfacesMethod(curr, name, params)) {
+        return true;
+      }
+      curr = curr.getSuperclass();
+    }
+
+    return searchApprovedInterfacesMethod(receiverClass, name, params);
+  }
+
+  boolean searchApprovedInterfacesMethod(Class<?> clazz, String name, Class<?>... params) {
+    if (clazz == null) {
+      return false;
+    }
+    for (Class<?> intf : clazz.getInterfaces()) {
+      if (isDirectlyApproved(intf)) {
+        try {
+          Method m = intf.getDeclaredMethod(name, params);
+          if (java.lang.reflect.Modifier.isPublic(m.getModifiers())) {
+            return true;
+          }
+        } catch (NoSuchMethodException ignored) {
+        }
+      }
+      if (searchApprovedInterfacesMethod(intf, name, params)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static boolean isStandardSafeType(Class<?> clazz) {
     if (CharSequence.class.isAssignableFrom(clazz)
         || Number.class.isAssignableFrom(clazz)
         || clazz == Boolean.class
@@ -417,13 +619,55 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
         || Collection.class.isAssignableFrom(clazz)
         || Map.class.isAssignableFrom(clazz)
         || Optional.class.isAssignableFrom(clazz)
-        || Enum.class.isAssignableFrom(clazz)) {
+        || Enum.class.isAssignableFrom(clazz)
+        || java.util.Iterator.class.isAssignableFrom(clazz)
+        || clazz.getName().endsWith("ForeachMetadata")) {
       return true;
     }
     if (clazz.isArray()) {
-      return isStandardJdkSafeType(clazz.getComponentType());
+      return isStandardSafeType(clazz.getComponentType());
     }
     return false;
+  }
+
+  @Override
+  public boolean isMethodPermitted(Class<?> receiverClass, Method method) {
+    if (method == null
+        || !isClassPermitted(receiverClass)
+        || !isClassPermitted(method.getDeclaringClass())) {
+      return false;
+    }
+    String methodName = method.getName();
+    if (deniedMethodNames.contains(methodName)) {
+      return false;
+    }
+    if (safeProfile) {
+      if (isStandardSafeMethod(receiverClass, methodName)) {
+        return true;
+      }
+      String receiverName = receiverClass.getName();
+      Set<String> methods = allowedMethods.get(receiverName);
+      if (methods != null && methods.contains(methodName)) {
+        return true;
+      }
+      if (allowedHelperClasses.contains(receiverName)) {
+        return !isDangerousObjectMethod(methodName);
+      }
+      if (hasTemplateCallable(method, receiverClass)) {
+        return true;
+      }
+      if (isRecordComponentAccessor(receiverClass, method, methodName)) {
+        return true;
+      }
+      if (!receiverClass.isRecord()
+          && isLegitimateGetter(method, propertyNameFromGetter(methodName))) {
+        if (isDirectlyApproved(receiverClass) || isApprovedAncestorMethod(receiverClass, method)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    return true;
   }
 
   @Override
@@ -432,26 +676,28 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
       return false;
     }
 
-    // Denied method names apply globally
     if (deniedMethodNames.contains(methodName)) {
       return false;
     }
 
     if (safeProfile) {
-      // In safe profile, standard JDK safe methods (e.g. Map.get, Collection.size, String.length)
       if (isStandardSafeMethod(receiverClass, methodName)) {
         return true;
       }
-
       String receiverName = receiverClass.getName();
       Set<String> methods = allowedMethods.get(receiverName);
-      if (methods != null) {
-        return methods.contains(methodName);
+      if (methods != null && methods.contains(methodName)) {
+        return true;
       }
-      // If the class is allowlisted without specific method restrictions, allow declared public
-      // non-Object methods
-      if (allowedClasses.contains(receiverName) || allowedHelperClasses.contains(receiverName)) {
+      if (allowedHelperClasses.contains(receiverName)) {
         return !isDangerousObjectMethod(methodName);
+      }
+      for (Method m : receiverClass.getMethods()) {
+        if (m.getName().equals(methodName) && m.getParameterCount() == arity) {
+          if (isMethodPermitted(receiverClass, m)) {
+            return true;
+          }
+        }
       }
       return false;
     }
@@ -459,35 +705,136 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
     return true;
   }
 
-  private static boolean isDangerousObjectMethod(String methodName) {
+  static boolean isDangerousObjectMethod(String methodName) {
     return CORE_DENIED_METHOD_NAMES.contains(methodName);
   }
 
-  private static boolean isStandardSafeMethod(Class<?> receiverClass, String methodName) {
+  private static final Set<String> SAFE_MAP_METHODS =
+      Set.of(
+          "get",
+          "size",
+          "isEmpty",
+          "containsKey",
+          "containsValue",
+          "keySet",
+          "values",
+          "entrySet",
+          "getOrDefault");
+
+  private static final Set<String> SAFE_COLLECTION_METHODS =
+      Set.of("size", "isEmpty", "contains", "containsAll", "iterator", "toArray", "get");
+
+  private static final Set<String> SAFE_CHAR_SEQUENCE_METHODS =
+      Set.of(
+          "length",
+          "charAt",
+          "subSequence",
+          "toString",
+          "substring",
+          "contains",
+          "indexOf",
+          "lastIndexOf",
+          "startsWith",
+          "endsWith",
+          "trim",
+          "toLowerCase",
+          "toUpperCase",
+          "replace",
+          "replaceAll",
+          "split",
+          "isEmpty",
+          "repeat",
+          "strip",
+          "stripLeading",
+          "stripTrailing",
+          "isBlank",
+          "matches",
+          "equals",
+          "hashCode",
+          "compareTo");
+
+  private static final Set<String> SAFE_OBJECT_METHODS = Set.of("toString", "equals", "hashCode");
+
+  private static final Set<String> SAFE_ITERATOR_METHODS = Set.of("hasNext", "next");
+
+  private static final Set<String> SAFE_OPTIONAL_METHODS =
+      Set.of(
+          "isPresent",
+          "isEmpty",
+          "get",
+          "orElse",
+          "orElseNull",
+          "orElseThrow",
+          "toString",
+          "equals",
+          "hashCode");
+
+  private static final Set<String> SAFE_ENUM_METHODS =
+      Set.of("name", "ordinal", "toString", "equals", "hashCode", "compareTo");
+
+  private static final Set<String> SAFE_FOREACH_METHODS =
+      Set.of(
+          "index",
+          "getIndex",
+          "count",
+          "getCount",
+          "first",
+          "isFirst",
+          "last",
+          "isLast",
+          "hasNext",
+          "getHasNext",
+          "parent",
+          "getParent",
+          "topmost",
+          "getTopmost",
+          "stop",
+          "toString");
+
+  static boolean isStandardSafeMethod(Class<?> receiverClass, String methodName) {
+    if (SAFE_OBJECT_METHODS.contains(methodName)) {
+      return true;
+    }
     if (Map.class.isAssignableFrom(receiverClass)) {
-      return Set.of("get", "size", "isEmpty", "containsKey", "keySet", "values", "entrySet")
-          .contains(methodName);
+      return SAFE_MAP_METHODS.contains(methodName);
     }
     if (Collection.class.isAssignableFrom(receiverClass)) {
-      return Set.of("size", "isEmpty", "contains", "iterator").contains(methodName);
+      return SAFE_COLLECTION_METHODS.contains(methodName);
     }
     if (CharSequence.class.isAssignableFrom(receiverClass)) {
-      return Set.of(
-              "length",
-              "charAt",
-              "subSequence",
-              "toString",
-              "substring",
-              "contains",
-              "indexOf",
-              "startsWith",
-              "endsWith",
-              "trim",
-              "toLowerCase",
-              "toUpperCase",
-              "replace",
-              "split")
-          .contains(methodName);
+      return SAFE_CHAR_SEQUENCE_METHODS.contains(methodName);
+    }
+    if (Number.class.isAssignableFrom(receiverClass)) {
+      return SAFE_OBJECT_METHODS.contains(methodName)
+          || Set.of(
+                  "intValue",
+                  "longValue",
+                  "floatValue",
+                  "doubleValue",
+                  "byteValue",
+                  "shortValue",
+                  "compareTo")
+              .contains(methodName);
+    }
+    if (receiverClass == Boolean.class || receiverClass == boolean.class) {
+      return SAFE_OBJECT_METHODS.contains(methodName)
+          || Set.of("booleanValue", "compareTo").contains(methodName);
+    }
+    if (receiverClass == Character.class || receiverClass == char.class) {
+      return SAFE_OBJECT_METHODS.contains(methodName)
+          || Set.of("charValue", "compareTo").contains(methodName);
+    }
+    if (Optional.class.isAssignableFrom(receiverClass)) {
+      return SAFE_OPTIONAL_METHODS.contains(methodName);
+    }
+    if (Enum.class.isAssignableFrom(receiverClass)) {
+      return SAFE_ENUM_METHODS.contains(methodName);
+    }
+    if (java.util.Iterator.class.isAssignableFrom(receiverClass)) {
+      return SAFE_ITERATOR_METHODS.contains(methodName);
+    }
+    if (receiverClass.getName().endsWith("ForeachMetadata")) {
+      return SAFE_FOREACH_METHODS.contains(methodName);
     }
     return false;
   }
@@ -509,17 +856,330 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
       }
       String receiverName = receiverClass.getName();
       Set<String> props = allowedProperties.get(receiverName);
-      if (props != null) {
-        return props.contains(propertyName);
+      if (props != null && props.contains(propertyName)) {
+        return true;
       }
-      // If class is allowlisted without property restrictions, allow public property resolution
       if (allowedClasses.contains(receiverName) || allowedHelperClasses.contains(receiverName)) {
         return true;
       }
-      return false;
+      if (isStandardSafeType(receiverClass)) {
+        return true;
+      }
+      if (receiverClass.isRecord()) {
+        for (java.lang.reflect.RecordComponent rc : receiverClass.getRecordComponents()) {
+          if (rc.getName().equals(propertyName)) {
+            return true;
+          }
+        }
+        return false;
+      }
+      if (receiverClass.isAnnotationPresent(TemplateData.class)) {
+        return true;
+      }
+      return isApprovedAncestorProperty(receiverClass, propertyName);
     }
 
     return true;
+  }
+
+  boolean isApprovedAncestorProperty(Class<?> receiverClass, String propertyName) {
+    if (receiverClass == null || propertyName == null) {
+      return false;
+    }
+    String capitalized = capitalize(propertyName);
+    String getName = "get" + capitalized;
+    String isName = "is" + capitalized;
+
+    Class<?> curr = receiverClass.getSuperclass();
+    while (curr != null && curr != Object.class) {
+      if (isDirectlyApproved(curr)) {
+        Set<String> superProps = allowedProperties.get(curr.getName());
+        if (superProps != null && superProps.contains(propertyName)) {
+          return true;
+        }
+        if (curr.isRecord()) {
+          for (java.lang.reflect.RecordComponent rc : curr.getRecordComponents()) {
+            if (rc.getName().equals(propertyName)) {
+              return true;
+            }
+          }
+        } else {
+          for (Method m : curr.getDeclaredMethods()) {
+            if (java.lang.reflect.Modifier.isPublic(m.getModifiers())
+                && m.getParameterCount() == 0
+                && (m.getName().equals(getName)
+                    || m.getName().equalsIgnoreCase(getName)
+                    || m.getName().equals(isName)
+                    || m.getName().equalsIgnoreCase(isName)
+                    || m.getName().equals(propertyName))) {
+              return true;
+            }
+          }
+        }
+      }
+      if (searchApprovedInterfacesProperty(curr, propertyName, getName, isName)) {
+        return true;
+      }
+      curr = curr.getSuperclass();
+    }
+
+    return searchApprovedInterfacesProperty(receiverClass, propertyName, getName, isName);
+  }
+
+  boolean searchApprovedInterfacesProperty(
+      Class<?> clazz, String propertyName, String getName, String isName) {
+    if (clazz == null) {
+      return false;
+    }
+    for (Class<?> intf : clazz.getInterfaces()) {
+      if (isDirectlyApproved(intf)) {
+        Set<String> intfProps = allowedProperties.get(intf.getName());
+        if (intfProps != null && intfProps.contains(propertyName)) {
+          return true;
+        }
+        for (Method m : intf.getDeclaredMethods()) {
+          if (java.lang.reflect.Modifier.isPublic(m.getModifiers())
+              && m.getParameterCount() == 0
+              && (m.getName().equals(getName)
+                  || m.getName().equalsIgnoreCase(getName)
+                  || m.getName().equals(isName)
+                  || m.getName().equalsIgnoreCase(isName)
+                  || m.getName().equals(propertyName))) {
+            return true;
+          }
+        }
+      }
+      if (searchApprovedInterfacesProperty(intf, propertyName, getName, isName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public boolean isPropertyMethodPermitted(
+      Class<?> receiverClass, Method method, String propertyName) {
+    if (method == null
+        || !isClassPermitted(receiverClass)
+        || !isClassPermitted(method.getDeclaringClass())) {
+      return false;
+    }
+    String methodName = method.getName();
+    if (deniedMethodNames.contains(methodName)) {
+      return false;
+    }
+    if (!isPropertyPermitted(receiverClass, propertyName)) {
+      return false;
+    }
+    if (!safeProfile) {
+      return isMethodPermitted(receiverClass, method);
+    }
+    if (hasTemplateCallable(method, receiverClass)) {
+      return true;
+    }
+    String receiverName = receiverClass.getName();
+    Set<String> methods = allowedMethods.get(receiverName);
+    if (methods != null && methods.contains(methodName)) {
+      return true;
+    }
+    if (allowedHelperClasses.contains(receiverName) && !isDangerousObjectMethod(methodName)) {
+      return true;
+    }
+    if (isStandardSafeMethod(receiverClass, methodName)) {
+      return true;
+    }
+    if (isRecordComponentAccessor(receiverClass, method, propertyName)) {
+      return true;
+    }
+    if (!receiverClass.isRecord() && isLegitimateGetter(method, propertyName)) {
+      if (isDirectlyApproved(receiverClass) || isApprovedAncestorMethod(receiverClass, method)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public boolean isPropertyMutationPermitted(Class<?> receiverClass, String propertyName) {
+    if (receiverClass == null || propertyName == null || !isClassPermitted(receiverClass)) {
+      return false;
+    }
+    if (!safeProfile) {
+      return true;
+    }
+    if (allowAllPropertyMutations) {
+      return true;
+    }
+    Set<String> props = allowedPropertyMutations.get(receiverClass.getName());
+    if (props != null && props.contains(propertyName)) {
+      return true;
+    }
+    for (Class<?> intf : receiverClass.getInterfaces()) {
+      Set<String> intfProps = allowedPropertyMutations.get(intf.getName());
+      if (intfProps != null && intfProps.contains(propertyName)) {
+        return true;
+      }
+    }
+    Class<?> sup = receiverClass.getSuperclass();
+    while (sup != null && sup != Object.class) {
+      Set<String> supProps = allowedPropertyMutations.get(sup.getName());
+      if (supProps != null && supProps.contains(propertyName)) {
+        return true;
+      }
+      sup = sup.getSuperclass();
+    }
+    return false;
+  }
+
+  @Override
+  public boolean isIndexMutationPermitted(Class<?> receiverClass) {
+    if (receiverClass == null || !isClassPermitted(receiverClass)) {
+      return false;
+    }
+    if (!safeProfile) {
+      return true;
+    }
+    if (allowAllIndexMutations) {
+      return true;
+    }
+    if (allowedIndexMutations.contains(receiverClass.getName())) {
+      return true;
+    }
+    for (Class<?> intf : receiverClass.getInterfaces()) {
+      if (allowedIndexMutations.contains(intf.getName())) {
+        return true;
+      }
+    }
+    Class<?> sup = receiverClass.getSuperclass();
+    while (sup != null && sup != Object.class) {
+      if (allowedIndexMutations.contains(sup.getName())) {
+        return true;
+      }
+      sup = sup.getSuperclass();
+    }
+    return false;
+  }
+
+  static boolean hasTemplateCallable(Method method, Class<?> receiverClass) {
+    if (method == null) {
+      return false;
+    }
+    if (method.isAnnotationPresent(TemplateCallable.class)) {
+      return true;
+    }
+    Class<?>[] paramTypes = method.getParameterTypes();
+    String name = method.getName();
+
+    if (searchTemplateCallableHierarchy(receiverClass, name, paramTypes)) {
+      return true;
+    }
+    if (searchTemplateCallableHierarchy(method.getDeclaringClass(), name, paramTypes)) {
+      return true;
+    }
+
+    if (method.isBridge() || method.isSynthetic()) {
+      for (Method m : method.getDeclaringClass().getDeclaredMethods()) {
+        if (!m.isBridge()
+            && !m.isSynthetic()
+            && m.getName().equals(name)
+            && m.getParameterCount() == paramTypes.length) {
+          if (hasTemplateCallable(m, receiverClass)) {
+            return true;
+          }
+        }
+      }
+    } else {
+      for (Method m : method.getDeclaringClass().getDeclaredMethods()) {
+        if (m.isBridge()
+            && m.getName().equals(name)
+            && m.getParameterCount() == paramTypes.length) {
+          if (searchTemplateCallableHierarchy(receiverClass, name, m.getParameterTypes())
+              || searchTemplateCallableHierarchy(
+                  method.getDeclaringClass(), name, m.getParameterTypes())) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
+  static boolean searchTemplateCallableHierarchy(
+      Class<?> clazz, String name, Class<?>... paramTypes) {
+    if (clazz == null || clazz == Object.class) {
+      return false;
+    }
+    try {
+      Method m = clazz.getDeclaredMethod(name, paramTypes);
+      if (m.isAnnotationPresent(TemplateCallable.class)) {
+        return true;
+      }
+    } catch (NoSuchMethodException ignored) {
+    }
+    for (Class<?> intf : clazz.getInterfaces()) {
+      if (searchTemplateCallableHierarchy(intf, name, paramTypes)) {
+        return true;
+      }
+    }
+    return searchTemplateCallableHierarchy(clazz.getSuperclass(), name, paramTypes);
+  }
+
+  static boolean isRecordComponentAccessor(
+      Class<?> receiverClass, Method method, String propertyName) {
+    if (receiverClass.isRecord()) {
+      for (java.lang.reflect.RecordComponent rc : receiverClass.getRecordComponents()) {
+        if (rc.getName().equals(propertyName) && rc.getName().equals(method.getName())) {
+          return true;
+        }
+      }
+    }
+    Class<?> declaring = method.getDeclaringClass();
+    if (declaring != receiverClass && declaring.isRecord()) {
+      for (java.lang.reflect.RecordComponent rc : declaring.getRecordComponents()) {
+        if (rc.getName().equals(propertyName) && rc.getName().equals(method.getName())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  static boolean isLegitimateGetter(Method method, String propertyName) {
+    if (method.getParameterCount() != 0) {
+      return false;
+    }
+    Class<?> returnType = method.getReturnType();
+    if (returnType == void.class || returnType == Void.class) {
+      return false;
+    }
+    String name = method.getName();
+    String capitalized = capitalize(propertyName);
+    if (name.equals("get" + capitalized) || name.equalsIgnoreCase("get" + propertyName)) {
+      return true;
+    }
+    if ((name.equals("is" + capitalized) || name.equalsIgnoreCase("is" + propertyName))
+        && (returnType == boolean.class || returnType == Boolean.class)) {
+      return true;
+    }
+    return false;
+  }
+
+  static String propertyNameFromGetter(String methodName) {
+    if (methodName.startsWith("get") && methodName.length() > 3) {
+      return Character.toLowerCase(methodName.charAt(3)) + methodName.substring(4);
+    }
+    if (methodName.startsWith("is") && methodName.length() > 2) {
+      return Character.toLowerCase(methodName.charAt(2)) + methodName.substring(3);
+    }
+    return methodName;
+  }
+
+  private static String capitalize(String str) {
+    if (str == null || str.isEmpty()) {
+      return str;
+    }
+    return Character.toUpperCase(str.charAt(0)) + str.substring(1);
   }
 
   @Override
@@ -544,6 +1204,10 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
       MessageDigest md = MessageDigest.getInstance("SHA-256");
       md.update((byte) (safeProfile ? 1 : 0));
       md.update((byte) ';');
+      md.update((byte) (allowAllPropertyMutations ? 1 : 0));
+      md.update((byte) ';');
+      md.update((byte) (allowAllIndexMutations ? 1 : 0));
+      md.update((byte) ';');
 
       updateSorted(md, deniedClasses);
       md.update((byte) ';');
@@ -554,6 +1218,8 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
       updateSorted(md, allowedClasses);
       md.update((byte) ';');
       updateSorted(md, allowedHelperClasses);
+      md.update((byte) ';');
+      updateSorted(md, allowedIndexMutations);
       md.update((byte) ';');
 
       TreeSet<String> sortedMethodKeys = new TreeSet<>(allowedMethods.keySet());
@@ -570,6 +1236,15 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
         md.update(k.getBytes(StandardCharsets.UTF_8));
         md.update((byte) ':');
         updateSorted(md, allowedProperties.get(k));
+        md.update((byte) ',');
+      }
+      md.update((byte) ';');
+
+      TreeSet<String> sortedPropMutKeys = new TreeSet<>(allowedPropertyMutations.keySet());
+      for (String k : sortedPropMutKeys) {
+        md.update(k.getBytes(StandardCharsets.UTF_8));
+        md.update((byte) ':');
+        updateSorted(md, allowedPropertyMutations.get(k));
         md.update((byte) ',');
       }
       md.update((byte) ';');
@@ -625,7 +1300,184 @@ final class DenyAllMemberAccessPolicy implements MemberAccessPolicy {
   }
 
   @Override
+  public boolean isPropertyMutationPermitted(Class<?> receiverClass, String propertyName) {
+    return false;
+  }
+
+  @Override
+  public boolean isIndexMutationPermitted(Class<?> receiverClass) {
+    return false;
+  }
+
+  @Override
+  public boolean isPropertyMethodPermitted(
+      Class<?> receiverClass, Method method, String propertyName) {
+    return false;
+  }
+
+  @Override
   public SecurityPolicyFingerprint fingerprint() {
     return FINGERPRINT;
+  }
+}
+
+@SuppressWarnings("serial")
+final class MandatorySafeMemberAccessPolicy implements MemberAccessPolicy {
+
+  @Serial private static final long serialVersionUID = 1L;
+
+  private final MemberAccessPolicy delegate;
+  private final SecurityPolicyFingerprint fingerprint;
+
+  MandatorySafeMemberAccessPolicy(MemberAccessPolicy delegate) {
+    this.delegate = Objects.requireNonNull(delegate, "delegate must not be null");
+    this.fingerprint = computeFingerprint();
+  }
+
+  @Override
+  public boolean isSafeProfile() {
+    return true;
+  }
+
+  @Override
+  public MemberAccessPolicy toSafeProfile() {
+    return this;
+  }
+
+  @Override
+  public boolean isClassPermitted(Class<?> clazz) {
+    if (clazz == null) {
+      return false;
+    }
+    String name = clazz.getName();
+    if (DefaultMemberAccessPolicy.CORE_DENIED_CLASS_NAMES.contains(name)) {
+      return false;
+    }
+    for (String prefix : DefaultMemberAccessPolicy.CORE_DENIED_PACKAGE_PREFIXES) {
+      if (name.startsWith(prefix)) {
+        return false;
+      }
+    }
+    if (SensitiveObjectClassifier.standard().isSensitive(clazz)) {
+      return false;
+    }
+    return delegate.isClassPermitted(clazz);
+  }
+
+  @Override
+  public boolean isMethodPermitted(Class<?> receiverClass, Method method) {
+    if (method == null
+        || !isClassPermitted(receiverClass)
+        || !isClassPermitted(method.getDeclaringClass())) {
+      return false;
+    }
+    String methodName = method.getName();
+    if (DefaultMemberAccessPolicy.CORE_DENIED_METHOD_NAMES.contains(methodName)) {
+      return false;
+    }
+    if (!delegate.isMethodPermitted(receiverClass, method)) {
+      return false;
+    }
+    if (DefaultMemberAccessPolicy.isStandardSafeMethod(receiverClass, methodName)) {
+      return true;
+    }
+    if (DefaultMemberAccessPolicy.hasTemplateCallable(method, receiverClass)) {
+      return true;
+    }
+    if (DefaultMemberAccessPolicy.isRecordComponentAccessor(receiverClass, method, methodName)) {
+      return true;
+    }
+    if (!receiverClass.isRecord()
+        && DefaultMemberAccessPolicy.isLegitimateGetter(
+            method, DefaultMemberAccessPolicy.propertyNameFromGetter(methodName))) {
+      return true;
+    }
+    return false;
+  }
+
+  @Override
+  public boolean isMethodPermitted(Class<?> receiverClass, String methodName, int arity) {
+    if (methodName == null || !isClassPermitted(receiverClass)) {
+      return false;
+    }
+    if (DefaultMemberAccessPolicy.CORE_DENIED_METHOD_NAMES.contains(methodName)) {
+      return false;
+    }
+    if (!delegate.isMethodPermitted(receiverClass, methodName, arity)) {
+      return false;
+    }
+    if (DefaultMemberAccessPolicy.isStandardSafeMethod(receiverClass, methodName)) {
+      return true;
+    }
+    for (Method m : receiverClass.getMethods()) {
+      if (m.getName().equals(methodName) && m.getParameterCount() == arity) {
+        if (isMethodPermitted(receiverClass, m)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public boolean isPropertyPermitted(Class<?> receiverClass, String propertyName) {
+    if (propertyName == null || !isClassPermitted(receiverClass)) {
+      return false;
+    }
+    if (propertyName.equalsIgnoreCase("class") && !Map.class.isAssignableFrom(receiverClass)) {
+      return false;
+    }
+    return delegate.isPropertyPermitted(receiverClass, propertyName);
+  }
+
+  @Override
+  public boolean isPropertyMethodPermitted(
+      Class<?> receiverClass, Method method, String propertyName) {
+    if (method == null
+        || !isClassPermitted(receiverClass)
+        || !isClassPermitted(method.getDeclaringClass())) {
+      return false;
+    }
+    if (DefaultMemberAccessPolicy.CORE_DENIED_METHOD_NAMES.contains(method.getName())) {
+      return false;
+    }
+    if (!isPropertyPermitted(receiverClass, propertyName)) {
+      return false;
+    }
+    return isMethodPermitted(receiverClass, method);
+  }
+
+  @Override
+  public boolean isFieldPermitted(Class<?> receiverClass, String fieldName) {
+    if (fieldName == null || !isClassPermitted(receiverClass)) {
+      return false;
+    }
+    return delegate.isFieldPermitted(receiverClass, fieldName);
+  }
+
+  @Override
+  public boolean isPropertyMutationPermitted(Class<?> receiverClass, String propertyName) {
+    return false;
+  }
+
+  @Override
+  public boolean isIndexMutationPermitted(Class<?> receiverClass) {
+    return false;
+  }
+
+  @Override
+  public SecurityPolicyFingerprint fingerprint() {
+    return fingerprint;
+  }
+
+  private SecurityPolicyFingerprint computeFingerprint() {
+    try {
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      md.update("mandatory-safe:".getBytes(StandardCharsets.UTF_8));
+      md.update(delegate.policyFingerprint().getBytes(StandardCharsets.UTF_8));
+      return SecurityPolicyFingerprint.of(HexFormat.of().formatHex(md.digest()));
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("SHA-256 unavailable", e);
+    }
   }
 }

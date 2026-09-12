@@ -39,6 +39,35 @@ public interface LinkerAccessPolicy {
     return field != null && isFieldPermitted(field.getDeclaringClass(), field);
   }
 
+  /** Checks whether access to a property on the receiver class is permitted. */
+  default boolean isPropertyPermitted(Class<?> receiverClass, String propertyName) {
+    return isClassPermitted(receiverClass);
+  }
+
+  /** Checks whether property mutation on the receiver class is permitted. */
+  default boolean isPropertyMutationPermitted(Class<?> receiverClass, String propertyName) {
+    return isClassPermitted(receiverClass);
+  }
+
+  /** Checks whether index mutation on the receiver class is permitted. */
+  default boolean isIndexMutationPermitted(Class<?> receiverClass) {
+    return isClassPermitted(receiverClass);
+  }
+
+  /**
+   * Checks whether invoking the given method as a property reader (getter, record accessor, or
+   * zero-arg property match) is permitted.
+   */
+  default boolean isPropertyMethodPermitted(
+      Class<?> receiverClass, Method method, String propertyName) {
+    return isMethodPermitted(receiverClass, method);
+  }
+
+  /** Returns whether this policy enforces the strict safe-allowlist sandbox profile. */
+  default boolean isSafeProfile() {
+    return false;
+  }
+
   /** Returns the default standard security policy. */
   static LinkerAccessPolicy standard() {
     return StandardLinkerAccessPolicy.INSTANCE;
@@ -124,6 +153,18 @@ final class StandardLinkerAccessPolicy implements LinkerAccessPolicy {
     }
     return true;
   }
+
+  @Override
+  public boolean isPropertyPermitted(Class<?> receiverClass, String propertyName) {
+    if (propertyName == null || !isClassPermitted(receiverClass)) {
+      return false;
+    }
+    if (propertyName.equalsIgnoreCase("class")
+        && !java.util.Map.class.isAssignableFrom(receiverClass)) {
+      return false;
+    }
+    return true;
+  }
 }
 
 final class DenyAllLinkerAccessPolicy implements LinkerAccessPolicy {
@@ -151,6 +192,27 @@ final class DenyAllLinkerAccessPolicy implements LinkerAccessPolicy {
   public boolean isFieldPermitted(Class<?> receiverClass, Field field) {
     return false;
   }
+
+  @Override
+  public boolean isPropertyPermitted(Class<?> receiverClass, String propertyName) {
+    return false;
+  }
+
+  @Override
+  public boolean isPropertyMutationPermitted(Class<?> receiverClass, String propertyName) {
+    return false;
+  }
+
+  @Override
+  public boolean isIndexMutationPermitted(Class<?> receiverClass) {
+    return false;
+  }
+
+  @Override
+  public boolean isPropertyMethodPermitted(
+      Class<?> receiverClass, Method method, String propertyName) {
+    return false;
+  }
 }
 
 final class MemberAccessPolicyLinkerAdapter implements LinkerAccessPolicy {
@@ -168,6 +230,11 @@ final class MemberAccessPolicyLinkerAdapter implements LinkerAccessPolicy {
   }
 
   @Override
+  public boolean isSafeProfile() {
+    return policy.isSafeProfile();
+  }
+
+  @Override
   public boolean isClassPermitted(Class<?> clazz) {
     return policy.isClassPermitted(clazz);
   }
@@ -180,5 +247,26 @@ final class MemberAccessPolicyLinkerAdapter implements LinkerAccessPolicy {
   @Override
   public boolean isFieldPermitted(Class<?> receiverClass, Field field) {
     return policy.isFieldPermitted(receiverClass, field);
+  }
+
+  @Override
+  public boolean isPropertyPermitted(Class<?> receiverClass, String propertyName) {
+    return policy.isPropertyPermitted(receiverClass, propertyName);
+  }
+
+  @Override
+  public boolean isPropertyMutationPermitted(Class<?> receiverClass, String propertyName) {
+    return policy.isPropertyMutationPermitted(receiverClass, propertyName);
+  }
+
+  @Override
+  public boolean isIndexMutationPermitted(Class<?> receiverClass) {
+    return policy.isIndexMutationPermitted(receiverClass);
+  }
+
+  @Override
+  public boolean isPropertyMethodPermitted(
+      Class<?> receiverClass, Method method, String propertyName) {
+    return policy.isPropertyMethodPermitted(receiverClass, method, propertyName);
   }
 }

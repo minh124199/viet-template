@@ -41,18 +41,30 @@ public final class DefaultReferenceAccess implements ReferenceAccess {
           InterpreterDiagnosticCodes.SECURITY_VIOLATION);
     }
 
+    if (!securityPolicy.isPropertyPermitted(clazz, propertyName)) {
+      throw new TemplateSecurityException(
+          "Access to property '"
+              + propertyName
+              + "' on "
+              + clazz.getName()
+              + " is denied by security policy",
+          id,
+          span,
+          InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+    }
+
     String capitalized = capitalize(propertyName);
 
     // 1. getname()
     Method m = findPublicZeroArgMethod(clazz, "get" + propertyName.toLowerCase());
-    if (m != null) {
-      return invokeGetter(target, m, span, id);
+    if (m != null && m.getReturnType() != void.class) {
+      return invokeGetter(target, m, propertyName, span, id);
     }
 
     // 2. getName()
     m = findPublicZeroArgMethod(clazz, "get" + capitalized);
-    if (m != null) {
-      return invokeGetter(target, m, span, id);
+    if (m != null && m.getReturnType() != void.class) {
+      return invokeGetter(target, m, propertyName, span, id);
     }
 
     // 3. Map.get("name")
@@ -65,19 +77,19 @@ public final class DefaultReferenceAccess implements ReferenceAccess {
     // 4. isName()
     m = findPublicZeroArgMethod(clazz, "is" + capitalized);
     if (m != null && (m.getReturnType() == boolean.class || m.getReturnType() == Boolean.class)) {
-      return invokeGetter(target, m, span, id);
+      return invokeGetter(target, m, propertyName, span, id);
     }
 
     // 5. isname()
     m = findPublicZeroArgMethod(clazz, "is" + propertyName.toLowerCase());
     if (m != null && (m.getReturnType() == boolean.class || m.getReturnType() == Boolean.class)) {
-      return invokeGetter(target, m, span, id);
+      return invokeGetter(target, m, propertyName, span, id);
     }
 
     // 6. Record accessor / zero-arg method matching name()
     m = findPublicZeroArgMethod(clazz, propertyName);
-    if (m != null) {
-      return invokeGetter(target, m, span, id);
+    if (m != null && m.getReturnType() != void.class) {
+      return invokeGetter(target, m, propertyName, span, id);
     }
 
     // 7. Public field
@@ -227,6 +239,15 @@ public final class DefaultReferenceAccess implements ReferenceAccess {
       return EvaluationValue.definedNull();
     }
 
+    Class<?> clazz = target.getClass();
+    if (!securityPolicy.isClassPermitted(clazz)) {
+      throw new TemplateSecurityException(
+          "Access to class " + clazz.getName() + " is denied by security policy",
+          id,
+          span,
+          InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+    }
+
     if (target instanceof List<?> list) {
       int idx = toIntegerIndex(index, span, id);
       if (idx >= 0 && idx < list.size()) {
@@ -267,6 +288,27 @@ public final class DefaultReferenceAccess implements ReferenceAccess {
           InterpreterDiagnosticCodes.SYNTAX_ERROR);
     }
 
+    Class<?> clazz = target.getClass();
+    if (!securityPolicy.isClassPermitted(clazz)) {
+      throw new TemplateSecurityException(
+          "Access to class " + clazz.getName() + " is denied by security policy",
+          id,
+          span,
+          InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+    }
+
+    if (!securityPolicy.isPropertyMutationPermitted(clazz, propertyName)) {
+      throw new TemplateSecurityException(
+          "Property mutation of '"
+              + propertyName
+              + "' on "
+              + clazz.getName()
+              + " is denied by security policy",
+          id,
+          span,
+          InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+    }
+
     if (target instanceof Map<?, ?> map) {
       @SuppressWarnings("unchecked")
       Map<Object, Object> rawMap = (Map<Object, Object>) map;
@@ -274,7 +316,6 @@ public final class DefaultReferenceAccess implements ReferenceAccess {
       return;
     }
 
-    Class<?> clazz = target.getClass();
     String setterName = "set" + capitalize(propertyName);
     Method setter = null;
     for (Method m : clazz.getMethods()) {
@@ -354,6 +395,23 @@ public final class DefaultReferenceAccess implements ReferenceAccess {
           "Cannot set index on null target", id, span, InterpreterDiagnosticCodes.SYNTAX_ERROR);
     }
 
+    Class<?> clazz = target.getClass();
+    if (!securityPolicy.isClassPermitted(clazz)) {
+      throw new TemplateSecurityException(
+          "Access to class " + clazz.getName() + " is denied by security policy",
+          id,
+          span,
+          InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+    }
+
+    if (!securityPolicy.isIndexMutationPermitted(clazz)) {
+      throw new TemplateSecurityException(
+          "Index mutation on " + clazz.getName() + " is denied by security policy",
+          id,
+          span,
+          InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+    }
+
     if (target instanceof List<?> list) {
       int idx = toIntegerIndex(index, span, id);
       if (idx < 0 || idx >= list.size()) {
@@ -394,8 +452,10 @@ public final class DefaultReferenceAccess implements ReferenceAccess {
         InterpreterDiagnosticCodes.SYNTAX_ERROR);
   }
 
-  private EvaluationValue invokeGetter(Object target, Method m, SourceSpan span, TemplateId id) {
-    if (!securityPolicy.isMethodPermitted(target.getClass(), m)) {
+  private EvaluationValue invokeGetter(
+      Object target, Method m, String propertyName, SourceSpan span, TemplateId id) {
+    if (!securityPolicy.isMethodPermitted(target.getClass(), m)
+        || !securityPolicy.isPropertyMethodPermitted(target.getClass(), m, propertyName)) {
       throw new TemplateSecurityException(
           "Invocation of getter "
               + m.getName()

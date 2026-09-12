@@ -27,11 +27,24 @@ public final class RenderBudget {
 
   public RenderBudget(
       long maxOutputCharacters, long maxExecutionTimeMillis, int maxLoopIterations) {
-    this.maxOutputCharacters = maxOutputCharacters > 0 ? maxOutputCharacters : Long.MAX_VALUE;
+    if (maxOutputCharacters < 0 || maxExecutionTimeMillis < 0 || maxLoopIterations < 0) {
+      throw new IllegalArgumentException("RenderBudget limits must not be negative");
+    }
+    this.maxOutputCharacters = maxOutputCharacters;
     this.maxExecutionTimeMillis = maxExecutionTimeMillis;
-    this.deadlineNano =
-        maxExecutionTimeMillis > 0 ? System.nanoTime() + (maxExecutionTimeMillis * 1_000_000L) : 0L;
-    this.maxLoopIterations = maxLoopIterations > 0 ? maxLoopIterations : Integer.MAX_VALUE;
+    if (maxExecutionTimeMillis > 0) {
+      long nanos;
+      if (maxExecutionTimeMillis > Long.MAX_VALUE / 1_000_000L) {
+        nanos = Long.MAX_VALUE;
+      } else {
+        nanos = maxExecutionTimeMillis * 1_000_000L;
+      }
+      long now = System.nanoTime();
+      this.deadlineNano = (Long.MAX_VALUE - now < nanos) ? Long.MAX_VALUE : (now + nanos);
+    } else {
+      this.deadlineNano = 0L;
+    }
+    this.maxLoopIterations = maxLoopIterations;
   }
 
   public static RenderBudget unlimited() {
@@ -43,7 +56,15 @@ public final class RenderBudget {
       return;
     }
     checkDeadline(templateId, span);
-    long current = characterCount.addAndGet(count);
+    long current =
+        characterCount.accumulateAndGet(
+            count,
+            (prev, x) -> {
+              if (Long.MAX_VALUE - prev < x) {
+                return Long.MAX_VALUE;
+              }
+              return prev + x;
+            });
     if (current > maxOutputCharacters) {
       throw new TemplateLimitException(
           "Exceeded maximum rendered output characters limit: " + maxOutputCharacters,
@@ -55,7 +76,15 @@ public final class RenderBudget {
 
   public void countLoopIteration(TemplateId templateId, SourceSpan span) {
     checkDeadline(templateId, span);
-    long current = loopIterationCount.incrementAndGet();
+    long current =
+        loopIterationCount.accumulateAndGet(
+            1,
+            (prev, x) -> {
+              if (Long.MAX_VALUE - prev < x) {
+                return Long.MAX_VALUE;
+              }
+              return prev + x;
+            });
     if (current > maxLoopIterations) {
       throw new TemplateLimitException(
           "Exceeded maximum foreach iterations: " + maxLoopIterations,
@@ -63,6 +92,10 @@ public final class RenderBudget {
           Objects.requireNonNullElse(span, SourceSpan.UNKNOWN),
           CODE_LIMIT_EXCEEDED);
     }
+  }
+
+  public void countLoopIteration() {
+    countLoopIteration(TemplateId.of("unknown"), SourceSpan.UNKNOWN);
   }
 
   public void checkDeadline(TemplateId templateId, SourceSpan span) {

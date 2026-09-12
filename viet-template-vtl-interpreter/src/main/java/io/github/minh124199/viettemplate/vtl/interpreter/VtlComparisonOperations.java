@@ -3,6 +3,8 @@ package io.github.minh124199.viettemplate.vtl.interpreter;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
+import io.github.minh124199.viettemplate.api.TemplateSecurityException;
+import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
 import java.math.BigDecimal;
 import java.util.Objects;
 
@@ -12,8 +14,32 @@ public final class VtlComparisonOperations {
   private VtlComparisonOperations() {}
 
   public static boolean equals(Object left, Object right) {
+    return equals(left, right, (VtlSecurityPolicy) null);
+  }
+
+  public static boolean equals(Object left, Object right, LinkerAccessPolicy securityPolicy) {
     if (left == right) return true;
     if (left == null || right == null) return false;
+
+    if (securityPolicy != null
+        && securityPolicy.isSafeProfile()
+        && (!securityPolicy.isClassPermitted(left.getClass())
+            || !securityPolicy.isClassPermitted(right.getClass()))) {
+      return left == right;
+    }
+    return equals(left, right, (VtlSecurityPolicy) null);
+  }
+
+  public static boolean equals(Object left, Object right, VtlSecurityPolicy securityPolicy) {
+    if (left == right) return true;
+    if (left == null || right == null) return false;
+
+    if (securityPolicy != null
+        && securityPolicy.isSafeProfile()
+        && (!securityPolicy.isClassPermitted(left.getClass())
+            || !securityPolicy.isClassPermitted(right.getClass()))) {
+      return left == right;
+    }
 
     if (VtlNumericOperations.isNumeric(left) && VtlNumericOperations.isNumeric(right)) {
       BigDecimal l = VtlNumericOperations.toBigDecimal(left);
@@ -46,14 +72,58 @@ public final class VtlComparisonOperations {
     return Objects.equals(left, right);
   }
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
   public static int compare(Object left, Object right, SourceSpan span, TemplateId id) {
+    return compare(left, right, span, id, (VtlSecurityPolicy) null);
+  }
+
+  public static int compare(
+      Object left,
+      Object right,
+      SourceSpan span,
+      TemplateId id,
+      LinkerAccessPolicy securityPolicy) {
     if (left == null || right == null) {
       throw new TemplateRenderException(
           "Cannot perform relational comparison on null value",
           id,
           span,
           InterpreterDiagnosticCodes.SYNTAX_ERROR);
+    }
+
+    if (securityPolicy != null
+        && securityPolicy.isSafeProfile()
+        && (!securityPolicy.isClassPermitted(left.getClass())
+            || !securityPolicy.isClassPermitted(right.getClass()))) {
+      throw new TemplateSecurityException(
+          "Relational comparison on unpermitted class is denied by security policy",
+          id,
+          span,
+          InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+    }
+
+    return compare(left, right, span, id, (VtlSecurityPolicy) null);
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  public static int compare(
+      Object left, Object right, SourceSpan span, TemplateId id, VtlSecurityPolicy securityPolicy) {
+    if (left == null || right == null) {
+      throw new TemplateRenderException(
+          "Cannot perform relational comparison on null value",
+          id,
+          span,
+          InterpreterDiagnosticCodes.SYNTAX_ERROR);
+    }
+
+    if (securityPolicy != null
+        && securityPolicy.isSafeProfile()
+        && (!securityPolicy.isClassPermitted(left.getClass())
+            || !securityPolicy.isClassPermitted(right.getClass()))) {
+      throw new TemplateSecurityException(
+          "Relational comparison on unpermitted class is denied by security policy",
+          id,
+          span,
+          InterpreterDiagnosticCodes.SECURITY_VIOLATION);
     }
 
     if (VtlNumericOperations.isNumeric(left) && VtlNumericOperations.isNumeric(right)) {

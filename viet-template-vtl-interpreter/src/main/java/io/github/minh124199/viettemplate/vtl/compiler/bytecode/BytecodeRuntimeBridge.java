@@ -7,6 +7,7 @@ import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
+import io.github.minh124199.viettemplate.api.TemplateSecurityException;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.UnaryOpKind;
@@ -58,6 +59,35 @@ public final class BytecodeRuntimeBridge {
       int endLine,
       int endCol)
       throws IOException {
+    writeValue(
+        val,
+        output,
+        escapeModeOrdinal,
+        nullModeOrdinal,
+        literal,
+        strict,
+        templateIdStr,
+        startLine,
+        startCol,
+        endLine,
+        endCol,
+        null);
+  }
+
+  public static void writeValue(
+      Object val,
+      TemplateOutput output,
+      int escapeModeOrdinal,
+      int nullModeOrdinal,
+      String literal,
+      boolean strict,
+      String templateIdStr,
+      int startLine,
+      int startCol,
+      int endLine,
+      int endCol,
+      LinkerAccessPolicy securityPolicy)
+      throws IOException {
     TemplateId templateId = TemplateId.of(templateIdStr);
     SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
     NullRenderMode nullMode = NullRenderMode.values()[nullModeOrdinal];
@@ -100,7 +130,7 @@ public final class BytecodeRuntimeBridge {
 
     if (nullMode == NullRenderMode.EMPTY_STRING) {
       if (!isNullOrUndef) {
-        renderEscaped(unwrapped, output, escapeMode);
+        renderEscaped(unwrapped, output, escapeMode, securityPolicy, templateId, span);
       }
       return;
     }
@@ -110,7 +140,7 @@ public final class BytecodeRuntimeBridge {
         output.write(literal);
       }
     } else {
-      renderEscaped(unwrapped, output, escapeMode);
+      renderEscaped(unwrapped, output, escapeMode, securityPolicy, templateId, span);
     }
   }
 
@@ -129,6 +159,18 @@ public final class BytecodeRuntimeBridge {
    * types.
    */
   public static void renderEscaped(Object value, TemplateOutput output, EscapeMode escapeMode)
+      throws IOException {
+    renderEscaped(
+        value, output, escapeMode, null, TemplateId.of("<generated>"), SourceSpan.UNKNOWN);
+  }
+
+  public static void renderEscaped(
+      Object value,
+      TemplateOutput output,
+      EscapeMode escapeMode,
+      LinkerAccessPolicy securityPolicy,
+      TemplateId templateId,
+      SourceSpan span)
       throws IOException {
     if (value == null) {
       return;
@@ -156,8 +198,9 @@ public final class BytecodeRuntimeBridge {
       return;
     }
 
-    // Safe content handling
-    if (escapeMode == EscapeMode.HTML_TEXT || escapeMode == EscapeMode.HTML_ATTRIBUTE_QUOTED) {
+    // Safe content handling (context-specific: SafeHtml only in HTML_TEXT, SafeUrl only in
+    // URL_COMPONENT)
+    if (escapeMode == EscapeMode.HTML_TEXT) {
       if (value instanceof SafeHtml safe) {
         output.write(safe.content());
         return;
@@ -166,6 +209,17 @@ public final class BytecodeRuntimeBridge {
       if (value instanceof SafeUrl safe) {
         output.write(safe.content());
         return;
+      }
+    }
+
+    if (escapeMode != EscapeMode.RAW
+        || (securityPolicy != null && securityPolicy.isSafeProfile())) {
+      if (securityPolicy != null && !securityPolicy.isClassPermitted(value.getClass())) {
+        throw new TemplateSecurityException(
+            "Rendering class " + value.getClass().getName() + " is denied by security policy",
+            templateId != null ? templateId : TemplateId.of("<generated>"),
+            span != null ? span : SourceSpan.UNKNOWN,
+            InterpreterDiagnosticCodes.SECURITY_VIOLATION);
       }
     }
 
@@ -222,6 +276,20 @@ public final class BytecodeRuntimeBridge {
       int startCol,
       int endLine,
       int endCol) {
+    return binaryOp(
+        left, right, opOrdinal, templateIdStr, startLine, startCol, endLine, endCol, null);
+  }
+
+  public static Object binaryOp(
+      Object left,
+      Object right,
+      int opOrdinal,
+      String templateIdStr,
+      int startLine,
+      int startCol,
+      int endLine,
+      int endCol,
+      LinkerAccessPolicy securityPolicy) {
     BinaryOpKind op = BinaryOpKind.values()[opOrdinal];
     TemplateId templateId = TemplateId.of(templateIdStr);
     SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
@@ -244,16 +312,25 @@ public final class BytecodeRuntimeBridge {
       case DIVIDE -> VtlNumericOperations.divide(unwrappedLeft, unwrappedRight, span, templateId);
       case REMAINDER ->
           VtlNumericOperations.remainder(unwrappedLeft, unwrappedRight, span, templateId);
-      case EQUALS -> VtlComparisonOperations.equals(unwrappedLeft, unwrappedRight);
-      case NOT_EQUALS -> !VtlComparisonOperations.equals(unwrappedLeft, unwrappedRight);
+      case EQUALS -> VtlComparisonOperations.equals(unwrappedLeft, unwrappedRight, securityPolicy);
+      case NOT_EQUALS ->
+          !VtlComparisonOperations.equals(unwrappedLeft, unwrappedRight, securityPolicy);
       case LESS_THAN ->
-          VtlComparisonOperations.compare(unwrappedLeft, unwrappedRight, span, templateId) < 0;
+          VtlComparisonOperations.compare(
+                  unwrappedLeft, unwrappedRight, span, templateId, securityPolicy)
+              < 0;
       case LESS_THAN_OR_EQUAL ->
-          VtlComparisonOperations.compare(unwrappedLeft, unwrappedRight, span, templateId) <= 0;
+          VtlComparisonOperations.compare(
+                  unwrappedLeft, unwrappedRight, span, templateId, securityPolicy)
+              <= 0;
       case GREATER_THAN ->
-          VtlComparisonOperations.compare(unwrappedLeft, unwrappedRight, span, templateId) > 0;
+          VtlComparisonOperations.compare(
+                  unwrappedLeft, unwrappedRight, span, templateId, securityPolicy)
+              > 0;
       case GREATER_THAN_OR_EQUAL ->
-          VtlComparisonOperations.compare(unwrappedLeft, unwrappedRight, span, templateId) >= 0;
+          VtlComparisonOperations.compare(
+                  unwrappedLeft, unwrappedRight, span, templateId, securityPolicy)
+              >= 0;
       case AND -> isTruthy(unwrappedLeft, true) && isTruthy(unwrappedRight, true);
       case OR -> isTruthy(unwrappedLeft, true) || isTruthy(unwrappedRight, true);
     };
@@ -327,6 +404,17 @@ public final class BytecodeRuntimeBridge {
 
   /** Converts an arbitrary iterable, collection, map, or array to a uniform {@link Iterator}. */
   public static Iterator<?> toIterator(Object collection) {
+    return toIterator(collection, null, null, 1, 1, 1, 1);
+  }
+
+  public static Iterator<?> toIterator(
+      Object collection,
+      LinkerAccessPolicy securityPolicy,
+      String templateIdStr,
+      int startLine,
+      int startCol,
+      int endLine,
+      int endCol) {
     if (collection == null) {
       return Collections.emptyIterator();
     }
@@ -338,6 +426,20 @@ public final class BytecodeRuntimeBridge {
       if (collection == null) {
         return Collections.emptyIterator();
       }
+    }
+    if (securityPolicy != null
+        && securityPolicy.isSafeProfile()
+        && !securityPolicy.isClassPermitted(collection.getClass())) {
+      TemplateId templateId =
+          templateIdStr != null ? TemplateId.of(templateIdStr) : TemplateId.of("<generated>");
+      SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
+      throw new TemplateSecurityException(
+          "Access to class "
+              + collection.getClass().getName()
+              + " in loop is denied by security policy",
+          templateId,
+          span,
+          InterpreterDiagnosticCodes.SECURITY_VIOLATION);
     }
     if (collection instanceof Iterable<?> iterable) {
       return iterable.iterator();
@@ -357,6 +459,25 @@ public final class BytecodeRuntimeBridge {
       return list.iterator();
     }
     return Collections.singleton(collection).iterator();
+  }
+
+  /** Creates initial loop state counter. */
+  public static Object createLoopState() {
+    return new int[1];
+  }
+
+  /** Creates ForeachMetadata for loop state tracking from mutable counter array. */
+  public static io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata
+      createForeachMetadata(Object counter, boolean hasNext, Object parent) {
+    int index = 0;
+    if (counter instanceof int[] arr && arr.length > 0) {
+      index = arr[0]++;
+    }
+    int count = index + 1;
+    boolean first = (index == 0);
+    boolean last = !hasNext;
+    ForeachMetadata parentMeta = (parent instanceof ForeachMetadata fm) ? fm : null;
+    return new ForeachMetadata(index, count, first, last, hasNext, parentMeta);
   }
 
   /** Creates ForeachMetadata for loop state tracking. */
@@ -444,6 +565,26 @@ public final class BytecodeRuntimeBridge {
     }
   }
 
+  /** Dispatches dynamic indexed write through M9 {@link DynamicCallSite}. */
+  public static void dynamicSetIndex(
+      DynamicCallSite site, Object target, Object index, Object value) {
+    if (target == null) {
+      return;
+    }
+    Object unwrapped = (target instanceof EvaluationValue ev) ? ev.value() : target;
+    if (unwrapped == null) {
+      return;
+    }
+    try {
+      site.invoke(unwrapped, index, value);
+    } catch (Throwable t) {
+      if (t instanceof RuntimeException re) {
+        throw re;
+      }
+      throw new RuntimeException(t);
+    }
+  }
+
   /** Dispatches dynamic method invocation through M9 {@link DynamicCallSite}. */
   public static Object dynamicInvokeMethod(DynamicCallSite site, Object target, Object[] args) {
     if (target == null) {
@@ -455,12 +596,68 @@ public final class BytecodeRuntimeBridge {
     }
     try {
       return site.invokeWithArgs(unwrapped, args);
+    } catch (ClassCastException | java.lang.invoke.WrongMethodTypeException cce) {
+      Class<?> clazz = unwrapped.getClass();
+      String methodName = site.memberKey().name();
+      int arity = args != null ? args.length : 0;
+      for (java.lang.reflect.Method m : clazz.getMethods()) {
+        if (m.getName().equals(methodName) && m.getParameterCount() == arity) {
+          boolean matches = true;
+          Class<?>[] ptypes = m.getParameterTypes();
+          for (int i = 0; i < arity; i++) {
+            Object arg = args[i];
+            if (arg != null && !isAssignable(ptypes[i], arg.getClass())) {
+              matches = false;
+              break;
+            }
+          }
+          if (matches) {
+            if (!site.policy().isMethodPermitted(clazz, m)) {
+              throw new TemplateSecurityException(
+                  "Access to "
+                      + methodName
+                      + " on "
+                      + clazz.getName()
+                      + " is denied by security policy: method "
+                      + methodName
+                      + " is denied by policy",
+                  TemplateId.of("<generated>"),
+                  SourceSpan.UNKNOWN,
+                  InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+            }
+            try {
+              m.setAccessible(true);
+              return m.invoke(unwrapped, args);
+            } catch (Exception ex) {
+              throw new RuntimeException(ex);
+            }
+          }
+        }
+      }
+      throw cce;
     } catch (Throwable t) {
       if (t instanceof RuntimeException re) {
         throw re;
       }
       throw new RuntimeException(t);
     }
+  }
+
+  private static boolean isAssignable(Class<?> targetType, Class<?> argType) {
+    if (targetType.isAssignableFrom(argType)) {
+      return true;
+    }
+    if (targetType.isPrimitive()) {
+      if (targetType == boolean.class && argType == Boolean.class) return true;
+      if (targetType == byte.class && argType == Byte.class) return true;
+      if (targetType == short.class && argType == Short.class) return true;
+      if (targetType == char.class && argType == Character.class) return true;
+      if (targetType == int.class && argType == Integer.class) return true;
+      if (targetType == long.class && argType == Long.class) return true;
+      if (targetType == float.class && argType == Float.class) return true;
+      if (targetType == double.class && argType == Double.class) return true;
+    }
+    return false;
   }
 
   /** Factory method to create a dynamic call site linked to policy. */
@@ -490,6 +687,14 @@ public final class BytecodeRuntimeBridge {
     if (context instanceof MutableRenderContext mrc && name != null) {
       Object unwrapped = (value instanceof EvaluationValue ev) ? ev.value() : value;
       mrc.put(name, unwrapped);
+    }
+  }
+
+  /** Increments loop iteration count on the output's render budget if present. */
+  public static void countLoopIteration(TemplateOutput output) {
+    if (output
+        instanceof io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput cto) {
+      cto.budget().countLoopIteration();
     }
   }
 }

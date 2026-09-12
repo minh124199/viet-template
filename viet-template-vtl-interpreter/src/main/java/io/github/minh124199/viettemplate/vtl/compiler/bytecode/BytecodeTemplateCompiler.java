@@ -129,7 +129,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         BytecodeNaming.sha256Hex(
             optimized.id().value()
                 + ":"
-                + options.securityPolicy().hashCode()
+                + (options.securityPolicy() != null ? options.securityPolicy().policyId() : "none")
                 + ":"
                 + options.optimizationOptions().level().name());
     String className = BytecodeNaming.className(optimized.id(), fingerprint);
@@ -155,6 +155,10 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         "SITES",
         "[Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;");
     cf.addField(ClassFileWriter.ACC_PUBLIC | ClassFileWriter.ACC_STATIC, "UTF8_CHUNKS", "[[B");
+    cf.addField(
+        ClassFileWriter.ACC_PUBLIC | ClassFileWriter.ACC_STATIC,
+        "SECURITY_POLICY",
+        "Lio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;");
 
     // 1. Default constructor: <init>()
     ClassFileWriter.MethodWriter init = cf.addMethod(ClassFileWriter.ACC_PUBLIC, "<init>", "()V");
@@ -301,6 +305,10 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         utf8Chunks[i] = context.utf8Chunks.get(i);
       }
       utf8Field.set(null, utf8Chunks);
+
+      // 3. SECURITY_POLICY
+      Field secField = clazz.getDeclaredField("SECURITY_POLICY");
+      secField.set(null, options.securityPolicy());
     } catch (Exception e) {
       throw new IllegalStateException("Failed to initialize static fields on compiled class", e);
     }
@@ -457,11 +465,15 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     mw.iconst(span != null ? span.startColumn() : 1);
     mw.iconst(span != null ? span.endLine() : 1);
     mw.iconst(span != null ? span.endColumn() : 1);
+    mw.getstatic(
+        context.internalName,
+        "SECURITY_POLICY",
+        "Lio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;");
 
     mw.invokestatic(
         "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
         "writeValue",
-        "(Ljava/lang/Object;Lio/github/minh124199/viettemplate/api/TemplateOutput;IILjava/lang/String;ZLjava/lang/String;IIII)V");
+        "(Ljava/lang/Object;Lio/github/minh124199/viettemplate/api/TemplateOutput;IILjava/lang/String;ZLjava/lang/String;IIIILio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;)V");
   }
 
   private static void compileIf(
@@ -510,10 +522,20 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     int itemSlot = loop.elementLocal().slot() + SLOT_OFFSET;
 
     compileExpression(loop.iterable(), mw, context);
+    mw.getstatic(
+        context.internalName,
+        "SECURITY_POLICY",
+        "Lio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;");
+    mw.ldc(context.template.id().value());
+    SourceSpan loopSpan = loop.span();
+    mw.iconst(loopSpan != null ? loopSpan.startLine() : 1);
+    mw.iconst(loopSpan != null ? loopSpan.startColumn() : 1);
+    mw.iconst(loopSpan != null ? loopSpan.endLine() : 1);
+    mw.iconst(loopSpan != null ? loopSpan.endColumn() : 1);
     mw.invokestatic(
         "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
         "toIterator",
-        "(Ljava/lang/Object;)Ljava/util/Iterator;");
+        "(Ljava/lang/Object;Lio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;Ljava/lang/String;IIII)Ljava/util/Iterator;");
     mw.astore(iterSlot);
 
     int counterSlot = -1;
@@ -522,8 +544,11 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     if (loop.loopStateLocal().isPresent()) {
       metaSlot = loop.loopStateLocal().get().slot() + SLOT_OFFSET;
       counterSlot = context.nextTempSlot();
-      mw.iconst(0);
-      mw.istore(counterSlot);
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "createLoopState",
+          "()Ljava/lang/Object;");
+      mw.astore(counterSlot);
       context.pushForeachMetaSlot(metaSlot);
     }
 
@@ -532,12 +557,18 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     mw.invokeinterface("java/util/Iterator", "hasNext", "()Z", 1);
     mw.ifeq(loopExit);
 
+    mw.aload(2);
+    mw.invokestatic(
+        "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+        "countLoopIteration",
+        "(Lio/github/minh124199/viettemplate/api/TemplateOutput;)V");
+
     mw.aload(iterSlot);
     mw.invokeinterface("java/util/Iterator", "next", "()Ljava/lang/Object;", 1);
     mw.astore(itemSlot);
 
     if (counterSlot != -1) {
-      mw.iload(counterSlot);
+      mw.aload(counterSlot);
       mw.aload(iterSlot);
       mw.invokeinterface("java/util/Iterator", "hasNext", "()Z", 1);
       if (parentMetaSlot != null) {
@@ -548,14 +579,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       mw.invokestatic(
           "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
           "createForeachMetadata",
-          "(IZLjava/lang/Object;)Lio/github/minh124199/viettemplate/language/vtl/semantics/scope/ForeachMetadata;");
+          "(Ljava/lang/Object;ZLjava/lang/Object;)Lio/github/minh124199/viettemplate/language/vtl/semantics/scope/ForeachMetadata;");
       mw.astore(metaSlot);
-
-      mw.iload(counterSlot);
-      mw.iconst(1);
-      // increment counter
-      mw.invokestatic("java/lang/Integer", "sum", "(II)I");
-      mw.istore(counterSlot);
     }
 
     context.pushLoop(loopExit);
@@ -863,11 +888,15 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     mw.iconst(span != null ? span.startColumn() : 1);
     mw.iconst(span != null ? span.endLine() : 1);
     mw.iconst(span != null ? span.endColumn() : 1);
+    mw.getstatic(
+        context.internalName,
+        "SECURITY_POLICY",
+        "Lio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;");
 
     mw.invokestatic(
         "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
         "binaryOp",
-        "(Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/String;IIII)Ljava/lang/Object;");
+        "(Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/String;IIIILio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;)Ljava/lang/Object;");
   }
 
   private static void compileUnaryOp(

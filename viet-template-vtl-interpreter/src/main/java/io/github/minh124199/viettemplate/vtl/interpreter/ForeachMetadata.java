@@ -1,6 +1,10 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
+import io.github.minh124199.viettemplate.api.TemplateCallable;
+import io.github.minh124199.viettemplate.api.TemplateData;
+
 /** Loop metadata exposed to templates as {@code $foreach}. */
+@TemplateData
 public final class ForeachMetadata
     implements io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata {
 
@@ -80,6 +84,7 @@ public final class ForeachMetadata
   }
 
   /** Stops the current #foreach loop when invoked via {@code $foreach.stop()}. */
+  @TemplateCallable
   public void stop() throws BreakSignal {
     throw BreakSignal.INSTANCE;
   }

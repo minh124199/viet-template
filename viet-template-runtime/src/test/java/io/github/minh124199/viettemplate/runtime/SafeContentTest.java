@@ -33,4 +33,31 @@ class SafeContentTest {
 
     assertThatThrownBy(() -> SafeUrl.of(null)).isInstanceOf(NullPointerException.class);
   }
+
+  @Test
+  @DisplayName("SafeUrl enforces private constructor and validated construction API contract")
+  void testSafeUrlValidationAndConstructorContract() {
+    // Verify no public constructor exists (guards against public constructor bypass)
+    assertThat(SafeUrl.class.getConstructors()).isEmpty();
+
+    // Validated public factories reject dangerous schemes
+    assertThatThrownBy(() -> SafeUrl.of("javascript:alert(1)"))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> SafeUrl.ofValidated("javascript:alert(1)"))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThat(SafeUrl.tryOf("javascript:alert(1)")).isEmpty();
+
+    // Privileged unchecked construction is only possible via ofTrusted
+    SafeUrl trusted = SafeUrl.ofTrusted("javascript:alert(1)");
+    assertThat(trusted.content()).isEqualTo("javascript:alert(1)");
+
+    // Value equality and hashCode semantics
+    SafeUrl a = SafeUrl.of("https://example.com/test");
+    SafeUrl b = SafeUrl.of("https://example.com/test");
+    SafeUrl c = SafeUrl.of("https://example.com/other");
+    assertThat(a).isEqualTo(b);
+    assertThat(a.hashCode()).isEqualTo(b.hashCode());
+    assertThat(a).isNotEqualTo(c);
+    assertThat(a).isNotEqualTo("https://example.com/test");
+  }
 }
