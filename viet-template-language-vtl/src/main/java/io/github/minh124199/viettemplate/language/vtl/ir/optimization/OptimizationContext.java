@@ -41,9 +41,21 @@ public final class OptimizationContext {
       }
     }
 
+    int maxChunkId = 0;
+    for (IrFunction fn : template.functions()) {
+      if (fn.name().startsWith("__render_chunk_")) {
+        try {
+          int id = Integer.parseInt(fn.name().substring("__render_chunk_".length()));
+          maxChunkId = Math.max(maxChunkId, id);
+        } catch (NumberFormatException ignored) {
+          // ignore non-integer chunk suffixes
+        }
+      }
+    }
+
     this.nextSlot = new AtomicInteger(maxSlot + 10);
     this.nextCallSiteId = new AtomicInteger(1000);
-    this.nextChunkFunctionId = new AtomicInteger(1);
+    this.nextChunkFunctionId = new AtomicInteger(maxChunkId + 1);
   }
 
   public OptimizationContext(IrOptimizationOptions options, IrConstantPool constantPool) {

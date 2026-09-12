@@ -2,7 +2,7 @@
 
 ## Overview
 
-Viet Template follows an evidence-driven, benchmark-verified phased release roadmap. Development prioritizes semantic correctness, architectural boundaries, and safety before introducing optimizations. Every optimization phase must be validated against the 7-part DSA acceptance rule and proven with empirical JMH benchmarks.
+Viet Template follows an evidence-driven, benchmark-verified phased release roadmap. Development prioritizes semantic correctness, architectural boundaries, and safety before introducing optimizations. Architectural policy (stable principles: measure before optimizing, preserve correctness, security sandboxing, and Velocity semantics, prefer maintainable Java/JDK solutions, use simple arrays and direct indexing, avoid custom sophisticated structures without empirical evidence) is strictly separated from benchmark results (changeable empirical facts: throughput, allocations, latency profiles, competitor comparisons). Every optimization phase must be validated against the 7-part DSA acceptance rule, the Four-Tier Implementation Preference Hierarchy, the balanced tradeoff evaluation, and proven with empirical JMH benchmarks.
 
 ---
 
@@ -30,9 +30,11 @@ This release establishes the authoritative semantic baseline, verified different
 - **Milestone M11 (AOT Bytecode Backend)**: Java 17-compatible direct bytecode generation, deterministic naming, and verified JVM bytecode execution.
 - **Milestone M12 (Template Repository, Cache & Hot Reload)**: Traversal-safe template IDs, classpath/filesystem repositories, composite resolution, compilation cache with SHA-256 fingerprinting, and atomic registry swapping.
 - **Milestone M12.5 (Velocity Application Compatibility Architecture)**: Static dependency extraction from IR, template dependency graph (`TemplateDependencyGraph`), multi-source context composition (`RenderRequest`, `RenderContextContributor`), collision policies (`FAIL`, `MODEL_WINS`, `CONTRIBUTOR_WINS`), global Velocimacro libraries (`velocimacro.library`), and two-stage layout rendering (`LayoutRenderPlan`).
-- **Milestone M13 (Security Hardening)**: Safe allowlists and deny policies (`MemberAccessPolicy`, `SensitiveObjectClassifier`), cryptographic policy fingerprinting (`SecurityPolicyFingerprint`), parser limits, monotonic execution budget (`RenderBudget`, `ExecutionLimits`), resource root confinement, and cross-tier security parity across AST, IR, PIC, and AOT.
+- **Milestone M19.1 (Benchmark and Profiling Infrastructure)**: Dedicated benchmark module `viet-template-benchmarks` with dual Gradle/Maven parity, 10 canonical JMH suites covering workloads B01–B15, environment metadata recording, and 100% fixture correctness verification.
 
-### Target Milestone for 0.1.x: M19.1 (Benchmark Infrastructure)
+### Completed Milestone: M19.1 — Benchmark and Profiling Infrastructure
+
+Milestone M19.1 is complete, establishing the dedicated benchmark and profiling infrastructure prior to undertaking the slot-based runtime rewrite:
 
 - **Dedicated Module**: Create `viet-template-benchmarks` with full Gradle and Maven dual build parity.
 - **JMH Framework**: Configure JMH with annotation processing, memory profilers (`-prof gc`), and fixed JVM arguments.
@@ -47,44 +49,49 @@ This release establishes the authoritative semantic baseline, verified different
   8. `TemplateCompilationCacheBenchmark` (B15)
   9. `MacroAndLayoutBenchmark` (B11, B12)
 - **Baseline Capture**: Record baseline measurements across all 15 workloads (B01–B15) comparing Viet Template against handwritten Java, Apache Velocity 2.4.1, Quarkus Qute, jte, and Thymeleaf.
+  - Viet Template aims to reduce rendering overhead relative to reflection-heavy interpreted template execution while approaching generated or compiled Java performance where its semantics permit. Comparative performance claims against other template engines must be based on reproducible benchmarks using equivalent workloads, configuration, escaping behavior, data models, warmup, and runtime conditions.
+  - M19.1 establishes the benchmark methodology and measured baseline before numerical claims are adopted.
+- **Scope Discipline in 0.1.x**: In 0.1.x, work is restricted to benchmark infrastructure, baseline measurements, profiler methodology, and isolated evidence-backed fixes only.
 
 ### Preservation of Proven Simple Structures in 0.1.x
 
 To adhere to the Java-first design policy and avoid premature complexity:
-- **PIC Contiguous Array Scanning**: The dynamic call-site polymorphic inline cache (`DynamicCallSite`) retains a fixed-size `AccessLink[]` array (depth $\le 4$) scanned linearly before escalating to `BoundedWeakClassCache`. Contiguous memory locality on modern CPU cache lines outperforms hash table lookup for $N \le 4$.
-- **Dependency Graph BFS Traversal**: `DefaultTemplateDependencyGraph` maintains a reverse dependency index (`Map<TemplateId, Set<TemplateId>>`) and performs cycle-safe Breadth-First Search (BFS) using standard `ArrayDeque<TemplateId>` and visited `HashSet<TemplateId>` for transitive invalidation.
+- **PIC Contiguous Array Scanning**: The dynamic call-site polymorphic inline cache (`DynamicCallSite`) retains a fixed-size `AccessLink[]` array (depth $\le 4$) scanned linearly before escalating to `BoundedWeakClassCache`. For small bounded $N \le 4$, a simple array traversal has low constant factors, avoids unnecessary hashing or node overhead, provides good memory locality, and adheres to a simple correctness model.
+- **Dependency Graph BFS Traversal**: `DefaultTemplateDependencyGraph` maintains a reverse dependency index (`Map<TemplateId, Set<TemplateId>>`) and performs cycle-safe Breadth-First Search (BFS) using standard `ArrayDeque<TemplateId>` and visited `HashSet<TemplateId>` for transitive invalidation. Standard `ArrayDeque` avoids node and pointer overhead while providing bounded traversal and good locality.
 - **Scope Management**: Lexical scopes in `ExecutionContext` continue using `ArrayDeque<LocalScope>` and `HashMap<String, EvaluationValue>`.
 
 ---
 
 ## Release Phase 0.2.0 — High-Performance Runtime Architecture
 
-Release `0.2.0` introduces the next major internal runtime evolution, transitioning variable resolution from string-based hash lookups to compiler-assigned flat array slots and indexing the compilation cache for instantaneous invalidation.
+Release `0.2.0` introduces the next major internal runtime evolution, transitioning variable resolution from string-based hash lookups to compiler-assigned flat array slots and indexing the compilation cache for scalable invalidation.
 
 ### Key Milestones & Capabilities (Milestone M19.2)
 
 1. **Compiler-Assigned Variable Slots (`EvaluationValue[] slots`)**:
    - In 0.1.x, template variable evaluation relies on `ExecutionContext` managing an `ArrayDeque<LocalScope>` containing `HashMap<String, EvaluationValue>`.
-   - In 0.2.0, semantic analysis and IR optimization assign every statically declared and inferred local variable (parameters, `#set` targets, loop counters, macro parameters) to a fixed integer slot index.
+   - In 0.2.0, semantic analysis and IR optimization assign every statically declared and inferred local variable (parameters, `#set` targets, loop counters, macro parameters) to a stable compiler-assigned integer slot ID.
    - The execution frame in both the reference interpreter and AOT bytecode backend evolves to an indexed `ExecutionFrame` backed by `EvaluationValue[] slots`.
-   - Variable reads and writes compile to direct array slot accesses (`ALOAD`/`AALOAD`/`AASTORE`), reducing variable resolution from an $O(1)$ hash map lookup with string hashing and object node traversal to a branchless array index operation.
-   - **Dynamic Fallback Map**: Variables introduced dynamically (via `#evaluate` or untyped dynamic context contributors) fall back to an auxiliary `Map<String, EvaluationValue>` in the frame, ensuring 100% Velocity semantic parity and 3-state evaluation preservation.
+   - Variable reads and writes compile to direct array slot accesses (`ALOAD`/`AALOAD`/`AASTORE`), reducing variable resolution from an hash map lookup with string hashing and object node traversal to a direct array index operation.
+   - **Preservation of 3-State Semantics**: The runtime explicitly preserves `UNDEFINED`, `DEFINED_NULL`, and `DEFINED_VALUE`. In Java, reference-array elements are initially `null`, requiring the runtime implementation to explicitly decide and test how internal empty slots represent undefined.
+   - **Name-Based Fallback**: A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
+   - **Slot Reuse Deferred**: Slot reuse remains explicitly deferred as a later optional optimization requiring separate correctness and benchmark evidence.
 2. **Indexed Template Cache Invalidation**:
    - In 0.1.x, `TemplateCompileCache.invalidate(TemplateId)` performs an $O(N)$ linear scan over all cache keys: `entries.keySet().removeIf(...)`.
    - In 0.2.0, `TemplateCompileCache` introduces a concurrent secondary reverse index: `ConcurrentMap<TemplateId, Set<CompileCacheKey>>`.
-   - When a template is invalidated (or changed during hot reload), the cache performs an instant $O(1)$ lookup in the secondary index and directly evicts all associated compilation keys and class definitions, eliminating linear scans under high concurrency.
+   - The indexed approach performs an average $O(1)$ lookup of `TemplateId` $\to$ associated key set plus $O(K)$ removal of the $K$ associated entries, reducing overall invalidation work to $O(K)$. It is never described as "instant $O(1)$ eviction", because removing $K$ entries is proportional to $K$.
 3. **Variable Slot Assignment Optimizer Pass (`O45 AssignVariableSlots`)**:
    - Adds pass `O45` to the optimization pipeline between local constant propagation (`O40`) and dead branch elimination (`O50`).
-   - Analyzes variable liveness and scopes to pack non-overlapping variables into shared slot indices, minimizing execution frame array allocations.
+   - Assigns stable integer slot IDs to statically resolvable variables without slot reuse, preserving explicit symbol boundaries and 3-state evaluation semantics.
 4. **JMH Benchmark Verification**:
    - Measure throughput and allocation deltas on `ScalarVariableBenchmark`, `ForeachLoopBenchmark`, and `TemplateCompilationCacheBenchmark`.
-   - Target: $\ge 25\%$ throughput increase on variable-heavy workloads and $\ge 20\%$ reduction in per-render heap allocations compared to 0.1.x.
+   - Verify performance and allocation profiles against 0.1.x baselines under the balanced tradeoff rule.
 
 ---
 
 ## Release Phase 0.3.x+ — Evidence-Driven Optimizations
 
-Guided strictly by JMH profiling and JFR allocation flame graphs from 0.1.x and 0.2.0 baselines, 0.3.x introduces targeted optimizations satisfying the 7-part DSA acceptance rule.
+Guided strictly by JMH profiling and JFR allocation flame graphs from 0.1.x and 0.2.0 baselines, 0.3.x introduces targeted optimizations satisfying the 7-part DSA acceptance rule, the Four-Tier Implementation Preference Hierarchy, and the balanced tradeoff evaluation. Optimizations are undertaken only for components that post-0.2.0 profiling identifies as proven hotspots.
 
 ### Candidate Optimization Areas (Milestone M19.3)
 

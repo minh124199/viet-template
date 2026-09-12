@@ -50,6 +50,7 @@ Many existing JVM template engines require teams to choose between familiar, fle
   - Two-stage layout rendering plans (`DefaultLayoutRenderPlan`) and global Velocimacro library caching.
   - Pluggable member access policies (`MemberAccessPolicy`, `SensitiveObjectClassifier`) and monotonic render budgets (`RenderBudget`).
   - Authoritative Technology Compatibility Kit (`viet-template-tck`) evaluating 301 differential scenarios against Apache Velocity 2.4.1.
+  - Dedicated JMH benchmark module (`viet-template-benchmarks`) under Milestone M19.1 with 10 canonical suites and dual Gradle/Maven build parity.
 - **Experimental**:
   - Dynamic call-site specialization in AOT bytecode when complete type signatures are absent.
   - File-system hot-reload watcher (`DevelopmentFileWatcher`) using NIO `WatchService`.
@@ -57,7 +58,6 @@ Many existing JVM template engines require teams to choose between familiar, fle
   - Spring Framework 7 MVC `ViewResolver` and Spring Boot 4 auto-configuration starter.
   - Dedicated Maven (`viet-template-maven-plugin`) and Gradle (`viet-template-gradle-plugin`) AOT pre-compilation plugins.
   - Compiler-assigned flat variable slot execution frames (`0.2.0`).
-  - Standalone JMH benchmark module (`viet-template-benchmarks`) under Milestone M19.1.
   - GraalVM Native Image reachability metadata verification.
 
 ---
@@ -320,6 +320,7 @@ The repository is organized into five focused modules:
 | **`viet-template-language-vtl`** | `viet-template-language-vtl` | Clean-room VTL lexer, Pratt parser, AST model, semantic analyzer, IR, and 12-pass optimization pipeline. | Compiler tooling, template analyzers, and AST inspectors. |
 | **`viet-template-vtl-interpreter`** | `viet-template-vtl-interpreter` | Canonical template engine implementation (`VtlTemplateEngine`), reference AST and IR interpreters, AOT bytecode compiler, compile cache, layout rendering, and global macro manager. | **Normal application developers** (main runtime dependency). |
 | **`viet-template-tck`** | *(Internal / Not Published)* | Technology Compatibility Kit and differential test suite running side-by-side verification against official Apache Velocity 2.4.1. | Repository contributors and verification tooling. |
+| **`viet-template-benchmarks`** | *(Internal / Not Published)* | Dedicated JMH benchmark and profiling module covering workloads B01–B15 across AST, IR, PIC, and AOT tiers. | Performance engineers, CI regression tracking, and repository contributors. |
 
 ---
 
@@ -350,11 +351,44 @@ Viet Template is engineered around low-allocation streaming and direct JVM execu
 3. **Compiler Optimization Pipeline**: 12 IR passes eliminate dead branches, fold constants, specialize loop iterators, and hoist static escaping.
 4. **Direct Bytecode & Inline Caches**: Known typed properties compile to direct getters; dynamic properties dispatch through monomorphic or small polymorphic inline caches (`AccessLink[]` array scan for depth $\le 4$).
 
-### Benchmark Infrastructure Notice
+### Benchmark Infrastructure (Milestone M19.1)
 
-> [!NOTE]
-> Headline performance claims and comparative multiples are deliberately withheld pending the execution of Milestone M19.1.
-> Per [docs/15-benchmark-plan.md](docs/15-benchmark-plan.md), a dedicated JMH benchmark module (`viet-template-benchmarks`) covering 15 workloads (B01–B15) across JDK 17, 21, and 25 is currently planned. Viet Template enforces a strict 7-part DSA acceptance rule: performance claims must be backed by reproducible, committed JMH benchmark results and JFR allocation profiles rather than aspirational targets.
+Milestone M19.1 establishes the dedicated `viet-template-benchmarks` module implementing canonical JMH benchmarks across 15 critical workloads (B01–B15), including variable lookup, nested scope management, full table rendering, isolated compile cache operations, O(N) full-scan cache invalidation, multi-threaded cache contention, monomorphic/PIC call sites, megamorphic caching, and end-to-end rendering across IR and AOT tiers.
+
+Viet Template enforces a strict 7-part DSA acceptance rule: performance claims must be backed by reproducible, committed JMH benchmark results and JFR allocation profiles rather than aspirational targets. See [docs/15-benchmark-plan.md](docs/15-benchmark-plan.md) for full benchmark methodology, workload definitions, and profiling rules.
+
+### Running Benchmarks
+
+#### Gradle
+```bash
+# Execute quick smoke benchmark (1 fork, 1 warmup, 1 iteration)
+./gradlew :viet-template-benchmarks:jmh -PjmhArgs="-f 1 -wi 1 -i 1 VariableLookupBenchmark"
+
+# Run a specific benchmark suite
+./gradlew :viet-template-benchmarks:jmh -PjmhArgs="ForeachRenderingBenchmark"
+
+# Measure memory allocations with GC profiler (-prof gc)
+./gradlew :viet-template-benchmarks:jmh -PjmhArgs="-prof gc ForeachRenderingBenchmark"
+
+# Build self-contained executable benchmark JAR
+./gradlew :viet-template-benchmarks:benchmarkJar
+java -jar viet-template-benchmarks/build/libs/benchmarks.jar -f 1 -wi 1 -i 1 VariableLookupBenchmark
+```
+
+#### Apache Maven
+```bash
+# Package self-contained executable benchmark JAR via Maven Shade plugin
+./mvnw clean package -pl viet-template-benchmarks
+
+# Run benchmarks using shaded JAR
+java -jar viet-template-benchmarks/target/benchmarks.jar -f 1 -wi 1 -i 1 VariableLookupBenchmark
+```
+
+#### Environment Metadata Recording
+```bash
+# Capture machine, OS, Git SHA, and JVM runtime metadata
+./scripts/record-benchmark-env.sh benchmark-env.json
+```
 
 ---
 

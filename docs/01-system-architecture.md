@@ -209,7 +209,7 @@ Registry lookup must be $O(1)$ by normalized id. Compiled templates are immutabl
 
 In 0.1.x, template variable evaluation relies on `ExecutionContext` managing an `ArrayDeque<LocalScope>` where each scope holds a `HashMap<String, EvaluationValue>`.
 
-In 0.2.0, the runtime introduces a high-performance `ExecutionFrame` backed by compiler-assigned variable slots:
+In 0.2.0, the runtime introduces a high-performance `ExecutionFrame` backed by stable compiler-assigned integer slot IDs:
 
 ```java
 public final class ExecutionFrame {
@@ -240,9 +240,11 @@ public final class ExecutionFrame {
 ```
 
 - **Array Slot Performance**: Statically analyzed variables map to fixed integer indices (`int slotIndex`). Reading or writing a variable compiles to a direct array index load or store (`ALOAD`/`ASTORE`), completely bypassing string hashing, bucket resolution, and entry node traversal.
-- **Dynamic Fallback**: Variables introduced dynamically (via `#evaluate` or untyped dynamic context contributors) use a lazily initialized `HashMap<String, EvaluationValue>`.
-- **3-State Semantics**: Both slots and the dynamic map preserve the 3-state evaluation model (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`), guaranteeing 100% Velocity semantic compatibility.
-- **Stack Structures**: Lexical scopes, macro invocations, and layout pipelines utilize standard `ArrayDeque` for LIFO/FIFO operations, eliminating pointer overhead associated with linked lists.
+- **3-State Semantics**: Both slots and the dynamic map explicitly preserve the 3-state evaluation model (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`), guaranteeing full Velocity semantic compatibility.
+- **Empty Slot Representation**: Java reference-array elements are initially `null`, requiring the runtime implementation to explicitly decide and test how internal empty slots represent undefined.
+- **Name-Based Fallback**: A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
+- **Slot Reuse Deferred**: Slot reuse remains explicitly deferred as a later optional optimization requiring separate correctness and benchmark evidence.
+- **Stack Structures**: Lexical scopes, macro invocations, and layout pipelines utilize standard `ArrayDeque` for LIFO/FIFO operations, providing low constant factors and avoiding pointer overhead associated with linked lists.
 
 ### Direct Typed Facade
 
@@ -280,9 +282,10 @@ In high-throughput environments with thousands of compiled templates, invalidati
 ConcurrentMap<TemplateId, Set<CompileCacheKey>>
 ```
 When a template is updated or invalidated:
-1. The cache looks up the associated `Set<CompileCacheKey>` in $O(1)$ time.
-2. All corresponding entries in the primary compilation cache are directly evicted.
-3. Memory and classloader references are immediately eligible for collection.
+1. The cache looks up the associated `Set<CompileCacheKey>` in average $O(1)$ time.
+2. The $K$ associated entries are removed from the primary compilation cache in $O(K)$ operations.
+3. Overall invalidation work is reduced to $O(K)$ rather than an $O(N)$ scan (never described as "instant $O(1)$ eviction", since removal of $K$ entries is proportional to $K$).
+4. Memory and classloader references are immediately eligible for collection.
 
 ### Dynamic Call-Site PIC Architecture (`AccessLink[]` Array Scanning)
 
@@ -298,9 +301,9 @@ final class DynamicCallSite {
 ```
 
 **Architectural Justification for Array Scanning over HashMap**:
-- **CPU Cacheline Locality**: An array of 4 `AccessLink` references occupies 32 bytes (or 16 bytes with compressed references), fitting entirely within a single 64-byte L1 CPU cache line.
-- **Zero Hashing Overhead**: Scanned linearly with pointer equality checks (`receiver.getClass() == link.receiverClass`). It requires no `hashCode()` computation, modulo arithmetic, or node dereferencing.
-- **Branch Predictor Friendly**: Modern JIT compilers (HotSpot C2) easily unroll a 4-element loop into direct conditional checks, allowing branch predictors to operate at maximum efficiency.
+- **Low Constant Factors and Memory Locality**: A small contiguous array of up to 4 elements provides sequential access without pointer chasing across non-contiguous heap nodes, yielding low constant factors and good memory locality.
+- **Zero Hashing Overhead**: Scanned linearly with pointer equality checks (`receiver.getClass() == link.receiverClass`). It avoids `hashCode()` computation, modulo arithmetic, and entry node allocation.
+- **Bounded Traversal & Simple Correctness**: For small bounded collections ($N \le 4$), linear traversal has a simple, provably correct concurrency model without bucket contention.
 - **Megamorphic Guard**: If more than 4 distinct receiver types are encountered at a single site, the call site switches to `BoundedWeakClassCache` to prevent unbounded array scanning.
 
 ---

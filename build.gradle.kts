@@ -75,8 +75,8 @@ subprojects {
     // NOTE: Apache Maven is the single authoritative release publisher for Maven Central.
     // Gradle publication is maintained for local installation (publishToMavenLocal),
     // POM metadata verification, and dual-build parity validation.
-    // The test module (:viet-template-tck) intentionally defines zero publications.
-    if (project.name != "viet-template-tck") {
+    // The test module (:viet-template-tck) and benchmark module (:viet-template-benchmarks) intentionally define zero publications.
+    if (project.name != "viet-template-tck" && project.name != "viet-template-benchmarks") {
         apply(plugin = "maven-publish")
         apply(plugin = "signing")
 

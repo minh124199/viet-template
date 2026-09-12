@@ -56,9 +56,11 @@ import java.lang.reflect.Field;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Milestone M11 Ahead-Of-Time (AOT) bytecode template compiler.
@@ -215,8 +217,12 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     }
 
     // Compile helper functions (from MethodSizePlanningPass or macros)
+    Set<String> compiledMethods = new HashSet<>();
     for (IrFunction function : optimized.functions()) {
       String methodName = BytecodeNaming.chunkMethodName(function.name());
+      if (!compiledMethods.add(methodName)) {
+        continue;
+      }
       ClassFileWriter.MethodWriter funcMw =
           cf.addMethod(
               ClassFileWriter.ACC_PUBLIC,

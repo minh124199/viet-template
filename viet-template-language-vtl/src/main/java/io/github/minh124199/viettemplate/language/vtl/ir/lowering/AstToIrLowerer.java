@@ -470,8 +470,8 @@ public final class AstToIrLowerer {
 
     Scope loopScope = new Scope(scope);
     IrLocal elemLocal =
-        loopScope.getOrCreateLocal(foreach.loopVariable().rootName(), elemType, foreach.span());
-    IrLocal loopStateLocal = loopScope.getOrCreateLocal("foreach", VTypes.DYNAMIC, foreach.span());
+        loopScope.defineLocal(foreach.loopVariable().rootName(), elemType, foreach.span());
+    IrLocal loopStateLocal = loopScope.defineLocal("foreach", VTypes.DYNAMIC, foreach.span());
 
     IrBlock body = lowerBlock(foreach.body(), loopScope, foreach.span());
 
@@ -790,6 +790,12 @@ public final class AstToIrLowerer {
         return p;
       }
       return parent != null ? parent.resolveParam(name) : null;
+    }
+
+    IrLocal defineLocal(String name, VType type, SourceSpan span) {
+      IrLocal created = new IrLocal(name, type, nextLocalSlot++, span);
+      locals.put(name, created);
+      return created;
     }
 
     IrLocal getOrCreateLocal(String name, VType type, SourceSpan span) {

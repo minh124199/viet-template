@@ -5,8 +5,8 @@
 Viet Template adopts a strict, maintainability-first, benchmark-driven performance engineering philosophy:
 
 1. **Maintainability and Correctness First**: Readability, simplicity, and architectural invariants take precedence over speculative micro-optimizations. Code must never sacrifice safety, security sandboxing, or Velocity semantic parity for unverified performance claims.
-2. **Benchmark-Driven Decisions**: Every optimization, data structure change, or algorithmic alteration must be justified by reproducible empirical measurements using Java Microbenchmark Harness (JMH), Java Flight Recorder (JFR), and async-profiler.
-3. **Complexity vs. JVM Cost**: Theoretical asymptotic complexity ($O(1)$ vs. $O(N)$) must be evaluated against physical JVM runtime realities: CPU cache locality, pointer indirection, object header overhead, memory allocation pressure, GC write barriers, and JIT compiler inlining heuristics.
+2. **Benchmark Evidence vs. Architectural Policy**: Architectural policy defines stable principles: measure before optimizing, preserve correctness, security sandboxing, and Velocity semantics, prefer maintainable Java/JDK solutions, use simple arrays and direct indexing, and avoid custom sophisticated structures without empirical evidence. Benchmark results are changeable empirical facts: throughput numbers, allocation counts, latency profiles, competitor comparisons, percentage gains, and profiler hotspots. Benchmark results live in benchmark reports and measurement records, not as permanent architectural truths.
+3. **Complexity vs. JVM Execution Cost**: Algorithmic complexity ($O(1)$ vs. $O(N)$) must be evaluated against physical JVM runtime realities: memory locality, pointer indirection, object header overhead, GC pressure, write barriers, and JIT compiler inlining heuristics.
 4. **Java 17 Baseline**: Design idiomatically for the modern JVM (Java 17 baseline), utilizing contiguous memory arrays, compact representations, records, sealed interfaces, and standard JDK collections before considering custom or complex alternatives.
 
 ---
@@ -17,21 +17,27 @@ No custom data structure, non-standard algorithm, or complex caching mechanism m
 
 1. **Baseline Measurement**: A clean JMH benchmark and profiling session must exist for the current JDK standard collection or naive baseline under both single-threaded and realistic concurrent multi-threaded workloads.
 2. **Proven Hotspot**: Profiling evidence (CPU sampling via async-profiler or allocation flame graphs via JFR) must prove that the component is a dominant hotspot representing $\ge 5\%$ of execution time or allocation volume in realistic rendering scenarios.
-3. **Theoretical vs. Practical JVM Cost**: The proposal must demonstrate why the JVM's hardware interactions (e.g., L1/L2 cache prefetching on contiguous arrays) do not already favor the simpler structure. An $O(N)$ array scan that hits a single 64-byte cache line is preferred over an $O(1)$ hash table that introduces pointer chasing, heap allocation, and hash calculation overhead for small $N$.
-4. **Allocation and GC Impact**: The change must decrease or maintain allocation rate (`bytes/op` and `gc.alloc.rate`). A data structure that reduces CPU cycles at the expense of heavy auxiliary object allocations (e.g., map entry nodes, wrapper boxes) will be rejected.
+3. **Theoretical vs. Practical JVM Cost**: The proposal must demonstrate why JVM runtime execution characteristics (e.g., contiguous flat array traversal, low constant factors) do not already favor the simpler structure. An $O(N)$ array scan with low constant factors, zero hashing or node overhead, and good memory locality is preferred over an $O(1)$ hash table that introduces pointer chasing, heap allocation, and hash calculation overhead for small bounded $N$.
+4. **Balanced Tradeoff Evaluation**: Evaluate throughput, latency, allocation rate, retained memory, contention, and implementation complexity together. A regression in one dimension may be acceptable when it enables a materially greater improvement in another dimension, provided the tradeoff is measured on representative workloads and documented. A small allocation increase may be acceptable for substantial throughput gain; a microbenchmark win does not justify architectural complexity if end-to-end rendering barely improves.
 5. **Maintenance and Complexity Budget**: The implementation must have well-defined, provable invariants, be under 300 lines of code where possible, introduce no unsafe or internal JVM hacks, and include exhaustive concurrent stress tests.
 6. **Benchmark Verification**: A reproducible JMH benchmark across JDK 17, 21, and 25 must demonstrate a statistically significant improvement ($\ge 15\%$ throughput improvement or $\ge 20\%$ allocation reduction) with overlapping confidence intervals excluded.
 7. **Fallback and Simplicity Clause**: If profiling or benchmark results indicate parity, marginal gains ($< 5\text{--}10\%$), or degradation under specific JVM configurations, the code must immediately revert to standard JDK collections (`ArrayDeque`, `ArrayList`, `HashMap`, `ConcurrentHashMap`) or simple arrays.
 
 ---
 
-## 3. Java-First Design Policy (Java 17 Baseline)
+## 3. Four-Tier Implementation Preference Hierarchy (Java 17 Baseline)
 
-Viet Template enforces a Java-first design policy targeting the Java 17 LTS baseline:
+Viet Template enforces a four-tier implementation preference hierarchy:
 
-- **Zero External Collection Dependencies**: The core, runtime, and compiler modules must not depend on third-party collection libraries (e.g., FastUtil, Trove, Guava, Apache Commons Collections). Rely exclusively on optimized standard library primitives and collections.
-- **Contiguous Memory and Cache Locality**: Favor flat arrays (e.g., `EvaluationValue[]`, `AccessLink[]`, `Object[]`) over node-based collections. Sequential memory access patterns leverage modern CPU hardware prefetchers and avoid cacheline misses.
-- **Object Header and Pointer Minimization**: Minimize heap allocations. On 64-bit JVMs with compressed OOPs enabled, each heap object incurs a 12-byte header (padded to 16 bytes) plus reference overhead. Deep object graphs degrade GC throughput and memory bandwidth.
+1. **Tier 1 — Java/JDK Standard**: Java/JDK standard structures and runtime/language features (`ArrayDeque`, `ArrayList`, `HashMap`, `ConcurrentHashMap`, arrays, records, sealed interfaces).
+2. **Tier 2 — Simple Project-Owned**: Simple, maintainable project-owned structures designed for specific engine invariants (e.g., small flat arrays, bounded links).
+3. **Tier 3 — Mature Third-Party**: Mature third-party implementation when materially better for correctness, maintainability, or performance.
+4. **Tier 4 — Custom Specialized**: Custom sophisticated, lock-free, or specialized implementation only with strong empirical justification from profiling and reproducible benchmarks.
+
+These tiers guide architectural choice without converting preferences into absolute bans. In applying this hierarchy:
+- **Zero Unnecessary Dependencies**: The core, runtime, and compiler modules avoid external collection dependencies unless justified under Tier 3. Rely primarily on standard library primitives and collections.
+- **Flat Memory and Locality**: Favor flat arrays (e.g., `EvaluationValue[]`, `AccessLink[]`, `Object[]`) over node-based collections for low constant factors, zero node allocation overhead, and good memory locality.
+- **Minimization of Object Churn**: Minimize unnecessary heap allocations and deep pointer graphs to reduce GC overhead and memory pressure.
 - **Leverage Modern JDK Capabilities**: Utilize records for immutable carrier types, sealed type hierarchies for exhaustive pattern matching, compact strings, and primitive-specialized paths to avoid boxing.
 - **Idiomatic Standard Collections**:
   - Use `ArrayDeque` for LIFO stacks and FIFO queues (e.g., lexical scope stacks, AST visitor queues, graph BFS queues); never use `LinkedList` or `Stack`.
@@ -46,33 +52,33 @@ In server-side template rendering, algorithmic analysis must be tempered by JVM 
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            CPU L1/L2 CACHE LINE (64 BYTES)                  │
+│                          CONTIGUOUS FLAT ARRAY                              │
 │  ┌───────────────┬───────────────┬───────────────┬───────────────┐          │
 │  │ Array Slot 0  │ Array Slot 1  │ Array Slot 2  │ Array Slot 3  │          │
 │  └───────────────┴───────────────┴───────────────┴───────────────┘          │
-│   Contiguous memory: single cacheline fetch, zero pointer chasing, zero GC  │
+│   Contiguous elements: low constant factors, zero pointer chasing, zero GC  │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       VS.
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                            NODE-BASED HASH TABLE                            │
 │  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐               │
-│  │ Bucket Table │ ───► │  Node Entry  │ ───► │  Key Object  │ (Cache Miss)  │
+│  │ Bucket Table │ ───► │  Node Entry  │ ───► │  Key Object  │ (Pointers)    │
 │  └──────────────┘      └──────┬───────┘      └──────────────┘               │
 │                               ▼                                             │
 │                        ┌──────────────┐                                     │
-│                        │ Value Object │ (Cache Miss, Header, Write Barrier) │
+│                        │ Value Object │ (Heap Object, Header, Write Barrier)│
 │                        └──────────────┘                                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 1. **Small $N$ Array Scanning**:
-   - For collections where $N \le 4\text{--}8$ (such as Polymorphic Inline Cache links, local variable scopes in typical templates, or macro argument lists), linear scanning of a contiguous array (`AccessLink[]` or `EvaluationValue[]`) consistently outperforms `HashMap.get()`.
-   - An array traversal requires zero hash code computations, zero modulo operations, and no bucket linked-list traversal. The entire array fits inside a single 64-byte L1 cache line.
+   - For collections where $N \le 4\text{--}8$ (such as Polymorphic Inline Cache links, local variable scopes in typical templates, or macro argument lists), linear scanning of a small contiguous array (`AccessLink[]` or `EvaluationValue[]`) consistently outperforms `HashMap.get()`.
+   - An array traversal has low constant factors: zero hash code computations, zero modulo operations, no bucket linked-list traversal, bounded traversal, and excellent memory locality.
 2. **Compiler-Assigned Slots vs. Name Lookup**:
    - Looking up a variable by string name in a `HashMap<String, EvaluationValue>` requires computing `String.hashCode()`, resolving the hash bucket, verifying `.equals()`, and dereferencing the entry node.
-   - Assigning variables to integer slots at compile time (`EvaluationValue[] slots`) reduces variable reads and writes to a single array index load (`ALOAD`/`AALOAD`), converting an expensive hash lookup into a predictable, branchless memory operation.
+   - In 0.2.0, assigning variables to stable compiler-assigned integer slot IDs (`EvaluationValue[] slots`) in an `ExecutionFrame` reduces variable reads and writes to direct array index operations (`ALOAD`/`AALOAD`). The runtime explicitly preserves the 3-state evaluation model (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`). Because Java reference-array elements are initially `null`, the runtime implementation explicitly decides and tests how internal empty slots represent undefined. A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics. Slot reuse remains explicitly deferred as a later optional optimization requiring separate correctness and benchmark evidence.
 3. **Secondary Index vs. Full Scan**:
-   - While small arrays favor linear scanning, cache invalidation across thousands of compiled templates requires true $O(1)$ indexing. Scanning all keys in a concurrent cache via `entries.keySet().removeIf(...)` is an $O(N)$ operation that holds locks or creates iterator churn. Maintaining a secondary reverse index (`TemplateId -> Set<CompileCacheKey>`) provides instant, scalable invalidation without linear scanning.
+   - In `TemplateCompileCache`, the current 0.1.x full scan is $O(N)$ across all cache keys (`entries.keySet().removeIf(...)`). The indexed approach performs an average $O(1)$ lookup of `TemplateId` $\to$ associated key set (`Set<CompileCacheKey>`) plus $O(K)$ removal of the $K$ associated entries, reducing overall invalidation work to $O(K)$. It must never be described as "instant $O(1)$ eviction", because removing $K$ entries is proportional to $K$.
 
 ---
 
@@ -82,9 +88,105 @@ Performance testing is isolated in a dedicated build module:
 
 - **Module Name**: `viet-template-benchmarks`
 - **Build Configuration**: Dual Gradle (`build.gradle.kts`) and Maven (`pom.xml`) parity.
-- **Framework**: JMH (Java Microbenchmark Harness) pinned to the latest stable release, leveraging `jmh-generator-annprocess`.
+- **Framework**: JMH (Java Microbenchmark Harness 1.37) leveraging `jmh-generator-annprocess`.
 - **Packaging**: Produces a self-contained executable benchmark JAR (`benchmarks.jar`).
-- **Dependencies**: Depends strictly on `viet-template-api`, `viet-template-runtime`, `viet-template-engine`, and competitor comparator engines in test/benchmark scope.
+- **Dependencies**: Depends strictly on `viet-template-api`, `viet-template-runtime`, `viet-template-language-vtl`, `viet-template-vtl-interpreter`, and `jmh-core`.
+
+### Module Structure
+```text
+viet-template-benchmarks/
+├── build.gradle.kts          # Gradle build, jmh JavaExec task, and benchmarkJar packaging task
+├── pom.xml                   # Maven build, maven-compiler-plugin annprocess, and maven-shade-plugin
+└── src/
+    ├── main/java/io/github/minh124199/viettemplate/benchmarks/
+    │   ├── VariableLookupBenchmark.java       # Context lookup across root, template-local, and nested scopes
+    │   ├── NestedScopeBenchmark.java          # Foreach and macro scope stack traversal
+    │   ├── VariableAssignmentBenchmark.java   # Scope assignment and mutable root write-through
+    │   ├── ForeachRenderingBenchmark.java     # Complete loop rendering (B05, B06, B07)
+    │   ├── CompileCacheBenchmark.java         # Isolated compile cache operations & negative caching
+    │   ├── CacheInvalidationBenchmark.java    # Full table scan O(N) vs O(K) & transitive dependents
+    │   ├── ConcurrentCacheBenchmark.java      # Multi-threaded lruLock scaling (1, 4, 8 threads)
+    │   ├── CallSiteBenchmark.java             # Monomorphic and polymorphic PIC (B09, B10)
+    │   ├── MegamorphicCallSiteBenchmark.java  # BoundedWeakClassCache hits & misses beyond depth 4
+    │   └── RenderingEndToEndBenchmark.java    # Complete workloads (B01, B02, B03, B04, B08, B11, B12)
+    └── test/java/io/github/minh124199/viettemplate/benchmarks/
+        └── BenchmarkFixtureCorrectnessTest.java # 100% byte-for-byte IR vs AOT correctness gate
+```
+
+### Verified Developer Commands
+
+#### 1. Compile and Package Benchmark JAR
+```bash
+# Gradle: compile benchmarks and package executable benchmarks.jar
+./gradlew :viet-template-benchmarks:build
+./gradlew :viet-template-benchmarks:benchmarkJar
+
+# Apache Maven: compile benchmarks and build target/benchmarks.jar via maven-shade-plugin
+./mvnw clean package -pl viet-template-benchmarks
+```
+
+#### 2. Execute Quick Smoke Test
+```bash
+# Fast smoke run (1 fork, 1 warmup, 1 measurement iteration)
+./gradlew :viet-template-benchmarks:jmh -PjmhArgs="-f 1 -wi 1 -i 1 VariableLookupBenchmark"
+
+# Using executable benchmarks.jar
+java -jar viet-template-benchmarks/build/libs/benchmarks.jar -f 1 -wi 1 -i 1 VariableLookupBenchmark
+```
+
+#### 3. Run a Single Benchmark Class or Method
+```bash
+# Run specific benchmark class
+./gradlew :viet-template-benchmarks:jmh -PjmhArgs="ForeachRenderingBenchmark"
+
+# Run specific method with regex
+./gradlew :viet-template-benchmarks:jmh -PjmhArgs="RenderingEndToEndBenchmark.b01_staticHtml"
+
+# Or with benchmarks.jar
+java -jar viet-template-benchmarks/build/libs/benchmarks.jar CallSiteBenchmark
+```
+
+#### 4. Run Full Benchmark Suite
+```bash
+# Full execution across all benchmark suites with production JVM flags
+./gradlew :viet-template-benchmarks:jmh
+
+# Standalone execution
+java -jar viet-template-benchmarks/build/libs/benchmarks.jar
+```
+
+#### 5. Generate JSON Output Reports
+```bash
+# Export results to JSON for regression tracking
+./gradlew :viet-template-benchmarks:jmh -PjmhArgs="-rf json -rff benchmark-results.json"
+
+# Standalone execution
+java -jar viet-template-benchmarks/build/libs/benchmarks.jar -rf json -rff benchmark-results.json
+```
+
+#### 6. Profile Allocations via `-prof gc`
+```bash
+# Measure allocation rate (bytes/op) and GC churn
+./gradlew :viet-template-benchmarks:jmh -PjmhArgs="-prof gc ForeachRenderingBenchmark"
+
+# Standalone execution
+java -jar viet-template-benchmarks/build/libs/benchmarks.jar -prof gc RenderingEndToEndBenchmark
+```
+
+#### 7. Profile CPU via Java Flight Recorder (JFR)
+```bash
+# Record CPU execution profiles and flame graphs using JFR profiler
+./gradlew :viet-template-benchmarks:jmh -PjmhArgs="-prof jfr:dir=./jfr-reports RenderingEndToEndBenchmark"
+
+# Standalone execution
+java -jar viet-template-benchmarks/build/libs/benchmarks.jar -prof jfr:dir=./jfr-reports RenderingEndToEndBenchmark
+```
+
+#### 8. Record Environment Metadata
+```bash
+# Capture OS, CPU, Git commit SHA, and JVM metadata into JSON
+./scripts/record-benchmark-env.sh benchmark-env.json
+```
 
 ---
 
@@ -130,9 +232,13 @@ The benchmark suite contains nine focused JMH benchmark classes covering every c
 
 ## 8. Comparators and Baselines
 
+Viet Template aims to reduce rendering overhead relative to reflection-heavy interpreted template execution while approaching generated or compiled Java performance where its semantics permit. Comparative performance claims against other template engines must be based on reproducible benchmarks using equivalent workloads, configuration, escaping behavior, data models, warmup, and runtime conditions.
+
+Milestone M19.1 establishes the benchmark methodology and measured baseline before numerical claims are adopted.
+
 All benchmarks compare Viet Template against current stable versions of:
 
-1. **Handwritten Java Renderer**: Direct `StringBuilder` / `Writer` writes with direct getter calls. Represents the physical performance ceiling (100%).
+1. **Handwritten Java Renderer**: Direct `StringBuilder` / `Writer` writes with direct getter calls. Represents the upper baseline for direct compiled execution.
 2. **Apache Velocity 2.4.1**: Direct legacy migration baseline.
 3. **Quarkus Qute**:
    - Compare Qute dynamic/reflection vs. Viet Template dynamic mode.
@@ -197,7 +303,7 @@ All benchmarks compare Viet Template against current stable versions of:
 The following gates are enforced in continuous integration and release qualification:
 
 - **Throughput Regression Gate**: Any change causing a $\ge 5\%$ drop in throughput on any standard benchmark (B01–B15) fails qualification unless accompanied by an approved ADR and performance note.
-- **Allocation Regression Gate**: Zero allocation regressions permitted in typed/AOT rendering paths. Any increase in `bytes/op` triggers a build failure.
+- **Balanced Tradeoff Gate**: Evaluate throughput, latency, allocation rate, retained memory, contention, and implementation complexity together. A regression in one dimension may be acceptable when it enables a materially greater improvement in another dimension, provided the tradeoff is measured on representative workloads and documented. A small allocation increase may be acceptable for substantial throughput gain; a microbenchmark win does not justify architectural complexity if end-to-end rendering barely improves.
 - **Compilation & Footprint Gate**: Generated class size must not regress by $\ge 10\%$, and template compilation latency must not regress by $\ge 10\%$.
 - **Statistical Significance**: Results must be evaluated with $95\%$ confidence intervals. Overlapping error margins require increasing measurement iterations.
 
@@ -208,14 +314,14 @@ The following gates are enforced in continuous integration and release qualifica
 Every pull request introducing optimizations, changing data structures, or altering runtime execution paths must be reviewed against this 9-part checklist:
 
 - [ ] **1. JMH Benchmark Evidence**: Does the PR include or execute against the relevant JMH benchmark suite? Are before/after raw results provided?
-- [ ] **2. Allocation & GC Footprint**: Has the allocation rate (`bytes/op`) been measured using `-prof gc`? Does it avoid adding temporary object allocations?
+- [ ] **2. Balanced Allocation & Performance Tradeoff**: Has the allocation rate (`bytes/op`) been measured using `-prof gc`? Are throughput, latency, allocation rate, and memory tradeoffs evaluated together on representative workloads?
 - [ ] **3. Scalability & Contention**: Has the change been verified under multi-threaded concurrency (threads $\ge 8$) to ensure no new lock contention, CAS spinning, or false sharing?
 - [ ] **4. Memory Footprint**: Does the change maintain or reduce long-term memory footprint per template and per render context?
 - [ ] **5. Java 17 Baseline Idioms**: Does the code adhere to Java 17 idiomatic practices, utilizing compact flat arrays, records, and standard collections without third-party dependencies?
 - [ ] **6. Avoidance of Premature Hacks**: Does the code avoid unsafe tricks, undocumented JVM intrinsics, reflection tampering, or premature micro-optimizations that harm maintainability?
 - [ ] **7. Thread-Safety & Invariants**: Are all concurrency invariants, thread-safety guarantees, and immutability constraints rigorously preserved and verified with stress tests?
 - [ ] **8. Tail Latency & Branch Predictability**: Are branches structured predictably for CPU branch predictors? Are expensive operations kept out of the inner loop?
-- [ ] **9. Architectural Simplicity & DSA Acceptance**: Does the change satisfy all 7 parts of the DSA Acceptance Rule? If gains are marginal ($< 5\text{--}10\%$), has the simpler JDK standard structure been retained?
+- [ ] **9. Architectural Simplicity & DSA Acceptance**: Does the change satisfy all 7 parts of the DSA Acceptance Rule and the Four-Tier Preference Hierarchy? If gains are marginal ($< 5\text{--}10\%$), has the simpler JDK standard structure been retained?
 
 ---
 

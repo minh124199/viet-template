@@ -50,12 +50,14 @@ In 0.1.x, `ExecutionContext` manages a nested stack of lexical scopes using stan
 - **Macro Scope**: Pushes a new frame for macro arguments, ensuring macros do not inadvertently corrupt outer local variables while allowing lexical read-through.
 
 #### 0.2.0 Evolution: Compiler-Assigned Variable Slots (`ExecutionFrame`)
-In 0.2.0, the interpreter runtime introduces an optimized `ExecutionFrame` backed by compiler-assigned variable slots (`EvaluationValue[] slots`):
-- **Statically Assigned Slots**: During semantic analysis and IR optimization (`O45 AssignVariableSlots`), all statically known variables (template parameters, local `#set` variables, loop counters/items, and macro arguments) are assigned fixed integer slot indices.
-- **Branchless $O(1)$ Array Access**: Reading or writing a variable compiles to a direct array load (`slots[slotIndex]`) or store (`slots[slotIndex] = value`), bypassing string hashing, bucket index calculation, and node traversal entirely.
-- **Dynamic Fallback Map**: Variables introduced dynamically (via dynamic `#evaluate` evaluations or untyped contributor contexts) fall back to a lazily instantiated `HashMap<String, EvaluationValue> dynamicVariables`.
-- **Preservation of 3-State Evaluation Model**: Both array slots and the dynamic fallback map strictly store `EvaluationValue` instances (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`). Unassigned slots default to `UNDEFINED`, preserving exact Velocity non-strict literal rendering (`$missing`), strict mode exception triggers, and alternate value fallbacks (`${var|'default'}`).
-- **ArrayDeque Preservation**: Scope stacking, macro execution, and layout evaluation continue using `ArrayDeque` to eliminate linked-list pointer overhead and minimize heap allocations.
+In 0.2.0, the interpreter runtime introduces an optimized `ExecutionFrame` backed by stable compiler-assigned integer slot IDs (`EvaluationValue[] slots`):
+- **Statically Assigned Slots**: During semantic analysis and IR optimization (`O45 AssignVariableSlots`), all statically known variables (template parameters, local `#set` variables, loop counters/items, and macro arguments) are assigned stable integer slot IDs without slot reuse.
+- **Direct Array Access**: Reading or writing a variable compiles to a direct array load (`slots[slotIndex]`) or store (`slots[slotIndex] = value`), bypassing string hashing, bucket index calculation, and node traversal entirely.
+- **Empty Slot Representation**: Java reference-array elements are initially `null`, requiring the runtime implementation to explicitly decide and test how internal empty slots represent undefined.
+- **Preservation of 3-State Evaluation Model**: Both array slots and the dynamic fallback map strictly store `EvaluationValue` instances (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`), preserving exact Velocity non-strict literal rendering (`$missing`), strict mode exception triggers, and alternate value fallbacks (`${var|'default'}`).
+- **Name-Based Fallback**: A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
+- **Slot Reuse Deferred**: Slot reuse remains explicitly deferred as a later optional optimization requiring separate correctness and benchmark evidence.
+- **ArrayDeque Preservation**: Scope stacking, macro execution, and layout evaluation continue using `ArrayDeque` to eliminate linked-list pointer and node overhead, offering low constant factors and good locality.
 
 ---
 

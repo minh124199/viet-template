@@ -114,11 +114,14 @@ Need strict capability allowlists, no reflection by default, resource-root confi
 - Maven Central automation;
 - migration guide.
 
-## 8. Performance SLOs
+## 8. Performance SLOs and Engineering Policy
 
+- **Core Performance Objective**: Viet Template aims to reduce rendering overhead relative to reflection-heavy interpreted template execution while approaching generated or compiled Java performance where its semantics permit. Comparative performance claims against other template engines must be based on reproducible benchmarks using equivalent workloads, configuration, escaping behavior, data models, warmup, and runtime conditions.
+- **Baseline Establishment (Milestone M19.1)**: Milestone M19.1 establishes the benchmark methodology and measured baseline across workloads comparing Viet Template against Apache Velocity, Thymeleaf, Quarkus Qute, and handwritten Java before numerical claims are adopted.
+- **Balanced Performance Tradeoff**: Evaluate throughput, latency, allocation rate, retained memory, contention, and implementation complexity together. A regression in one dimension may be acceptable when it enables a materially greater improvement in another dimension, provided the tradeoff is measured on representative workloads and documented.
+- **Policy vs. Benchmark Evidence**: Architectural policy defines stable principles (measure before optimizing, preserve correctness, security sandboxing, and Velocity semantics, prefer maintainable Java/JDK solutions, use simple arrays and direct indexing, avoid custom sophisticated structures without empirical evidence). Benchmark results are changeable empirical facts recorded in benchmark reports.
+- **Implementation Hierarchy**: Follows a four-tier preference hierarchy: (1) Java/JDK standard structures, (2) simple project-owned structures, (3) mature third-party libraries when materially better, and (4) custom specialized structures only with empirical justification.
 - Static templates should collapse to a small number of bulk writes.
-- Simple typed pages should target within ~15% of equivalent handwritten rendering after warmup.
-- Typed path should have no per-expression temporary allocation where practical.
 - Warm monomorphic dynamic access should perform no repeated reflective discovery.
 - AOT deployment should require no production parsing unless validation/reload is explicitly enabled.
 

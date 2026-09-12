@@ -72,22 +72,21 @@ return handleMiss(receiverClass, receiver);
 
 ### Architectural Justification of Contiguous Array Scanning over HashMap
 
-This design is strictly guided by the Core Performance Engineering Principle and the 7-part DSA acceptance rule (see [15 — Benchmark and Performance Engineering Plan](15-benchmark-plan.md)):
+This design is strictly guided by the Core Performance Engineering Principle, the Four-Tier Implementation Preference Hierarchy, and the 7-part DSA acceptance rule (see [15 — Benchmark and Performance Engineering Plan](15-benchmark-plan.md)):
 
-1. **Contiguous Memory & L1/L2 Cache Locality**:
-   - Modern CPUs load memory in 64-byte cache lines.
-   - An array of 4 reference pointers occupies 16 bytes (with 32-bit compressed OOPs) or 32 bytes (with 64-bit references). The array fits entirely within a **single 64-byte cache line**.
-   - In contrast, a `HashMap` requires dereferencing the table array, traversing separate `Node` objects, and chasing pointers across non-contiguous heap regions, causing multiple CPU cache line misses.
+1. **Low Constant Factors & Memory Locality**:
+   - Small contiguous arrays provide sequential access with low constant factors and good memory locality, avoiding pointer chasing across non-contiguous heap nodes.
+   - In contrast, a `HashMap` requires dereferencing the table array, traversing separate `Node` objects, and chasing pointers across non-contiguous heap regions.
 2. **Zero Hashing Overhead**:
-   - Array traversal performs direct reference equality checks (`link.receiverClass() == receiverClass`), which compile to a single CPU comparison instruction.
-   - A `HashMap` requires calling `Class.hashCode()`, integer spreading, modulo index masking, and bucket pointer dereferencing before the identity check can even occur.
-3. **Loop Unrolling and Branch Predictor Optimization**:
-   - Modern HotSpot C2 compilers routinely unroll a 4-iteration loop into a flat, branch-predicted instruction stream.
-   - For call sites that are monomorphic or bimorphic in practice (the vast majority of real-world template sites), the loop terminates on iteration 0 or 1 with nearly 100% branch prediction accuracy.
-4. **Allocation and GC Neutrality**:
-   - The array is created once per shape insertion and updated via copy-on-write. It allocates zero auxiliary bucket or entry node objects, producing zero garbage collection pressure during steady-state rendering.
+   - Array traversal performs direct reference equality checks (`link.receiverClass() == receiverClass`).
+   - A `HashMap` requires calling `Class.hashCode()`, integer spreading, modulo index masking, and bucket pointer dereferencing before the identity check can occur.
+3. **Bounded Traversal & Simple Predictability**:
+   - Bounded array traversal over $N \le 4$ elements offers highly predictable control flow with low execution overhead.
+   - For call sites that are monomorphic or bimorphic in practice (the vast majority of real-world template sites), traversal terminates immediately on index 0 or 1.
+4. **Balanced Allocation Tradeoff**:
+   - The array is updated via copy-on-write only when a new receiver shape is encountered, producing no ongoing auxiliary node allocations during steady-state rendering. Tradeoffs are evaluated under the balanced performance tradeoff rule across throughput, latency, allocations, and complexity.
 5. **Megamorphic Fallback**:
-   - If a call site encounters more than 4 distinct receiver shapes, it ceases array expansion and delegates to `BoundedWeakClassCache`. This bounds the worst-case linear scan to exactly 4 comparisons before switching to a bounded class cache.
+   - If a call site encounters more than 4 distinct receiver shapes, it ceases array expansion and delegates to `BoundedWeakClassCache`. This bounds the worst-case linear scan to at most 4 comparisons before delegating to the bounded cache.
 
 ## 5. Linker
 

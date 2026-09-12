@@ -41,6 +41,7 @@
         <module>viet-template-language-vtl</module>
         <module>viet-template-vtl-interpreter</module>
         <module>viet-template-tck</module>
+        <module>viet-template-benchmarks</module>
     </modules>
 
     <properties>
@@ -55,6 +56,7 @@
         <assertj.version>3.27.7</assertj.version>
         <archunit.version>1.3.0</archunit.version>
         <velocity.version>2.4.1</velocity.version>
+        <jmh.version>1.37</jmh.version>
         <spotless.version>2.44.2</spotless.version>
         <google-java-format.version>1.30.0</google-java-format.version>
 
@@ -66,6 +68,7 @@
         <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
         <maven-enforcer-plugin.version>3.5.0</maven-enforcer-plugin.version>
         <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
+        <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
         <central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
     </properties>
 
@@ -125,6 +128,19 @@
                 <artifactId>velocity-engine-core</artifactId>
                 <version>${velocity.version}</version>
                 <scope>test</scope>
+            </dependency>
+
+            <!-- JMH Microbenchmark Harness -->
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-core</artifactId>
+                <version>${jmh.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-generator-annprocess</artifactId>
+                <version>${jmh.version}</version>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -289,6 +305,12 @@
                         <autoPublish>true</autoPublish>
                         <waitUntil>published</waitUntil>
                     </configuration>
+                </plugin>
+                <!-- Maven Shade Plugin (Self-contained Benchmark JAR) -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${maven-shade-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

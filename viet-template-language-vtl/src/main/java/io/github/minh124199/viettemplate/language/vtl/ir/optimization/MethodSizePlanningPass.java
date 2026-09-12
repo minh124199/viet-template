@@ -32,6 +32,12 @@ public final class MethodSizePlanningPass implements IrOptimizationPass {
       return template;
     }
 
+    for (IrFunction function : template.functions()) {
+      if (function.name().startsWith("__render_chunk_")) {
+        return template;
+      }
+    }
+
     int threshold = context.options().methodSplitThreshold();
     IrBlock root = template.root();
 

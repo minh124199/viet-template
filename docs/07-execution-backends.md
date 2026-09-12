@@ -55,9 +55,11 @@ final class ExecutionFrame {
 }
 ```
 
-- **Branchless Index Access**: Statically analyzed variables are mapped to fixed integer slots at compile time. Variable access compiles to direct array indexing (`slots[slotIndex]`), eliminating hash calculations, bucket resolution, and node traversal.
-- **Dynamic Fallback Map**: Variables introduced dynamically (via `#evaluate` or untyped contributor contexts) are managed in `dynamicVariables`, preserving 100% Velocity compatibility.
-- **3-State Parity**: Both array slots and the dynamic fallback map store `EvaluationValue` (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`), strictly preserving Velocity null-rendering and strict-mode semantics.
+- **Direct Index Access**: Statically analyzed variables are assigned stable compiler-assigned integer slot IDs at compile time. Variable access compiles to direct array indexing (`slots[slotIndex]`), eliminating hash calculations, bucket resolution, and node traversal.
+- **Preservation of 3-State Semantics**: Both array slots and the fallback map store `EvaluationValue` (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`), strictly preserving Velocity null-rendering, strict mode, and alternate value semantics.
+- **Empty Slot Representation**: Java reference-array elements are initially `null`, requiring the runtime implementation to explicitly decide and test how internal empty slots represent undefined.
+- **Name-Based Fallback**: A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
+- **Slot Reuse Deferred**: Slot reuse remains explicitly deferred as a later optional optimization requiring separate correctness and benchmark evidence.
 
 ## 3. Optimized dynamic backend
 
@@ -71,7 +73,7 @@ For unknown model types:
 
 Implementation order:
 
-1. explicit `MethodHandle` monomorphic/PIC cache using contiguous `AccessLink[]` array scanning (max depth 4);
+1. explicit `MethodHandle` monomorphic/PIC cache using contiguous `AccessLink[]` array scanning (max depth 4, low constant factors, avoiding hashing or node overhead, and good memory locality);
 2. benchmark;
 3. only then prototype `invokedynamic` if it yields measurable benefit.
 
