@@ -13,6 +13,9 @@ on:
         default: '3'
   schedule:
     - cron: '0 3 * * 0' # Every Sunday at 03:00 UTC
+  push:
+    branches:
+      - 'perf/**'
 
 permissions:
   contents: read
@@ -79,6 +82,7 @@ jobs:
         with:
           name: benchmark-results-${{ matrix.profile }}
           path: build/performance/**
+          if-no-files-found: ignore
 
   virtual-thread-stress:
     name: Virtual Threads Stress (JDK ${{ matrix.java }})
@@ -201,6 +205,7 @@ jobs:
         with:
           name: performance-jdk25-features
           path: build/performance/**
+          if-no-files-found: ignore
 
   summary:
     name: Performance Pipeline Summary
