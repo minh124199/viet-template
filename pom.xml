@@ -6,7 +6,7 @@
 
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-parent</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.2.0</version>
     <packaging>pom</packaging>
 
     <name>viet-template-parent</name>

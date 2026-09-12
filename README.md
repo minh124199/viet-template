@@ -28,9 +28,9 @@ Many existing JVM template engines require teams to choose between familiar, fle
 
 | Item | Value |
 | :--- | :--- |
-| **Current Published Release** | `0.1.0` (2026-09-06) |
-| **Development Branch** | `0.1.1-SNAPSHOT` |
-| **Maturity Level** | **Pre-1.0 (`0.1.x`)** |
+| **Current Published Release** | `0.2.0` (2026-09-12) |
+| **Development Branch** | `0.2.0` |
+| **Maturity Level** | **Pre-1.0 (`0.2.x`)** |
 | **Maven Group** | `io.github.minh124199` |
 | **Java Baseline** | Java 17 (`--release 17`) |
 
@@ -82,7 +82,7 @@ Add the engine dependency to your `pom.xml`:
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-vtl-interpreter</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -91,13 +91,13 @@ Add the engine dependency to your `pom.xml`:
 Add the dependency to your `build.gradle.kts`:
 
 ```kotlin
-implementation("io.github.minh124199:viet-template-vtl-interpreter:0.1.0")
+implementation("io.github.minh124199:viet-template-vtl-interpreter:0.2.0")
 ```
 
 ### Gradle (Groovy DSL)
 
 ```groovy
-implementation 'io.github.minh124199:viet-template-vtl-interpreter:0.1.0'
+implementation 'io.github.minh124199:viet-template-vtl-interpreter:0.2.0'
 ```
 
 ---
@@ -191,9 +191,9 @@ new VtlInterpreter().interpret(ast, source, MapRenderContext.of("name", "World")
 assert output.toString().equals("Hello World from Viet Template!");
 ```
 
-### 3. Unified TemplateEngine API (0.1.1-SNAPSHOT / Milestone M12+)
+### 3. Unified TemplateEngine API (0.2.0 / Milestone M12+)
 
-Starting in `0.1.1-SNAPSHOT` (Milestone M12+), Viet Template provides a high-level `TemplateEngine` facade and pluggable `TemplateRepository` abstraction:
+Starting in `0.2.0` (Milestone M12+), Viet Template provides a high-level `TemplateEngine` facade and pluggable `TemplateRepository` abstraction:
 
 ```java
 import io.github.minh124199.viettemplate.api.*;
@@ -234,7 +234,7 @@ public class TemplateEngineExample {
 }
 ```
 
-#### Programmatic In-Memory Testing (0.1.1-SNAPSHOT)
+#### Programmatic In-Memory Testing (0.2.0)
 
 For unit testing without filesystem resources, use `InMemoryTemplateRepository`:
 
@@ -483,8 +483,8 @@ Please also review our [Code of Conduct](CODE_OF_CONDUCT.md) and [Security Polic
 
 Viet Template follows an evidence-driven, benchmark-verified phased roadmap:
 
-- **Phase 0.1.x (Current)**: Baseline stabilization, adversarial security fuzzing, and Milestone M19.1 JMH benchmark infrastructure.
-- **Phase 0.2.0**: High-performance runtime architecture with compiler-assigned variable slot execution frames (`EvaluationValue[] slots`) and indexed compilation cache invalidation.
+- **Phase 0.1.x**: Baseline stabilization, adversarial security fuzzing, and Milestone M19.1 JMH benchmark infrastructure.
+- **Phase 0.2.0 (Current)**: High-performance runtime architecture with compiler-assigned variable slot execution frames (`EvaluationValue[] slots`) and indexed compilation cache invalidation.
 - **Phase 0.3.x+**: Evidence-driven optimizations guided by profiling (cache contention reduction, zero-copy token slices).
 - **Phase 1.0**: Stable public API freeze, Spring Framework 7 MVC `ViewResolver`, Spring Boot 4 starter (`viet-template-spring-boot-starter`), Maven and Gradle AOT pre-compilation build plugins, and GraalVM Native Image verification.
 

@@ -392,14 +392,7 @@ class BenchmarkFixtureCorrectnessTest {
     TemplateId id1 = TemplateId.of("t1.vm");
     CompileCacheKey key1 =
         CompileCacheKey.of(
-            id1,
-            "hash1",
-            "0.1.1-SNAPSHOT",
-            OptimizationLevel.O2,
-            ExecutionTier.IR,
-            "std",
-            "model",
-            "opts");
+            id1, "hash1", "0.2.0", OptimizationLevel.O2, ExecutionTier.IR, "std", "model", "opts");
     CompiledTemplateHandle handle1 = CompiledTemplateHandle.ofIr(id1, 1L, key1, null);
 
     cache.put(key1, handle1);
@@ -422,7 +415,7 @@ class BenchmarkFixtureCorrectnessTest {
         CompileCacheKey.of(
             rootId,
             "hashR",
-            "0.1.1-SNAPSHOT",
+            "0.2.0",
             OptimizationLevel.O2,
             ExecutionTier.IR,
             "std",
@@ -432,7 +425,7 @@ class BenchmarkFixtureCorrectnessTest {
         CompileCacheKey.of(
             depId,
             "hashD",
-            "0.1.1-SNAPSHOT",
+            "0.2.0",
             OptimizationLevel.O2,
             ExecutionTier.IR,
             "std",

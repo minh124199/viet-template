@@ -25,7 +25,7 @@ class TemplateCompileCacheTest {
         CompileCacheKey.of(
             id,
             "hash1",
-            "0.1.1-SNAPSHOT",
+            "0.2.0",
             OptimizationLevel.O2,
             ExecutionTier.AOT_BYTECODE,
             "policy1",
@@ -44,7 +44,7 @@ class TemplateCompileCacheTest {
         CompileCacheKey.of(
             id,
             "hash2",
-            "0.1.1-SNAPSHOT",
+            "0.2.0",
             OptimizationLevel.O2,
             ExecutionTier.AOT_BYTECODE,
             "policy1",
@@ -57,7 +57,7 @@ class TemplateCompileCacheTest {
         CompileCacheKey.of(
             id,
             "hash1",
-            "0.1.1-SNAPSHOT",
+            "0.2.0",
             OptimizationLevel.O2,
             ExecutionTier.AOT_BYTECODE,
             "policy2",
@@ -70,7 +70,7 @@ class TemplateCompileCacheTest {
         CompileCacheKey.of(
             id,
             "hash1",
-            "0.1.1-SNAPSHOT",
+            "0.2.0",
             OptimizationLevel.O2,
             ExecutionTier.AOT_BYTECODE,
             "policy1",
@@ -83,7 +83,7 @@ class TemplateCompileCacheTest {
         CompileCacheKey.of(
             id,
             "hash1",
-            "0.1.1-SNAPSHOT",
+            "0.2.0",
             OptimizationLevel.O0,
             ExecutionTier.AOT_BYTECODE,
             "policy1",
@@ -102,13 +102,13 @@ class TemplateCompileCacheTest {
 
     CompileCacheKey k1 =
         CompileCacheKey.of(
-            id1, "h1", "0.1.1-SNAPSHOT", OptimizationLevel.O2, ExecutionTier.IR, "p", "m", "v");
+            id1, "h1", "0.2.0", OptimizationLevel.O2, ExecutionTier.IR, "p", "m", "v");
     CompileCacheKey k2 =
         CompileCacheKey.of(
-            id2, "h2", "0.1.1-SNAPSHOT", OptimizationLevel.O2, ExecutionTier.IR, "p", "m", "v");
+            id2, "h2", "0.2.0", OptimizationLevel.O2, ExecutionTier.IR, "p", "m", "v");
     CompileCacheKey k3 =
         CompileCacheKey.of(
-            id3, "h3", "0.1.1-SNAPSHOT", OptimizationLevel.O2, ExecutionTier.IR, "p", "m", "v");
+            id3, "h3", "0.2.0", OptimizationLevel.O2, ExecutionTier.IR, "p", "m", "v");
 
     cache.put(k1, CompiledTemplateHandle.ofIr(id1, 1L, k1, null));
     cache.put(k2, CompiledTemplateHandle.ofIr(id2, 2L, k2, null));
@@ -153,10 +153,10 @@ class TemplateCompileCacheTest {
 
     CompileCacheKey k1 =
         CompileCacheKey.of(
-            id, "h1", "0.1.1-SNAPSHOT", OptimizationLevel.O2, ExecutionTier.IR, "p", "m", "v");
+            id, "h1", "0.2.0", OptimizationLevel.O2, ExecutionTier.IR, "p", "m", "v");
     CompileCacheKey k2 =
         CompileCacheKey.of(
-            id, "h2", "0.1.1-SNAPSHOT", OptimizationLevel.O2, ExecutionTier.IR, "p", "m", "v");
+            id, "h2", "0.2.0", OptimizationLevel.O2, ExecutionTier.IR, "p", "m", "v");
 
     long gen1 = cache.nextGeneration();
     cache.put(k1, CompiledTemplateHandle.ofIr(id, gen1, k1, null));
@@ -318,7 +318,7 @@ class TemplateCompileCacheTest {
     return CompileCacheKey.of(
         id,
         "h" + variant,
-        "0.1.1-SNAPSHOT",
+        "0.2.0",
         OptimizationLevel.O2,
         ExecutionTier.IR,
         "p" + variant,

@@ -8,7 +8,7 @@ Viet Template follows an evidence-driven, benchmark-verified phased release road
 
 ## Release Phase 0.1.x — Baseline Stabilization & Benchmark Infrastructure
 
-Current development version: `0.1.1-SNAPSHOT`.
+Release Phase 0.1.x is completed with 0.1.0 published.
 
 This release establishes the authoritative semantic baseline, verified differential compatibility with Apache Velocity 2.4.1, complete compiler pipeline, multi-tier execution backends, and security hardening.
 
@@ -68,6 +68,8 @@ To adhere to the Java-first design policy and avoid premature complexity:
 ## Release Phase 0.2.0 — High-Performance Runtime Architecture
 
 Release `0.2.0` introduces the next major internal runtime evolution, transitioning variable resolution from string-based hash lookups to compiler-assigned flat array slots and indexing the compilation cache for scalable invalidation.
+
+**Release Qualification Status**: 0.2.0 release qualification is complete across all criteria; publication to Maven Central is pending.
 
 ### Key Milestones & Capabilities (Milestone M19.2)
 

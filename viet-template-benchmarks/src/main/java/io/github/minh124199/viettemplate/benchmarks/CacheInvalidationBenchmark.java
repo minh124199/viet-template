@@ -96,7 +96,7 @@ public class CacheInvalidationBenchmark {
             CompileCacheKey.of(
                 tId,
                 "src-" + t + "-v" + k,
-                "0.1.1-SNAPSHOT",
+                "0.2.0",
                 OptimizationLevel.O2,
                 ExecutionTier.IR,
                 "policy-" + k,
@@ -116,7 +116,7 @@ public class CacheInvalidationBenchmark {
           CompileCacheKey.of(
               targetId,
               "src-0-v" + k,
-              "0.1.1-SNAPSHOT",
+              "0.2.0",
               OptimizationLevel.O2,
               ExecutionTier.IR,
               "policy-" + k,
@@ -153,7 +153,7 @@ public class CacheInvalidationBenchmark {
             CompileCacheKey.of(
                 dId,
                 "dep-src-" + dId.value() + "-v" + k,
-                "0.1.1-SNAPSHOT",
+                "0.2.0",
                 OptimizationLevel.O2,
                 ExecutionTier.IR,
                 "policy-" + k,

@@ -58,7 +58,7 @@ public class CompileCacheBenchmark {
           CompileCacheKey.of(
               id,
               "fresh-" + variant,
-              "0.1.1-SNAPSHOT",
+              "0.2.0",
               OptimizationLevel.O2,
               ExecutionTier.IR,
               "standard",
@@ -109,7 +109,7 @@ public class CompileCacheBenchmark {
           CompileCacheKey.of(
               id,
               "hash-" + i,
-              "0.1.1-SNAPSHOT",
+              "0.2.0",
               OptimizationLevel.O2,
               ExecutionTier.IR,
               "standard",
@@ -124,7 +124,7 @@ public class CompileCacheBenchmark {
         CompileCacheKey.of(
             targetId,
             "hash-250",
-            "0.1.1-SNAPSHOT",
+            "0.2.0",
             OptimizationLevel.O2,
             ExecutionTier.IR,
             "standard",
@@ -136,7 +136,7 @@ public class CompileCacheBenchmark {
         CompileCacheKey.of(
             targetId,
             "hash-250-v2",
-            "0.1.1-SNAPSHOT",
+            "0.2.0",
             OptimizationLevel.O2,
             ExecutionTier.IR,
             "standard",
@@ -158,7 +158,7 @@ public class CompileCacheBenchmark {
           CompileCacheKey.of(
               id,
               "eviction-hash-" + i,
-              "0.1.1-SNAPSHOT",
+              "0.2.0",
               OptimizationLevel.O2,
               ExecutionTier.IR,
               "standard",

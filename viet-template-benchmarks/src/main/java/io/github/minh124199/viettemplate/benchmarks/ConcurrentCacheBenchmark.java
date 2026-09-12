@@ -85,7 +85,7 @@ public class ConcurrentCacheBenchmark {
           CompileCacheKey.of(
               tId,
               "hash-" + i,
-              "0.1.1-SNAPSHOT",
+              "0.2.0",
               OptimizationLevel.O2,
               ExecutionTier.IR,
               "standard",

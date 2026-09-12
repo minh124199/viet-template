@@ -40,7 +40,7 @@ import java.util.Set;
 /** Canonical reference implementation of {@link TemplateEngine}. */
 public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
 
-  private static final String COMPILER_VERSION = "0.1.1-SNAPSHOT";
+  private static final String COMPILER_VERSION = "0.2.0";
 
   private final TemplateRepository repository;
   private final TemplateCompileCache cache;

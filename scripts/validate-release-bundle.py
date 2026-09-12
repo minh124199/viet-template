@@ -43,6 +43,7 @@ PRODUCTION_MODULES = [
 
 EXCLUDED_MODULES = [
     "viet-template-tck",
+    "viet-template-benchmarks",
 ]
 
 def get_project_version():
@@ -201,26 +202,29 @@ def validate_pom_metadata(pom_path, module_name, expected_version, errors):
     print(f"  [PASS] POM metadata for {module_name} conforms to Maven Central standards.")
 
 def validate_tck_defense_in_depth(root_dir, errors):
-    print("\n[CHECK] Verifying TCK deployment defense-in-depth...")
-    tck_pom_path = root_dir / "viet-template-tck" / "pom.xml"
-    if not tck_pom_path.exists():
-        errors.append("viet-template-tck/pom.xml missing")
-        return
+    print("\n[CHECK] Verifying non-published modules deployment defense-in-depth...")
+    for mod in EXCLUDED_MODULES:
+        pom_path = root_dir / mod / "pom.xml"
+        if not pom_path.exists():
+            errors.append(f"{mod}/pom.xml missing")
+            continue
 
-    tck_text = tck_pom_path.read_text(encoding="utf-8")
-    if "<maven.deploy.skip>true</maven.deploy.skip>" not in tck_text:
-        errors.append("viet-template-tck/pom.xml missing <maven.deploy.skip>true</maven.deploy.skip>")
-    if "<skipPublishing>true</skipPublishing>" not in tck_text:
-        errors.append("viet-template-tck/pom.xml missing <skipPublishing>true</skipPublishing>")
+        pom_text = pom_path.read_text(encoding="utf-8")
+        if "<maven.deploy.skip>true</maven.deploy.skip>" not in pom_text:
+            errors.append(f"{mod}/pom.xml missing <maven.deploy.skip>true</maven.deploy.skip>")
+        if "<skipPublishing>true</skipPublishing>" not in pom_text:
+            errors.append(f"{mod}/pom.xml missing <skipPublishing>true</skipPublishing>")
 
     # Check Gradle build.gradle.kts
     build_gradle_path = root_dir / "build.gradle.kts"
     if build_gradle_path.exists():
         build_gradle = build_gradle_path.read_text(encoding="utf-8")
-        if 'if (project.name != "viet-template-tck")' not in build_gradle:
+        if 'project.name != "viet-template-tck"' not in build_gradle:
             errors.append("build.gradle.kts does not explicitly exclude viet-template-tck from publication")
+        if 'project.name != "viet-template-benchmarks"' not in build_gradle:
+            errors.append("build.gradle.kts does not explicitly exclude viet-template-benchmarks from publication")
 
-    print("  [PASS] viet-template-tck is explicitly prevented from publishing in both Maven and Gradle.")
+    print("  [PASS] Non-published modules (viet-template-tck, viet-template-benchmarks) are explicitly prevented from publishing in both Maven and Gradle.")
 
 def main():
     parser = argparse.ArgumentParser(description="Validate release publication bundle.")

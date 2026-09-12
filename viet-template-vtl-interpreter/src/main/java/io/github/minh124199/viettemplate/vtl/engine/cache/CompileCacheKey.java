@@ -12,7 +12,7 @@ import java.util.Objects;
  *
  * @param templateId normalized template identifier
  * @param sourceFingerprint SHA-256 hex digest of the template source text
- * @param compilerVersion compiler engine version (e.g. 0.1.1-SNAPSHOT)
+ * @param compilerVersion compiler engine version (e.g. 0.2.0)
  * @param optimizationLevel intermediate representation optimization level (O0..O3)
  * @param executionTier target execution tier (AOT_BYTECODE, IR, AST)
  * @param accessPolicyId unique identifier for the active linker access policy

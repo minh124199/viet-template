@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-12
+
 ### Added
+- **High-Performance Runtime Architecture (Milestone M19.2)**:
+  - **Compiler-Assigned Variable Slots (`O45 AssignVariableSlots`)**: Introduced optimizer pass `O45` assigning stable, static integer slot IDs to template variables (parameters, `#set` targets, loop counters, macro arguments) without slot reuse, replacing string-based `HashMap` lookups with direct array indexing.
+  - **Flat Array-Backed `ExecutionFrame`**: Runtime activation frame backed by `EvaluationValue[] slots` across both the reference IR interpreter and Ahead-Of-Time (AOT) bytecode backend. Explicitly initializes each slot to `EvaluationValue.undefined()`, guaranteeing strict preservation of Velocity 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) without exposing Java reference array `null`s.
+  - **AOT Bytecode Slot Emission**: Bytecode compiler emits direct JVM array-slot bytecode instructions (`ALOAD`, `ASTORE`, `AALOAD`, `AASTORE`) for variable reads and writes, drastically reducing variable resolution overhead and GC allocation.
+  - **Dynamic Fallback Coherence**: Seamless dynamic fallback ensuring that dynamic features (`#evaluate`, unresolvable dynamic references, reflective tool contexts) maintain 100% coherence and bidirectional synchronization between `ExecutionFrame` slots and lexical `ExecutionContext` scopes.
+  - **Indexed Template Compile-Cache Invalidation (Milestone M19.2a)**: Introduced a concurrent secondary reverse index (`ConcurrentMap<TemplateId, Set<CompileCacheKey>>`) mapping each template ID to its active compile cache keys. Invalidation reduces from an $O(N)$ linear cache scan to average $O(1)$ index lookup followed by $O(K)$ removal of the $K$ associated entries. Put and invalidate operations are serialized via 64 template lock stripes, preventing race conditions and ensuring linearizable cache mutations without lock convoying.
+- **Benchmark & Profiling Infrastructure (Milestone M19.1)**:
+  - Dedicated `viet-template-benchmarks` module with dual Gradle Kotlin DSL and Apache Maven parity.
+  - 10 canonical JMH suites covering workloads B01 through B15, including memory profiling (`-prof gc`) and verified cross-JDK baselines across Java 17, 21, and 25.
 - **Security Hardening (Milestone M13)**:
   - Pluggable defense-in-depth member access security (`MemberAccessPolicy`, `DefaultMemberAccessPolicy`, `DenyAllMemberAccessPolicy`, `AllowlistMemberAccessPolicy`) providing default-deny policies blocking reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), classloaders (`ClassLoader`, `Module`), process execution (`Process`, `ProcessBuilder`), thread management (`Thread`, `ThreadGroup`), concurrency executors (`ExecutorService`, `ThreadPoolExecutor`, `ForkJoinPool`), and system/runtime manipulation (`System`, `Runtime`, `SecurityManager`), as well as strict safe allowlists via `MemberAccessPolicy.allowlistBuilder()`.
   - Cryptographic security policy fingerprinting (`SecurityPolicyFingerprint`) computing deterministic SHA-256 digests over policy rules to guarantee cache key partitioning across security configurations.
@@ -136,6 +147,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Upgraded Google Java Format from 1.24.0 to 1.30.0 across Gradle and Maven.
   - Decoupled source code formatting verification from the multi-JDK compatibility matrix: established a dedicated, mandatory CI quality gate (`formatting`) on JDK 21 running `./gradlew spotlessCheck` and `./mvnw spotless:check -B`.
   - Application runtime compatibility matrix continues to verify compilation, test suites, and TCK compliance across Java 17, 21, and 25, passing `-Dspotless.check.skip=true` to skip formatting execution under matrix JVMs. This isolates `google-java-format` javac-internal runtime dependencies from application JDK compatibility while maintaining full local developer formatting enforcement.
+
+### Fixed
+- **Bytecode Compiler Hardening**: Fixed method size planning to prevent duplicate method emission when splitting oversized template chunks into partitioned helper methods.
+- **Optimizer Idempotence**: Resolved optimizer pass ordering edge cases to ensure strict idempotence and valid IR verification under O3 optimization level.
+- **Runtime Fallback Synchronization**: Hardened nested lexical scope coherence and fallback synchronization across `#foreach`, `#macro`, and `#evaluate` boundaries.
+- **Release Bundle Validation**: Enhanced release bundle validation to verify non-publishing exclusions for both `viet-template-tck` and `viet-template-benchmarks` across Maven and Gradle.
+
+### Performance & Allocation Evidence
+- **Throughput Improvements (Apples-to-Apples Java 17 Baseline)**:
+  - B02 (Scalar Variables): IR +3.9%, AOT +27.6%
+  - B05 (Small Table): IR +18.7%, AOT +18.3%
+  - B06 (Large Table): IR +16.1%, AOT +18.1%
+  - B07 (Nested Loops): IR +4.4%, AOT +13.1%
+  - B11 (Macros): IR -1.9% (within measurement error), AOT +32.9%
+- **Microbenchmarks**:
+  - `assignStaticSlot`: ~406M ops/s vs dynamic `assignTemplateLocal`: ~27.5M ops/s (~14.8x speedup).
+  - Direct static slot reads remain effectively insensitive to lexical scope depth in the isolated Java 17 microbenchmark.
+- **Allocation Profile**:
+  - Milestone M19.2b primarily improved execution throughput rather than reducing AOT allocation.
+  - In measured workloads, AOT bytecode exhibited no material allocation change (e.g. 14.5 KB/op on B02, 9.2 KB/op on B05).
+  - The IR interpreter pays bounded frame-allocation overhead (+0.1% to +3.5% on loops/scalars, ~+10.7% on macros) while avoiding repeated scope-map work.
+- **Slot Invariants**:
+  - `ExecutionFrame` explicitly initializes slots to `EvaluationValue.undefined()` (Java reference arrays themselves initialize to `null`).
+  - Current measured workloads do not demonstrate a need for slot packing in 0.2.0, so slot reuse remains deferred.
+
+### Compatibility & Migration
+- **Java Baseline**: Built against Java 17 baseline (`--release 17`), fully tested and verified across Java 17, 21, and 25.
+- **Apache Velocity Compatibility**: 100% accounted behavioral coverage across 301 differential test scenarios against Apache Velocity Engine 2.4.1 in `viet-template-tck` (98.01% exact behavioral parity, 5 intentional security/correctness differences, 1 extension).
+- **Migration Assessment**:
+  - **Template Syntax**: Zero template changes required for standard Velocity templates (`.vm`). Full support for VTL directives, macros, expressions, and alternate value fallbacks.
+  - **Java API**: No incompatible public API changes were found in the 0.1.0 → 0.2.0 public API review; observed API changes are additive. Standard rendering via `TemplateEngine` or `VtlInterpreter` operates with 100% binary and source compatibility.
+  - **Internal Architecture**: Applications relying directly on compiler-internal AST or IR classes should note the introduction of `ExecutionFrame` and `AssignVariableSlotsPass`.
 
 ## [0.1.0] - 2026-09-06
 
