@@ -377,8 +377,11 @@ java -jar viet-template-benchmarks/build/libs/benchmarks.jar -f 1 -wi 1 -i 1 Var
 
 #### Apache Maven
 ```bash
-# Package self-contained executable benchmark JAR via Maven Shade plugin
-./mvnw clean package -pl viet-template-benchmarks
+# Package self-contained executable benchmark JAR via Maven Shade plugin (including upstream modules)
+./mvnw clean package \
+  -pl viet-template-benchmarks \
+  -am \
+  -DskipTests
 
 # Run benchmarks using shaded JAR
 java -jar viet-template-benchmarks/target/benchmarks.jar -f 1 -wi 1 -i 1 VariableLookupBenchmark

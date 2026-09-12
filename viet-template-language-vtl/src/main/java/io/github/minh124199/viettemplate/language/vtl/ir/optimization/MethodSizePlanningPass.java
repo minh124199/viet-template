@@ -69,6 +69,9 @@ public final class MethodSizePlanningPass implements IrOptimizationPass {
       } else {
         // Extract subsequent chunks into synthetic helper functions
         String chunkName = context.nextChunkFunctionName();
+        while (containsFunctionNamed(newFunctions, chunkName)) {
+          chunkName = context.nextChunkFunctionName();
+        }
         IrBlock chunkBody = new IrBlock(new ArrayList<>(slice), sliceSpan);
         IrFunction chunkFunction =
             new IrFunction(chunkName, template.parameters(), List.of(), chunkBody, sliceSpan);
@@ -91,5 +94,14 @@ public final class MethodSizePlanningPass implements IrOptimizationPass {
         template.capabilities(),
         newFunctions,
         template.span());
+  }
+
+  private static boolean containsFunctionNamed(List<IrFunction> functions, String name) {
+    for (IrFunction f : functions) {
+      if (f.name().equals(name)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

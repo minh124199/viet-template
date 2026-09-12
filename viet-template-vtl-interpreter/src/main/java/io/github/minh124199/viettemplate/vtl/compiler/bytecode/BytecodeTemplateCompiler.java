@@ -221,7 +221,12 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     for (IrFunction function : optimized.functions()) {
       String methodName = BytecodeNaming.chunkMethodName(function.name());
       if (!compiledMethods.add(methodName)) {
-        continue;
+        throw new IllegalStateException(
+            "Duplicate generated helper method name '"
+                + methodName
+                + "' detected for function '"
+                + function.name()
+                + "'. The optimizer must ensure unique helper function names.");
       }
       ClassFileWriter.MethodWriter funcMw =
           cf.addMethod(

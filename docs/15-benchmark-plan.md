@@ -121,8 +121,11 @@ viet-template-benchmarks/
 ./gradlew :viet-template-benchmarks:build
 ./gradlew :viet-template-benchmarks:benchmarkJar
 
-# Apache Maven: compile benchmarks and build target/benchmarks.jar via maven-shade-plugin
-./mvnw clean package -pl viet-template-benchmarks
+# Apache Maven: compile benchmarks and build target/benchmarks.jar via maven-shade-plugin (with upstream modules)
+./mvnw clean package \
+  -pl viet-template-benchmarks \
+  -am \
+  -DskipTests
 ```
 
 #### 2. Execute Quick Smoke Test
@@ -212,7 +215,7 @@ The benchmark suite contains nine focused JMH benchmark classes covering every c
 
 | ID | Workload | Description & Target Metrics |
 |---|---|---|
-| **B01** | Static HTML (20 KB) | Large static HTML with minimal directives. Target: pure buffer write speed, zero allocations. |
+| **B01** | Static HTML (20 KB) | Large static HTML with minimal directives. Target: pure buffer write speed, minimal allocations. |
 | **B02** | Scalar Substitutions (50 scalars) | Flat template binding 50 variables of mixed types (strings, integers, booleans). Target: slot access vs. map lookup. |
 | **B03** | Deep Property Chain | Chain depth 4–5 on domain records and POJOs. Target: inline getter dispatch vs. reflection. |
 | **B04** | Mixed Conditionals (100 branches) | Complex boolean logic, empty checks, numeric truthiness. Target: branch misprediction reduction. |
