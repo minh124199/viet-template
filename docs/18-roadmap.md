@@ -69,7 +69,7 @@ To adhere to the Java-first design policy and avoid premature complexity:
 
 Release `0.2.0` introduces the next major internal runtime evolution, transitioning variable resolution from string-based hash lookups to compiler-assigned flat array slots and indexing the compilation cache for scalable invalidation.
 
-**Release Qualification Status**: 0.2.0 release qualification is complete across all criteria; publication to Maven Central is pending.
+**Release Status**: 0.2.0 is RELEASED. Published to Maven Central and GitHub Releases on 2026-09-12.
 
 ### Key Milestones & Capabilities (Milestone M19.2)
 
