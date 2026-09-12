@@ -18,7 +18,6 @@ import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -68,8 +67,7 @@ public final class TierDifferentialHarness {
         baseOptions != null ? baseOptions : VtlInterpreterOptions.DEFAULT;
 
     SourceText src = SourceText.of("differential.vtl", source);
-    VtlParserOptions parserOptions =
-        VtlParserOptions.ofDefaults().withProfile(options.profile());
+    VtlParserOptions parserOptions = VtlParserOptions.ofDefaults().withProfile(options.profile());
     VtlParseResult parseResult = VtlParser.parse(src, parserOptions);
 
     if (parseResult.hasErrors()) {
@@ -181,8 +179,7 @@ public final class TierDifferentialHarness {
     MapRenderContext renderContext = MapRenderContext.of(freshContext);
     StringTemplateOutput output = new StringTemplateOutput();
 
-    VtlInterpreterOptions tierOptions =
-        baseOptions.toBuilder().executionTier(tier).build();
+    VtlInterpreterOptions tierOptions = baseOptions.toBuilder().executionTier(tier).build();
     VtlInterpreter interpreter = new VtlInterpreter(tierOptions);
 
     try {
@@ -192,12 +189,7 @@ public final class TierDifferentialHarness {
       Throwable semantic = unwrapSemanticException(t);
       String diagCode = extractDiagnosticCode(semantic);
       return new TierResult(
-          tier,
-          null,
-          semantic.getClass(),
-          diagCode,
-          semantic.getMessage(),
-          freshContext);
+          tier, null, semantic.getClass(), diagCode, semantic.getMessage(), freshContext);
     }
   }
 
@@ -205,7 +197,8 @@ public final class TierDifferentialHarness {
     if (t == null) {
       return null;
     }
-    if (t instanceof TemplateRenderException tre && tre.getCause() instanceof TemplateException te) {
+    if (t instanceof TemplateRenderException tre
+        && tre.getCause() instanceof TemplateException te) {
       return te;
     }
     if (t.getCause() instanceof TemplateLimitException tle) {
@@ -217,7 +210,8 @@ public final class TierDifferentialHarness {
     return t;
   }
 
-  private static Class<? extends Throwable> getSemanticCategory(Class<? extends Throwable> exClass) {
+  private static Class<? extends Throwable> getSemanticCategory(
+      Class<? extends Throwable> exClass) {
     if (TemplateLimitException.class.isAssignableFrom(exClass)) {
       return TemplateLimitException.class;
     }

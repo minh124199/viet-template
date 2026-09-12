@@ -23,7 +23,8 @@ class VtlMutationParserFuzzTest {
     "#set($total = $price * $quantity) Total: $total",
     "#if($user.active) Active: $user.name #elseif($user.pending) Pending #else Inactive #end",
     "#foreach($item in $items) Item: $item ($foreach.index) #end",
-    "#macro(renderCard $title $body) <div class=\"card\"><h3>$title</h3><p>$body</p></div> #end #renderCard('T', 'B')",
+    "#macro(renderCard $title $body) <div class=\"card\"><h3>$title</h3><p>$body</p></div> #end"
+        + " #renderCard('T', 'B')",
     "#define($block) Content with $val and #( 1 + 2 ) #end $block",
     "Escaped: \\$foo and \\\\$bar and \\#if",
     "#[[ raw content with unparsed $var and #if ]]#",

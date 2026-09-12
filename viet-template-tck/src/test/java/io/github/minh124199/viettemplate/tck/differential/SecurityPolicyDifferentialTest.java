@@ -15,7 +15,6 @@ import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy;
 import java.io.IOException;
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -30,7 +29,9 @@ class SecurityPolicyDifferentialTest {
 
   @ParameterizedTest
   @EnumSource(ExecutionTier.class)
-  @DisplayName("P13: Sequential rendering with different policies cannot contaminate permissions (Permissive -> Safe -> Permissive)")
+  @DisplayName(
+      "P13: Sequential rendering with different policies cannot contaminate permissions (Permissive"
+          + " -> Safe -> Permissive)")
   void permissiveThenSafeThenPermissive(ExecutionTier tier) throws IOException {
     InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
     TemplateId tid = TemplateId.of("sensitive.vtl");
@@ -91,7 +92,8 @@ class SecurityPolicyDifferentialTest {
 
   @ParameterizedTest
   @EnumSource(ExecutionTier.class)
-  @DisplayName("P13: Reverse sequence (Safe -> Permissive -> Safe) enforces strict policy isolation")
+  @DisplayName(
+      "P13: Reverse sequence (Safe -> Permissive -> Safe) enforces strict policy isolation")
   void safeThenPermissiveThenSafe(ExecutionTier tier) throws IOException {
     InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
     TemplateId tid = TemplateId.of("sensitive_reverse.vtl");

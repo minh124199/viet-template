@@ -40,13 +40,7 @@ class SafeUrlValidatorPropertyTest {
   };
 
   private static final String[] OBFUSCATION_PREFIXES_SUFFIXES = {
-    " ",
-    "\t",
-    "\n",
-    "\r",
-    "\r\n",
-    "  \t  ",
-    "\0"
+    " ", "\t", "\n", "\r", "\r\n", "  \t  ", "\0"
   };
 
   private static final String[] DANGEROUS_COLON_VARIANTS = {
@@ -84,7 +78,10 @@ class SafeUrlValidatorPropertyTest {
         if (rng.nextBoolean()) {
           scheme = randomizeCase(scheme, rng);
         }
-        candidate = scheme + ":" + (scheme.equalsIgnoreCase("tel") ? "+123456789" : "user" + i + "@example.com");
+        candidate =
+            scheme
+                + ":"
+                + (scheme.equalsIgnoreCase("tel") ? "+123456789" : "user" + i + "@example.com");
       } else {
         // Safe relative path
         candidate = VALID_RELATIVE_PATHS[rng.nextInt(VALID_RELATIVE_PATHS.length)];
@@ -139,10 +136,12 @@ class SafeUrlValidatorPropertyTest {
     for (String dangerous : DANGEROUS_SCHEMES) {
       // 1. Whitespace or control characters inside scheme
       for (int pos = 1; pos < dangerous.length(); pos++) {
-        String internalWs = dangerous.substring(0, pos) + "\t" + dangerous.substring(pos) + ":evil()";
+        String internalWs =
+            dangerous.substring(0, pos) + "\t" + dangerous.substring(pos) + ":evil()";
         assertThat(SafeUrlValidator.isValid(internalWs)).isFalse();
         assertThat(SafeUrl.tryOf(internalWs)).isEmpty();
-        assertThatThrownBy(() -> SafeUrl.of(internalWs)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> SafeUrl.of(internalWs))
+            .isInstanceOf(IllegalArgumentException.class);
       }
 
       // 2. Encoded colons: javascript%3a, etc.
@@ -178,9 +177,33 @@ class SafeUrlValidatorPropertyTest {
     int iterations = isDeepMode() ? 5000 : 500;
 
     String[] fragments = {
-      "http", "https", "javascript", "data", "file", "tel", "mailto", "ftp",
-      "://", ":", "/", "//", "./", "../", "?", "#", " ", "\t", "\0", "%3a",
-      "example.com", "alert(1)", "foo", "bar", "123", "&colon;", "&#58;"
+      "http",
+      "https",
+      "javascript",
+      "data",
+      "file",
+      "tel",
+      "mailto",
+      "ftp",
+      "://",
+      ":",
+      "/",
+      "//",
+      "./",
+      "../",
+      "?",
+      "#",
+      " ",
+      "\t",
+      "\0",
+      "%3a",
+      "example.com",
+      "alert(1)",
+      "foo",
+      "bar",
+      "123",
+      "&colon;",
+      "&#58;"
     };
 
     for (int i = 0; i < iterations; i++) {
@@ -206,6 +229,129 @@ class SafeUrlValidatorPropertyTest {
             .as("SafeUrl.of(%s) must throw when invalid", input)
             .isInstanceOf(IllegalArgumentException.class);
       }
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "P5: Explicit TAB, CR, LF, NUL, and DEL in absolute, relative, mailto, and tel URLs are"
+          + " strictly rejected")
+  void targetedControlCharactersAreStrictlyRejected() {
+    List<String> invalidCandidates =
+        List.of(
+            // Absolute HTTP/HTTPS
+            "https://exa\nmple.com",
+            "https://exa\rmple.com",
+            "https://exa\tmple.com",
+            "https://example.com/foo\nbar",
+            "https://example.com/foo\rbar",
+            "https://example.com/foo\tbar",
+            "https://example.com?q=foo\nbar",
+            "https://example.com/foo\u007fbar",
+            "https://exa\u007fmple.com",
+            "http://example.com/\0evil",
+            // mailto
+            "mailto:user@example.com\nbcc:attacker@example.com",
+            "mailto:user@example.com\rsubject=test",
+            "mailto:user\t@example.com",
+            "mailto:user\u007f@example.com",
+            // tel
+            "tel:+123\t456",
+            "tel:+123\n456",
+            "tel:+123\r456",
+            "tel:+123\u007f456",
+            // Relative URLs
+            "/foo\nbar",
+            "/foo\rbar",
+            "/foo\tbar",
+            "/foo\u007fbar",
+            "?q=foo\nbar",
+            "?q=foo\rbar",
+            "?q=foo\tbar",
+            "#frag\rment",
+            "#frag\nment",
+            "#frag\tment",
+            "#frag\u007fment",
+            "./dir/\nfile",
+            "../parent/\rfile");
+
+    for (String x : invalidCandidates) {
+      assertThat(SafeUrlValidator.isValid(x))
+          .as("SafeUrlValidator.isValid(%s) must be false", x)
+          .isFalse();
+      assertThat(SafeUrl.tryOf(x)).as("SafeUrl.tryOf(%s) must be empty", x).isEmpty();
+      assertThatThrownBy(() -> SafeUrl.of(x))
+          .as("SafeUrl.of(%s) must throw IllegalArgumentException", x)
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "P5: Generated URLs with injected C0 controls (0x00..0x1F) and DEL (0x7F) are always"
+          + " rejected")
+  void generatedControlCharactersAreAlwaysRejected() {
+    SplittableRandom rng = new SplittableRandom(SEED + 99);
+    int iterations = isDeepMode() ? 5000 : 500;
+
+    char[] forbiddenChars = new char[33];
+    for (int c = 0; c <= 0x1F; c++) {
+      forbiddenChars[c] = (char) c;
+    }
+    forbiddenChars[32] = '\u007F';
+
+    for (int i = 0; i < iterations; i++) {
+      char forbidden = forbiddenChars[rng.nextInt(forbiddenChars.length)];
+      int positionChoice = rng.nextInt(7);
+      String candidate;
+      String position;
+
+      switch (positionChoice) {
+        case 0 -> {
+          position = "scheme";
+          candidate = "http" + forbidden + "s://example.com/path";
+        }
+        case 1 -> {
+          position = "authority/host";
+          candidate = "https://exam" + forbidden + "ple.com/path?q=1";
+        }
+        case 2 -> {
+          position = "path";
+          candidate = "https://example.com/dir/" + forbidden + "file.html";
+        }
+        case 3 -> {
+          position = "query";
+          candidate = "https://example.com/api?user=admin" + forbidden + "&role=root";
+        }
+        case 4 -> {
+          position = "fragment";
+          candidate = "https://example.com/doc#sec" + forbidden + "tion";
+        }
+        case 5 -> {
+          position = "mailto target";
+          candidate = "mailto:user" + forbidden + "@example.com";
+        }
+        case 6 -> {
+          position = "tel target";
+          candidate = "tel:+1" + forbidden + "23456789";
+        }
+        default -> throw new IllegalStateException();
+      }
+
+      String diag =
+          String.format(
+              "Injected codepoint: U+%04X at position: %s, candidate: [%s], seed: 0x%X",
+              (int) forbidden, position, candidate, SEED + 99);
+
+      assertThat(SafeUrlValidator.isValid(candidate))
+          .as("%s: isValid must be false", diag)
+          .isFalse();
+
+      assertThat(SafeUrl.tryOf(candidate)).as("%s: tryOf must be empty", diag).isEmpty();
+
+      assertThatThrownBy(() -> SafeUrl.of(candidate))
+          .as("%s: of must throw IllegalArgumentException", diag)
+          .isInstanceOf(IllegalArgumentException.class);
     }
   }
 

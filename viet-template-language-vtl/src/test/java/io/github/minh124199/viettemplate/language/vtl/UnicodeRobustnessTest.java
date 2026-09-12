@@ -34,8 +34,7 @@ class UnicodeRobustnessTest {
           // Control characters and NUL
           "Text with \0 null byte and \u0007 bell",
           // Unpaired surrogates
-          "Unpaired high surrogate \uD800 and low \uDC00"
-      );
+          "Unpaired high surrogate \uD800 and low \uDC00");
 
   @Test
   @DisplayName("Unicode in literal text parses cleanly and deterministically")
@@ -87,9 +86,15 @@ class UnicodeRobustnessTest {
     for (int i = 0; i < UNICODE_SAMPLES.size(); i++) {
       String sample = UNICODE_SAMPLES.get(i);
       String template =
-          "## Single comment: " + sample.replace("\n", " ") + "\n"
-              + "#* Block comment: " + sample.replace("*#", "* #") + " *#\n"
-              + "#[[ Raw block: " + sample.replace("]]#", "] ]#") + " ]]#";
+          "## Single comment: "
+              + sample.replace("\n", " ")
+              + "\n"
+              + "#* Block comment: "
+              + sample.replace("*#", "* #")
+              + " *#\n"
+              + "#[[ Raw block: "
+              + sample.replace("]]#", "] ]#")
+              + " ]]#";
       SourceText source = SourceText.of("unicode_cmt_" + i + ".vtl", template);
 
       try {

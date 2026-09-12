@@ -1,6 +1,5 @@
 package io.github.minh124199.viettemplate.tck.differential;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import io.github.minh124199.viettemplate.tck.velocity.engine.Velocity241EngineAdapter;
@@ -55,29 +54,24 @@ class VelocityDifferentialFuzzTest {
         case 1 -> {
           // Foreach loops over range
           template =
-              String.format(
-                  "#foreach($i in [%d..%d])[$i]#end",
-                  Math.min(a, 5), Math.min(a, 5) + 3);
+              String.format("#foreach($i in [%d..%d])[$i]#end", Math.min(a, 5), Math.min(a, 5) + 3);
         }
         case 2 -> {
           // List iteration and conditionals
           ctx.put("items", List.of("alpha", "beta", "gamma"));
-          template =
-              "#foreach($it in $items)#if($it == 'beta')BINGO#{else}$it#end#end";
+          template = "#foreach($it in $items)#if($it == 'beta')BINGO#{else}$it#end#end";
         }
         case 3 -> {
           // Strings and references
           ctx.put("prefix", "Title");
           ctx.put("val", a);
-          template =
-              "Result: $prefix - $val - #if($val > 25)GREAT#{else}SMALL#end";
+          template = "Result: $prefix - $val - #if($val > 25)GREAT#{else}SMALL#end";
         }
         default -> {
           // Logical expressions
           ctx.put("t", true);
           ctx.put("f", false);
-          template =
-              "#if($t && !$f)OK#{else}FAIL#end #if($t || $f)YES#{else}NO#end";
+          template = "#if($t && !$f)OK#{else}FAIL#end #if($t || $f)YES#{else}NO#end";
         }
       }
 

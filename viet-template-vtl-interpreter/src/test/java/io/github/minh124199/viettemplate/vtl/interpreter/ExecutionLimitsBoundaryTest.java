@@ -4,16 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
-import io.github.minh124199.viettemplate.api.TemplateException;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
-import io.github.minh124199.viettemplate.runtime.MapRenderContext;
 import io.github.minh124199.viettemplate.runtime.RenderBudget;
-import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -86,14 +81,12 @@ class ExecutionLimitsBoundaryTest extends AbstractInterpreterTest {
         new VtlInterpreter(VtlInterpreterOptions.builder().limits(limits).build());
 
     // Depth 3 recursion: #rec(3) -> calls rec(2) -> calls rec(1)
-    String templateRec3 =
-        "#macro(rec $d)#if($d > 1)[$d#rec($d - 1)]#{else}[1]#end#end#rec(3)";
+    String templateRec3 = "#macro(rec $d)#if($d > 1)[$d#rec($d - 1)]#{else}[1]#end#end#rec(3)";
     String output3 = render(templateRec3, Map.of(), interpreter);
     assertThat(output3).isEqualTo("[3[2[1]]]");
 
     // Depth 4 recursion: #rec(4) -> calls rec(3) -> calls rec(2) -> calls rec(1) (depth 4)
-    String templateRec4 =
-        "#macro(rec $d)#if($d > 1)[$d#rec($d - 1)]#{else}[1]#end#end#rec(4)";
+    String templateRec4 = "#macro(rec $d)#if($d > 1)[$d#rec($d - 1)]#{else}[1]#end#end#rec(4)";
     assertThatThrownBy(() -> render(templateRec4, Map.of(), interpreter))
         .isInstanceOf(TemplateLimitException.class)
         .hasMessageContaining("maximum macro recursion depth");
@@ -134,10 +127,7 @@ class ExecutionLimitsBoundaryTest extends AbstractInterpreterTest {
     int limit = 2;
     ExecutionLimits limits = ExecutionLimits.builder().maxEvaluateDepth(limit).build();
     VtlInterpreterOptions options =
-        VtlInterpreterOptions.builder()
-            .profile(VtlProfile.VTL_DYNAMIC)
-            .limits(limits)
-            .build();
+        VtlInterpreterOptions.builder().profile(VtlProfile.VTL_DYNAMIC).limits(limits).build();
     VtlInterpreter interpreter = new VtlInterpreter(options);
 
     // 2 nested evaluates: #evaluate('#evaluate("done")')

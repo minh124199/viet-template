@@ -153,16 +153,12 @@ class EscaperPropertyTest {
       StringTemplateOutput textOut = new StringTemplateOutput();
       HtmlTextEscaper.INSTANCE.escape(candidate, textOut);
       String textRes = textOut.toString();
-      assertThat(textRes)
-          .doesNotContain("<script>")
-          .doesNotContain("</script>");
+      assertThat(textRes).doesNotContain("<script>").doesNotContain("</script>");
 
       StringTemplateOutput attrOut = new StringTemplateOutput();
       HtmlAttributeEscaper.INSTANCE.escape(candidate, attrOut);
       String attrRes = attrOut.toString();
-      assertThat(attrRes)
-          .doesNotContain("\" onmouseover")
-          .doesNotContain("' onfocus");
+      assertThat(attrRes).doesNotContain("\" onmouseover").doesNotContain("' onfocus");
     }
   }
 

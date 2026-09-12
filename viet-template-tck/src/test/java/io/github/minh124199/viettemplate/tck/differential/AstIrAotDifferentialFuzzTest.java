@@ -18,7 +18,9 @@ class AstIrAotDifferentialFuzzTest {
   }
 
   @Test
-  @DisplayName("P2 & P11: Generated valid templates maintain AST == IR == AOT parity without bytecode verifier errors")
+  @DisplayName(
+      "P2 & P11: Generated valid templates maintain AST == IR == AOT parity without bytecode"
+          + " verifier errors")
   void testCrossTierParityOnGeneratedTemplates() {
     SplittableRandom rng = new SplittableRandom(SEED);
     BoundedVtlGenerator.GeneratorBudget budget =
@@ -29,9 +31,7 @@ class AstIrAotDifferentialFuzzTest {
     int iterations = isDeepMode() ? 800 : 120;
 
     VtlInterpreterOptions options =
-        VtlInterpreterOptions.builder()
-            .profile(VtlProfile.VTL_DYNAMIC)
-            .build();
+        VtlInterpreterOptions.builder().profile(VtlProfile.VTL_DYNAMIC).build();
 
     for (int i = 0; i < iterations; i++) {
       BoundedVtlGenerator generator = new BoundedVtlGenerator(rng, budget);

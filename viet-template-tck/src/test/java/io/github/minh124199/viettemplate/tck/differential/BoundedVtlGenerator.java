@@ -84,8 +84,7 @@ public final class BoundedVtlGenerator {
     sb.append(")");
   }
 
-  private void appendIfDirective(
-      StringBuilder sb, int directiveDepth, Map<String, Object> ctx) {
+  private void appendIfDirective(StringBuilder sb, int directiveDepth, Map<String, Object> ctx) {
     sb.append("#if(");
     appendBooleanExpression(sb, 0);
     sb.append(") ");
@@ -157,12 +156,13 @@ public final class BoundedVtlGenerator {
       default -> {
         sb.append("(");
         appendExpression(sb, exprDepth + 1);
-        String op = switch (rng.nextInt(4)) {
-          case 0 -> " + ";
-          case 1 -> " - ";
-          case 2 -> " * ";
-          default -> " + "; // Avoid accidental divide-by-zero
-        };
+        String op =
+            switch (rng.nextInt(4)) {
+              case 0 -> " + ";
+              case 1 -> " - ";
+              case 2 -> " * ";
+              default -> " + "; // Avoid accidental divide-by-zero
+            };
         sb.append(op);
         appendExpression(sb, exprDepth + 1);
         sb.append(")");
@@ -184,12 +184,13 @@ public final class BoundedVtlGenerator {
       case 2 -> {
         sb.append("(");
         appendExpression(sb, exprDepth + 1);
-        String comp = switch (rng.nextInt(4)) {
-          case 0 -> " == ";
-          case 1 -> " != ";
-          case 2 -> " > ";
-          default -> " <= ";
-        };
+        String comp =
+            switch (rng.nextInt(4)) {
+              case 0 -> " == ";
+              case 1 -> " != ";
+              case 2 -> " > ";
+              default -> " <= ";
+            };
         sb.append(comp);
         appendExpression(sb, exprDepth + 1);
         sb.append(")");

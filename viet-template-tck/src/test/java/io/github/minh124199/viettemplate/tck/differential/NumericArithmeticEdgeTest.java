@@ -1,12 +1,8 @@
 package io.github.minh124199.viettemplate.tck.differential;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
-import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
@@ -20,7 +16,8 @@ class NumericArithmeticEdgeTest {
       VtlInterpreterOptions.builder().profile(VtlProfile.VTL_DYNAMIC).build();
 
   @Test
-  @DisplayName("P11: Integer boundaries (MIN_VALUE, MAX_VALUE, 0, 1, -1) maintain cross-tier parity")
+  @DisplayName(
+      "P11: Integer boundaries (MIN_VALUE, MAX_VALUE, 0, 1, -1) maintain cross-tier parity")
   void testIntegerBoundaries() {
     List<Object> boundaryValues =
         List.of(
@@ -56,17 +53,12 @@ class NumericArithmeticEdgeTest {
   }
 
   @Test
-  @DisplayName("P11: Floating-point boundaries (0.0, -0.0, Double.MIN_VALUE, MAX_VALUE) maintain cross-tier parity")
+  @DisplayName(
+      "P11: Floating-point boundaries (0.0, -0.0, Double.MIN_VALUE, MAX_VALUE) maintain cross-tier"
+          + " parity")
   void testFloatingPointBoundaries() {
     List<Double> doubles =
-        List.of(
-            0.0,
-            -0.0,
-            1.0,
-            -1.0,
-            Double.MIN_VALUE,
-            Double.MAX_VALUE,
-            Double.MIN_NORMAL);
+        List.of(0.0, -0.0, 1.0, -1.0, Double.MIN_VALUE, Double.MAX_VALUE, Double.MIN_NORMAL);
 
     for (Double d1 : doubles) {
       for (Double d2 : doubles) {
@@ -86,11 +78,7 @@ class NumericArithmeticEdgeTest {
   @Test
   @DisplayName("P11: Special float values (NaN, +Infinity, -Infinity) behavior across tiers")
   void testSpecialFloatValues() {
-    List<Double> specials =
-        List.of(
-            Double.NaN,
-            Double.POSITIVE_INFINITY,
-            Double.NEGATIVE_INFINITY);
+    List<Double> specials = List.of(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY);
 
     for (Double special : specials) {
       Map<String, Object> context = Map.of("a", special, "b", 10.0);

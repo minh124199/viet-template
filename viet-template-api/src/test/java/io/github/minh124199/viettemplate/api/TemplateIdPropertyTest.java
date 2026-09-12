@@ -26,7 +26,17 @@ class TemplateIdPropertyTest {
   };
 
   private static final String[] WINDOWS_DEVICE_NAMES = {
-    "CON", "con.vm", "PRN", "prn.txt", "AUX", "aux.html", "NUL", "nul.vtl", "COM1", "com9", "LPT1",
+    "CON",
+    "con.vm",
+    "PRN",
+    "prn.txt",
+    "AUX",
+    "aux.html",
+    "NUL",
+    "nul.vtl",
+    "COM1",
+    "com9",
+    "LPT1",
     "lpt5"
   };
 

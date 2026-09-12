@@ -147,7 +147,8 @@ public final class VtlComparisonOperations {
     if (VtlNumericOperations.isNumeric(left) && right instanceof CharSequence cs) {
       if (VtlNumericOperations.isNonFinite(left)) {
         try {
-          return Double.compare(((Number) left).doubleValue(), Double.parseDouble(cs.toString().trim()));
+          return Double.compare(
+              ((Number) left).doubleValue(), Double.parseDouble(cs.toString().trim()));
         } catch (NumberFormatException ignored) {
         }
       }
@@ -159,7 +160,8 @@ public final class VtlComparisonOperations {
     } else if (left instanceof CharSequence cs && VtlNumericOperations.isNumeric(right)) {
       if (VtlNumericOperations.isNonFinite(right)) {
         try {
-          return Double.compare(Double.parseDouble(cs.toString().trim()), ((Number) right).doubleValue());
+          return Double.compare(
+              Double.parseDouble(cs.toString().trim()), ((Number) right).doubleValue());
         } catch (NumberFormatException ignored) {
         }
       }
