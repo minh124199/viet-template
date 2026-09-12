@@ -108,17 +108,21 @@ Generic HTML escaping is **not** sufficient across heterogeneous web contexts. V
    - Escapes `&`, `<`, `>`, `"`, and `'`.
    - Used for text nodes in HTML templates.
    - Fast-path verification streams unescaped content directly to `TemplateOutput` when no entity replacements are needed.
-   - Bypassed when the input is an instance of `SafeHtml`.
+   - Bypassed when the input is an instance of `SafeHtml` (not bypassed by `SafeUrl`).
 
 2. **HTML Quoted Attribute (`HTML_ATTRIBUTE_QUOTED`)**:
    - Escapes `&`, `<`, `>`, `"`, `'`, backtick (`` ` ``), and ASCII control characters (`0x00`-`0x1F` except `\t`, `\n`, `\r`) plus `0x7F`.
    - Prevents attribute boundary breakout in both double-quoted and single-quoted attributes, and neutralizes backtick attribute escapes in older browser DOM parsers.
-   - Bypassed when the input is an instance of `SafeHtml`.
+   - Not bypassed by `SafeHtml` or `SafeUrl` (always escaped in attributes to prevent breakout).
+   - **Boundary Decision (Attribute Escaping vs URL Scheme Validation)**:
+     - Quoted attribute escaping protects syntactic delimiter boundaries (`"` or `'`), preventing an attacker from escaping the attribute value into the HTML tag context (e.g. `foo" onmouseover="...`).
+     - Quoted attribute escaping **does not** validate URL schemes. For instance, `javascript:alert(1)` contains no characters requiring HTML entity replacement; escaping it in an `href` attribute produces `javascript:alert(1)`.
+     - Consequently, emitting variables into `href` or `src` attributes requires URL scheme validation via `SafeUrl` or `SafeUrlValidator` in the application data layer.
 
 3. **URI / URL Component (`URL_COMPONENT`)**:
    - Implements strict RFC 3986 percent-encoding for URI query parameters and path segments.
    - Preserves unreserved characters (`[a-zA-Z0-9_.~-]`) and percent-encodes all reserved delimiters (`?`, `&`, `=`, `#`, `/`, `:`, space `%20`) as uppercase UTF-8 hex `%XX`.
-   - Bypassed when the input is an instance of `SafeUrl`.
+   - Bypassed when the input is an instance of `SafeUrl` (not bypassed by `SafeHtml`).
    - **Boundary Decision**: HTML escaping inside a URI query string is completely invalid; HTML entities such as `&amp;` break URI parameter parsing, while spaces must be `%20` or `+`. URL escaping must be applied before HTML escaping if emitting into an HTML `href` attribute.
 
 4. **JavaScript Context (`JS_STRING`)**:
@@ -130,7 +134,7 @@ Generic HTML escaping is **not** sufficient across heterogeneous web contexts. V
    - Escapes quotes, backslashes, line breaks, and HTML tag delimiters inside CSS string literals.
    - **Boundary Decision**: Context-free escaping is insufficient for general CSS values. Unquoted property names, dimensions, or `url(...)` targets require structural CSS validation (e.g. preventing `javascript:` pseudo-protocols).
 
-## 9. Safe content
+## 9. Safe content and URL Validation
 
 Use explicit types:
 
@@ -140,9 +144,38 @@ public sealed interface SafeContent permits SafeHtml, SafeUrl {
 }
 ```
 
-- `SafeHtml`: Trusted HTML markup that bypasses `HTML_TEXT` and `HTML_ATTRIBUTE_QUOTED` escaping.
-- `SafeUrl`: Trusted, pre-validated URL that bypasses `URL_COMPONENT` escaping.
-- Ordinary `String` is never treated as trusted markup.
+- `SafeHtml`: Capability wrapper representing trusted HTML markup that only bypasses `HTML_TEXT` escaping (still escaped in `HTML_ATTRIBUTE_QUOTED`). It does not perform HTML sanitization.
+  - `SafeHtml.of(html)`: Wraps trusted markup.
+  - `SafeHtml.ofTrusted(html)`: Explicit capability factory documenting compile-time audited trusted markup. Passing unvalidated user input creates XSS vulnerabilities.
+- `SafeUrl`: Capability wrapper representing a validated or trusted URL that only bypasses `URL_COMPONENT` escaping (still escaped in `HTML_TEXT` and `HTML_ATTRIBUTE_QUOTED`).
+  - `SafeUrl.of(url)` / `SafeUrl.ofValidated(url)`: Validates the URL scheme against `SafeUrlValidator`; throws `IllegalArgumentException` on invalid scheme or obfuscation.
+  - `SafeUrl.tryOf(url)`: Returns `Optional<SafeUrl>` (or `Optional.empty()` if invalid).
+  - `SafeUrl.ofTrusted(url)`: Explicit escape hatch bypassing validation strictly for host-verified constants.
+- Ordinary `String` is never treated as trusted markup or trusted URLs.
+
+### Contextual Escaping Behavior Matrix
+
+| Value Type | `HTML_TEXT` | `HTML_ATTRIBUTE_QUOTED` | `URL_COMPONENT` | `RAW` |
+|---|---|---|---|---|
+| **plain `String` / `CharSequence`** | Escaped (`HtmlTextEscaper`) | Escaped (`HtmlAttributeEscaper`) | Encoded (`UrlComponentEscaper`) | Raw* |
+| **`SafeHtml`** | **Trusted (Bypasses escaping)** | Escaped (`HtmlAttributeEscaper`) | Encoded (`UrlComponentEscaper`) | Raw* |
+| **`SafeUrl`** | Escaped (`HtmlTextEscaper`) | Escaped (`HtmlAttributeEscaper`) | **Trusted (Bypasses encoding)** | Raw* |
+
+*\* In `VTL_SAFE` profile, `RAW` output still enforces class permission policy checks (`isClassPermitted`) before string coercion.*
+
+- **Context-Specific Trust**: `SafeHtml` and `SafeUrl` bypass escaping *only* in the specific output contexts for which they grant trust (`HTML_TEXT` for `SafeHtml`, `URL_COMPONENT` for `SafeUrl`). Context-specific escaping rules continue to apply when those values are rendered into other output contexts.
+- **Delimiter Breakout Protection**: When `SafeHtml` or `SafeUrl` is rendered inside an `HTML_ATTRIBUTE_QUOTED` context, it remains subject to attribute escaping to neutralize attribute delimiter breakouts (`"` or `'`) and backticks.
+- **URL Validation Semantics**: Passing scheme validation via `SafeUrl.of(...)` confirms that the URL syntax and scheme conform to the configured scheme allowlist (`http`, `https`, `mailto`, `tel`, or safe relative paths); it does **not** imply that the remote web destination itself is trustworthy.
+
+### SafeUrl Scheme Validation Rules (`SafeUrlValidator`)
+- **Allowed Schemes**: `http`, `https`, `mailto`, `tel` (case-insensitive).
+- **Allowed Relative Targets**: Relative path segments (`/`, `./`, `../`, `?`, `#`, `path/to/resource`).
+- **Rejected Schemes**: `javascript`, `vbscript`, `data`, `file`, `blob`, and unknown/custom URI schemes.
+- **Obfuscation Resistance**:
+  - Strips leading/trailing ASCII whitespace and control characters before evaluation.
+  - Rejects internal whitespace or control characters (`\t`, `\n`, `\r`, `\0`, `\u0001`-`\u001F`, `\u007F`) within the scheme token.
+  - Rejects URL percent-encoded delimiters (e.g. `%3a`, `%3A`) anywhere in the scheme or path.
+  - Rejects HTML entity references (`&#...` or `&colon;`) within the scheme token.
 
 ## 10. Buffering and back-pressure
 

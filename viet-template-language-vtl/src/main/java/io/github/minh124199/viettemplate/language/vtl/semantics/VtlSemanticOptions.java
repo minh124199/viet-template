@@ -28,6 +28,14 @@ public record VtlSemanticOptions(
     return new VtlSemanticOptions(profile, modelSchema, true, profile.isArbitraryMethodsAllowed());
   }
 
+  public Builder toBuilder() {
+    return new Builder()
+        .profile(profile)
+        .modelSchema(modelSchema)
+        .strictMode(strictMode)
+        .allowArbitraryMethods(allowArbitraryMethods);
+  }
+
   public static Builder builder() {
     return new Builder();
   }

@@ -7,6 +7,7 @@ import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateResourceException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
+import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrLocal;
@@ -57,6 +58,8 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptio
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.runtime.EscapeMode;
+import io.github.minh124199.viettemplate.runtime.SafeHtml;
+import io.github.minh124199.viettemplate.runtime.SafeUrl;
 import io.github.minh124199.viettemplate.runtime.StandardEscapers;
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -99,7 +102,7 @@ public final class IrInterpreter {
         (output instanceof CountingTemplateOutput cto)
             ? cto
             : new CountingTemplateOutput(
-                output, options.limits().maxOutputCharacters(), template.id());
+                output, options.limits().createRenderBudget(), template.id());
 
     Map<String, IrFunction> functionMap = new HashMap<>();
     for (IrFunction function : template.functions()) {
@@ -364,13 +367,6 @@ public final class IrInterpreter {
       return;
     }
 
-    CharSequence charSeq;
-    if (value instanceof CharSequence cs) {
-      charSeq = cs;
-    } else {
-      charSeq = String.valueOf(value);
-    }
-
     EscapeMode mode =
         switch (wv.escapeMode()) {
           case RAW -> EscapeMode.RAW;
@@ -378,6 +374,37 @@ public final class IrInterpreter {
           case HTML_ATTRIBUTE_QUOTED -> EscapeMode.HTML_ATTRIBUTE_QUOTED;
           case URL_COMPONENT -> EscapeMode.URL_COMPONENT;
         };
+
+    // Safe content handling (context-specific: SafeHtml only in HTML_TEXT, SafeUrl only in
+    // URL_COMPONENT)
+    if (mode == EscapeMode.HTML_TEXT) {
+      if (value instanceof SafeHtml safe) {
+        frame.output.write(safe.content());
+        return;
+      }
+    } else if (mode == EscapeMode.URL_COMPONENT) {
+      if (value instanceof SafeUrl safe) {
+        frame.output.write(safe.content());
+        return;
+      }
+    }
+
+    if (frame.options.profile() == VtlProfile.VTL_SAFE) {
+      if (!frame.options.securityPolicy().isClassPermitted(value.getClass())) {
+        throw new TemplateSecurityException(
+            "Rendering class " + value.getClass().getName() + " is denied by security policy",
+            frame.templateId,
+            wv.span(),
+            InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+      }
+    }
+
+    CharSequence charSeq;
+    if (value instanceof CharSequence cs) {
+      charSeq = cs;
+    } else {
+      charSeq = String.valueOf(value);
+    }
 
     StandardEscapers.get(mode).escape(charSeq, frame.output);
   }
@@ -413,7 +440,7 @@ public final class IrInterpreter {
 
   private static void executeIf(IrIf ifStmt, InterpretedFrame frame) throws IOException {
     Object cond = evaluateExpression(ifStmt.condition(), frame);
-    boolean truthy = isTruthy(cond, frame.options.emptyCheck());
+    boolean truthy = isTruthy(cond, frame.options.emptyCheck(), frame.options.securityPolicy());
     if (truthy) {
       executeBlock(ifStmt.thenBlock(), frame);
     } else if (ifStmt.elseBlock().isPresent()) {
@@ -423,7 +450,7 @@ public final class IrInterpreter {
 
   private static void executeLoop(IrLoop loop, InterpretedFrame frame) throws IOException {
     Object iterObj = evaluateExpression(loop.iterable(), frame);
-    Iterable<?> iterable = toIterable(iterObj);
+    Iterable<?> iterable = toIterable(iterObj, frame, loop.span());
 
     if (iterable == null) {
       if (loop.elseBody().isPresent()) {
@@ -732,7 +759,7 @@ public final class IrInterpreter {
     if (expr instanceof IrTruthiness tr) {
       Object val = evaluateExpression(tr.expression(), frame);
       boolean emptyCheck = tr.emptyCheck() && frame.options.emptyCheck();
-      return isTruthy(val, emptyCheck);
+      return isTruthy(val, emptyCheck, frame.options.securityPolicy());
     }
     if (expr instanceof IrIsNull isNull) {
       Object val = evaluateExpression(isNull.expression(), frame);
@@ -744,7 +771,7 @@ public final class IrInterpreter {
     }
     if (expr instanceof IrAlternateValue alt) {
       Object primaryVal = evaluateExpression(alt.primary(), frame);
-      if (isTruthy(primaryVal, true)) {
+      if (isTruthy(primaryVal, true, frame.options.securityPolicy())) {
         return primaryVal;
       }
       return evaluateExpression(alt.fallback(), frame);
@@ -868,20 +895,20 @@ public final class IrInterpreter {
     // Short-circuit logical operators
     if (op == BinaryOpKind.AND) {
       Object leftVal = evaluateExpression(bin.left(), frame);
-      if (!isTruthy(leftVal, frame.options.emptyCheck())) {
+      if (!isTruthy(leftVal, frame.options.emptyCheck(), frame.options.securityPolicy())) {
         return false;
       }
       Object rightVal = evaluateExpression(bin.right(), frame);
-      return isTruthy(rightVal, frame.options.emptyCheck());
+      return isTruthy(rightVal, frame.options.emptyCheck(), frame.options.securityPolicy());
     }
 
     if (op == BinaryOpKind.OR) {
       Object leftVal = evaluateExpression(bin.left(), frame);
-      if (isTruthy(leftVal, frame.options.emptyCheck())) {
+      if (isTruthy(leftVal, frame.options.emptyCheck(), frame.options.securityPolicy())) {
         return true;
       }
       Object rightVal = evaluateExpression(bin.right(), frame);
-      return isTruthy(rightVal, frame.options.emptyCheck());
+      return isTruthy(rightVal, frame.options.emptyCheck(), frame.options.securityPolicy());
     }
 
     Object left = unwrap(evaluateExpression(bin.left(), frame));
@@ -903,16 +930,25 @@ public final class IrInterpreter {
       case MULTIPLY -> VtlNumericOperations.multiply(left, right, bin.span(), frame.templateId);
       case DIVIDE -> VtlNumericOperations.divide(left, right, bin.span(), frame.templateId);
       case REMAINDER -> VtlNumericOperations.remainder(left, right, bin.span(), frame.templateId);
-      case EQUALS -> VtlComparisonOperations.equals(left, right);
-      case NOT_EQUALS -> !VtlComparisonOperations.equals(left, right);
+      case EQUALS -> VtlComparisonOperations.equals(left, right, frame.options.securityPolicy());
+      case NOT_EQUALS ->
+          !VtlComparisonOperations.equals(left, right, frame.options.securityPolicy());
       case LESS_THAN ->
-          VtlComparisonOperations.compare(left, right, bin.span(), frame.templateId) < 0;
+          VtlComparisonOperations.compare(
+                  left, right, bin.span(), frame.templateId, frame.options.securityPolicy())
+              < 0;
       case LESS_THAN_OR_EQUAL ->
-          VtlComparisonOperations.compare(left, right, bin.span(), frame.templateId) <= 0;
+          VtlComparisonOperations.compare(
+                  left, right, bin.span(), frame.templateId, frame.options.securityPolicy())
+              <= 0;
       case GREATER_THAN ->
-          VtlComparisonOperations.compare(left, right, bin.span(), frame.templateId) > 0;
+          VtlComparisonOperations.compare(
+                  left, right, bin.span(), frame.templateId, frame.options.securityPolicy())
+              > 0;
       case GREATER_THAN_OR_EQUAL ->
-          VtlComparisonOperations.compare(left, right, bin.span(), frame.templateId) >= 0;
+          VtlComparisonOperations.compare(
+                  left, right, bin.span(), frame.templateId, frame.options.securityPolicy())
+              >= 0;
       default -> EvaluationValue.undefined();
     };
   }
@@ -956,7 +992,7 @@ public final class IrInterpreter {
   private static Object evaluateUnaryOp(IrUnaryOp un, InterpretedFrame frame) {
     Object operand = evaluateExpression(un.operand(), frame);
     return switch (un.op()) {
-      case NOT -> !isTruthy(operand, frame.options.emptyCheck());
+      case NOT -> !isTruthy(operand, frame.options.emptyCheck(), frame.options.securityPolicy());
       case NEGATE -> VtlNumericOperations.negate(unwrap(operand), un.span(), frame.templateId);
     };
   }
@@ -969,13 +1005,21 @@ public final class IrInterpreter {
   }
 
   static boolean isTruthy(Object val, boolean emptyCheck) {
+    return isTruthy(val, emptyCheck, VtlSecurityPolicy.standard());
+  }
+
+  static boolean isTruthy(Object val, boolean emptyCheck, VtlSecurityPolicy securityPolicy) {
     if (val instanceof EvaluationValue ev) {
-      return VtlTruthiness.isTruthy(ev, emptyCheck);
+      return VtlTruthiness.isTruthy(ev, emptyCheck, securityPolicy);
     }
-    return VtlTruthiness.isTruthyObject(val, emptyCheck);
+    return VtlTruthiness.isTruthyObject(val, emptyCheck, securityPolicy);
   }
 
   static Iterable<?> toIterable(Object val) {
+    return toIterable(val, null, null);
+  }
+
+  static Iterable<?> toIterable(Object val, InterpretedFrame frame, SourceSpan span) {
     if (val == null) {
       return null;
     }
@@ -984,6 +1028,18 @@ public final class IrInterpreter {
         return null;
       }
       val = ev.value();
+    }
+    if (val == null) {
+      return null;
+    }
+    if (frame != null
+        && frame.options.securityPolicy() != null
+        && !frame.options.securityPolicy().isClassPermitted(val.getClass())) {
+      throw new TemplateSecurityException(
+          "Access to class " + val.getClass().getName() + " in loop is denied by security policy",
+          frame.templateId,
+          span,
+          InterpreterDiagnosticCodes.SECURITY_VIOLATION);
     }
     if (val instanceof Iterable<?> iter) {
       return iter;

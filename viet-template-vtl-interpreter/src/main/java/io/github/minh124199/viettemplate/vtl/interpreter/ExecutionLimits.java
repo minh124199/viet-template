@@ -96,41 +96,65 @@ public record ExecutionLimits(
     private long maxExecutionTimeMillis = DEFAULT_MAX_EXECUTION_TIME_MILLIS;
 
     public Builder maxLoopIterations(int maxLoopIterations) {
+      if (maxLoopIterations < 0) {
+        throw new IllegalArgumentException("maxLoopIterations must not be negative");
+      }
       this.maxLoopIterations = maxLoopIterations;
       return this;
     }
 
     public Builder maxRangeSize(int maxRangeSize) {
+      if (maxRangeSize < 0) {
+        throw new IllegalArgumentException("maxRangeSize must not be negative");
+      }
       this.maxRangeSize = maxRangeSize;
       return this;
     }
 
     public Builder maxMacroDepth(int maxMacroDepth) {
+      if (maxMacroDepth < 0) {
+        throw new IllegalArgumentException("maxMacroDepth must not be negative");
+      }
       this.maxMacroDepth = maxMacroDepth;
       return this;
     }
 
     public Builder maxParseDepth(int maxParseDepth) {
+      if (maxParseDepth < 0) {
+        throw new IllegalArgumentException("maxParseDepth must not be negative");
+      }
       this.maxParseDepth = maxParseDepth;
       return this;
     }
 
     public Builder maxEvaluateDepth(int maxEvaluateDepth) {
+      if (maxEvaluateDepth < 0) {
+        throw new IllegalArgumentException("maxEvaluateDepth must not be negative");
+      }
       this.maxEvaluateDepth = maxEvaluateDepth;
       return this;
     }
 
     public Builder maxDynamicSourceLength(int maxDynamicSourceLength) {
+      if (maxDynamicSourceLength < 0) {
+        throw new IllegalArgumentException("maxDynamicSourceLength must not be negative");
+      }
       this.maxDynamicSourceLength = maxDynamicSourceLength;
       return this;
     }
 
     public Builder maxOutputCharacters(long maxOutputCharacters) {
+      if (maxOutputCharacters < 0) {
+        throw new IllegalArgumentException("maxOutputCharacters must not be negative");
+      }
       this.maxOutputCharacters = maxOutputCharacters;
       return this;
     }
 
     public Builder maxExecutionTimeMillis(long maxExecutionTimeMillis) {
+      if (maxExecutionTimeMillis < 0) {
+        throw new IllegalArgumentException("maxExecutionTimeMillis must not be negative");
+      }
       this.maxExecutionTimeMillis = maxExecutionTimeMillis;
       return this;
     }

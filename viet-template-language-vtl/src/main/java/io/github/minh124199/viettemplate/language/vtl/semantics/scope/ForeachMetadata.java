@@ -1,6 +1,10 @@
 package io.github.minh124199.viettemplate.language.vtl.semantics.scope;
 
+import io.github.minh124199.viettemplate.api.TemplateCallable;
+import io.github.minh124199.viettemplate.api.TemplateData;
+
 /** Standard loop metadata contract exposed as the {@code $foreach} variable in loops. */
+@TemplateData
 public interface ForeachMetadata {
   int index();
 
@@ -26,5 +30,6 @@ public interface ForeachMetadata {
 
   ForeachMetadata getParent();
 
+  @TemplateCallable
   void stop();
 }

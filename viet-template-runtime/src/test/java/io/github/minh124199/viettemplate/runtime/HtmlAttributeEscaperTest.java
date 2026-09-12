@@ -60,10 +60,10 @@ class HtmlAttributeEscaperTest {
   }
 
   @Test
-  @DisplayName("SafeHtml instances bypass attribute escaping")
-  void testSafeHtmlBypass() throws IOException {
+  @DisplayName("SafeHtml instances do not bypass attribute escaping to prevent quote breakout")
+  void testSafeHtmlDoesNotBypassAttributeEscaping() throws IOException {
     StringTemplateOutput out = new StringTemplateOutput();
     escaper.escape(SafeHtml.of("data-safe=\"1\""), out);
-    assertThat(out.toString()).isEqualTo("data-safe=\"1\"");
+    assertThat(out.toString()).isEqualTo("data-safe=&quot;1&quot;");
   }
 }

@@ -8,6 +8,7 @@ import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateResourceException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
+import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.ast.*;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ir.lowering.AstToIrLowerer;
@@ -18,6 +19,8 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysis
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import io.github.minh124199.viettemplate.runtime.SafeHtml;
+import io.github.minh124199.viettemplate.runtime.StandardEscapers;
 import io.github.minh124199.viettemplate.vtl.compiler.BackendOptions;
 import io.github.minh124199.viettemplate.vtl.compiler.BackendResult;
 import io.github.minh124199.viettemplate.vtl.compiler.CompilationStatus;
@@ -390,6 +393,46 @@ public final class VtlInterpreter {
       } catch (StopSignal ignored) {
       }
       return;
+    }
+
+    if (value instanceof Integer i) {
+      state.output.writeInt(i);
+      return;
+    } else if (value instanceof Long l) {
+      state.output.writeLong(l);
+      return;
+    } else if (value instanceof Double d) {
+      state.output.writeDouble(d);
+      return;
+    } else if (value instanceof Float f) {
+      state.output.writeFloat(f);
+      return;
+    } else if (value instanceof Short s) {
+      state.output.writeShort(s);
+      return;
+    } else if (value instanceof Byte b) {
+      state.output.writeByte(b);
+      return;
+    } else if (value instanceof Boolean b) {
+      state.output.writeBoolean(b);
+      return;
+    }
+
+    if (options.profile() == VtlProfile.VTL_SAFE) {
+      if (value instanceof SafeHtml safe) {
+        state.output.write(safe.content());
+        return;
+      }
+      if (options.securityPolicy() != null
+          && !options.securityPolicy().isClassPermitted(value.getClass())) {
+        throw new TemplateSecurityException(
+            "Rendering class " + value.getClass().getName() + " is denied by security policy",
+            state.templateId,
+            SourceSpan.UNKNOWN,
+            InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+      }
+      CharSequence cs = (value instanceof CharSequence seq) ? seq : String.valueOf(value);
+      StandardEscapers.htmlText().escape(cs, state.output);
     } else if (value instanceof CharSequence cs) {
       state.output.write(cs);
     } else {
@@ -453,7 +496,7 @@ public final class VtlInterpreter {
       throws IOException {
     for (VtlIfBranch branch : node.branches()) {
       EvaluationValue condVal = evaluateExpression(branch.condition(), state);
-      if (VtlTruthiness.isTruthy(condVal, options.emptyCheck())) {
+      if (VtlTruthiness.isTruthy(condVal, options.emptyCheck(), options.securityPolicy())) {
         executeNodes(branch.body(), state);
         return;
       }
@@ -466,7 +509,7 @@ public final class VtlInterpreter {
   private void executeForeachDirective(VtlForeachDirectiveNode node, ExecutionState state)
       throws IOException {
     EvaluationValue iterVal = evaluateExpression(node.iterable(), state);
-    Iterable<?> iterable = toIterable(iterVal);
+    Iterable<?> iterable = toIterable(iterVal, node.span(), state.templateId);
 
     if (iterable == null) {
       if (node.elseBody().isPresent()) {
@@ -887,7 +930,9 @@ public final class VtlInterpreter {
   private EvaluationValue evaluateUnary(VtlUnaryExpression unary, ExecutionState state) {
     EvaluationValue operandVal = evaluateExpression(unary.operand(), state);
     return switch (unary.operator()) {
-      case NOT -> EvaluationValue.of(!VtlTruthiness.isTruthy(operandVal, options.emptyCheck()));
+      case NOT ->
+          EvaluationValue.of(
+              !VtlTruthiness.isTruthy(operandVal, options.emptyCheck(), options.securityPolicy()));
       case MINUS ->
           EvaluationValue.of(
               VtlNumericOperations.negate(operandVal.value(), unary.span(), state.templateId));
@@ -901,20 +946,22 @@ public final class VtlInterpreter {
     // Short-circuiting operators
     if (op == VtlBinaryOperator.LOGICAL_AND) {
       EvaluationValue left = evaluateExpression(binary.left(), state);
-      if (!VtlTruthiness.isTruthy(left, options.emptyCheck())) {
+      if (!VtlTruthiness.isTruthy(left, options.emptyCheck(), options.securityPolicy())) {
         return EvaluationValue.of(false);
       }
       EvaluationValue right = evaluateExpression(binary.right(), state);
-      return EvaluationValue.of(VtlTruthiness.isTruthy(right, options.emptyCheck()));
+      return EvaluationValue.of(
+          VtlTruthiness.isTruthy(right, options.emptyCheck(), options.securityPolicy()));
     }
 
     if (op == VtlBinaryOperator.LOGICAL_OR) {
       EvaluationValue left = evaluateExpression(binary.left(), state);
-      if (VtlTruthiness.isTruthy(left, options.emptyCheck())) {
+      if (VtlTruthiness.isTruthy(left, options.emptyCheck(), options.securityPolicy())) {
         return EvaluationValue.of(true);
       }
       EvaluationValue right = evaluateExpression(binary.right(), state);
-      return EvaluationValue.of(VtlTruthiness.isTruthy(right, options.emptyCheck()));
+      return EvaluationValue.of(
+          VtlTruthiness.isTruthy(right, options.emptyCheck(), options.securityPolicy()));
     }
 
     EvaluationValue left = evaluateExpression(binary.left(), state);
@@ -934,20 +981,30 @@ public final class VtlInterpreter {
           EvaluationValue.of(VtlNumericOperations.divide(l, r, binary.span(), state.templateId));
       case MODULO ->
           EvaluationValue.of(VtlNumericOperations.remainder(l, r, binary.span(), state.templateId));
-      case EQUAL -> EvaluationValue.of(VtlComparisonOperations.equals(l, r));
-      case NOT_EQUAL -> EvaluationValue.of(!VtlComparisonOperations.equals(l, r));
+      case EQUAL ->
+          EvaluationValue.of(VtlComparisonOperations.equals(l, r, options.securityPolicy()));
+      case NOT_EQUAL ->
+          EvaluationValue.of(!VtlComparisonOperations.equals(l, r, options.securityPolicy()));
       case LESS_THAN ->
           EvaluationValue.of(
-              VtlComparisonOperations.compare(l, r, binary.span(), state.templateId) < 0);
+              VtlComparisonOperations.compare(
+                      l, r, binary.span(), state.templateId, options.securityPolicy())
+                  < 0);
       case LESS_THAN_OR_EQUAL ->
           EvaluationValue.of(
-              VtlComparisonOperations.compare(l, r, binary.span(), state.templateId) <= 0);
+              VtlComparisonOperations.compare(
+                      l, r, binary.span(), state.templateId, options.securityPolicy())
+                  <= 0);
       case GREATER_THAN ->
           EvaluationValue.of(
-              VtlComparisonOperations.compare(l, r, binary.span(), state.templateId) > 0);
+              VtlComparisonOperations.compare(
+                      l, r, binary.span(), state.templateId, options.securityPolicy())
+                  > 0);
       case GREATER_THAN_OR_EQUAL ->
           EvaluationValue.of(
-              VtlComparisonOperations.compare(l, r, binary.span(), state.templateId) >= 0);
+              VtlComparisonOperations.compare(
+                      l, r, binary.span(), state.templateId, options.securityPolicy())
+                  >= 0);
       case LOGICAL_AND, LOGICAL_OR -> throw new IllegalStateException("Handled above");
     };
   }
@@ -997,7 +1054,7 @@ public final class VtlInterpreter {
     // Alternate value evaluation (${name|'default'}): Velocity always checks emptiness for default
     // values
     if (ref.alternateValue().isPresent()) {
-      if (!VtlTruthiness.isTruthy(current, true)) {
+      if (!VtlTruthiness.isTruthy(current, true, options.securityPolicy())) {
         // Lazily evaluate alternate expression
         return evaluateExpression(ref.alternateValue().get(), state);
       }
@@ -1039,10 +1096,25 @@ public final class VtlInterpreter {
   }
 
   private Iterable<?> toIterable(EvaluationValue val) {
+    return toIterable(val, SourceSpan.UNKNOWN, TemplateId.of("<unknown>"));
+  }
+
+  private Iterable<?> toIterable(EvaluationValue val, SourceSpan span, TemplateId id) {
     if (val.isUndefined() || val.isNull()) {
       return null;
     }
     Object obj = val.value();
+    if (obj == null) {
+      return null;
+    }
+    if (options.securityPolicy() != null
+        && !options.securityPolicy().isClassPermitted(obj.getClass())) {
+      throw new TemplateSecurityException(
+          "Access to class " + obj.getClass().getName() + " in loop is denied by security policy",
+          id,
+          span,
+          InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+    }
     if (obj instanceof Iterable<?> iter) {
       return iter;
     }

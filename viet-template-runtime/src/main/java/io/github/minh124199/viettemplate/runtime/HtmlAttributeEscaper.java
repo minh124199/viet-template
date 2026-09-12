@@ -13,7 +13,6 @@ import java.io.IOException;
  *       {@code `}.
  *   <li>Neutralizes ASCII control characters (0x00 to 0x1F except {@code \t}, {@code \n}, {@code
  *       \r}) and {@code 0x7F}.
- *   <li>Bypasses escaping for {@link SafeHtml} instances.
  *   <li>Streams directly into {@link TemplateOutput} without intermediate allocations on the clean
  *       fast-path.
  * </ul>
@@ -32,10 +31,6 @@ public final class HtmlAttributeEscaper implements Escaper {
   @Override
   public void escape(CharSequence input, TemplateOutput output) throws IOException {
     if (input == null) {
-      return;
-    }
-    if (input instanceof SafeHtml safe) {
-      output.write(safe.content());
       return;
     }
     int len = input.length();

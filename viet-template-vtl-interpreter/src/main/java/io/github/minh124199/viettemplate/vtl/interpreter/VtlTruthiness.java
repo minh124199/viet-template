@@ -13,13 +13,23 @@ public final class VtlTruthiness {
   private VtlTruthiness() {}
 
   public static boolean isTruthy(EvaluationValue value, boolean emptyCheck) {
+    return isTruthy(value, emptyCheck, VtlSecurityPolicy.standard());
+  }
+
+  public static boolean isTruthy(
+      EvaluationValue value, boolean emptyCheck, VtlSecurityPolicy securityPolicy) {
     if (value == null || value.isUndefined() || value.isNull()) {
       return false;
     }
-    return isTruthyObject(value.value(), emptyCheck);
+    return isTruthyObject(value.value(), emptyCheck, securityPolicy);
   }
 
   public static boolean isTruthyObject(Object obj, boolean emptyCheck) {
+    return isTruthyObject(obj, emptyCheck, VtlSecurityPolicy.standard());
+  }
+
+  public static boolean isTruthyObject(
+      Object obj, boolean emptyCheck, VtlSecurityPolicy securityPolicy) {
     if (obj == null) {
       return false;
     }
@@ -28,29 +38,39 @@ public final class VtlTruthiness {
       return b;
     }
 
+    VtlSecurityPolicy policy =
+        securityPolicy != null ? securityPolicy : VtlSecurityPolicy.standard();
+
     // Custom getAsBoolean() method is always evaluated first (regardless of emptyCheck)
-    try {
-      Method getAsBoolean = findZeroArgMethod(obj.getClass(), "getAsBoolean");
-      if (getAsBoolean != null
-          && (getAsBoolean.getReturnType() == boolean.class
-              || getAsBoolean.getReturnType() == Boolean.class)) {
-        Object res = getAsBoolean.invoke(obj);
-        if (res instanceof Boolean b) {
-          return b;
+    if (policy.isClassPermitted(obj.getClass())) {
+      try {
+        Method getAsBoolean = findZeroArgMethod(obj.getClass(), "getAsBoolean");
+        if (getAsBoolean != null
+            && (getAsBoolean.getReturnType() == boolean.class
+                || getAsBoolean.getReturnType() == Boolean.class)
+            && policy.isMethodPermitted(obj.getClass(), getAsBoolean)) {
+          Object res = getAsBoolean.invoke(obj);
+          if (res instanceof Boolean b) {
+            return b;
+          }
         }
+      } catch (Exception ignored) {
+        // Fall through
       }
-    } catch (Exception ignored) {
-      // Fall through
     }
 
     if (!emptyCheck) {
       return true;
     }
 
-    return !asEmpty(obj);
+    return !asEmpty(obj, policy);
   }
 
   public static boolean asEmpty(Object obj) {
+    return asEmpty(obj, VtlSecurityPolicy.standard());
+  }
+
+  public static boolean asEmpty(Object obj, VtlSecurityPolicy securityPolicy) {
     if (obj == null) {
       return true;
     }
@@ -70,45 +90,60 @@ public final class VtlTruthiness {
       return map.isEmpty();
     }
 
+    VtlSecurityPolicy policy =
+        securityPolicy != null ? securityPolicy : VtlSecurityPolicy.standard();
+    boolean classPermitted = policy.isClassPermitted(obj.getClass());
+
     // Check custom isEmpty()
-    try {
-      Method isEmpty = findZeroArgMethod(obj.getClass(), "isEmpty");
-      if (isEmpty != null
-          && (isEmpty.getReturnType() == boolean.class
-              || isEmpty.getReturnType() == Boolean.class)) {
-        Object res = isEmpty.invoke(obj);
-        if (res instanceof Boolean b) {
-          return b;
+    if (classPermitted) {
+      try {
+        Method isEmpty = findZeroArgMethod(obj.getClass(), "isEmpty");
+        if (isEmpty != null
+            && (isEmpty.getReturnType() == boolean.class
+                || isEmpty.getReturnType() == Boolean.class)
+            && policy.isMethodPermitted(obj.getClass(), isEmpty)) {
+          Object res = isEmpty.invoke(obj);
+          if (res instanceof Boolean b) {
+            return b;
+          }
         }
+      } catch (Exception ignored) {
+        // Fall through
       }
-    } catch (Exception ignored) {
-      // Fall through
     }
 
     // Check custom length() returning Number
-    try {
-      Method length = findZeroArgMethod(obj.getClass(), "length");
-      if (length != null && Number.class.isAssignableFrom(boxType(length.getReturnType()))) {
-        Object res = length.invoke(obj);
-        if (res instanceof Number n) {
-          return isZero(n);
+    if (classPermitted) {
+      try {
+        Method length = findZeroArgMethod(obj.getClass(), "length");
+        if (length != null
+            && Number.class.isAssignableFrom(boxType(length.getReturnType()))
+            && policy.isMethodPermitted(obj.getClass(), length)) {
+          Object res = length.invoke(obj);
+          if (res instanceof Number n) {
+            return isZero(n);
+          }
         }
+      } catch (Exception ignored) {
+        // Fall through
       }
-    } catch (Exception ignored) {
-      // Fall through
     }
 
     // Check custom size() returning Number
-    try {
-      Method size = findZeroArgMethod(obj.getClass(), "size");
-      if (size != null && Number.class.isAssignableFrom(boxType(size.getReturnType()))) {
-        Object res = size.invoke(obj);
-        if (res instanceof Number n) {
-          return isZero(n);
+    if (classPermitted) {
+      try {
+        Method size = findZeroArgMethod(obj.getClass(), "size");
+        if (size != null
+            && Number.class.isAssignableFrom(boxType(size.getReturnType()))
+            && policy.isMethodPermitted(obj.getClass(), size)) {
+          Object res = size.invoke(obj);
+          if (res instanceof Number n) {
+            return isZero(n);
+          }
         }
+      } catch (Exception ignored) {
+        // Fall through
       }
-    } catch (Exception ignored) {
-      // Fall through
     }
 
     // Check Number
@@ -117,25 +152,33 @@ public final class VtlTruthiness {
     }
 
     // Check custom getAsString()
-    try {
-      Method getAsString = findZeroArgMethod(obj.getClass(), "getAsString");
-      if (getAsString != null && String.class.isAssignableFrom(getAsString.getReturnType())) {
-        Object res = getAsString.invoke(obj);
-        return res == null || ((String) res).isEmpty();
+    if (classPermitted) {
+      try {
+        Method getAsString = findZeroArgMethod(obj.getClass(), "getAsString");
+        if (getAsString != null
+            && String.class.isAssignableFrom(getAsString.getReturnType())
+            && policy.isMethodPermitted(obj.getClass(), getAsString)) {
+          Object res = getAsString.invoke(obj);
+          return res == null || ((String) res).isEmpty();
+        }
+      } catch (Exception ignored) {
+        // Fall through
       }
-    } catch (Exception ignored) {
-      // Fall through
     }
 
     // Check custom getAsNumber()
-    try {
-      Method getAsNumber = findZeroArgMethod(obj.getClass(), "getAsNumber");
-      if (getAsNumber != null && Number.class.isAssignableFrom(getAsNumber.getReturnType())) {
-        Object res = getAsNumber.invoke(obj);
-        return res == null || isZero((Number) res);
+    if (classPermitted) {
+      try {
+        Method getAsNumber = findZeroArgMethod(obj.getClass(), "getAsNumber");
+        if (getAsNumber != null
+            && Number.class.isAssignableFrom(getAsNumber.getReturnType())
+            && policy.isMethodPermitted(obj.getClass(), getAsNumber)) {
+          Object res = getAsNumber.invoke(obj);
+          return res == null || isZero((Number) res);
+        }
+      } catch (Exception ignored) {
+        // Fall through
       }
-    } catch (Exception ignored) {
-      // Fall through
     }
 
     return false;

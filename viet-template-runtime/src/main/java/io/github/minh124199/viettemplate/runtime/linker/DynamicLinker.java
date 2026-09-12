@@ -76,6 +76,10 @@ public final class DynamicLinker {
 
   private AccessLink linkPropertyGet(
       Class<?> receiverClass, String propertyName, LinkerAccessPolicy policy) {
+    if (!policy.isPropertyPermitted(receiverClass, propertyName)) {
+      return AccessLink.denied(
+          receiverClass, propertyName, "property " + propertyName + " is denied by policy");
+    }
     String capitalized = capitalize(propertyName);
 
     // 1. getname()
@@ -202,6 +206,10 @@ public final class DynamicLinker {
 
   private AccessLink linkPropertySet(
       Class<?> receiverClass, String propertyName, LinkerAccessPolicy policy) {
+    if (!policy.isPropertyMutationPermitted(receiverClass, propertyName)) {
+      return AccessLink.denied(
+          receiverClass, propertyName, "property mutation is denied by policy");
+    }
     String capitalized = capitalize(propertyName);
 
     // 1. Setter method setName(val) or setname(val)
@@ -260,8 +268,12 @@ public final class DynamicLinker {
     Method targetMethod = null;
     for (Method m : receiverClass.getMethods()) {
       if (m.getName().equals(methodName) && m.getParameterCount() == arity) {
-        targetMethod = m;
-        break;
+        if (policy.isMethodPermitted(receiverClass, m)) {
+          targetMethod = m;
+          break;
+        } else if (targetMethod == null) {
+          targetMethod = m;
+        }
       }
     }
 
@@ -320,6 +332,9 @@ public final class DynamicLinker {
   }
 
   private AccessLink linkIndexSet(Class<?> receiverClass, LinkerAccessPolicy policy) {
+    if (!policy.isIndexMutationPermitted(receiverClass)) {
+      return AccessLink.denied(receiverClass, "[]", "index mutation is denied by policy");
+    }
     if (List.class.isAssignableFrom(receiverClass)) {
       try {
         MethodHandle mh =
@@ -360,7 +375,7 @@ public final class DynamicLinker {
 
   private AccessLink checkMethodAndCreateLink(
       Class<?> receiverClass, Method method, String propertyName, LinkerAccessPolicy policy) {
-    if (!policy.isMethodPermitted(receiverClass, method)) {
+    if (!policy.isPropertyMethodPermitted(receiverClass, method, propertyName)) {
       return AccessLink.denied(
           receiverClass, propertyName, "method " + method.getName() + " is denied by policy");
     }

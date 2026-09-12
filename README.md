@@ -186,7 +186,7 @@ Compatibility is versioned as profiles:
 - `VTL_CORE`: references, formal/quiet references, `#set`, `#if`, `#foreach`, static `#include`, static `#parse`, comments, core operators.
 - `VTL_MIGRATION`: broader Velocity behavior including legacy property resolution, macros, dynamic includes/parses where allowed.
 - `VTL_DYNAMIC`: explicit opt-in to runtime-evaluated constructs such as `#evaluate` and arbitrary method invocation.
-- `VTL_SAFE`: secure subset recommended for web applications and externally editable templates.
+- `VTL_SAFE`: strict sandbox profile designed for untrusted or externally editable template source when the host follows the documented embedding requirements. It constrains template-visible Java capabilities, model mutation, dynamic evaluation, resource access, output handling, and execution budgets across AST, IR, and AOT execution. Application security still depends on which objects and data the host places in the template context, which trusted capabilities it grants, the configured template repository, and the selected output context.
 
 Feature states:
 

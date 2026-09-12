@@ -92,10 +92,12 @@ public final class EvaluationValue {
 
   @Override
   public String toString() {
-    return switch (state) {
-      case UNDEFINED -> "<UNDEFINED>";
-      case DEFINED_NULL -> "<NULL>";
-      case DEFINED_VALUE -> String.valueOf(value);
-    };
+    if (state == State.UNDEFINED) {
+      return "<UNDEFINED>";
+    }
+    if (state == State.DEFINED_NULL) {
+      return "<NULL>";
+    }
+    return String.valueOf(value);
   }
 }
