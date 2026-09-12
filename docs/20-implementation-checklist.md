@@ -617,6 +617,18 @@ Every optimization must preserve:
 
 ### 19.2 Milestone M19.2 — 0.2.0 High-Performance Runtime Architecture
 
+#### M19.2a — Indexed compile-cache invalidation
+
+- [x] Add the `TemplateId -> Set<CompileCacheKey>` reverse index using JDK concurrent collections.
+- [x] Replace targeted full-cache scanning with average O(1) index lookup plus O(K) removal.
+- [x] Keep entry, active-key, reverse-index, and LRU state consistent on put, replacement,
+  invalidation, eviction, and full reset.
+- [x] Preserve negative-cache and dependency-graph invalidation semantics.
+- [x] Define and test concurrent put/invalidate ordering with per-template lock stripes.
+- [x] Add N=10,000 invalidation coverage and explicit eviction bookkeeping measurement to JMH.
+
+#### M19.2b — Variable slots and ExecutionFrame (pending)
+
 - [ ] Implement IR and optimizer variable slot assignment pass (`O45 AssignVariableSlots`) to assign stable compiler-assigned integer slot IDs without slot reuse (slot reuse explicitly deferred).
 - [ ] Implement `ExecutionFrame` backed by `EvaluationValue[] slots` for fast indexed variable access.
 - [ ] Java reference-array elements are initially `null`, requiring the runtime implementation to explicitly decide and test how internal empty slots represent undefined.
@@ -624,7 +636,7 @@ Every optimization must preserve:
 - [ ] Preserve 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) and full Velocity compatibility across all slot read/write operations.
 - [ ] Update VTL reference interpreter to execute variable accesses via `ExecutionFrame` slots.
 - [ ] Update AOT bytecode backend to emit direct slot-indexed bytecode instructions (`ALOAD`, `ASTORE`, `AALOAD`, `AASTORE`).
-- [ ] Replace $O(N)$ linear key scan `entries.keySet().removeIf(...)` in `TemplateCompileCache.invalidate(TemplateId)` with secondary reverse index (`ConcurrentMap<TemplateId, Set<CompileCacheKey>>`), performing average $O(1)$ key set lookup + $O(K)$ removal of the $K$ associated entries, reducing overall invalidation work to $O(K)$.
+- [x] Replace $O(N)$ linear key scan `entries.keySet().removeIf(...)` in `TemplateCompileCache.invalidate(TemplateId)` with secondary reverse index (`ConcurrentMap<TemplateId, Set<CompileCacheKey>>`), performing average $O(1)$ key set lookup + $O(K)$ removal of the $K$ associated entries, reducing overall invalidation work to $O(K)$ (M19.2a).
 - [ ] Verify throughput improvement and allocation reduction on `ScalarVariableBenchmark` and `ForeachLoopBenchmark` over 0.1.x baseline under balanced tradeoff evaluation.
 - [ ] Verify $O(K)$ indexed invalidation under high concurrency in `TemplateCompilationCacheBenchmark`.
 

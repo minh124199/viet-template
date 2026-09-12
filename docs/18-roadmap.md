@@ -71,6 +71,17 @@ Release `0.2.0` introduces the next major internal runtime evolution, transition
 
 ### Key Milestones & Capabilities (Milestone M19.2)
 
+Milestone M19.2 is split so cache work and variable-slot work retain independent benchmark
+attribution:
+
+- **M19.2a — Indexed compile-cache invalidation: COMPLETE.** A concurrent reverse index maps each
+  `TemplateId` to all of its live `CompileCacheKey` variants. Targeted invalidation performs an
+  average O(1) index lookup followed by O(K) affected-entry cleanup instead of scanning N cache
+  entries. Per-template lock stripes define put/invalidate ordering without changing the existing
+  access-order LRU lock.
+- **M19.2b — Variable slots and `ExecutionFrame`: PENDING.** No variable representation, slot
+  assignment, interpreter, or AOT changes are part of M19.2a.
+
 1. **Compiler-Assigned Variable Slots (`EvaluationValue[] slots`)**:
    - In 0.1.x, template variable evaluation relies on `ExecutionContext` managing an `ArrayDeque<LocalScope>` containing `HashMap<String, EvaluationValue>`.
    - In 0.2.0, semantic analysis and IR optimization assign every statically declared and inferred local variable (parameters, `#set` targets, loop counters, macro parameters) to a stable compiler-assigned integer slot ID.
@@ -83,6 +94,17 @@ Release `0.2.0` introduces the next major internal runtime evolution, transition
    - In 0.1.x, `TemplateCompileCache.invalidate(TemplateId)` performs an $O(N)$ linear scan over all cache keys: `entries.keySet().removeIf(...)`.
    - In 0.2.0, `TemplateCompileCache` introduces a concurrent secondary reverse index: `ConcurrentMap<TemplateId, Set<CompileCacheKey>>`.
    - The indexed approach performs an average $O(1)$ lookup of `TemplateId` $\to$ associated key set plus $O(K)$ removal of the $K$ associated entries, reducing overall invalidation work to $O(K)$. It is never described as "instant $O(1)$ eviction", because removing $K$ entries is proportional to $K$.
+   - `put` and `invalidate` for the same template serialize on a stable lock stripe. An insertion
+     therefore linearizes wholly before invalidation and is removed, or wholly after invalidation
+     and remains. Concurrent invalidations are idempotent. Eviction removes reverse-index and
+     conditional active-key membership after releasing the LRU lock, preventing lock-order cycles.
+   - The bookkeeping tradeoff is one reverse-map entry and concurrent set per indexed template,
+     plus one set membership per compile key. Empty sets are removed during eviction/invalidation,
+     and full reset clears the complete index.
+   - Positive mutations use a fixed set of 64 template lock stripes. This bounds synchronization
+     object overhead while allowing unrelated template mutations to proceed concurrently. The
+     stripe count is an implementation parameter, not a performance guarantee, and should be
+     revisited only if profiling justifies it.
 3. **Variable Slot Assignment Optimizer Pass (`O45 AssignVariableSlots`)**:
    - Adds pass `O45` to the optimization pipeline between local constant propagation (`O40`) and dead branch elimination (`O50`).
    - Assigns stable integer slot IDs to statically resolvable variables without slot reuse, preserving explicit symbol boundaries and 3-state evaluation semantics.

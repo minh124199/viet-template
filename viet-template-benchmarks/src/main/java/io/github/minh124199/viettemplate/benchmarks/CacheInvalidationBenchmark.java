@@ -29,10 +29,10 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
 /**
- * Measures the 0.1.x O(N) full table scan during cache invalidation: {@code
- * entries.keySet().removeIf(...)} in {@link TemplateCompileCache#invalidate(TemplateId)}.
- * Parameterized by total cache entries (N) and entries per template (K). Also measures transitive
- * invalidation via {@link TemplateCompileCache#invalidateWithDependents}.
+ * Measures indexed cache invalidation, parameterized by total cache entries (N) and entries per
+ * template (K). Fixed-K comparisons across N expose sensitivity to total cache size; fixed-N
+ * comparisons across K expose affected-entry bookkeeping. Also measures transitive invalidation via
+ * {@link TemplateCompileCache#invalidateWithDependents}.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -44,7 +44,7 @@ import org.openjdk.jmh.infra.Blackhole;
     jvmArgs = {"-server", "-Xms2g", "-Xmx2g", "-XX:+AlwaysPreTouch", "-XX:+UseG1GC"})
 public class CacheInvalidationBenchmark {
 
-  @Param({"100", "1000"})
+  @Param({"100", "1000", "10000"})
   private int totalEntries;
 
   @Param({"1", "5", "20"})
@@ -181,8 +181,7 @@ public class CacheInvalidationBenchmark {
   }
 
   @Benchmark
-  public void invalidateFullScanOnly() {
-    // Measures the pure O(N) scan without match
+  public void invalidateIndexedMiss() {
     cache.invalidate(nonExistentId);
   }
 

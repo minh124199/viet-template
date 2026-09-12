@@ -104,7 +104,7 @@ viet-template-benchmarks/
     │   ├── VariableAssignmentBenchmark.java   # Scope assignment and mutable root write-through
     │   ├── ForeachRenderingBenchmark.java     # Complete loop rendering (B05, B06, B07)
     │   ├── CompileCacheBenchmark.java         # Isolated compile cache operations & negative caching
-    │   ├── CacheInvalidationBenchmark.java    # Full table scan O(N) vs O(K) & transitive dependents
+    │   ├── CacheInvalidationBenchmark.java    # Indexed O(K) invalidation shape & transitive dependents
     │   ├── ConcurrentCacheBenchmark.java      # Multi-threaded lruLock scaling (1, 4, 8 threads)
     │   ├── CallSiteBenchmark.java             # Monomorphic and polymorphic PIC (B09, B10)
     │   ├── MegamorphicCallSiteBenchmark.java  # BoundedWeakClassCache hits & misses beyond depth 4
@@ -241,6 +241,29 @@ Milestone M19.1 establishes the benchmark methodology and measured baseline befo
 - **M19.1a (Internal Java 17 Baseline - Completed)**: Official internal baseline captured on commit `aad9d35` across all 10 canonical benchmark suites (`viet-template-benchmarks/build/reports/jmh/baseline-java17.json`).
 - **M19.1b (Cross-Engine Comparators - Pending)**: Comparative benchmarks against external template engines will be executed as dedicated comparator suites before adopting cross-engine comparative claims.
 - **M19.1c (Cross-JDK Validation - Completed)**: Cross-JDK validation across Java 17, 21, and 25 completed with identical methodology on clean commit `26567ca` (`baseline-java17.json`, `baseline-java21.json`, `baseline-java25.json`).
+- **M19.2a (Indexed Compile-Cache Invalidation - Completed)**: `CacheInvalidationBenchmark`
+  retains N and K as independent dimensions and adds N=10,000. Fixed-K comparisons across N verify
+  that targeted invalidation is no longer shaped by a full table scan; fixed-N comparisons across K
+  expose affected-entry cleanup. `CompileCacheBenchmark` continues to cover active/exact lookup,
+  repeated-key put, active replacement, and now bounded insertion with eviction. The reverse index
+  costs one template-to-set mapping per live template and one set membership per live compile key;
+  empty mappings are reclaimed.
+  The Java 17 post-change run (`m19.2a-java17-invalidation.json`) measured targeted invalidation at
+  3.532M ± 0.903M, 3.502M ± 0.175M, and 3.533M ± 0.230M ops/s for K=1 at N=100, 1,000, and
+  10,000 respectively. At N=10,000, throughput was 3.533M ± 0.230M, 1.197M ± 0.194M, and 0.375M
+  ± 0.133M ops/s for K=1, 5, and 20, confirming that affected-key count rather than total cache
+  size now determines the primary removal work. Compared with the frozen M19.1 Java 17 baseline,
+  repeated same-key put measured 4.427M ± 0.173M versus 5.450M ± 0.367M ops/s, while active and
+  exact-key reads remained healthy. Mixed 1/4/8-thread throughput measured 10.161M ± 0.702M,
+  4.290M ± 0.195M, and 4.807M ± 0.140M ops/s; interpretation remains dominated by the deferred
+  M19.3 LRU lock.
+  The M19.1 method `invalidateFullScanOnly` is compared with its renamed M19.2a equivalent,
+  `invalidateIndexedMiss`; both invalidate an absent template, but only the former performed a full
+  entry-table scan. Repeated same-key put and active replacement were approximately 19% and 20%
+  slower respectively after indexing because the reverse index and mutation synchronization add
+  write-path bookkeeping; this measured regression is accepted alongside the algorithmic
+  invalidation improvement.
+- **M19.2b (Variable Slots + ExecutionFrame - Pending)**: variable representation remains unchanged.
 
 All cross-engine benchmarks will compare Viet Template against current stable versions of:
 

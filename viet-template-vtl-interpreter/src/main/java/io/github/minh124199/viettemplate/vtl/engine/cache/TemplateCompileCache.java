@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class TemplateCompileCache {
 
+  private static final int TEMPLATE_LOCK_COUNT = 64;
+
   private final int maxEntries;
   private final long negativeCacheTtlMillis;
   private final int maxNegativeEntries;
@@ -27,8 +29,19 @@ public final class TemplateCompileCache {
   private final ConcurrentMap<CompileCacheKey, CompiledTemplateHandle> entries =
       new ConcurrentHashMap<>();
   private final ConcurrentMap<TemplateId, CompileCacheKey> activeKeys = new ConcurrentHashMap<>();
+
+  /**
+   * Reverse index for targeted invalidation. Membership mirrors {@link #entries}: every positive
+   * cache key is present in exactly one set, and empty sets are removed.
+   */
+  private final ConcurrentMap<TemplateId, Set<CompileCacheKey>> keysByTemplate =
+      new ConcurrentHashMap<>();
+
   private final ConcurrentMap<TemplateId, NegativeCacheEntry> negativeEntries =
       new ConcurrentHashMap<>();
+
+  // Serializes mutations for one template without globally serializing unrelated templates.
+  private final Object[] templateLocks = new Object[TEMPLATE_LOCK_COUNT];
 
   // Guard for LRU order tracking
   private final Object lruLock = new Object();
@@ -44,6 +57,9 @@ public final class TemplateCompileCache {
     this.maxEntries = maxEntries;
     this.negativeCacheTtlMillis = negativeCacheTtlMillis;
     this.maxNegativeEntries = Math.max(1, maxNegativeEntries);
+    for (int i = 0; i < templateLocks.length; i++) {
+      templateLocks[i] = new Object();
+    }
   }
 
   public TemplateCompileCache() {
@@ -81,24 +97,31 @@ public final class TemplateCompileCache {
     Objects.requireNonNull(key, "key must not be null");
     Objects.requireNonNull(handle, "handle must not be null");
 
-    entries.put(key, handle);
-    activeKeys.put(key.templateId(), key);
-    negativeEntries.remove(key.templateId());
-
     CompileCacheKey toEvict = null;
-    synchronized (lruLock) {
-      lruOrder.put(key, Boolean.TRUE);
-      if (lruOrder.size() > maxEntries) {
-        Iterator<Map.Entry<CompileCacheKey, Boolean>> it = lruOrder.entrySet().iterator();
-        if (it.hasNext()) {
-          toEvict = it.next().getKey();
-          it.remove();
+    synchronized (templateLock(key.templateId())) {
+      CompiledTemplateHandle previous = entries.put(key, handle);
+      if (previous == null) {
+        keysByTemplate
+            .computeIfAbsent(key.templateId(), ignored -> ConcurrentHashMap.newKeySet())
+            .add(key);
+      }
+      activeKeys.put(key.templateId(), key);
+      negativeEntries.remove(key.templateId());
+
+      synchronized (lruLock) {
+        lruOrder.put(key, Boolean.TRUE);
+        if (lruOrder.size() > maxEntries) {
+          Iterator<Map.Entry<CompileCacheKey, Boolean>> it = lruOrder.entrySet().iterator();
+          if (it.hasNext()) {
+            toEvict = it.next().getKey();
+            it.remove();
+          }
         }
       }
     }
 
     if (toEvict != null && !toEvict.equals(key)) {
-      evict(toEvict);
+      evictIfStillEldest(toEvict);
     }
   }
 
@@ -145,21 +168,18 @@ public final class TemplateCompileCache {
   /** Invalidates all cache entries (positive and negative) for the specified template. */
   public void invalidate(TemplateId id) {
     Objects.requireNonNull(id, "id must not be null");
-    activeKeys.remove(id);
-    negativeEntries.remove(id);
-
-    entries
-        .keySet()
-        .removeIf(
-            k -> {
-              if (k.templateId().equals(id)) {
-                synchronized (lruLock) {
-                  lruOrder.remove(k);
-                }
-                return true;
-              }
-              return false;
-            });
+    // The template stripe is the linearization boundary: a concurrent put for this template is
+    // either wholly before invalidation (and removed) or wholly after it (and retained).
+    synchronized (templateLock(id)) {
+      Set<CompileCacheKey> keys = keysByTemplate.remove(id);
+      activeKeys.remove(id);
+      negativeEntries.remove(id);
+      if (keys != null) {
+        for (CompileCacheKey key : keys) {
+          removeEntryUnderTemplateLock(key, true);
+        }
+      }
+    }
   }
 
   /**
@@ -185,8 +205,19 @@ public final class TemplateCompileCache {
 
   /** Completely clears all cached compiled templates and negative entries. */
   public void invalidateAll() {
+    invalidateAllUnderTemplateLocks(0);
+  }
+
+  private void invalidateAllUnderTemplateLocks(int lockIndex) {
+    if (lockIndex < templateLocks.length) {
+      synchronized (templateLocks[lockIndex]) {
+        invalidateAllUnderTemplateLocks(lockIndex + 1);
+      }
+      return;
+    }
     entries.clear();
     activeKeys.clear();
+    keysByTemplate.clear();
     negativeEntries.clear();
     synchronized (lruLock) {
       lruOrder.clear();
@@ -211,11 +242,71 @@ public final class TemplateCompileCache {
     return negativeEntries.size();
   }
 
-  private void evict(CompileCacheKey key) {
+  /** Package-private quiescent-state invariant check for focused cache tests. */
+  boolean isInternallyConsistent() {
+    Set<CompileCacheKey> indexedKeys = ConcurrentHashMap.newKeySet();
+    boolean[] invalidMembership = {false};
+    keysByTemplate.forEach(
+        (id, keys) -> {
+          for (CompileCacheKey key : keys) {
+            if (!key.templateId().equals(id)) {
+              invalidMembership[0] = true;
+            }
+            indexedKeys.add(key);
+          }
+        });
+    if (invalidMembership[0]
+        || !indexedKeys.equals(entries.keySet())
+        || keysByTemplate.values().stream().anyMatch(Set::isEmpty)
+        || activeKeys.entrySet().stream()
+            .anyMatch(
+                entry ->
+                    !entry.getKey().equals(entry.getValue().templateId())
+                        || !entries.containsKey(entry.getValue()))) {
+      return false;
+    }
+    synchronized (lruLock) {
+      return lruOrder.keySet().equals(entries.keySet());
+    }
+  }
+
+  int indexedKeyCount(TemplateId id) {
+    Set<CompileCacheKey> keys = keysByTemplate.get(id);
+    return keys == null ? 0 : keys.size();
+  }
+
+  private Object templateLock(TemplateId id) {
+    return templateLocks[(id.hashCode() & 0x7fffffff) % templateLocks.length];
+  }
+
+  private void evictIfStillEldest(CompileCacheKey key) {
+    synchronized (templateLock(key.templateId())) {
+      // The key was removed from LRU order before this template lock was acquired. A concurrent
+      // re-put adds it back; in that case it is a new live insertion and must not be evicted.
+      synchronized (lruLock) {
+        if (lruOrder.containsKey(key)) {
+          return;
+        }
+      }
+      removeEntryUnderTemplateLock(key, false);
+    }
+  }
+
+  private void removeEntryUnderTemplateLock(CompileCacheKey key, boolean removeFromLru) {
     CompiledTemplateHandle removed = entries.remove(key);
     if (removed != null) {
-      // If this was the active key for this template id, remove it
       activeKeys.remove(key.templateId(), key);
+      keysByTemplate.computeIfPresent(
+          key.templateId(),
+          (ignored, keys) -> {
+            keys.remove(key);
+            return keys.isEmpty() ? null : keys;
+          });
+    }
+    if (removeFromLru) {
+      synchronized (lruLock) {
+        lruOrder.remove(key);
+      }
     }
   }
 }

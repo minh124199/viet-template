@@ -6,6 +6,8 @@ import io.github.minh124199.viettemplate.vtl.engine.cache.CompileCacheKey;
 import io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle;
 import io.github.minh124199.viettemplate.vtl.engine.cache.TemplateCompileCache;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -42,7 +44,47 @@ import org.openjdk.jmh.annotations.Warmup;
     jvmArgs = {"-server", "-Xms2g", "-Xmx2g", "-XX:+AlwaysPreTouch", "-XX:+UseG1GC"})
 public class CompileCacheBenchmark {
 
+  @State(Scope.Thread)
+  public static class FreshInsertionState {
+    private int cursor;
+    private CompileCacheKey key;
+    private CompiledTemplateHandle handle;
+
+    @Setup(Level.Invocation)
+    public void prepare(CompileCacheBenchmark benchmark) {
+      int variant = cursor++ & 1023;
+      TemplateId id = TemplateId.of("fresh-insertion-" + variant + ".vm");
+      key =
+          CompileCacheKey.of(
+              id,
+              "fresh-" + variant,
+              "0.1.1-SNAPSHOT",
+              OptimizationLevel.O2,
+              ExecutionTier.IR,
+              "standard",
+              "model",
+              "opts");
+      handle = CompiledTemplateHandle.ofIr(id, 1L, key, null);
+      benchmark.cache.invalidate(id);
+    }
+  }
+
+  @State(Scope.Thread)
+  public static class ActiveVariantState {
+    private CompileCacheKey replacement;
+    private CompiledTemplateHandle replacementHandle;
+
+    @Setup(Level.Invocation)
+    public void prepare(CompileCacheBenchmark benchmark) {
+      benchmark.cache.invalidate(benchmark.targetId);
+      benchmark.cache.put(benchmark.targetKey, benchmark.targetHandle);
+      replacement = benchmark.replacementKey;
+      replacementHandle = benchmark.replacementHandle;
+    }
+  }
+
   private TemplateCompileCache cache;
+  private TemplateCompileCache evictionCache;
 
   private TemplateId targetId;
   private CompileCacheKey targetKey;
@@ -53,6 +95,9 @@ public class CompileCacheBenchmark {
 
   private TemplateId negativeCachedId;
   private TemplateId negativeMissingId;
+  private List<CompileCacheKey> evictionKeys;
+  private List<CompiledTemplateHandle> evictionHandles;
+  private int evictionCursor;
 
   @Setup(Level.Trial)
   public void setUp() {
@@ -103,6 +148,25 @@ public class CompileCacheBenchmark {
     cache.recordNegative(negativeCachedId, "File not found");
 
     negativeMissingId = TemplateId.of("not-in-negative-cache.vm");
+
+    evictionCache = new TemplateCompileCache(500, 60000L, 50);
+    evictionKeys = new ArrayList<>(1024);
+    evictionHandles = new ArrayList<>(1024);
+    for (int i = 0; i < 1024; i++) {
+      TemplateId id = TemplateId.of("eviction-" + i + ".vm");
+      CompileCacheKey key =
+          CompileCacheKey.of(
+              id,
+              "eviction-hash-" + i,
+              "0.1.1-SNAPSHOT",
+              OptimizationLevel.O2,
+              ExecutionTier.IR,
+              "standard",
+              "model",
+              "opts");
+      evictionKeys.add(key);
+      evictionHandles.add(CompiledTemplateHandle.ofIr(id, 1L, key, null));
+    }
   }
 
   @TearDown(Level.Trial)
@@ -110,6 +174,10 @@ public class CompileCacheBenchmark {
     if (cache != null) {
       cache.invalidateAll();
       cache = null;
+    }
+    if (evictionCache != null) {
+      evictionCache.invalidateAll();
+      evictionCache = null;
     }
   }
 
@@ -125,12 +193,29 @@ public class CompileCacheBenchmark {
 
   @Benchmark
   public void putInsertion() {
+    // Historical M19.1 name retained: this is repeated same-key replacement.
     cache.put(targetKey, targetHandle);
+  }
+
+  @Benchmark
+  public void putFreshInsertion(FreshInsertionState state) {
+    cache.put(state.key, state.handle);
   }
 
   @Benchmark
   public void replaceActiveKey() {
     cache.put(replacementKey, replacementHandle);
+  }
+
+  @Benchmark
+  public void replaceActiveWithNewVariant(ActiveVariantState state) {
+    cache.put(state.replacement, state.replacementHandle);
+  }
+
+  @Benchmark
+  public void putWithEviction() {
+    int index = evictionCursor++ & 1023;
+    evictionCache.put(evictionKeys.get(index), evictionHandles.get(index));
   }
 
   @Benchmark

@@ -45,6 +45,7 @@ val benchmarkJar = tasks.register<Jar>("benchmarkJar") {
     archiveFileName.set("benchmarks.jar")
     destinationDirectory.set(layout.buildDirectory.dir("libs"))
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    dependsOn(configurations.runtimeClasspath)
 
     manifest {
         attributes["Main-Class"] = "org.openjdk.jmh.Main"
