@@ -595,28 +595,68 @@ Every optimization must preserve:
 
 ---
 
-## 19. Benchmark release gate
+## 19. Benchmark release gate & performance engineering milestones
 
-- [ ] JMH harness checked into repository.
-- [ ] exact JDK flags recorded.
-- [ ] CPU/JVM/OS metadata recorded.
-- [ ] warmup/measurement/fork counts recorded.
-- [ ] template compilation excluded from render-only benchmark.
-- [ ] separate cold compile/startup benchmark.
-- [ ] compare allocation/op as a first-class metric.
-- [ ] p50/p95/p99 where end-to-end harness is used.
-- [ ] publish source templates used for every engine.
-- [ ] inspect generated assembly/JIT compilation only for diagnosed hotspots, not as marketing evidence by itself.
+### 19.1 Milestone M19.1 — 0.1.x Benchmark Infrastructure & Baseline Measurement
+
+- [ ] Create dedicated submodule `viet-template-benchmarks` with dual build parity (Gradle `build.gradle.kts` + Maven `pom.xml`).
+- [ ] Configure JMH framework with `jmh-generator-annprocess`, shadow/uber JAR packaging (`benchmarks.jar`), and `-prof gc`.
+- [ ] Implement Workload B01: `StaticHtmlBenchmark` (20 KB static HTML streaming, zero-allocation literal writes).
+- [ ] Implement Workload B02: `ScalarVariableBenchmark` (50 scalar variable substitutions, context lookup overhead).
+- [ ] Implement Workload B03: `DeepPropertyChainBenchmark` (4-level getter chains on records and POJOs).
+- [ ] Implement Workload B04: `ConditionalBranchBenchmark` (100 mixed conditionals with truthiness evaluation).
+- [ ] Implement Workloads B05, B06, B07: `ForeachLoopBenchmark` (10-row, 1,000-row, and nested 100x10 loops over collections, arrays, ranges).
+- [ ] Implement Workload B08: `EscapingBenchmark` (escaping-heavy HTML text and attribute streams).
+- [ ] Implement Workloads B09, B10: `DynamicCallSitePicBenchmark` (monomorphic, 2-to-4 polymorphic PIC, megamorphic property resolution).
+- [ ] Implement Workload B15: `TemplateCompilationCacheBenchmark` (concurrent parse, analyze, compile, and invalidation of 1,000 templates).
+- [ ] Implement Workloads B11, B12: `MacroAndLayoutBenchmark` (macro parameter passing, block macros, and two-stage layout rendering).
+- [ ] Set up comparator baselines in benchmark suite: handwritten Java, Apache Velocity 2.4.1, Quarkus Qute (dynamic and typed), jte, and Thymeleaf.
+- [ ] Document preservation of 0.1.x simple high-performance data structures (contiguous `AccessLink[]` array scan for PIC depth <= 4, dependency graph reverse index `Map<TemplateId, Set<TemplateId>>` + BFS traversal with `ArrayDeque` and visited `HashSet`, `ExecutionContext` with `ArrayDeque<LocalScope>` and `HashMap`).
+- [ ] Capture official 0.1.x baseline measurements across JDK 17, 21, and 25 with fixed JVM flags (`-Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC`).
+
+### 19.2 Milestone M19.2 — 0.2.0 High-Performance Runtime Architecture
+
+- [ ] Implement IR and optimizer variable slot assignment pass (`O45 AssignVariableSlots`) to analyze variable liveness and assign integer slot indices.
+- [ ] Implement `ExecutionFrame` backed by `EvaluationValue[] slots` for fast indexed variable access.
+- [ ] Provide dynamic fallback map (`Map<String, EvaluationValue> dynamicVariables`) within `ExecutionFrame` for undeclared variables, dynamic `#evaluate` evaluations, and contributor variables.
+- [ ] Preserve 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) and full Velocity compatibility across all slot read/write operations.
+- [ ] Update VTL reference interpreter to execute variable accesses via `ExecutionFrame` slots.
+- [ ] Update AOT bytecode backend to emit direct slot-indexed bytecode instructions (`ALOAD`, `ASTORE`, `AALOAD`, `AASTORE`).
+- [ ] Replace $O(N)$ linear key scan `entries.keySet().removeIf(...)` in `TemplateCompileCache.invalidate(TemplateId)` with secondary reverse index (`ConcurrentMap<TemplateId, Set<CompileCacheKey>>`) for instant $O(1)$ invalidation.
+- [ ] Verify $\ge 25\%$ throughput improvement and $\ge 20\%$ allocation reduction on `ScalarVariableBenchmark` and `ForeachLoopBenchmark` over 0.1.x baseline.
+- [ ] Verify instant invalidation under high concurrency in `TemplateCompilationCacheBenchmark`.
+
+### 19.3 Milestone M19.3 — 0.3.x+ Evidence-Driven Optimizations
+
+- [ ] Profile LRU cache contention in `TemplateCompileCache` under high concurrent load; evaluate lock-free or striped eviction (e.g. concurrent bounded cache) if lock contention is proven.
+- [ ] Profile lexer and parser allocation hotspots; introduce zero-copy token slice representation to reduce temporary `String` allocations.
+- [ ] Evaluate concurrent read-path optimizations in `TemplateDependencyGraph` for continuous hot-reload environments.
+- [ ] Prototype and benchmark `invokedynamic` dynamic property resolution against the contiguous `AccessLink[]` PIC array scan; advance only if measurable gains occur without classloader leaks.
+- [ ] Profile and optimize streaming output buffer (`TemplateOutput`) and primitive number formatting.
+
+### 19.4 Performance PR Review Checklist
+
+Every PR modifying runtime execution paths, data structures, or caching algorithms must verify:
+
+- [ ] 1. **JMH Benchmark Evidence**: Includes before/after JMH results on relevant benchmarks.
+- [ ] 2. **Allocation & GC Footprint**: Measures allocation rate (`bytes/op`) using `-prof gc`; introduces zero unnecessary allocations.
+- [ ] 3. **Scalability & Contention**: Validates concurrent scaling under $\ge 8$ threads without lock convoying.
+- [ ] 4. **Memory Footprint**: Analyzes memory footprint per template and per execution context.
+- [ ] 5. **Java 17 Baseline Idioms**: Adheres to Java 17 idiomatic practices, compact flat arrays, and standard collections without third-party dependencies.
+- [ ] 6. **Avoidance of Premature Hacks**: Avoids unsafe tricks, undocumented JVM internals, and unmaintainable micro-optimizations.
+- [ ] 7. **Thread-Safety & Invariants**: Formally proves all concurrency invariants and immutability guarantees.
+- [ ] 8. **Tail Latency & Branch Predictability**: Avoids branch mispredictions and unbounded worst-case latencies.
+- [ ] 9. **Architectural Simplicity & DSA Acceptance**: Satisfies all 7 parts of the DSA Acceptance Rule; reverts to simple JDK structures if gains are $< 5\text{--}10\%$.
 
 ### Initial success gates
 
 Do not advertise ratios before measurement. Internal stretch targets:
 
-- [ ] typed simple render within 15% of handwritten renderer throughput after warmup.
-- [ ] very low engine overhead allocation in typed path.
-- [ ] meaningful throughput/allocation win over Velocity on dynamic migration workload.
-- [ ] competitive with Qute typed mode and jte on typed workload.
-- [ ] no performance regression >10% without an accepted benchmark note/ADR.
+- [ ] Typed simple render within 15% of handwritten renderer throughput after warmup.
+- [ ] Very low engine overhead allocation in typed path.
+- [ ] Meaningful throughput/allocation win over Velocity on dynamic migration workload.
+- [ ] Competitive with Qute typed mode and jte on typed workload.
+- [ ] No performance regression $> 5\%$ without an accepted benchmark note/ADR.
 
 ---
 

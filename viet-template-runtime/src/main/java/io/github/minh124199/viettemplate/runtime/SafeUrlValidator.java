@@ -66,7 +66,15 @@ public final class SafeUrlValidator {
     }
     String trimmed = raw.substring(start, end);
 
-    // 2. Reject HTML entity references (e.g. &#106;, &#x6a;, &colon;)
+    // 2. Reject control characters (< 32 except \t, \r, \n) and null bytes across all URLs
+    for (int i = 0; i < trimmed.length(); i++) {
+      char c = trimmed.charAt(i);
+      if (c < 32 && c != '\t' && c != '\r' && c != '\n') {
+        throw new IllegalArgumentException("URL contains control characters: " + trimmed);
+      }
+    }
+
+    // 3. Reject HTML entity references (e.g. &#106;, &#x6a;, &colon;)
     if (containsHtmlEntity(trimmed)) {
       throw new IllegalArgumentException("URL contains HTML entity references: " + trimmed);
     }

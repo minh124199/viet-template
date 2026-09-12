@@ -201,11 +201,52 @@ record CompiledArtifact(
 ) {}
 ```
 
-## 6. Runtime lifecycle
+## 6. Runtime lifecycle and execution frame
 
-Registry lookup must be O(1) by normalized id. Compiled templates are immutable/thread-safe. Per-render state is local: parameters, locals, loop state, recursion/output budgets.
+Registry lookup must be $O(1)$ by normalized id. Compiled templates are immutable and thread-safe. Per-render state is strictly local: parameters, locals, loop state, and recursion/output budgets.
 
-Typed mode should offer a generated direct facade:
+### Execution Frame and Scoping Architecture
+
+In 0.1.x, template variable evaluation relies on `ExecutionContext` managing an `ArrayDeque<LocalScope>` where each scope holds a `HashMap<String, EvaluationValue>`.
+
+In 0.2.0, the runtime introduces a high-performance `ExecutionFrame` backed by compiler-assigned variable slots:
+
+```java
+public final class ExecutionFrame {
+    // Fast path: compiler-assigned variable slots (parameters, #set, loop vars, macro args)
+    private final EvaluationValue[] slots;
+    
+    // Dynamic fallback: undeclared variables, #evaluate dynamic scopes, dynamic contributor variables
+    private Map<String, EvaluationValue> dynamicVariables;
+    
+    // Read-through to outer immutable render context
+    private final RenderContext renderContext;
+    private final RenderBudget budget;
+    
+    public ExecutionFrame(int slotCount, RenderContext renderContext, RenderBudget budget) {
+        this.slots = new EvaluationValue[slotCount];
+        this.renderContext = renderContext;
+        this.budget = budget;
+    }
+    
+    public EvaluationValue getSlot(int slotIndex) {
+        return slots[slotIndex];
+    }
+    
+    public void setSlot(int slotIndex, EvaluationValue value) {
+        slots[slotIndex] = value;
+    }
+}
+```
+
+- **Array Slot Performance**: Statically analyzed variables map to fixed integer indices (`int slotIndex`). Reading or writing a variable compiles to a direct array index load or store (`ALOAD`/`ASTORE`), completely bypassing string hashing, bucket resolution, and entry node traversal.
+- **Dynamic Fallback**: Variables introduced dynamically (via `#evaluate` or untyped dynamic context contributors) use a lazily initialized `HashMap<String, EvaluationValue>`.
+- **3-State Semantics**: Both slots and the dynamic map preserve the 3-state evaluation model (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`), guaranteeing 100% Velocity semantic compatibility.
+- **Stack Structures**: Lexical scopes, macro invocations, and layout pipelines utilize standard `ArrayDeque` for LIFO/FIFO operations, eliminating pointer overhead associated with linked lists.
+
+### Direct Typed Facade
+
+Typed mode offers a generated direct facade:
 
 ```java
 public interface OrdersListTemplate {
@@ -213,31 +254,75 @@ public interface OrdersListTemplate {
 }
 ```
 
-so no string-key context lookup occurs in the hot method.
+When invoked through this facade, no string-key context lookup occurs anywhere in the hot rendering path.
 
-## 7. Cache architecture
+---
 
-Separate caches:
+## 7. Cache and Resolution Architecture
 
 ```text
 SourceCache
 ParseCache
 SemanticCache
-CompileCache
+CompileCache (with Secondary Invalidation Index)
 TemplateRegistry
-DynamicCallSiteCache
+DynamicCallSiteCache (Polymorphic Inline Cache)
 ```
 
-Every semantic/compile cache key must include all inputs affecting semantics/security.
+Every semantic and compile cache key must include all inputs affecting semantics, model schemas, and security policies.
 
-## 8. Hot reload
+### Secondary Invalidation Index (`TemplateId -> Set<CompileCacheKey>`)
+
+In high-throughput environments with thousands of compiled templates, invalidating a template cannot perform an $O(N)$ full scan over cache keys (`entries.keySet().removeIf(...)`).
+
+`TemplateCompileCache` maintains a concurrent secondary reverse index:
+```text
+ConcurrentMap<TemplateId, Set<CompileCacheKey>>
+```
+When a template is updated or invalidated:
+1. The cache looks up the associated `Set<CompileCacheKey>` in $O(1)$ time.
+2. All corresponding entries in the primary compilation cache are directly evicted.
+3. Memory and classloader references are immediately eligible for collection.
+
+### Dynamic Call-Site PIC Architecture (`AccessLink[]` Array Scanning)
+
+For dynamic property access on unknown receiver types, `DynamicCallSite` implements a Polymorphic Inline Cache (PIC) with a maximum depth of 4 shapes before falling back to a megamorphic cache:
+
+```java
+final class DynamicCallSite {
+    private final int siteId;
+    private final String property;
+    private volatile AccessLink[] polymorphicLinks; // max length 4
+    private final BoundedWeakClassCache megamorphicCache;
+}
+```
+
+**Architectural Justification for Array Scanning over HashMap**:
+- **CPU Cacheline Locality**: An array of 4 `AccessLink` references occupies 32 bytes (or 16 bytes with compressed references), fitting entirely within a single 64-byte L1 CPU cache line.
+- **Zero Hashing Overhead**: Scanned linearly with pointer equality checks (`receiver.getClass() == link.receiverClass`). It requires no `hashCode()` computation, modulo arithmetic, or node dereferencing.
+- **Branch Predictor Friendly**: Modern JIT compilers (HotSpot C2) easily unroll a 4-element loop into direct conditional checks, allowing branch predictors to operate at maximum efficiency.
+- **Megamorphic Guard**: If more than 4 distinct receiver types are encountered at a single site, the call site switches to `BoundedWeakClassCache` to prevent unbounded array scanning.
+
+---
+
+## 8. Hot Reload and Dependency Invalidation
 
 ```text
 file change -> source hash -> invalidate dependency graph -> reanalyze/recompile
             -> atomic immutable registry swap
 ```
 
-In-flight renders may finish on the old generation; mixed-generation output is not allowed.
+### Dependency Graph Architecture
+
+Template relationships (`#parse`, `#include`, global macros, layouts) are maintained by `TemplateDependencyGraph`:
+- **Reverse Dependency Index**: Stores mappings as `ConcurrentMap<TemplateId, Set<TemplateId>>` (depended-on template $\to$ dependents).
+- **Breadth-First Search (BFS) Invalidation**: Transitive invalidation uses a standard `ArrayDeque<TemplateId>` queue and a visited `HashSet<TemplateId>`:
+  1. Detects and handles circular references safely without infinite recursion.
+  2. Traverses the reverse index in optimal $O(V + E)$ time.
+  3. Triggers secondary index eviction across all transitively affected compilation units.
+- **Atomic Generation Swap**: In-flight renders finish on the old generation; mixed-generation output is strictly prevented.
+
+---
 
 ## 9. Error taxonomy
 
@@ -253,11 +338,17 @@ In-flight renders may finish on the old generation; mixed-generation output is n
 
 Each carries template id, source span, template stack, stable diagnostic code and optional cause. See [12a — Velocity Application Compatibility Architecture](12a-velocity-application-compatibility.md) for context composition, dependency graphs, global macros, and layout rendering.
 
+---
+
 ## 10. Architectural invariants
 
-1. AST/IR/runtime template objects are immutable.
-2. Source paths are normalized before policy decisions.
-3. Dynamic invocation never bypasses security policy.
-4. Static output is pre-encoded when output mode supports it.
-5. Optimization may fall back but never alter defined semantics.
-6. Interpreter and compiled backends share analyzed semantics/IR.
+1. **Immutability**: AST, IR, and runtime compiled template objects are strictly immutable and thread-safe.
+2. **Canonical Paths**: Source paths are normalized before access control and policy decisions are evaluated.
+3. **Security Invariant**: Dynamic invocation and cached inline links never bypass security policy allowlists or class restrictions.
+4. **Pre-Encoded Literals**: Static output is pre-encoded to UTF-8 byte chunks when the output target supports byte streaming.
+5. **Semantic Equivalence**: Optimization passes may fall back to safer paths but must never alter defined language semantics.
+6. **Unified IR**: The reference interpreter and compiled backends consume the exact same verified IR.
+7. **7-Part DSA Acceptance Rule**: No complex or custom data structure may be introduced without satisfying the 7-part DSA acceptance rule (see [15 — Benchmark and Performance Engineering Plan](15-benchmark-plan.md)).
+8. **Java-First Design Policy**: Contiguous arrays, compact records, and standard JDK collections (`ArrayDeque`, `ArrayList`, `HashMap`, `ConcurrentHashMap`) are prioritized over external or complex pointer structures.
+9. **Scalable Invalidation**: Invalidation of compilation and dependency caches must scale independently of total cache entry count via indexed secondary lookups.
+

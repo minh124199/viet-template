@@ -20,6 +20,9 @@ public final class VtlNumericOperations {
       return String.valueOf(left) + String.valueOf(right);
     }
     if (isNumeric(left) && isNumeric(right)) {
+      if (isNonFinite(left) || isNonFinite(right)) {
+        return ((Number) left).doubleValue() + ((Number) right).doubleValue();
+      }
       if (isDecimal(left) || isDecimal(right)) {
         return toBigDecimal(left).add(toBigDecimal(right), MATH_CONTEXT);
       }
@@ -31,6 +34,9 @@ public final class VtlNumericOperations {
 
   public static Object subtract(Object left, Object right, SourceSpan span, TemplateId id) {
     checkNumericOperands("-", left, right, span, id);
+    if (isNonFinite(left) || isNonFinite(right)) {
+      return ((Number) left).doubleValue() - ((Number) right).doubleValue();
+    }
     if (isDecimal(left) || isDecimal(right)) {
       return toBigDecimal(left).subtract(toBigDecimal(right), MATH_CONTEXT);
     }
@@ -39,6 +45,9 @@ public final class VtlNumericOperations {
 
   public static Object multiply(Object left, Object right, SourceSpan span, TemplateId id) {
     checkNumericOperands("*", left, right, span, id);
+    if (isNonFinite(left) || isNonFinite(right)) {
+      return ((Number) left).doubleValue() * ((Number) right).doubleValue();
+    }
     if (isDecimal(left) || isDecimal(right)) {
       return toBigDecimal(left).multiply(toBigDecimal(right), MATH_CONTEXT);
     }
@@ -47,6 +56,14 @@ public final class VtlNumericOperations {
 
   public static Object divide(Object left, Object right, SourceSpan span, TemplateId id) {
     checkNumericOperands("/", left, right, span, id);
+    if (isNonFinite(left) || isNonFinite(right)) {
+      double r = ((Number) right).doubleValue();
+      if (r == 0.0) {
+        throw new TemplateRenderException(
+            "Division by zero", id, span, InterpreterDiagnosticCodes.SYNTAX_ERROR);
+      }
+      return ((Number) left).doubleValue() / r;
+    }
     if (isDecimal(left) || isDecimal(right)) {
       BigDecimal r = toBigDecimal(right);
       if (r.compareTo(BigDecimal.ZERO) == 0) {
@@ -65,6 +82,14 @@ public final class VtlNumericOperations {
 
   public static Object remainder(Object left, Object right, SourceSpan span, TemplateId id) {
     checkNumericOperands("%", left, right, span, id);
+    if (isNonFinite(left) || isNonFinite(right)) {
+      double r = ((Number) right).doubleValue();
+      if (r == 0.0) {
+        throw new TemplateRenderException(
+            "Division by zero in remainder", id, span, InterpreterDiagnosticCodes.SYNTAX_ERROR);
+      }
+      return ((Number) left).doubleValue() % r;
+    }
     if (isDecimal(left) || isDecimal(right)) {
       BigDecimal r = toBigDecimal(right);
       if (r.compareTo(BigDecimal.ZERO) == 0) {
@@ -111,6 +136,16 @@ public final class VtlNumericOperations {
 
   public static boolean isDecimal(Object o) {
     return o instanceof BigDecimal || o instanceof Double || o instanceof Float;
+  }
+
+  public static boolean isNonFinite(Object o) {
+    if (o instanceof Double d) {
+      return Double.isNaN(d) || Double.isInfinite(d);
+    }
+    if (o instanceof Float f) {
+      return Float.isNaN(f) || Float.isInfinite(f);
+    }
+    return false;
   }
 
   public static BigDecimal toBigDecimal(Object o) {
