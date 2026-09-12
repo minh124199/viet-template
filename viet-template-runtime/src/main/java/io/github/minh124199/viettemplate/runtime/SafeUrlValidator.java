@@ -40,25 +40,42 @@ public final class SafeUrlValidator {
   }
 
   /**
-   * Validates and returns the sanitized URL string, stripping leading and trailing whitespace and
-   * control characters.
+   * Validates and returns the normalized URL string. Trims leading and trailing ASCII space (' ')
+   * and verifies that the URL conforms to the allowed scheme and structure policy.
+   *
+   * <p><b>Validation vs Sanitization:</b> This method performs strict validation rather than active
+   * character encoding or content transformation. It does not escape or re-encode unsafe
+   * characters. All ASCII C0 control characters (U+0000..U+001F, including NUL, TAB, CR, LF) and
+   * DEL (U+007F) anywhere in the input are strictly rejected (fail-closed) rather than stripped or
+   * sanitized.
    *
    * @param url the candidate URL
-   * @return the validated URL string
-   * @throws IllegalArgumentException if the URL contains dangerous schemes or obfuscation
+   * @return the validated URL string (with leading and trailing ASCII space trimmed)
+   * @throws IllegalArgumentException if the URL contains forbidden control characters, HTML
+   *     entities, disallowed schemes, or malformed structure
    * @throws NullPointerException if url is null
    */
   public static String sanitizeOrValidate(CharSequence url) {
     Objects.requireNonNull(url, "url must not be null");
     String raw = url.toString();
 
-    // 1. Strip leading and trailing ASCII whitespace and control characters (<= 32)
+    // 1. Global forbidden character check: reject all ASCII C0 controls (U+0000..U+001F) and DEL
+    // (U+007F)
+    for (int i = 0; i < raw.length(); i++) {
+      char c = raw.charAt(i);
+      if (c <= 0x1F || c == 0x7F) {
+        throw new IllegalArgumentException(
+            "URL contains forbidden ASCII control character (code point " + (int) c + "): " + raw);
+      }
+    }
+
+    // 2. Strip leading and trailing ASCII space (' ')
     int start = 0;
     int end = raw.length();
-    while (start < end && raw.charAt(start) <= ' ') {
+    while (start < end && raw.charAt(start) == ' ') {
       start++;
     }
-    while (end > start && raw.charAt(end - 1) <= ' ') {
+    while (end > start && raw.charAt(end - 1) == ' ') {
       end--;
     }
     if (start >= end) {
@@ -66,12 +83,12 @@ public final class SafeUrlValidator {
     }
     String trimmed = raw.substring(start, end);
 
-    // 2. Reject HTML entity references (e.g. &#106;, &#x6a;, &colon;)
+    // 3. Reject HTML entity references (e.g. &#106;, &#x6a;, &colon;)
     if (containsHtmlEntity(trimmed)) {
       throw new IllegalArgumentException("URL contains HTML entity references: " + trimmed);
     }
 
-    // 3. Find first colon and first path/query/fragment delimiter ('/', '?', '#')
+    // 4. Find first colon and first path/query/fragment delimiter ('/', '?', '#')
     int colonIdx = -1;
     int firstDelimIdx = -1;
     for (int i = 0; i < trimmed.length(); i++) {
@@ -87,7 +104,7 @@ public final class SafeUrlValidator {
       }
     }
 
-    // 4. Scheme check: if colon exists and appears before any '/', '?', or '#'
+    // 5. Scheme check: if colon exists and appears before any '/', '?', or '#'
     if (colonIdx != -1 && (firstDelimIdx == -1 || colonIdx < firstDelimIdx)) {
       String rawScheme = trimmed.substring(0, colonIdx);
 
@@ -96,12 +113,11 @@ public final class SafeUrlValidator {
         throw new IllegalArgumentException("URL contains URL-encoded colon in scheme: " + trimmed);
       }
 
-      // Reject internal control characters and whitespace in scheme
+      // Reject internal whitespace in scheme
       for (int i = 0; i < rawScheme.length(); i++) {
         char c = rawScheme.charAt(i);
-        if (c <= ' ') {
-          throw new IllegalArgumentException(
-              "URL scheme contains internal whitespace or control characters: " + trimmed);
+        if (c == ' ') {
+          throw new IllegalArgumentException("URL scheme contains internal whitespace: " + trimmed);
         }
       }
 
@@ -132,22 +148,14 @@ public final class SafeUrlValidator {
       return trimmed;
     }
 
-    // 5. No scheme: check for URL-encoded colon in relative path candidate
+    // 6. No scheme: check for URL-encoded colon in relative path candidate
     int checkEnd = (firstDelimIdx != -1) ? firstDelimIdx : trimmed.length();
     String prefix = trimmed.substring(0, checkEnd);
     if (containsEncodedColon(prefix)) {
       throw new IllegalArgumentException("URL contains URL-encoded colon: " + trimmed);
     }
 
-    // Reject internal control characters in path candidate
-    for (int i = 0; i < trimmed.length(); i++) {
-      char c = trimmed.charAt(i);
-      if (c < 32 && c != '\t' && c != '\r' && c != '\n') {
-        throw new IllegalArgumentException("URL contains control characters: " + trimmed);
-      }
-    }
-
-    // 6. Relative URL validation
+    // 7. Relative URL validation
     if ((trimmed.startsWith("/") && !trimmed.startsWith("//"))
         || trimmed.startsWith("./")
         || trimmed.startsWith("../")

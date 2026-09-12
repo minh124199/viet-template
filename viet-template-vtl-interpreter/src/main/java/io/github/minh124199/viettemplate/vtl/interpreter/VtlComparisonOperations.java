@@ -42,18 +42,27 @@ public final class VtlComparisonOperations {
     }
 
     if (VtlNumericOperations.isNumeric(left) && VtlNumericOperations.isNumeric(right)) {
+      if (VtlNumericOperations.isNonFinite(left) || VtlNumericOperations.isNonFinite(right)) {
+        return Double.compare(((Number) left).doubleValue(), ((Number) right).doubleValue()) == 0;
+      }
       BigDecimal l = VtlNumericOperations.toBigDecimal(left);
       BigDecimal r = VtlNumericOperations.toBigDecimal(right);
       return l.compareTo(r) == 0;
     }
 
     if (VtlNumericOperations.isNumeric(left) && right instanceof CharSequence cs) {
+      if (VtlNumericOperations.isNonFinite(left)) {
+        return false;
+      }
       try {
         BigDecimal r = new BigDecimal(cs.toString().trim());
         return VtlNumericOperations.toBigDecimal(left).compareTo(r) == 0;
       } catch (NumberFormatException ignored) {
       }
     } else if (left instanceof CharSequence cs && VtlNumericOperations.isNumeric(right)) {
+      if (VtlNumericOperations.isNonFinite(right)) {
+        return false;
+      }
       try {
         BigDecimal l = new BigDecimal(cs.toString().trim());
         return l.compareTo(VtlNumericOperations.toBigDecimal(right)) == 0;
@@ -127,18 +136,35 @@ public final class VtlComparisonOperations {
     }
 
     if (VtlNumericOperations.isNumeric(left) && VtlNumericOperations.isNumeric(right)) {
+      if (VtlNumericOperations.isNonFinite(left) || VtlNumericOperations.isNonFinite(right)) {
+        return Double.compare(((Number) left).doubleValue(), ((Number) right).doubleValue());
+      }
       BigDecimal l = VtlNumericOperations.toBigDecimal(left);
       BigDecimal r = VtlNumericOperations.toBigDecimal(right);
       return l.compareTo(r);
     }
 
     if (VtlNumericOperations.isNumeric(left) && right instanceof CharSequence cs) {
+      if (VtlNumericOperations.isNonFinite(left)) {
+        try {
+          return Double.compare(
+              ((Number) left).doubleValue(), Double.parseDouble(cs.toString().trim()));
+        } catch (NumberFormatException ignored) {
+        }
+      }
       try {
         BigDecimal r = new BigDecimal(cs.toString().trim());
         return VtlNumericOperations.toBigDecimal(left).compareTo(r);
       } catch (NumberFormatException ignored) {
       }
     } else if (left instanceof CharSequence cs && VtlNumericOperations.isNumeric(right)) {
+      if (VtlNumericOperations.isNonFinite(right)) {
+        try {
+          return Double.compare(
+              Double.parseDouble(cs.toString().trim()), ((Number) right).doubleValue());
+        } catch (NumberFormatException ignored) {
+        }
+      }
       try {
         BigDecimal l = new BigDecimal(cs.toString().trim());
         return l.compareTo(VtlNumericOperations.toBigDecimal(right));

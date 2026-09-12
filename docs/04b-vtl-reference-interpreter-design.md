@@ -40,12 +40,22 @@ EvaluationValue ┼── DEFINED_NULL (Variable was explicitly assigned or reso
 - **Alternate Values (`${foo|'default'}`)**: Always evaluated with empty-check enabled (`DuckType.asBoolean(val, true)`), meaning `null`, `""`, `0`, and empty collections trigger the fallback value regardless of `directive.if.empty_check`.
 - **Quiet References (`$!foo`)**: Render as empty string when undefined or null (suppressing errors in strict mode for defined nulls).
 
-### 2.2 Scoping & Execution Context (`ExecutionContext`)
-`ExecutionContext` manages a nested stack of lexical scopes while maintaining read-through semantics to the outer immutable `RenderContext`:
+### 2.2 Scoping & Execution Context (`ExecutionContext` and 0.2.0 `ExecutionFrame`)
+
+#### 0.1.x Baseline Scoping (`ExecutionContext`)
+In 0.1.x, `ExecutionContext` manages a nested stack of lexical scopes using standard `ArrayDeque<LocalScope>` while maintaining read-through semantics to the outer immutable `RenderContext`:
 - **Root Context**: Read-only wrapper over `RenderContext`.
-- **Local Variable Scope**: Pushed by `#set` statements when modifying existing local variables or creating new template-local variables.
+- **Local Variable Scope**: Pushed by `#set` statements when modifying existing local variables or creating new template-local variables. Each scope maintains a `HashMap<String, EvaluationValue>`.
 - **Foreach Scope**: Isolates the loop variable (e.g. `$item`) and loop metadata (`$foreach`). Restores any pre-existing context variables upon exiting the loop.
 - **Macro Scope**: Pushes a new frame for macro arguments, ensuring macros do not inadvertently corrupt outer local variables while allowing lexical read-through.
+
+#### 0.2.0 Evolution: Compiler-Assigned Variable Slots (`ExecutionFrame`)
+In 0.2.0, the interpreter runtime introduces an optimized `ExecutionFrame` backed by compiler-assigned variable slots (`EvaluationValue[] slots`):
+- **Statically Assigned Slots**: During semantic analysis and IR optimization (`O45 AssignVariableSlots`), all statically known variables (template parameters, local `#set` variables, loop counters/items, and macro arguments) are assigned fixed integer slot indices.
+- **Branchless $O(1)$ Array Access**: Reading or writing a variable compiles to a direct array load (`slots[slotIndex]`) or store (`slots[slotIndex] = value`), bypassing string hashing, bucket index calculation, and node traversal entirely.
+- **Dynamic Fallback Map**: Variables introduced dynamically (via dynamic `#evaluate` evaluations or untyped contributor contexts) fall back to a lazily instantiated `HashMap<String, EvaluationValue> dynamicVariables`.
+- **Preservation of 3-State Evaluation Model**: Both array slots and the dynamic fallback map strictly store `EvaluationValue` instances (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`). Unassigned slots default to `UNDEFINED`, preserving exact Velocity non-strict literal rendering (`$missing`), strict mode exception triggers, and alternate value fallbacks (`${var|'default'}`).
+- **ArrayDeque Preservation**: Scope stacking, macro execution, and layout evaluation continue using `ArrayDeque` to eliminate linked-list pointer overhead and minimize heap allocations.
 
 ---
 
