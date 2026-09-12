@@ -113,7 +113,7 @@ Viet Template explicitly differentiates the roles of supported JDK releases:
 - **Java 21 (LTS Runtime Target & Virtual Threads Platform)**:
   - Supported runtime execution environment for deployment under modern LTS JVMs.
   - Validates full compatibility with Virtual Threads (JEP 444) and Generational ZGC (JEP 439).
-  - High-concurrency stress suites verify that shared engine instances, thread-local contexts, and cache locks execute without carrier thread pinning or synchronization deadlocks.
+  - High-concurrency stress suites verify that shared engine instances, thread-local contexts, and cache locks execute under high concurrency with no pinning-related correctness or deadlock failure observed in the tested workload.
 - **Java 25 (Advanced Runtime & Experimentation Platform)**:
   - Forward-looking performance exploration target.
   - Evaluates memory footprint optimizations via Compact Object Headers (JEP 519).
