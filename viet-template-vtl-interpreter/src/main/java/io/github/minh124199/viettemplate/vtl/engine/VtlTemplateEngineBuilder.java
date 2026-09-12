@@ -32,6 +32,7 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
   private long watchDebounceMillis = 50L;
 
   private ExecutionTier executionTier = ExecutionTier.AOT_BYTECODE;
+  private boolean executionTierExplicitlySet = false;
   private OptimizationLevel optimizationLevel = OptimizationLevel.O2;
   private IrOptimizationOptions optimizationOptions =
       IrOptimizationOptions.forLevel(OptimizationLevel.O2);
@@ -94,6 +95,7 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
 
   public VtlTemplateEngineBuilder executionTier(ExecutionTier tier) {
     this.executionTier = Objects.requireNonNull(tier, "tier must not be null");
+    this.executionTierExplicitlySet = true;
     return this;
   }
 
@@ -110,7 +112,9 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
 
   public VtlTemplateEngineBuilder interpreterOptions(VtlInterpreterOptions options) {
     this.interpreterOptions = Objects.requireNonNull(options, "options must not be null");
-    this.executionTier = options.executionTier();
+    if (!executionTierExplicitlySet && options.executionTier() != null) {
+      this.executionTier = options.executionTier();
+    }
     return this;
   }
 
@@ -180,7 +184,8 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
               .build();
     }
     ExecutionTier effectiveExecutionTier = executionTier;
-    if (interpreterOptions != VtlInterpreterOptions.DEFAULT
+    if (!executionTierExplicitlySet
+        && interpreterOptions != VtlInterpreterOptions.DEFAULT
         && interpreterOptions.executionTier() != null) {
       effectiveExecutionTier = interpreterOptions.executionTier();
     }

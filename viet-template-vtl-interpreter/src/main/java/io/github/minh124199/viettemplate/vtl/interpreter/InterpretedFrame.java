@@ -3,9 +3,10 @@ package io.github.minh124199.viettemplate.vtl.interpreter;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
+import io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout;
 import io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -17,7 +18,7 @@ import java.util.Objects;
  */
 final class InterpretedFrame {
 
-  Object[] locals;
+  final ExecutionFrame variables;
   final ExecutionContext context;
   final TemplateOutput output;
   final IrConstantPool constantPool;
@@ -29,6 +30,7 @@ final class InterpretedFrame {
   final int macroDepth;
   final int parseDepth;
   final int evaluateDepth;
+  final IrSlotLayout.SlotLayout layout;
 
   InterpretedFrame(
       TemplateId templateId,
@@ -41,9 +43,10 @@ final class InterpretedFrame {
       ReferenceAccess referenceAccess,
       int macroDepth,
       int parseDepth,
-      int evaluateDepth) {
+      int evaluateDepth,
+      int slotCount) {
     this(
-        new Object[64],
+        new ExecutionFrame(slotCount),
         context,
         output,
         constantPool,
@@ -54,11 +57,41 @@ final class InterpretedFrame {
         referenceAccess,
         macroDepth,
         parseDepth,
-        evaluateDepth);
+        evaluateDepth,
+        null);
   }
 
   InterpretedFrame(
-      Object[] locals,
+      TemplateId templateId,
+      SourceText source,
+      ExecutionContext context,
+      TemplateOutput output,
+      IrConstantPool constantPool,
+      Map<String, IrFunction> functions,
+      VtlInterpreterOptions options,
+      ReferenceAccess referenceAccess,
+      int macroDepth,
+      int parseDepth,
+      int evaluateDepth,
+      IrSlotLayout.SlotLayout layout) {
+    this(
+        new ExecutionFrame(layout != null ? layout.frameSize() : 0),
+        context,
+        output,
+        constantPool,
+        functions,
+        templateId,
+        source,
+        options,
+        referenceAccess,
+        macroDepth,
+        parseDepth,
+        evaluateDepth,
+        layout);
+  }
+
+  InterpretedFrame(
+      ExecutionFrame variables,
       ExecutionContext context,
       TemplateOutput output,
       IrConstantPool constantPool,
@@ -70,7 +103,37 @@ final class InterpretedFrame {
       int macroDepth,
       int parseDepth,
       int evaluateDepth) {
-    this.locals = Objects.requireNonNull(locals, "locals must not be null");
+    this(
+        variables,
+        context,
+        output,
+        constantPool,
+        functions,
+        templateId,
+        source,
+        options,
+        referenceAccess,
+        macroDepth,
+        parseDepth,
+        evaluateDepth,
+        null);
+  }
+
+  InterpretedFrame(
+      ExecutionFrame variables,
+      ExecutionContext context,
+      TemplateOutput output,
+      IrConstantPool constantPool,
+      Map<String, IrFunction> functions,
+      TemplateId templateId,
+      SourceText source,
+      VtlInterpreterOptions options,
+      ReferenceAccess referenceAccess,
+      int macroDepth,
+      int parseDepth,
+      int evaluateDepth,
+      IrSlotLayout.SlotLayout layout) {
+    this.variables = Objects.requireNonNull(variables, "variables must not be null");
     this.context = Objects.requireNonNull(context, "context must not be null");
     this.output = Objects.requireNonNull(output, "output must not be null");
     this.constantPool = Objects.requireNonNull(constantPool, "constantPool must not be null");
@@ -83,33 +146,48 @@ final class InterpretedFrame {
     this.macroDepth = macroDepth;
     this.parseDepth = parseDepth;
     this.evaluateDepth = evaluateDepth;
+    this.layout = layout;
   }
 
-  void ensureCapacity(int slot) {
-    if (slot >= locals.length) {
-      int newSize = Math.max(slot + 16, locals.length * 2);
-      locals = Arrays.copyOf(locals, newSize);
-    }
+  EvaluationValue getLocal(int slot) {
+    return variables.get(slot);
   }
 
-  Object getLocal(int slot) {
-    if (slot >= 0 && slot < locals.length) {
-      return locals[slot];
-    }
-    return null;
+  void seedLocal(int slot, EvaluationValue value) {
+    variables.seed(slot, value);
   }
 
   void setLocal(int slot, String name, Object value) {
-    ensureCapacity(slot);
-    locals[slot] = value;
+    EvaluationValue evaluationValue = EvaluationValue.of(value);
+    variables.set(slot, evaluationValue);
     if (name != null) {
-      context.set(name, EvaluationValue.of(value));
+      if (layout != null) {
+        IrSlotLayout.SlotMetadata meta = layout.slots().get(slot);
+        if (meta != null
+            && (meta.kind() == IrSlotLayout.BindingKind.MACRO_LOCAL
+                || meta.kind() == IrSlotLayout.BindingKind.MACRO_PARAMETER
+                || meta.kind() == IrSlotLayout.BindingKind.FOREACH_LOCAL
+                || meta.kind() == IrSlotLayout.BindingKind.FOREACH_ITEM
+                || meta.kind() == IrSlotLayout.BindingKind.FOREACH_METADATA)) {
+          return;
+        }
+      }
+      context.set(name, evaluationValue);
+    }
+  }
+
+  void syncFromContext(List<IrSlotLayout.SlotMetadata> seededSlots) {
+    if (seededSlots == null) {
+      return;
+    }
+    for (IrSlotLayout.SlotMetadata meta : seededSlots) {
+      variables.set(meta.slot(), context.lookup(meta.name()));
     }
   }
 
   InterpretedFrame withContext(ExecutionContext newContext) {
     return new InterpretedFrame(
-        locals,
+        variables,
         newContext,
         output,
         constantPool,
@@ -120,12 +198,14 @@ final class InterpretedFrame {
         referenceAccess,
         macroDepth,
         parseDepth,
-        evaluateDepth);
+        evaluateDepth,
+        layout);
   }
 
-  InterpretedFrame withMacroDepth(int newMacroDepth, Object[] newLocals) {
+  InterpretedFrame withMacroDepth(
+      int newMacroDepth, ExecutionFrame newVariables, IrSlotLayout.SlotLayout newLayout) {
     return new InterpretedFrame(
-        newLocals,
+        newVariables,
         context,
         output,
         constantPool,
@@ -136,13 +216,43 @@ final class InterpretedFrame {
         referenceAccess,
         newMacroDepth,
         parseDepth,
-        evaluateDepth);
+        evaluateDepth,
+        newLayout);
+  }
+
+  InterpretedFrame withMacroDepth(int newMacroDepth, ExecutionFrame newVariables) {
+    return withMacroDepth(newMacroDepth, newVariables, layout);
   }
 
   InterpretedFrame withParseDepth(
-      int newParseDepth, TemplateId newId, SourceText newSource, IrConstantPool newPool) {
+      int newParseDepth,
+      TemplateId newId,
+      SourceText newSource,
+      IrConstantPool newPool,
+      IrSlotLayout.SlotLayout newLayout) {
     return new InterpretedFrame(
-        new Object[64],
+        newId,
+        newSource,
+        context,
+        output,
+        newPool,
+        functions,
+        options,
+        referenceAccess,
+        macroDepth,
+        newParseDepth,
+        evaluateDepth,
+        newLayout);
+  }
+
+  InterpretedFrame withParseDepth(
+      int newParseDepth,
+      TemplateId newId,
+      SourceText newSource,
+      IrConstantPool newPool,
+      int slotCount) {
+    return new InterpretedFrame(
+        new ExecutionFrame(slotCount),
         context,
         output,
         newPool,
@@ -153,13 +263,39 @@ final class InterpretedFrame {
         referenceAccess,
         macroDepth,
         newParseDepth,
-        evaluateDepth);
+        evaluateDepth,
+        null);
   }
 
   InterpretedFrame withEvaluateDepth(
-      int newEvaluateDepth, TemplateId newId, SourceText newSource, IrConstantPool newPool) {
+      int newEvaluateDepth,
+      TemplateId newId,
+      SourceText newSource,
+      IrConstantPool newPool,
+      IrSlotLayout.SlotLayout newLayout) {
     return new InterpretedFrame(
-        new Object[64],
+        newId,
+        newSource,
+        context,
+        output,
+        newPool,
+        functions,
+        options,
+        referenceAccess,
+        macroDepth,
+        parseDepth,
+        newEvaluateDepth,
+        newLayout);
+  }
+
+  InterpretedFrame withEvaluateDepth(
+      int newEvaluateDepth,
+      TemplateId newId,
+      SourceText newSource,
+      IrConstantPool newPool,
+      int slotCount) {
+    return new InterpretedFrame(
+        new ExecutionFrame(slotCount),
         context,
         output,
         newPool,
@@ -170,6 +306,7 @@ final class InterpretedFrame {
         referenceAccess,
         macroDepth,
         parseDepth,
-        newEvaluateDepth);
+        newEvaluateDepth,
+        null);
   }
 }

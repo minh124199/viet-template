@@ -87,6 +87,8 @@ public final class VtlInterpreter {
             BackendOptions.builder()
                 .securityPolicy(options.securityPolicy().toLinkerAccessPolicy())
                 .optimizationOptions(options.optimizationOptions())
+                .setNullAllowed(options.setNullAllowed())
+                .strictReferences(options.strictReferences())
                 .build();
         BackendResult result = compiler.compile(optimizedTemplate, backendOptions);
         if (result.isSuccess() && result.compiledTemplate().isPresent()) {
@@ -176,6 +178,7 @@ public final class VtlInterpreter {
           BackendOptions.builder()
               .securityPolicy(options.securityPolicy().toLinkerAccessPolicy())
               .optimizationOptions(options.optimizationOptions())
+              .setNullAllowed(options.setNullAllowed())
               .build();
       BackendResult result = compiler.compile(optimizedTemplate, backendOptions);
       if (result.isSuccess() && result.compiledTemplate().isPresent()) {

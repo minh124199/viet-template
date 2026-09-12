@@ -12,6 +12,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrParameter;
+import io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ir.constant.IrTextConstant;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrAlternateValue;
@@ -109,6 +110,7 @@ public final class IrInterpreter {
       functionMap.put(function.name(), function);
     }
 
+    IrSlotLayout.SlotLayout layout = IrSlotLayout.layout(template);
     InterpretedFrame frame =
         new InterpretedFrame(
             template.id(),
@@ -121,16 +123,11 @@ public final class IrInterpreter {
             new LinkedReferenceAccess(options.securityPolicy()),
             0,
             0,
-            0);
+            0,
+            layout);
 
-    // Seed parameters from context into locals
-    for (IrParameter param : template.parameters()) {
-      EvaluationValue val = context.lookup(param.name());
-      if (val.isNonNull()) {
-        frame.setLocal(param.slot(), param.name(), val.value());
-      } else if (val.isNull()) {
-        frame.setLocal(param.slot(), param.name(), EvaluationValue.definedNull());
-      }
+    for (IrSlotLayout.SlotMetadata meta : layout.seededSlots()) {
+      frame.seedLocal(meta.slot(), context.lookup(meta.name()));
     }
 
     try {
@@ -227,16 +224,10 @@ public final class IrInterpreter {
       return rootVal.isNonNull();
     }
     if (expr instanceof IrLoadLocal load) {
-      Object localVal = frame.getLocal(load.slot());
-      if (localVal != null) {
-        return !(localVal instanceof EvaluationValue ev && (ev.isNull() || ev.isUndefined()));
-      }
-      EvaluationValue rootVal = frame.context.lookup(load.name());
-      return rootVal.isNonNull();
+      return frame.getLocal(load.slot()).isNonNull();
     }
     if (expr instanceof IrLoadParam param) {
-      EvaluationValue rootVal = frame.context.lookup(param.name());
-      return rootVal.isNonNull();
+      return frame.getLocal(param.slot()).isNonNull();
     }
     Object val = evaluateExpression(expr, frame);
     if (val instanceof EvaluationValue ev) {
@@ -332,7 +323,11 @@ public final class IrInterpreter {
       if (rb.capturedSource() != null) {
         subFrame =
             subFrame.withParseDepth(
-                frame.parseDepth, rb.capturedTemplateId(), rb.capturedSource(), frame.constantPool);
+                frame.parseDepth,
+                rb.capturedTemplateId(),
+                rb.capturedSource(),
+                frame.constantPool,
+                frame.variables.size());
       }
       VtlInterpreter legacy = new VtlInterpreter(frame.options);
       legacy.render(
@@ -477,6 +472,11 @@ public final class IrInterpreter {
       parentMeta = fm;
     }
 
+    List<Integer> loopOwnedSlots =
+        frame.layout != null && frame.layout.loopLocals() != null
+            ? frame.layout.loopLocals().getOrDefault(loop, List.of())
+            : List.of();
+
     frame.context.pushForeachScope(loopVar, EvaluationValue.undefined(), parentMeta);
 
     try {
@@ -499,6 +499,11 @@ public final class IrInterpreter {
         int count = index + 1;
 
         ForeachMetadata meta = new ForeachMetadata(index, count, first, last, hasNext, parentMeta);
+
+        for (int slot : loopOwnedSlots) {
+          frame.variables.reset(slot);
+        }
+
         frame.setLocal(loop.elementLocal().slot(), loopVar, item);
         if (loop.loopStateLocal().isPresent()) {
           frame.setLocal(loop.loopStateLocal().get().slot(), "foreach", meta);
@@ -514,6 +519,13 @@ public final class IrInterpreter {
         index++;
       }
     } finally {
+      frame.variables.reset(loop.elementLocal().slot());
+      if (loop.loopStateLocal().isPresent()) {
+        frame.variables.reset(loop.loopStateLocal().get().slot());
+      }
+      for (int slot : loopOwnedSlots) {
+        frame.variables.reset(slot);
+      }
       frame.context.popScope();
     }
   }
@@ -545,9 +557,10 @@ public final class IrInterpreter {
       argValues.add(evaluateExpression(argExpr, frame));
     }
 
+    IrSlotLayout.SlotLayout fnLayout = IrSlotLayout.layout(function);
+    ExecutionFrame macroVariables = new ExecutionFrame(fnLayout.frameSize());
     Map<String, EvaluationValue> bindings = new HashMap<>();
     List<IrParameter> params = function.parameters();
-    Object[] macroLocals = new Object[function.locals().size() + params.size() + 16];
 
     for (int i = 0; i < params.size(); i++) {
       IrParameter p = params.get(i);
@@ -560,8 +573,9 @@ public final class IrInterpreter {
       } else {
         val = EvaluationValue.undefined();
       }
-      macroLocals[p.slot()] = val;
-      bindings.put(paramName, (val instanceof EvaluationValue ev) ? ev : EvaluationValue.of(val));
+      EvaluationValue evaluationValue = EvaluationValue.of(val);
+      macroVariables.set(p.slot(), evaluationValue);
+      bindings.put(paramName, evaluationValue);
     }
 
     if (callM.bodyContent().isPresent()) {
@@ -569,14 +583,15 @@ public final class IrInterpreter {
       bindings.put("bodyContent", EvaluationValue.of(bodyBlock));
       for (IrLocal local : function.locals()) {
         if ("bodyContent".equals(local.name())) {
-          macroLocals[local.slot()] = bodyBlock;
+          macroVariables.set(local.slot(), EvaluationValue.of(bodyBlock));
         }
       }
     }
 
     frame.context.pushScope(bindings, false);
     try {
-      InterpretedFrame macroFrame = frame.withMacroDepth(frame.macroDepth + 1, macroLocals);
+      InterpretedFrame macroFrame =
+          frame.withMacroDepth(frame.macroDepth + 1, macroVariables, fnLayout);
       executeBlock(function.body(), macroFrame);
     } catch (BreakSignal ignored) {
       // #break inside macro body terminates macro execution
@@ -643,13 +658,17 @@ public final class IrInterpreter {
       frame.functions.put(function.name(), function);
     }
 
+    IrSlotLayout.SlotLayout subLayout = IrSlotLayout.layout(subIr);
     InterpretedFrame subFrame =
         frame.withParseDepth(
-            frame.parseDepth + 1, res.get().templateId(), subSource, subIr.constants());
+            frame.parseDepth + 1, res.get().templateId(), subSource, subIr.constants(), subLayout);
     try {
       executeBlock(subIr.root(), subFrame);
     } catch (BreakSignal ignored) {
       // #break inside parsed template terminates parsed template
+    }
+    if (frame.layout != null) {
+      frame.syncFromContext(frame.layout.seededSlots());
     }
   }
 
@@ -715,9 +734,14 @@ public final class IrInterpreter {
       frame.functions.put(function.name(), function);
     }
 
+    IrSlotLayout.SlotLayout evalLayout = IrSlotLayout.layout(subIr);
     InterpretedFrame subFrame =
-        frame.withEvaluateDepth(frame.evaluateDepth + 1, evalId, subSource, subIr.constants());
+        frame.withEvaluateDepth(
+            frame.evaluateDepth + 1, evalId, subSource, subIr.constants(), evalLayout);
     executeBlock(subIr.root(), subFrame);
+    if (frame.layout != null) {
+      frame.syncFromContext(frame.layout.seededSlots());
+    }
   }
 
   public static Object evaluateExpression(IrExpression expr, InterpretedFrame frame) {
@@ -725,18 +749,10 @@ public final class IrInterpreter {
       return c.value();
     }
     if (expr instanceof IrLoadLocal load) {
-      Object localVal = frame.getLocal(load.slot());
-      if (localVal != null) {
-        return localVal;
-      }
-      return frame.context.lookup(load.name());
+      return frame.getLocal(load.slot());
     }
     if (expr instanceof IrLoadParam param) {
-      Object localVal = frame.getLocal(param.slot());
-      if (localVal != null) {
-        return localVal;
-      }
-      return frame.context.lookup(param.name());
+      return frame.getLocal(param.slot());
     }
     if (expr instanceof IrDynamicDispatch dyn) {
       return evaluateDynamicDispatch(dyn, frame);

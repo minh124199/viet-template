@@ -114,7 +114,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
 
     this.interpreterOptions =
         (interpreterOptions != null ? interpreterOptions : VtlInterpreterOptions.DEFAULT)
-            .toBuilder().resourceResolver(engineResolver).build();
+            .toBuilder().executionTier(executionTier).resourceResolver(engineResolver).build();
 
     this.dependencyGraph =
         dependencyGraph != null ? dependencyGraph : new DefaultTemplateDependencyGraph();
@@ -375,6 +375,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
           BackendOptions.builder()
               .securityPolicy(interpreterOptions.securityPolicy().toLinkerAccessPolicy())
               .optimizationOptions(optimizationOptions)
+              .setNullAllowed(interpreterOptions.setNullAllowed())
               .build();
       BackendResult result = compiler.compile(optimizedIr, backendOptions);
 

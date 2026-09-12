@@ -23,6 +23,42 @@ import org.junit.jupiter.api.Test;
 class IrInterpreterTest {
 
   @Test
+  void skippedStaticAssignmentRetainsPreviouslyVisibleValue() throws IOException {
+    String template = "#set($x = $missing)$x";
+    SourceText source = SourceText.of("skipped-set.vm", template);
+    VtlTemplate ast = VtlParser.parse(source).template();
+    VtlInterpreter interpreter =
+        new VtlInterpreter(
+            VtlInterpreterOptions.builder()
+                .executionTier(ExecutionTier.IR)
+                .setNullAllowed(false)
+                .build());
+    StringTemplateOutput output = new StringTemplateOutput();
+
+    interpreter.interpret(ast, source, MapRenderContext.of(Map.of("x", "original")), output);
+
+    assertThat(output.toString()).isEqualTo("original");
+  }
+
+  @Test
+  void skippedMacroAssignmentRetainsParameterValue() throws IOException {
+    String template = "#macro(m $p)#set($p = $missing)$p#end#m('argument')";
+    SourceText source = SourceText.of("macro-skipped-set.vm", template);
+    VtlTemplate ast = VtlParser.parse(source).template();
+    VtlInterpreter interpreter =
+        new VtlInterpreter(
+            VtlInterpreterOptions.builder()
+                .executionTier(ExecutionTier.IR)
+                .setNullAllowed(false)
+                .build());
+    StringTemplateOutput output = new StringTemplateOutput();
+
+    interpreter.interpret(ast, source, MapRenderContext.of(Map.of()), output);
+
+    assertThat(output.toString()).isEqualTo("argument");
+  }
+
+  @Test
   void rendersDirectIrTemplate() throws IOException {
     String sourceStr = "Hello $name, count is $count!";
     SourceText source = SourceText.of("direct.vm", sourceStr);
@@ -214,6 +250,63 @@ class IrInterpreterTest {
         out);
 
     assertThat(out.toString()).isEqualTo("12 7 3.5 <b>bold</b>");
+  }
+
+  @Test
+  void loopOwnedLocalsDoNotLeakAcrossIterationsInIr() throws IOException {
+    String template = "#foreach($item in $items)#set($local = $item.val)[$!local]#end";
+    SourceText source = SourceText.of("loop-locals.vm", template);
+    VtlTemplate ast = VtlParser.parse(source).template();
+    VtlInterpreter interpreter =
+        new VtlInterpreter(
+            VtlInterpreterOptions.builder()
+                .executionTier(ExecutionTier.IR)
+                .setNullAllowed(false)
+                .build());
+    StringTemplateOutput output = new StringTemplateOutput();
+
+    interpreter.interpret(
+        ast,
+        source,
+        MapRenderContext.of(
+            Map.of(
+                "items",
+                java.util.List.of(
+                    java.util.Collections.singletonMap("val", "first"),
+                    java.util.Collections.emptyMap()))),
+        output);
+
+    assertThat(output.toString()).isEqualTo("[first][]");
+  }
+
+  @Test
+  void loopOwnedLocalsResetOnLoopExitInIr() throws IOException {
+    String template = "#foreach($i in [1..2])#set($local = $i)#end[$local]";
+    SourceText source = SourceText.of("loop-exit.vm", template);
+    VtlTemplate ast = VtlParser.parse(source).template();
+    VtlInterpreter interpreter =
+        new VtlInterpreter(VtlInterpreterOptions.builder().executionTier(ExecutionTier.IR).build());
+    StringTemplateOutput output = new StringTemplateOutput();
+
+    interpreter.interpret(ast, source, MapRenderContext.of(Map.of()), output);
+
+    assertThat(output.toString()).isEqualTo("[$local]");
+  }
+
+  @Test
+  void outerLocalsPersistAcrossIterationsAndAfterLoopInIr() throws IOException {
+    String template =
+        "#set($outer = 'init')#foreach($i in [1..2])#if($i == 1)#set($outer ="
+            + " 'changed')#end[$outer]#end[$outer]";
+    SourceText source = SourceText.of("outer-locals.vm", template);
+    VtlTemplate ast = VtlParser.parse(source).template();
+    VtlInterpreter interpreter =
+        new VtlInterpreter(VtlInterpreterOptions.builder().executionTier(ExecutionTier.IR).build());
+    StringTemplateOutput output = new StringTemplateOutput();
+
+    interpreter.interpret(ast, source, MapRenderContext.of(Map.of()), output);
+
+    assertThat(output.toString()).isEqualTo("[changed][changed][changed]");
   }
 
   static class RecordingTemplateOutput
