@@ -24,9 +24,26 @@ jobs:
         run: |
           AUTH=$(echo -n "${MAVEN_CENTRAL_USERNAME}:${MAVEN_CENTRAL_PASSWORD}" | base64)
           echo "Querying status for deployment: $DEPLOYMENT_ID"
-          HTTP_CODE=$(curl -s -o /tmp/status.json -w "%{http_code}" -X POST \
+          for i in {1..60}; do
+            STATUS_JSON=$(curl -s -X POST \
+              -H "Authorization: UserToken ${AUTH}" \
+              "https://central.sonatype.com/api/v1/publisher/status?id=${DEPLOYMENT_ID}")
+            STATE=$(echo "$STATUS_JSON" | jq -r .deploymentState)
+            echo "Attempt $i: state = $STATE"
+            if [ "$STATE" = "PUBLISHED" ]; then
+              echo "Deployment has PUBLISHED successfully!"
+              echo "$STATUS_JSON" | jq .
+              break
+            elif [ "$STATE" = "FAILED" ]; then
+              echo "Deployment FAILED!"
+              echo "$STATUS_JSON" | jq .
+              exit 1
+            fi
+            sleep 10
+          done
+
+          echo "Checking published endpoint:"
+          curl -s -X GET \
             -H "Authorization: UserToken ${AUTH}" \
-            "https://central.sonatype.com/api/v1/publisher/status?id=${DEPLOYMENT_ID}")
-          echo "HTTP Status Code: $HTTP_CODE"
-          cat /tmp/status.json
-          echo ""
+            "https://central.sonatype.com/api/v1/publisher/published?namespace=io.github.minh124199&name=viet-template-api&version=0.2.0" \
+            | jq .
