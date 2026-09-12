@@ -17,6 +17,8 @@ public final class BackendOptions {
   private final boolean includeDebugMetadata;
   private final int methodSplitThreshold;
   private final TemplateClassLoader classLoader;
+  private final boolean setNullAllowed;
+  private final boolean strictReferences;
 
   private BackendOptions(Builder builder) {
     this.optimizationOptions = builder.optimizationOptions;
@@ -27,6 +29,8 @@ public final class BackendOptions {
     this.includeDebugMetadata = builder.includeDebugMetadata;
     this.methodSplitThreshold = builder.methodSplitThreshold;
     this.classLoader = builder.classLoader;
+    this.setNullAllowed = builder.setNullAllowed;
+    this.strictReferences = builder.strictReferences;
   }
 
   public static Builder builder() {
@@ -73,6 +77,14 @@ public final class BackendOptions {
     return Optional.ofNullable(classLoader);
   }
 
+  public boolean setNullAllowed() {
+    return setNullAllowed;
+  }
+
+  public boolean strictReferences() {
+    return strictReferences;
+  }
+
   public static final class Builder {
     private IrOptimizationOptions optimizationOptions = IrOptimizationOptions.o2();
     private LinkerAccessPolicy securityPolicy = LinkerAccessPolicy.standard();
@@ -82,6 +94,8 @@ public final class BackendOptions {
     private boolean includeDebugMetadata = true;
     private int methodSplitThreshold = 500;
     private TemplateClassLoader classLoader;
+    private boolean setNullAllowed = true;
+    private boolean strictReferences = false;
 
     public Builder optimizationOptions(IrOptimizationOptions options) {
       this.optimizationOptions = Objects.requireNonNull(options, "options must not be null");
@@ -120,6 +134,16 @@ public final class BackendOptions {
 
     public Builder classLoader(TemplateClassLoader classLoader) {
       this.classLoader = classLoader;
+      return this;
+    }
+
+    public Builder setNullAllowed(boolean setNullAllowed) {
+      this.setNullAllowed = setNullAllowed;
+      return this;
+    }
+
+    public Builder strictReferences(boolean strictReferences) {
+      this.strictReferences = strictReferences;
       return this;
     }
 

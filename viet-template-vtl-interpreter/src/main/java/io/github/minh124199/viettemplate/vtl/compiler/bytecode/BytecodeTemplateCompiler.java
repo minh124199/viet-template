@@ -8,6 +8,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrParameter;
+import io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ir.constant.IrTextConstant;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrAlternateValue;
@@ -18,6 +19,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrDynamicDis
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrExpression;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrGetProperty;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrIndexGet;
+import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrInvokeAllowedMethod;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrIsNull;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrLoadLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrLoadParam;
@@ -53,6 +55,7 @@ import io.github.minh124199.viettemplate.vtl.compiler.TemplateBackend;
 import io.github.minh124199.viettemplate.vtl.compiler.TemplateClassLoader;
 import io.github.minh124199.viettemplate.vtl.compiler.TemplateSidecarIndex;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -198,16 +201,16 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       render.astore(i);
     }
 
-    // Seed parameters from context into slots (irSlot + SLOT_OFFSET)
-    for (IrParameter param : optimized.parameters()) {
+    // Seed parameters and template locals from context into slots (irSlot + SLOT_OFFSET)
+    for (IrSlotLayout.SlotMetadata meta : context.layout.seededSlots()) {
       render.aload(1); // context
-      render.ldc(param.name());
+      render.ldc(meta.name());
       render.invokeinterface(
           "io/github/minh124199/viettemplate/api/RenderContext",
           "get",
           "(Ljava/lang/String;)Ljava/lang/Object;",
           2);
-      render.astore(param.slot() + SLOT_OFFSET);
+      render.astore(meta.slot() + SLOT_OFFSET);
     }
 
     // Compile root block statements
@@ -389,15 +392,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     } else if (stmt instanceof IrWriteValue wv) {
       compileWriteValue(wv, mw, context);
     } else if (stmt instanceof IrStoreLocal sl) {
-      compileExpression(sl.value(), mw, context);
-      mw.astore(sl.local().slot() + SLOT_OFFSET);
-      mw.aload(1);
-      mw.ldc(sl.local().name());
-      mw.aload(sl.local().slot() + SLOT_OFFSET);
-      mw.invokestatic(
-          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
-          "recordContextVariable",
-          "(Lio/github/minh124199/viettemplate/api/RenderContext;Ljava/lang/String;Ljava/lang/Object;)V");
+      compileStoreLocal(sl, mw, context);
     } else if (stmt instanceof IrIf ifStmt) {
       compileIf(ifStmt, mw, context);
     } else if (stmt instanceof IrLoop loop) {
@@ -469,7 +464,12 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       mw.aconst_null();
     }
 
-    mw.iconst(0); // strict = false (handled gracefully)
+    boolean isStrict =
+        context.options.strictReferences()
+            || wv.nullMode()
+                == io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode
+                    .THROW_ERROR;
+    mw.iconst(isStrict ? 1 : 0);
     mw.ldc(context.template.id().value());
     SourceSpan span = wv.span();
     mw.iconst(span != null ? span.startLine() : 1);
@@ -578,6 +578,11 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     mw.invokeinterface("java/util/Iterator", "next", "()Ljava/lang/Object;", 1);
     mw.astore(itemSlot);
 
+    List<Integer> loopOwnedSlots =
+        context.layout != null && context.layout.loopLocals() != null
+            ? context.layout.loopLocals().getOrDefault(loop, List.of())
+            : List.of();
+
     if (counterSlot != -1) {
       mw.aload(counterSlot);
       mw.aload(iterSlot);
@@ -594,6 +599,11 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       mw.astore(metaSlot);
     }
 
+    for (int slot : loopOwnedSlots) {
+      mw.aconst_null();
+      mw.astore(slot + SLOT_OFFSET);
+    }
+
     context.pushLoop(loopExit);
     compileBlock(loop.body(), mw, context);
     context.popLoop();
@@ -603,6 +613,47 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
     mw.gotoOp(loopHeader);
     mw.bindLabel(loopExit);
+    mw.aconst_null();
+    mw.astore(itemSlot);
+    if (metaSlot != -1) {
+      mw.aconst_null();
+      mw.astore(metaSlot);
+    }
+    for (int slot : loopOwnedSlots) {
+      mw.aconst_null();
+      mw.astore(slot + SLOT_OFFSET);
+    }
+  }
+
+  private static void compileStoreLocal(
+      IrStoreLocal sl, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+    compileExpression(sl.value(), mw, context);
+    if (!context.options.setNullAllowed()) {
+      int tempValSlot = context.nextTempSlot();
+      mw.astore(tempValSlot);
+      mw.aload(tempValSlot);
+      ClassFileWriter.Label skipStore = mw.newLabel();
+      mw.ifnull(skipStore);
+      mw.aload(tempValSlot);
+      mw.astore(sl.local().slot() + SLOT_OFFSET);
+      mw.aload(1);
+      mw.ldc(sl.local().name());
+      mw.aload(sl.local().slot() + SLOT_OFFSET);
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "recordContextVariable",
+          "(Lio/github/minh124199/viettemplate/api/RenderContext;Ljava/lang/String;Ljava/lang/Object;)V");
+      mw.bindLabel(skipStore);
+    } else {
+      mw.astore(sl.local().slot() + SLOT_OFFSET);
+      mw.aload(1);
+      mw.ldc(sl.local().name());
+      mw.aload(sl.local().slot() + SLOT_OFFSET);
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "recordContextVariable",
+          "(Lio/github/minh124199/viettemplate/api/RenderContext;Ljava/lang/String;Ljava/lang/Object;)V");
+    }
   }
 
   private static void compileCallMacro(
@@ -702,6 +753,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
           "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
           "alternateValue",
           "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+    } else if (expr instanceof IrInvokeAllowedMethod inv) {
+      compileInvokeAllowedMethod(inv, mw, context);
     } else if (expr instanceof IrConvert conv) {
       compileExpression(conv.expression(), mw, context);
     } else {
@@ -804,6 +857,71 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       mw.invokestatic("java/lang/Float", "valueOf", "(F)Ljava/lang/Float;");
     } else if (clazz == double.class) {
       mw.invokestatic("java/lang/Double", "valueOf", "(D)Ljava/lang/Double;");
+    }
+  }
+
+  private static void compileInvokeAllowedMethod(
+      IrInvokeAllowedMethod inv, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+    Method m = inv.targetMethod();
+    compileExpression(inv.receiver(), mw, context);
+    String owner = m.getDeclaringClass().getName().replace('.', '/');
+    mw.checkcast(owner);
+    Class<?>[] ptypes = m.getParameterTypes();
+    for (int i = 0; i < inv.arguments().size(); i++) {
+      compileExpression(inv.arguments().get(i), mw, context);
+      unboxIfPrimitive(ptypes[i], mw);
+    }
+    StringBuilder descBuilder = new StringBuilder("(");
+    for (Class<?> p : ptypes) {
+      descBuilder.append(p.descriptorString());
+    }
+    descBuilder.append(")").append(m.getReturnType().descriptorString());
+    String desc = descBuilder.toString();
+    if (m.getDeclaringClass().isInterface()) {
+      int count = 1; // receiver
+      for (Class<?> ptype : ptypes) {
+        count += (ptype == long.class || ptype == double.class) ? 2 : 1;
+      }
+      mw.invokeinterface(owner, m.getName(), desc, count);
+    } else {
+      mw.invokevirtual(owner, m.getName(), desc);
+    }
+    if (m.getReturnType() == void.class) {
+      mw.aconst_null();
+    } else {
+      boxIfPrimitive(m.getReturnType(), mw);
+    }
+  }
+
+  private static void unboxIfPrimitive(Class<?> clazz, ClassFileWriter.MethodWriter mw) {
+    if (!clazz.isPrimitive()) {
+      mw.checkcast(clazz.getName().replace('.', '/'));
+      return;
+    }
+    if (clazz == boolean.class) {
+      mw.checkcast("java/lang/Boolean");
+      mw.invokevirtual("java/lang/Boolean", "booleanValue", "()Z");
+    } else if (clazz == byte.class) {
+      mw.checkcast("java/lang/Number");
+      mw.invokevirtual("java/lang/Number", "byteValue", "()B");
+    } else if (clazz == short.class) {
+      mw.checkcast("java/lang/Number");
+      mw.invokevirtual("java/lang/Number", "shortValue", "()S");
+    } else if (clazz == char.class) {
+      mw.checkcast("java/lang/Character");
+      mw.invokevirtual("java/lang/Character", "charValue", "()C");
+    } else if (clazz == int.class) {
+      mw.checkcast("java/lang/Number");
+      mw.invokevirtual("java/lang/Number", "intValue", "()I");
+    } else if (clazz == long.class) {
+      mw.checkcast("java/lang/Number");
+      mw.invokevirtual("java/lang/Number", "longValue", "()J");
+    } else if (clazz == float.class) {
+      mw.checkcast("java/lang/Number");
+      mw.invokevirtual("java/lang/Number", "floatValue", "()F");
+    } else if (clazz == double.class) {
+      mw.checkcast("java/lang/Number");
+      mw.invokevirtual("java/lang/Number", "doubleValue", "()D");
     }
   }
 
@@ -974,6 +1092,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     final List<TemplateSidecarIndex.SourceMapping> sourceMappings = new ArrayList<>();
     final Deque<ClassFileWriter.Label> loopStack = new ArrayDeque<>();
     final Deque<Integer> foreachMetaSlotStack = new ArrayDeque<>();
+    final IrSlotLayout.SlotLayout layout;
     int tempSlotOffset;
 
     CompilerContext(
@@ -987,6 +1106,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       this.internalName = internalName;
       this.fqcn = fqcn;
       this.fingerprint = fingerprint;
+      this.layout = IrSlotLayout.layout(template);
       this.tempSlotOffset = calculateMaxLocals(template) + 4;
     }
 
