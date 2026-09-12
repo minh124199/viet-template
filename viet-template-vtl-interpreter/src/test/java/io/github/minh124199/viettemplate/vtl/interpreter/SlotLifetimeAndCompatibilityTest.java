@@ -8,6 +8,7 @@ import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate;
+import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
@@ -46,7 +47,10 @@ class SlotLifetimeAndCompatibilityTest {
     }
     VtlTemplate ast = parseResult.template();
     VtlInterpreterOptions.Builder builder =
-        VtlInterpreterOptions.builder().executionTier(tier).profile(VtlProfile.VTL_DYNAMIC);
+        VtlInterpreterOptions.builder()
+            .executionTier(tier)
+            .profile(VtlProfile.VTL_DYNAMIC)
+            .optimizationOptions(IrOptimizationOptions.builder().macroInlining(false).build());
     if (customizer != null) {
       customizer.accept(builder);
     }
@@ -376,6 +380,157 @@ class SlotLifetimeAndCompatibilityTest {
     assertThat(aotOut).isEqualTo(irOut);
   }
 
+  @Test
+  @DisplayName(
+      "Dynamic write to foreach local: #evaluate updates foreach local and does not leak outside"
+          + " loop")
+  void dynamicWriteToForeachLocal() {
+    String template =
+        "#foreach($item in [1..2])#set($x = 'before')#evaluate('#set($x ="
+            + " \"after\")')[$x]#end[$!x]";
+    Map<String, Object> ctx = Map.of();
+
+    String irOut = render(template, ctx, ExecutionTier.IR);
+    String aotOut = render(template, ctx, ExecutionTier.AOT_BYTECODE);
+
+    assertThat(irOut).isEqualTo("[after][after][]");
+    assertThat(aotOut).isEqualTo("[after][after][]");
+    assertThat(aotOut).isEqualTo(irOut);
+
+    // Outside the loop in strict-reference mode, $x throws VARIABLE_UNDEFINED
+    String strictTemplate =
+        "#foreach($item in [1..2])#set($x = 'before')#evaluate('#set($x = \"after\")')[$x]#end$x";
+    Consumer<VtlInterpreterOptions.Builder> strictOpts = b -> b.strictReferences(true);
+    assertThatThrownBy(() -> render(strictTemplate, ctx, ExecutionTier.IR, strictOpts))
+        .isInstanceOf(TemplateRenderException.class)
+        .satisfies(
+            ex -> {
+              TemplateRenderException tre = (TemplateRenderException) ex;
+              assertThat(tre.code()).contains(InterpreterDiagnosticCodes.VARIABLE_UNDEFINED);
+            });
+  }
+
+  @Test
+  @DisplayName("Static write to foreach local visible to dynamic read")
+  void staticWriteToForeachLocalVisibleToDynamicRead() {
+    String template = "#foreach($item in ['a', 'b'])#set($x = $item)#evaluate('[$x]')#end";
+    Map<String, Object> ctx = Map.of();
+
+    String irOut = render(template, ctx, ExecutionTier.IR);
+    String aotOut = render(template, ctx, ExecutionTier.AOT_BYTECODE);
+
+    assertThat(irOut).isEqualTo("[a][b]");
+    assertThat(aotOut).isEqualTo("[a][b]");
+    assertThat(aotOut).isEqualTo(irOut);
+  }
+
+  @Test
+  @DisplayName("Dynamic write to foreach item: #evaluate updates loop variable")
+  void dynamicWriteToForeachItem() {
+    String template = "#foreach($item in ['a'])#evaluate('#set($item = \"mutated\")')[$item]#end";
+    Map<String, Object> ctx = Map.of();
+
+    String irOut = render(template, ctx, ExecutionTier.IR);
+    String aotOut = render(template, ctx, ExecutionTier.AOT_BYTECODE);
+
+    assertThat(irOut).isEqualTo("[mutated]");
+    assertThat(aotOut).isEqualTo("[mutated]");
+    assertThat(aotOut).isEqualTo(irOut);
+  }
+
+  @Test
+  @DisplayName(
+      "Dynamic write to macro local: #evaluate updates macro local and does not leak outside macro")
+  void dynamicWriteToMacroLocal() {
+    String template =
+        "#macro(m)#set($loc = 'before')#evaluate('#set($loc = \"after\")')[$loc]#end#m()[$!loc]";
+    Map<String, Object> ctx = Map.of();
+
+    String irOut = render(template, ctx, ExecutionTier.IR);
+    String aotOut = render(template, ctx, ExecutionTier.AOT_BYTECODE);
+
+    assertThat(irOut).isEqualTo("[after][]");
+    assertThat(aotOut).isEqualTo("[after][]");
+    assertThat(aotOut).isEqualTo(irOut);
+
+    // Outside the macro in strict-reference mode, $loc throws VARIABLE_UNDEFINED
+    String strictTemplate =
+        "#macro(m)#set($loc = 'before')#evaluate('#set($loc = \"after\")')[$loc]#end#m()$loc";
+    Consumer<VtlInterpreterOptions.Builder> strictOpts = b -> b.strictReferences(true);
+    assertThatThrownBy(() -> render(strictTemplate, ctx, ExecutionTier.IR, strictOpts))
+        .isInstanceOf(TemplateRenderException.class)
+        .satisfies(
+            ex -> {
+              TemplateRenderException tre = (TemplateRenderException) ex;
+              assertThat(tre.code()).contains(InterpreterDiagnosticCodes.VARIABLE_UNDEFINED);
+            });
+  }
+
+  @Test
+  @DisplayName("Static write to macro local visible to dynamic read")
+  void staticWriteToMacroLocalVisibleToDynamicRead() {
+    String template = "#macro(m $p)#set($loc = $p)#evaluate('[$loc]')#end#m('hello')";
+    Map<String, Object> ctx = Map.of();
+
+    String irOut = render(template, ctx, ExecutionTier.IR);
+    String aotOut = render(template, ctx, ExecutionTier.AOT_BYTECODE);
+
+    assertThat(irOut).isEqualTo("[hello]");
+    assertThat(aotOut).isEqualTo("[hello]");
+    assertThat(aotOut).isEqualTo(irOut);
+  }
+
+  @Test
+  @DisplayName("Dynamic write to macro param: #evaluate updates macro parameter")
+  void dynamicWriteToMacroParam() {
+    String template = "#macro(m $p)#evaluate('#set($p = \"mutated\")')[$p]#end#m('orig')";
+    Map<String, Object> ctx = Map.of();
+
+    String irOut = render(template, ctx, ExecutionTier.IR);
+    String aotOut = render(template, ctx, ExecutionTier.AOT_BYTECODE);
+
+    assertThat(irOut).isEqualTo("[mutated]");
+    assertThat(aotOut).isEqualTo("[mutated]");
+    assertThat(aotOut).isEqualTo(irOut);
+  }
+
+  @Test
+  @DisplayName("Parse directive mutates template variable: parsed template updates shared variable")
+  void parseDirectiveMutatesTemplateVariable() {
+    TemplateResourceResolver resolver =
+        TemplateResourceResolver.inMemory().add("sub.vm", "#set($shared = 'from_sub')").build();
+    Consumer<VtlInterpreterOptions.Builder> opts = b -> b.resourceResolver(resolver);
+
+    String template = "#set($shared = 'initial')#parse('sub.vm')[$shared]";
+    Map<String, Object> ctx = Map.of();
+
+    String irOut = render(template, ctx, ExecutionTier.IR, opts);
+    String aotOut = render(template, ctx, ExecutionTier.AOT_BYTECODE, opts);
+
+    assertThat(irOut).isEqualTo("[from_sub]");
+    assertThat(aotOut).isEqualTo("[from_sub]");
+    assertThat(aotOut).isEqualTo(irOut);
+  }
+
+  @Test
+  @DisplayName(
+      "Mutable root write-through preserved: #set updates MutableRenderContext and external update"
+          + " before next statement updates slot")
+  void mutableRootWriteThroughPreserved() {
+    String template = "#set($x = 'initial')#evaluate('#set($x = \"updated_externally\")')[$x]";
+
+    MutableRenderContext mrcIr = MutableRenderContext.of(new HashMap<>());
+    String irOut = render(template, mrcIr, ExecutionTier.IR, null);
+    assertThat(mrcIr.get("x")).isEqualTo("updated_externally");
+    assertThat(irOut).isEqualTo("[updated_externally]");
+
+    MutableRenderContext mrcAot = MutableRenderContext.of(new HashMap<>());
+    String aotOut = render(template, mrcAot, ExecutionTier.AOT_BYTECODE, null);
+    assertThat(mrcAot.get("x")).isEqualTo("updated_externally");
+    assertThat(aotOut).isEqualTo("[updated_externally]");
+    assertThat(aotOut).isEqualTo(irOut);
+  }
+
   // 18. IR == AOT output for all above scenarios (automated equivalence assertions)
   record EquivalenceScenario(
       String name,
@@ -495,6 +650,68 @@ class SlotLifetimeAndCompatibilityTest {
                     + " $items)[$x]#end[$x]#shadow('inner')[$x]",
                 Map.of("items", List.of("a", "b")),
                 "[a][b][outer][inner][outer]",
+                null)),
+        Arguments.of(
+            new EquivalenceScenario(
+                "Dynamic write to foreach local",
+                "#foreach($item in [1..2])#set($x = 'before')#evaluate('#set($x ="
+                    + " \"after\")')[$x]#end[$!x]",
+                Map.of(),
+                "[after][after][]",
+                null)),
+        Arguments.of(
+            new EquivalenceScenario(
+                "Static write to foreach local visible to dynamic read",
+                "#foreach($item in ['a', 'b'])#set($x = $item)#evaluate('[$x]')#end",
+                Map.of(),
+                "[a][b]",
+                null)),
+        Arguments.of(
+            new EquivalenceScenario(
+                "Dynamic write to foreach item",
+                "#foreach($item in ['a'])#evaluate('#set($item = \"mutated\")')[$item]#end",
+                Map.of(),
+                "[mutated]",
+                null)),
+        Arguments.of(
+            new EquivalenceScenario(
+                "Dynamic write to macro local",
+                "#macro(m)#set($loc = 'before')#evaluate('#set($loc ="
+                    + " \"after\")')[$loc]#end#m()[$!loc]",
+                Map.of(),
+                "[after][]",
+                null)),
+        Arguments.of(
+            new EquivalenceScenario(
+                "Static write to macro local visible to dynamic read",
+                "#macro(m $p)#set($loc = $p)#evaluate('[$loc]')#end#m('hello')",
+                Map.of(),
+                "[hello]",
+                null)),
+        Arguments.of(
+            new EquivalenceScenario(
+                "Dynamic write to macro param",
+                "#macro(m $p)#evaluate('#set($p = \"mutated\")')[$p]#end#m('orig')",
+                Map.of(),
+                "[mutated]",
+                null)),
+        Arguments.of(
+            new EquivalenceScenario(
+                "Parse directive mutates template variable",
+                "#set($shared = 'initial')#parse('sub.vm')[$shared]",
+                Map.of(),
+                "[from_sub]",
+                b ->
+                    b.resourceResolver(
+                        TemplateResourceResolver.inMemory()
+                            .add("sub.vm", "#set($shared = 'from_sub')")
+                            .build()))),
+        Arguments.of(
+            new EquivalenceScenario(
+                "Mutable root write-through preserved with evaluate",
+                "#set($x = 'initial')#evaluate('#set($x = \"updated_externally\")')[$x]",
+                Map.of(),
+                "[updated_externally]",
                 null)));
   }
 

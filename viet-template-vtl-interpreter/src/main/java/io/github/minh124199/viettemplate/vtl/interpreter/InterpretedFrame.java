@@ -6,7 +6,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout;
 import io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 
@@ -169,6 +169,7 @@ final class InterpretedFrame {
                 || meta.kind() == IrSlotLayout.BindingKind.FOREACH_LOCAL
                 || meta.kind() == IrSlotLayout.BindingKind.FOREACH_ITEM
                 || meta.kind() == IrSlotLayout.BindingKind.FOREACH_METADATA)) {
+          context.setLocalScope(name, evaluationValue);
           return;
         }
       }
@@ -176,12 +177,15 @@ final class InterpretedFrame {
     }
   }
 
-  void syncFromContext(List<IrSlotLayout.SlotMetadata> seededSlots) {
-    if (seededSlots == null) {
+  void syncFromContext(Collection<IrSlotLayout.SlotMetadata> slots) {
+    if (slots == null) {
       return;
     }
-    for (IrSlotLayout.SlotMetadata meta : seededSlots) {
-      variables.set(meta.slot(), context.lookup(meta.name()));
+    for (IrSlotLayout.SlotMetadata meta : slots) {
+      EvaluationValue val = context.lookup(meta.name());
+      if (val.isDefined()) {
+        variables.set(meta.slot(), val);
+      }
     }
   }
 

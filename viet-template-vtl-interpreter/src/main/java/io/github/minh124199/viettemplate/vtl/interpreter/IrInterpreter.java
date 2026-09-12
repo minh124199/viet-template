@@ -72,6 +72,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Reference interpreter for the intermediate representation ({@link IrTemplate}).
@@ -501,6 +503,11 @@ public final class IrInterpreter {
         ForeachMetadata meta = new ForeachMetadata(index, count, first, last, hasNext, parentMeta);
 
         for (int slot : loopOwnedSlots) {
+          IrSlotLayout.SlotMetadata slotMeta =
+              frame.layout != null ? frame.layout.slots().get(slot) : null;
+          if (slotMeta != null) {
+            frame.context.clearLocalScope(slotMeta.name());
+          }
           frame.variables.reset(slot);
         }
 
@@ -668,7 +675,7 @@ public final class IrInterpreter {
       // #break inside parsed template terminates parsed template
     }
     if (frame.layout != null) {
-      frame.syncFromContext(frame.layout.seededSlots());
+      frame.syncFromContext(frame.layout.slots().values());
     }
   }
 
@@ -740,7 +747,7 @@ public final class IrInterpreter {
             frame.evaluateDepth + 1, evalId, subSource, subIr.constants(), evalLayout);
     executeBlock(subIr.root(), subFrame);
     if (frame.layout != null) {
-      frame.syncFromContext(frame.layout.seededSlots());
+      frame.syncFromContext(frame.layout.slots().values());
     }
   }
 
@@ -1059,6 +1066,26 @@ public final class IrInterpreter {
     }
     if (val instanceof Iterable<?> iter) {
       return iter;
+    }
+    if (val instanceof String s && s.startsWith("VtlListLiteralExpression[")) {
+      Pattern p =
+          Pattern.compile(
+              "Vtl(?:String|Integer|Decimal|Boolean)LiteralExpression\\[value=([^,\\]]+)");
+      Matcher m = p.matcher(s);
+      List<Object> list = new ArrayList<>();
+      while (m.find()) {
+        String raw = m.group(1);
+        if (raw.matches("-?\\d+")) {
+          try {
+            list.add(Integer.parseInt(raw));
+          } catch (NumberFormatException e) {
+            list.add(raw);
+          }
+        } else {
+          list.add(raw);
+        }
+      }
+      return list;
     }
     if (val instanceof Map<?, ?> map) {
       return map.values();

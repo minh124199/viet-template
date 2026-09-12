@@ -84,6 +84,18 @@ public final class ExecutionContext {
     }
   }
 
+  public void setLocalScope(String name, EvaluationValue value) {
+    if (!scopeStack.isEmpty()) {
+      scopeStack.peek().put(name, value);
+    }
+  }
+
+  public void clearLocalScope(String name) {
+    if (!scopeStack.isEmpty()) {
+      scopeStack.peek().remove(name);
+    }
+  }
+
   public void popScope() {
     if (!scopeStack.isEmpty()) {
       scopeStack.pop();
@@ -119,6 +131,10 @@ public final class ExecutionContext {
 
     void put(String name, EvaluationValue value) {
       variables.put(name, value);
+    }
+
+    void remove(String name) {
+      variables.remove(name);
     }
   }
 }
