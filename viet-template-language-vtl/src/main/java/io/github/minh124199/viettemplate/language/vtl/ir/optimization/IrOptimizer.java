@@ -48,10 +48,11 @@ public final class IrOptimizer {
     Objects.requireNonNull(options, "options must not be null");
 
     OptimizationContext context = new OptimizationContext(template, options);
+    IrTemplate current = new AssignVariableSlots().run(template, context); // O45 (mandatory)
 
     if (options.level() == OptimizationLevel.O0) {
-      IrVerifier.verify(template);
-      return new OptimizationResult(template, context.statistics());
+      IrVerifier.verify(current);
+      return new OptimizationResult(current, context.statistics());
     }
 
     List<IrOptimizationPass> passes =
@@ -72,7 +73,6 @@ public final class IrOptimizer {
             new MethodSizePlanningPass() // O150
             );
 
-    IrTemplate current = template;
     for (IrOptimizationPass pass : passes) {
       current = pass.run(current, context);
     }

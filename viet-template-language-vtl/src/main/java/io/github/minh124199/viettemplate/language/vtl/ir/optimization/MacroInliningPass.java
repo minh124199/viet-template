@@ -192,8 +192,10 @@ public final class MacroInliningPass implements IrOptimizationPass {
 
     // Map function locals to freshly allocated slots
     for (IrLocal l : target.locals()) {
-      int freshSlot = context.allocateLocalSlot();
-      slotMap.put(l.slot(), freshSlot);
+      if (!slotMap.containsKey(l.slot())) {
+        int freshSlot = context.allocateLocalSlot();
+        slotMap.put(l.slot(), freshSlot);
+      }
     }
 
     // Remap macro body statements to newly assigned slots

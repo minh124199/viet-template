@@ -129,6 +129,7 @@ public final class AstToIrLowerer {
   private final IrConstantPool constantPool = new IrConstantPool();
   private final Map<String, IrParameter> parameters = new LinkedHashMap<>();
   private final List<IrFunction> functions = new ArrayList<>();
+  private final Map<IrLoop, List<IrLocal>> loopLocals = new LinkedHashMap<>();
   private int nextCallSiteId = 1;
   private int nextLocalSlot = 0;
 
@@ -178,6 +179,7 @@ public final class AstToIrLowerer {
       IrParameter param = new IrParameter(p.name(), p.type(), paramSlot++, template.span());
       parameters.put(p.name(), param);
     }
+    this.nextLocalSlot = paramSlot;
 
     // 2. Lower root statements with local scoping
     Scope lowerScope = new Scope(null);
@@ -395,8 +397,7 @@ public final class AstToIrLowerer {
       mainCond = new IrTruthiness(mainCond, true, mainCond.span());
     }
 
-    Scope thenScope = new Scope(scope);
-    IrBlock thenBlock = lowerBlock(mainBranch.body(), thenScope, mainBranch.span());
+    IrBlock thenBlock = lowerBlock(mainBranch.body(), scope, mainBranch.span());
 
     List<VtlIfBranch> branches = ifNode.branches();
     List<VtlIfBranch> elifBranches =
@@ -414,9 +415,7 @@ public final class AstToIrLowerer {
     }
 
     if (elseifBranches.isEmpty()) {
-      Scope elseScope = new Scope(scope);
-      return Optional.of(
-          lowerBlock(elseBranch.get(), elseScope, scopeLeadingSpan(elseBranch.get())));
+      return Optional.of(lowerBlock(elseBranch.get(), scope, scopeLeadingSpan(elseBranch.get())));
     }
 
     VtlIfBranch firstElif = elseifBranches.get(0);
@@ -425,8 +424,7 @@ public final class AstToIrLowerer {
       cond = new IrTruthiness(cond, true, cond.span());
     }
 
-    Scope elifScope = new Scope(scope);
-    IrBlock elifThen = lowerBlock(firstElif.body(), elifScope, firstElif.span());
+    IrBlock elifThen = lowerBlock(firstElif.body(), scope, firstElif.span());
 
     List<VtlIfBranch> remainingElifs = elseifBranches.subList(1, elseifBranches.size());
     Optional<IrBlock> nextElse = lowerElifChain(remainingElifs, elseBranch, scope);
@@ -477,12 +475,25 @@ public final class AstToIrLowerer {
 
     Optional<IrBlock> elseBody = Optional.empty();
     if (foreach.elseBody().isPresent()) {
-      Scope elseScope = new Scope(scope);
-      elseBody = Optional.of(lowerBlock(foreach.elseBody().get(), elseScope, foreach.span()));
+      elseBody = Optional.of(lowerBlock(foreach.elseBody().get(), scope, foreach.span()));
     }
 
-    return new IrLoop(
-        plan, iterable, elemLocal, Optional.of(loopStateLocal), body, elseBody, foreach.span());
+    IrLoop loop =
+        new IrLoop(
+            plan, iterable, elemLocal, Optional.of(loopStateLocal), body, elseBody, foreach.span());
+
+    List<IrLocal> ownedLocals = new ArrayList<>();
+    for (IrLocal loc : loopScope.allDescendantLocals()) {
+      if (loc.slot() != elemLocal.slot()
+          && (loopStateLocal == null || loc.slot() != loopStateLocal.slot())
+          && scope.resolveLocal(loc.name()) == null
+          && scope.resolveParam(loc.name()) == null) {
+        ownedLocals.add(loc);
+      }
+    }
+    this.loopLocals.put(loop, ownedLocals);
+
+    return loop;
   }
 
   private void lowerMacroDefinition(VtlMacroDefinitionNode macro, Scope parentScope) {
@@ -775,9 +786,13 @@ public final class AstToIrLowerer {
     private final Scope parent;
     private final Map<String, IrLocal> locals = new LinkedHashMap<>();
     private final Map<String, IrParameter> scopeParams = new HashMap<>();
+    private final List<Scope> children = new ArrayList<>();
 
     Scope(Scope parent) {
       this.parent = parent;
+      if (parent != null) {
+        parent.children.add(this);
+      }
     }
 
     void defineParam(String name, IrParameter param) {
@@ -799,6 +814,10 @@ public final class AstToIrLowerer {
     }
 
     IrLocal getOrCreateLocal(String name, VType type, SourceSpan span) {
+      IrParameter param = resolveParam(name);
+      if (param != null) {
+        return new IrLocal(param.name(), param.type(), param.slot(), span);
+      }
       IrLocal existing = resolveLocal(name);
       if (existing != null) {
         return existing;
@@ -817,7 +836,27 @@ public final class AstToIrLowerer {
     }
 
     List<IrLocal> allLocals() {
-      return List.copyOf(locals.values());
+      List<IrLocal> result = new ArrayList<>();
+      for (IrLocal local : locals.values()) {
+        IrParameter param = resolveParam(local.name());
+        if (param != null && param.slot() == local.slot()) {
+          continue;
+        }
+        result.add(local);
+      }
+      return List.copyOf(result);
     }
+
+    List<IrLocal> allDescendantLocals() {
+      List<IrLocal> result = new ArrayList<>(locals.values());
+      for (Scope child : children) {
+        result.addAll(child.allDescendantLocals());
+      }
+      return result;
+    }
+  }
+
+  public Map<IrLoop, List<IrLocal>> loopLocals() {
+    return Map.copyOf(loopLocals);
   }
 }

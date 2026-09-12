@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
+import io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrBinaryOp;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrConst;
@@ -175,6 +176,36 @@ class AstToIrLowererTest {
     assertThat(loop.loopStateLocal()).isPresent();
     assertThat(loop.loopStateLocal().get().name()).isEqualTo("foreach");
     assertThat(loop.elseBody()).isPresent();
+  }
+
+  @Test
+  @DisplayName("assigns deterministic distinct slots to nested foreach bindings")
+  void assignsDeterministicNestedForeachSlots() {
+    VType holderType = VTypes.fromJavaType(ItemListHolder.class, Nullability.NON_NULL);
+    ModelSchema schema = ModelSchema.builder().add(ModelParameter.of("holder", holderType)).build();
+    String source =
+        "#foreach($item in $holder.items)#foreach($item in"
+            + " $holder.items)$item:$foreach.parent.count#end$item#end";
+    IrTemplate first = parseAndLower(source, schema);
+    IrTemplate second = parseAndLower(source, schema);
+
+    IrLoop outer = (IrLoop) first.root().statements().get(0);
+    IrLoop inner =
+        (IrLoop)
+            outer.body().statements().stream()
+                .filter(IrLoop.class::isInstance)
+                .findFirst()
+                .orElseThrow();
+
+    assertThat(outer.elementLocal().slot()).isNotEqualTo(inner.elementLocal().slot());
+    assertThat(outer.loopStateLocal().orElseThrow().slot())
+        .isNotEqualTo(inner.loopStateLocal().orElseThrow().slot());
+    assertThat(IrSlotLayout.frameSize(first)).isEqualTo(IrSlotLayout.frameSize(second));
+
+    IrLoop secondOuter = (IrLoop) second.root().statements().get(0);
+    assertThat(secondOuter.elementLocal().slot()).isEqualTo(outer.elementLocal().slot());
+    assertThat(secondOuter.loopStateLocal().orElseThrow().slot())
+        .isEqualTo(outer.loopStateLocal().orElseThrow().slot());
   }
 
   @Test

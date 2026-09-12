@@ -84,10 +84,12 @@ public final class IrVerifier {
 
     // 1. Check parameters
     Set<String> definedParams = new HashSet<>();
+    Set<Integer> parameterSlots = new HashSet<>();
     for (IrParameter param : template.parameters()) {
       if (!definedParams.add(param.name())) {
         errors.add("Duplicate parameter '" + param.name() + "' at " + param.span());
       }
+      verifyDeclaredSlot("Parameter '" + param.name() + "'", param.slot(), parameterSlots, errors);
     }
 
     // 2. Scope context for root block
@@ -102,16 +104,63 @@ public final class IrVerifier {
     // 4. Verify functions / macros
     for (IrFunction function : template.functions()) {
       ScopeContext fnScope = new ScopeContext(null);
+      Set<Integer> functionSlots = new HashSet<>();
+      java.util.Map<Integer, String> paramSlots = new java.util.HashMap<>();
       for (IrParameter param : function.parameters()) {
         fnScope.define(param.name());
+        verifyDeclaredSlot(
+            "Function '" + function.name() + "' parameter '" + param.name() + "'",
+            param.slot(),
+            functionSlots,
+            errors);
+        paramSlots.put(param.slot(), param.name());
       }
       for (IrLocal local : function.locals()) {
         fnScope.define(local.name());
+        if (local.slot() < 0) {
+          errors.add(
+              "Function '"
+                  + function.name()
+                  + "' local '"
+                  + local.name()
+                  + "' has negative slot "
+                  + local.slot());
+        } else if (paramSlots.containsKey(local.slot())) {
+          if (!paramSlots.get(local.slot()).equals(local.name())) {
+            errors.add(
+                "Function '"
+                    + function.name()
+                    + "' local '"
+                    + local.name()
+                    + "' aliases parameter slot "
+                    + local.slot()
+                    + " ('"
+                    + paramSlots.get(local.slot())
+                    + "')");
+          }
+        } else if (!functionSlots.add(local.slot())) {
+          errors.add(
+              "Function '"
+                  + function.name()
+                  + "' local '"
+                  + local.name()
+                  + "' aliases already-declared slot "
+                  + local.slot());
+        }
       }
       verifyBlock(function.body(), fnScope, template, errors);
     }
 
     return errors;
+  }
+
+  private static void verifyDeclaredSlot(
+      String description, int slot, Set<Integer> declaredSlots, List<String> errors) {
+    if (slot < 0) {
+      errors.add(description + " has negative slot " + slot);
+    } else if (!declaredSlots.add(slot)) {
+      errors.add(description + " aliases already-declared slot " + slot);
+    }
   }
 
   private static void verifyBlock(
@@ -148,6 +197,10 @@ public final class IrVerifier {
     }
 
     if (stmt instanceof IrStoreLocal store) {
+      if (store.local().slot() < 0) {
+        errors.add(
+            "Local '$" + store.local().name() + "' has negative slot " + store.local().slot());
+      }
       verifyExpression(store.value(), scope, template, errors);
       scope.define(store.local().name());
       return;
@@ -157,9 +210,11 @@ public final class IrVerifier {
       verifyExpression(ifStmt.condition(), scope, template, errors);
       ScopeContext thenScope = new ScopeContext(scope);
       verifyBlock(ifStmt.thenBlock(), thenScope, template, errors);
+      scope.definedSymbols.addAll(thenScope.definedSymbols);
       if (ifStmt.elseBlock().isPresent()) {
         ScopeContext elseScope = new ScopeContext(scope);
         verifyBlock(ifStmt.elseBlock().get(), elseScope, template, errors);
+        scope.definedSymbols.addAll(elseScope.definedSymbols);
       }
       return;
     }
@@ -181,6 +236,18 @@ public final class IrVerifier {
       }
 
       ScopeContext loopBodyScope = new ScopeContext(scope);
+      if (loop.elementLocal().slot() < 0) {
+        errors.add(
+            "Loop local '$"
+                + loop.elementLocal().name()
+                + "' has negative slot "
+                + loop.elementLocal().slot());
+      }
+      if (loop.loopStateLocal().isPresent() && loop.loopStateLocal().get().slot() < 0) {
+        errors.add(
+            "Loop metadata local '$foreach' has negative slot "
+                + loop.loopStateLocal().get().slot());
+      }
       loopBodyScope.define(loop.elementLocal().name());
       if (loop.loopStateLocal().isPresent()) {
         loopBodyScope.define(loop.loopStateLocal().get().name());
@@ -190,17 +257,42 @@ public final class IrVerifier {
       if (loop.elseBody().isPresent()) {
         ScopeContext elseScope = new ScopeContext(scope);
         verifyBlock(loop.elseBody().get(), elseScope, template, errors);
+        scope.definedSymbols.addAll(elseScope.definedSymbols);
       }
       return;
     }
 
     if (stmt instanceof IrLoopSetup setup) {
+      if (setup.iteratorLocal().slot() < 0) {
+        errors.add(
+            "Loop iterator local '"
+                + setup.iteratorLocal().name()
+                + "' has negative slot "
+                + setup.iteratorLocal().slot());
+      }
       verifyExpression(setup.iterable(), scope, template, errors);
       scope.define(setup.iteratorLocal().name());
       return;
     }
 
     if (stmt instanceof IrLoopNext next) {
+      if (next.iteratorLocal().slot() < 0) {
+        errors.add(
+            "Loop iterator local '"
+                + next.iteratorLocal().name()
+                + "' has negative slot "
+                + next.iteratorLocal().slot());
+      }
+      if (next.elementLocal().slot() < 0) {
+        errors.add(
+            "Loop element local '"
+                + next.elementLocal().name()
+                + "' has negative slot "
+                + next.elementLocal().slot());
+      }
+      if (next.loopStateLocal().isPresent() && next.loopStateLocal().get().slot() < 0) {
+        errors.add("Loop state local has negative slot " + next.loopStateLocal().get().slot());
+      }
       if (!scope.isDefined(next.iteratorLocal().name())) {
         errors.add(
             "Loop iterator local '"
@@ -216,6 +308,13 @@ public final class IrVerifier {
     }
 
     if (stmt instanceof IrLoopEnd end) {
+      if (end.iteratorLocal().slot() < 0) {
+        errors.add(
+            "Loop iterator local '"
+                + end.iteratorLocal().name()
+                + "' has negative slot "
+                + end.iteratorLocal().slot());
+      }
       if (!scope.isDefined(end.iteratorLocal().name())) {
         errors.add(
             "Loop iterator local '"
@@ -298,6 +397,8 @@ public final class IrVerifier {
     }
 
     if (expr instanceof IrLoadParam lp) {
+      if (lp.slot() < 0)
+        errors.add("Parameter '" + lp.name() + "' loads negative slot " + lp.slot());
       if (!scope.isDefined(lp.name())) {
         errors.add("Parameter '" + lp.name() + "' referenced before definition at " + lp.span());
       }
@@ -305,6 +406,7 @@ public final class IrVerifier {
     }
 
     if (expr instanceof IrLoadLocal ll) {
+      if (ll.slot() < 0) errors.add("Local '$" + ll.name() + "' loads negative slot " + ll.slot());
       if (!scope.isDefined(ll.name())) {
         errors.add("Local variable '$" + ll.name() + "' read before write at " + ll.span());
       }
