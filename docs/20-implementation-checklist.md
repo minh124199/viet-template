@@ -641,6 +641,19 @@ Every optimization must preserve:
 - [x] Verify $O(K)$ indexed invalidation under high concurrency in `TemplateCompilationCacheBenchmark`.
 - [x] Milestone M19.2 released as 0.2.0 on 2026-09-12 (published to Maven Central and GitHub Releases, consumer tests passing).
 
+### 19.2.1 Post-0.2.0 Release Infrastructure Hardening (complete)
+
+- [x] Preserve `v0.2.0` and all published `0.2.0` bytes unchanged.
+- [x] Separate validated Central upload from long-running publication observation.
+- [x] Capture the Central deployment UUID and monitor explicit deployment states for up to 120 minutes.
+- [x] Guard immutable versions against first-run duplicates and prohibit tag-workflow redeployment on rerun.
+- [x] Verify parent and production artifacts from Maven Central, assert TCK/benchmarks remain absent, and run fresh Maven/Gradle Central-only consumer checks.
+- [x] Make GitHub Release finalization publication-gated, idempotent, and resumable by deployment UUID.
+- [x] Add deterministic state/API/timeout/deployment-ID/publication-contract tests and a no-publish dry run.
+- [x] Record the 0.2.0 asynchronous-publication incident and recovery procedure.
+
+This follow-up is release infrastructure work only. It does not start M19.3 or M15.
+
 ### 19.3 Milestone M19.3 — 0.3.x+ Evidence-Driven Optimizations
 
 - [ ] Profile LRU cache contention in `TemplateCompileCache` under high concurrent load; evaluate lock-free or striped eviction (e.g. concurrent bounded cache) if lock contention is proven.

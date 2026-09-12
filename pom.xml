@@ -285,6 +285,7 @@
                                 <goal>sign</goal>
                             </goals>
                             <configuration>
+                                <bestPractices>true</bestPractices>
                                 <gpgArguments>
                                     <arg>--pinentry-mode</arg>
                                     <arg>loopback</arg>
@@ -303,7 +304,8 @@
                     <configuration>
                         <publishingServerId>central</publishingServerId>
                         <autoPublish>true</autoPublish>
-                        <waitUntil>published</waitUntil>
+                        <!-- Return after upload validation; publication completion is monitored by CI. -->
+                        <waitUntil>validated</waitUntil>
                     </configuration>
                 </plugin>
                 <!-- Maven Shade Plugin (Self-contained Benchmark JAR) -->

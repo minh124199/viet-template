@@ -71,6 +71,11 @@ Release `0.2.0` introduces the next major internal runtime evolution, transition
 
 **Release Status**: 0.2.0 is RELEASED. Published to Maven Central and GitHub Releases on 2026-09-12.
 
+**Post-release infrastructure status**: 0.2.x release infrastructure hardening is COMPLETE. Central
+submission, publication monitoring, public-coordinate verification, consumer smoke testing, and
+idempotent GitHub Release finalization are separate resumable stages. This operational follow-up is
+not M19.3; M19.3 remains NOT STARTED. M15 remains NOT STARTED.
+
 ### Key Milestones & Capabilities (Milestone M19.2)
 
 Milestone M19.2 is split so cache work and variable-slot work retain independent benchmark
