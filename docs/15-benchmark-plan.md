@@ -267,9 +267,9 @@ Benchmark results and environment measurements are organized around authoritativ
 | `J21-G1` | 21 | G1 | No | Yes | No | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC` |
 | `J21-ZGC` | 21 | ZGC (Generational) | No | Yes | No | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseZGC -XX:+ZGenerational` |
 | `J25-G1` | 25 | G1 | No | Yes | No | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC` |
-| `J25-G1-COH` | 25 | G1 | Yes (JEP 450) | Yes | No | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+UseCompactObjectHeaders` |
+| `J25-G1-COH` | 25 | G1 | Yes (JEP 519) | Yes | No | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+UseCompactObjectHeaders` |
 | `J25-ZGC` | 25 | ZGC (Generational) | No | Yes | No | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseZGC` |
-| `J25-AOT` | 25 | G1 | No | Yes | Yes (JEP 483 / 514) | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC` |
+| `J25-AOT` | 25 | G1 | No | Yes | Yes (JEP 483 / 514 / 515) | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC` |
 
 ---
 
@@ -290,7 +290,7 @@ The virtual-thread stress suite (`viet-template-benchmarks/src/test/java/.../str
 ### 6.3 Diagnostic Profiling & Startup Measurement
 
 1. **Java Flight Recorder (JFR) Profiling**:
-   `scripts/perf/jfr-profile.sh` and `scripts/perf/jfr-summary.sh` leverage JDK 25 JFR event streams and the `jfr view` CLI to inspect execution characteristics:
+   `scripts/perf/jfr-profile.sh` and `scripts/perf/jfr-summary.sh` leverage JDK 25 JFR event streams (including JEP 520 method timing & tracing) and the `jfr view` CLI to inspect execution characteristics:
    - `hot-methods`: Identifies CPU execution hotspots across template evaluation and bytecode.
    - `allocation-by-class`: Tracks object churn and heap allocation distributions.
    - `contention-by-site`: Detects lock wait times and monitor contention points.
@@ -301,7 +301,7 @@ The virtual-thread stress suite (`viet-template-benchmarks/src/test/java/.../str
 2. **Process Startup Measurement Harness**:
    `StartupBenchmarkEntrypoint.java` measures nanosecond checkpoints across JVM bootstrap, repository population, engine initialization, template compilation, first render, and small batch execution. `scripts/perf/measure-startup.py` reports min, median, mean, p95, max, and sample standard deviation. `SMOKE` mode is restricted to 2–3 launches and validates plumbing only; `MEASUREMENT` mode requires at least 20 independent launches and defaults to 30. Two-run observations are development history, not authoritative performance evidence.
 3. **Ahead-of-Time (AOT) Cache Experiments**:
-   `scripts/perf/jdk-aot-experiment.sh` characterizes Java 25 Ahead-of-Time class loading and compilation (JEP 483 / JEP 514) using `-XX:AOTMode=record` and `-XX:AOTMode=create`. It alternates normal and AOT-cache launches and reports raw observations plus descriptive checkpoint deltas; it does not imply a steady-state rendering effect.
+   `scripts/perf/jdk-aot-experiment.sh` characterizes Java 25 Ahead-of-Time class loading and linking (JEP 483), command-line ergonomics (JEP 514), and method profiling (JEP 515) using `-XX:AOTMode=record` and `-XX:AOTMode=create`. It alternates normal and AOT-cache launches and reports raw observations plus descriptive checkpoint deltas. Empirical evidence from AOT cache measurements specifically characterizes JVM bootstrap, class loading, engine initialization, and initial compilation warmup; it does not alter or imply a steady-state template rendering effect.
 
 ### 6.4 ThreadLocal Audit
 

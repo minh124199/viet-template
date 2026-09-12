@@ -76,7 +76,7 @@
       ]
     },
     "J25-G1-COH": {
-      "description": "Modern memory-efficient: OpenJDK 25 with Compact Object Headers (JEP 450)",
+      "description": "Modern memory-efficient: OpenJDK 25 with Compact Object Headers (JEP 519)",
       "javaVersion": 25,
       "historicallyComparable": false,
       "heap": "2g fixed",

@@ -116,9 +116,9 @@ Viet Template explicitly differentiates the roles of supported JDK releases:
   - High-concurrency stress suites verify that shared engine instances, thread-local contexts, and cache locks execute without carrier thread pinning or synchronization deadlocks.
 - **Java 25 (Advanced Runtime & Experimentation Platform)**:
   - Forward-looking performance exploration target.
-  - Evaluates memory footprint optimizations via Compact Object Headers (JEP 450).
-  - Measures process-level startup and class-loading acceleration via JVM AOT Cache (JEP 483 / JEP 514).
-  - Powers diagnostic profiling via Java Flight Recorder (JFR) and `jfr view` CLI analysis.
+  - Evaluates memory footprint optimizations via Compact Object Headers (JEP 519).
+  - Measures process-level startup and class-loading acceleration via JVM AOT Cache (JEP 483 / JEP 514 / JEP 515).
+  - Powers diagnostic profiling via Java Flight Recorder (JFR, including JEP 520) and `jfr view` CLI analysis.
 
 #### Production Baseline Decision Gate
 

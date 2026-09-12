@@ -98,7 +98,7 @@ AOT_JSON="$OUTPUT_DIR/startup-aot.json"
 REPORT_MD="$OUTPUT_DIR/aot-comparison-report.md"
 
 echo "============================================================"
-echo "Java 25 Ahead-of-Time (AOT) Cache Experiment (JEP 483 / 514)"
+echo "Java 25 Ahead-of-Time (AOT) Cache Experiment (JEP 483 / 514 / 515)"
 echo "============================================================"
 echo "  JDK 25 Java : $JAVA_BIN"
 echo "  Artifact Jar: $BENCHMARKS_JAR"
