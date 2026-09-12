@@ -29,7 +29,7 @@ Many existing JVM template engines require teams to choose between familiar, fle
 | Item | Value |
 | :--- | :--- |
 | **Current Published Release** | `0.2.0` (2026-09-12) |
-| **Development Branch** | `0.2.0` |
+| **Development Branch** | `0.2.1-SNAPSHOT` |
 | **Maturity Level** | **Pre-1.0 (`0.2.x`)** |
 | **Maven Group** | `io.github.minh124199` |
 | **Java Baseline** | Java 17 (`--release 17`) |

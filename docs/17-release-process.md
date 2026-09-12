@@ -1,167 +1,172 @@
 # 17 — Release Process & Maven Central Publishing
 
-This document describes the canonical release procedure for Viet Template (`io.github.minh124199:viet-template-*`).
+This is the canonical release and incident-recovery procedure for
+`io.github.minh124199:viet-template-*`.
 
----
+## 1. Immutable publication model
 
-## 1. Architecture & Publishing Principles
+Apache Maven is the only authoritative remote publisher. Gradle publication exists for local
+installation, metadata validation, and build parity; it never publishes releases remotely.
 
-1. **Single Authoritative Publisher**:
-   - **Apache Maven** (`mvnw`) is the sole authoritative release publisher deploying production artifacts to the **Sonatype Central Publisher Portal** (`central.sonatype.com`).
-   - Gradle publication (`maven-publish`) is maintained strictly for local cache installation (`publishToMavenLocal`), metadata validation, and dual-build parity verification. The release workflow never publishes remotely via Gradle.
-2. **Modern Central Portal Infrastructure**:
-   - Deployment utilizes `org.sonatype.central:central-publishing-maven-plugin:0.11.0` in the `release` profile, replacing legacy OSSRH (`s01.oss.sonatype.org`) and `nexus-staging-maven-plugin`.
-   - The plugin is configured with `<publishingServerId>central</publishingServerId>`, `<autoPublish>true</autoPublish>`, and `<waitUntil>published</waitUntil>`.
-   - Normal builds (`./mvnw clean verify`, `./mvnw test`) never attempt to sign or publish artifacts.
-3. **Publication Terminal State Contract**:
-   - Live publication (`./mvnw clean deploy -P release`) blocks until Sonatype Central Publisher Portal successfully validates and transitions artifacts to the `PUBLISHED` state.
-   - GitHub Release creation is strictly gated on successful Central publication; failures or timeouts halt the pipeline before any GitHub Release is created.
-4. **Defense-in-Depth TCK Exclusion**:
-   - The test kit module (`viet-template-tck`) contains test fixtures, differential adapters, and Apache Velocity dependencies. It is strictly internal and **never deployed**.
-   - Exclusion is enforced via:
-     - `viet-template-tck/pom.xml`: `<maven.deploy.skip>true</maven.deploy.skip>`, `<skipPublishing>true</skipPublishing>`, and plugin-level `<configuration><skipPublishing>true</skipPublishing></configuration>`.
-     - `build.gradle.kts`: zero publication declarations for `:viet-template-tck`.
-     - Automated bundle validation script (`scripts/validate-release-bundle.py`).
-5. **Clean-Room & Leakage Safeguards**:
-   - Production JARs (`api`, `runtime`, `language-vtl`, `vtl-interpreter`) must contain zero test classes, zero TCK classes, and zero Apache Velocity implementation classes.
+Once Maven Central accepts or publishes a version, that version must never be rebuilt and
+republished with different bytes. Never delete, move, or force-push a release tag to correct a
+published version. Use the next patch version for fixes.
 
----
+Expected public coordinates are:
 
-## 2. Release Preconditions
+- `viet-template-parent` (POM)
+- `viet-template-api` (POM, main JAR, sources JAR, Javadoc JAR)
+- `viet-template-runtime` (POM, main JAR, sources JAR, Javadoc JAR)
+- `viet-template-language-vtl` (POM, main JAR, sources JAR, Javadoc JAR)
+- `viet-template-vtl-interpreter` (POM, main JAR, sources JAR, Javadoc JAR)
 
-Before initiating a release:
+The following internal modules must remain absent from Maven Central:
 
-1. **Clean Git State**: Working directory must be clean (`git status` shows no uncommitted changes).
-2. **Test Suite Green**:
-   - Gradle: `./gradlew clean build` passes 100%.
-   - Maven: `./mvnw clean verify` passes 100%.
-3. **Dual-Build Parity Green**:
-   - `./scripts/verify-build-parity.sh` reports 100% parity across all 4 production JARs.
-4. **Version Alignment & Non-SNAPSHOT**:
-   - Both `pom.xml` and `build.gradle.kts` must specify the exact release version (e.g. `0.1.0`, without `-SNAPSHOT`).
-   - Run `./scripts/verify-release-metadata.py --require-non-snapshot --check-workflow-contract` to verify.
-5. **Changelog Finalized**:
-   - Finalize the release entry in `CHANGELOG.md` (e.g. `## [0.1.0] - 2026-09-06`) while preserving the existing `## [Unreleased]` section at the top.
-6. **External Credentials Configured**:
-   - The GitHub repository must have the following secrets configured in repository settings or in the `release` environment:
-     - `MAVEN_CENTRAL_USERNAME`: Sonatype Central Portal User Token.
-     - `MAVEN_CENTRAL_PASSWORD`: Sonatype Central Portal Token Password.
-     - `SIGNING_KEY`: ASCII-armored GPG private key.
-     - `SIGNING_PASSWORD`: Passphrase for the GPG private key.
+- `viet-template-tck`
+- `viet-template-benchmarks`
 
----
+Their exclusion is enforced in each module POM, the Central publisher, Gradle publication
+selection, workflow-contract checks, bundle validation, and the post-publication audit.
 
-## 3. Release Simulation & Dry-Run
+## 2. The 0.2.0 incident model
 
-The release pipeline can be validated locally or in CI without credentials:
+Deployment `7c8cd16e-b123-4422-81c9-b19a324570cb` followed this exact sequence:
 
-### 3.1 Simulated v0.1.0 Release Validation
-
-Execute the automated release simulation script:
-
-```bash
-./scripts/simulate-release.sh
+```text
+Maven reactor completed artifact assembly/signing
+        ↓
+Central bundle uploaded successfully
+        ↓
+Sonatype returned deployment ID
+        ↓
+autoPublish began server-side
+        ↓
+plugin waited for PUBLISHED
+        ↓
+30-minute client-side wait expired
+        ↓
+Maven returned non-zero
+        ↓
+GitHub publish job marked failed
+        ↓
+GitHub Release job skipped
+        ↓
+Sonatype continued asynchronously
+        ↓
+deployment eventually reached PUBLISHED
 ```
 
-This creates an isolated temporary workspace, substitutes `0.1.0`, validates metadata against tag `v0.1.0`, assembles release packages in Maven and Gradle, validates bundle contents and POMs, confirms zero leaks, and leaves the working tree untouched at `0.1.0-SNAPSHOT`.
+Central took about 68 minutes, outliving the plugin's 30-minute default client wait. The bundle
+was accepted and validated; the local observer timed out while server-side publication continued.
+Therefore:
 
-### 3.2 Local Bundle Validation
-
-```bash
-# 1. Assemble artifacts under both build systems
-./mvnw clean package -P release -Dgpg.skip=true -DskipTests -B
-./gradlew assemble generatePomFileForMavenJavaPublication --no-daemon
-
-# 2. Validate production bundle integrity
-./scripts/validate-release-bundle.sh --build-tool both
+```text
+publication submission failure != publication observation timeout
 ```
 
-This verifies:
-- All 4 production modules produce binary JAR, sources JAR, Javadoc JAR, and valid POM.
-- No test classes, TCK classes, or Velocity classes leaked into production JARs.
-- `viet-template-tck` is absent from the publication set.
-- All POMs specify required Maven Central metadata (groupId, license, developers, scm).
+## 3. Release state machine
 
-### 3.3 CI Dry-Run via GitHub Actions
+The workflow models these successful states:
 
-Trigger the **Release** workflow via `workflow_dispatch`:
-- Input `dry_run`: `true` (default).
-- Input `recovery_mode`: `false` (default).
-
-The workflow executes metadata validation, full multi-JDK verification, artifact assembly, and bundle inspection, without uploading any artifacts.
-
-### 3.4 Emergency Recovery Publication (Exception Path Only)
-
-Manual dispatch with live publication is strictly restricted as an emergency recovery path (e.g. if the tag-triggered workflow failed at Sonatype Central during an external portal outage after the tag was pushed). To trigger recovery publication:
-- Select the release tag in GitHub Actions.
-- Set `dry_run`: `false`.
-- Set `recovery_mode`: `true`.
-- Enter confirmation string: `I CONFIRM RECOVERY PUBLISH`.
-
-> [!WARNING]
-> Do NOT trigger manual recovery publication after a tag-triggered release has already run. Pushing the release tag is the only normal live release trigger.
-
----
-
-## 4. Live Release Procedure
-
-When preconditions are satisfied and dry-run succeeds:
-
-### Step 1: Commit and Tag the Release
-
-Follow semantic versioning tag format `vX.Y.Z`:
-
-```bash
-git checkout main
-git pull origin main
-
-# Tag the commit matching the release version (e.g. 0.1.0)
-git tag -a v0.1.0 -m "Release v0.1.0"
-git push origin main
-git push origin v0.1.0
+```text
+PRECHECK
+  → BUILD_VERIFIED
+  → BUNDLE_VALIDATED
+  → UPLOAD_ACCEPTED
+  → CENTRAL_VALIDATING
+  → CENTRAL_PUBLISHING
+  → CENTRAL_PUBLISHED
+  → PUBLIC_ARTIFACTS_VERIFIED
+  → GITHUB_RELEASE_CREATED
 ```
 
-### Step 2: Automated Publication via GitHub Actions
+Failures are classified as `METADATA_INVALID`, `BUILD_FAILED`, `BUNDLE_INVALID`,
+`UPLOAD_REJECTED`, `CENTRAL_FAILED`, `PUBLICATION_TIMEOUT`, `PUBLIC_ARTIFACT_MISMATCH`, or
+`GITHUB_RELEASE_FAILED`. `PENDING`, `VALIDATING`, `VALIDATED`, and `PUBLISHING` are non-terminal
+Central states, never upload failures.
 
-> [!IMPORTANT]
-> **Do NOT manually trigger another release workflow after pushing the tag.**
-> Pushing tag `v0.1.0` automatically triggers the canonical `.github/workflows/release.yml` pipeline. Simply monitor the automatically triggered workflow in GitHub Actions.
+## 4. Workflow architecture
 
-The workflow executes:
+The previous chain was:
 
-1. **Job 1 (`validate-metadata`)**:
-   - Asserts tag `v0.1.0` matches repository version `0.1.0`.
-   - Asserts version is non-SNAPSHOT.
-   - Verifies workflow contract and publishing configuration.
-   - Checks that a GitHub Release does not already exist for `v0.1.0`.
-   - Sets `is_live_publish = true`.
-2. **Job 2 (`verify-builds`)**:
-   - Executes `./gradlew check`, `./mvnw clean verify`, and `./scripts/verify-build-parity.sh`.
-3. **Job 3 (`package-and-validate-bundle`)**:
-   - Assembles release bundles and runs `./scripts/validate-release-bundle.py --build-tool both`.
-4. **Job 4 (`publish-to-central`)**:
-   - Executes under protected GitHub environment `release`.
-   - Imports GPG signing key and configures credentials in temporary Maven settings.
-   - Executes `./mvnw clean deploy -P release -DskipTests -Dgpg.passphrase="..." -B`.
-   - Blocks until Central transitions deployment to `published`.
-   - Cleans up temporary credentials and GPG keys in a post-execution step.
-5. **Job 5 (`create-github-release`)**:
-   - Runs **only after** `publish-to-central` reports successful publication.
-   - Creates the official GitHub Release with generated release notes and tag metadata via `gh release create`.
-   - *(Note: Production JARs, sources, and Javadoc bundles are published directly to Maven Central; GitHub Releases contain tag metadata and generated release notes.)*
+```text
+metadata → builds/TCK/parity → bundle → Maven deploy waits for PUBLISHED → GitHub Release
+```
 
----
+The hardened chain is:
 
-## 5. Operational Notes & Post-Release Lifecycle
+```text
+metadata → builds/TCK/parity → bundle → immutable-version guard
+  → sign + upload + validate + capture deployment ID
+  → monitor Central to PUBLISHED (30-second polling, 120-minute timeout)
+  → verify public artifacts (15-second retry, up to 10 minutes)
+  → fresh Maven and Gradle Central-only consumer checks on Java 17
+  → create or verify GitHub Release
+```
 
-1. **Sonatype Central Operational Limits**:
-   - Sonatype Central Portal typically processes and validates uploads within 5–15 minutes.
-   - Once validated, deployments with `autoPublish=true` transition automatically to `PUBLISHED` and sync to canonical Maven Central mirrors (`repo1.maven.org`) within 15–30 minutes.
-2. **Verify Central Publication**:
-   - Monitor [Sonatype Central Portal](https://central.sonatype.com/) until the deployment transitions to `PUBLISHED`.
-   - Check sync to [Maven Central](https://repo1.maven.org/maven2/io/github/minh124199/).
-3. **Bump to Next Development Version**:
-   - Update `version` in `pom.xml` and `build.gradle.kts` to next SNAPSHOT (e.g., `0.1.1-SNAPSHOT`).
-   - Keep the existing `## [Unreleased]` section in `CHANGELOG.md` and begin recording post-0.1.0 changes there (do not create duplicate `[Unreleased]` sections).
-   - Verify build parity: `./scripts/verify-build-parity.sh`.
-   - Commit and push to `main`: `chore: prepare next development iteration [skip ci]`.
+The Sonatype plugin remains version `0.11.0` with `autoPublish=true`, but now uses
+`waitUntil=validated`. Maven reports build, signing, upload, and validation failures without
+waiting for long publication propagation. `scripts/check-central-deployment.py` owns publication
+observation and returns `0=PUBLISHED`, `1=FAILED`, `2=non-terminal/timeout`, and
+`3=API/auth/parse error`. It emits `state=...` and `deployment_id=...` without logging credentials.
+
+The upload log is retained for 30 days. `scripts/extract-central-deployment-id.py` recognizes the
+plugin's structured `deploymentId:` field and fails unless exactly one unique UUID is present.
+That UUID is a job output consumed by the monitor.
+
+Only the upload and authenticated monitor jobs use the protected `release` environment. Build,
+bundle, public verification, and consumer jobs receive no publishing or signing secrets. GPG uses
+the supported `MAVEN_GPG_PASSPHRASE` environment variable; the deprecated command-line
+`gpg.passphrase` property is forbidden by contract validation.
+
+## 5. Release qualification and dry run
+
+Before tagging, keep all existing gates green:
+
+```bash
+./gradlew spotlessCheck --no-daemon
+./mvnw spotless:check -B
+./gradlew check --no-daemon -Dspotless.check.skip=true
+./mvnw clean verify -B -Dspotless.check.skip=true
+python3 scripts/verify-build-parity.py
+python3 scripts/verify-release-metadata.py --require-release --require-match-tag \
+  --tag vX.Y.Z --check-workflow-contract
+python3 -m unittest discover -s scripts/tests -v
+```
+
+Spotless runs on Java 21; release verification and TCK remain on Java 17. A manual Release workflow
+dispatch defaults to `dry_run=true` and performs metadata, build, TCK, parity, unsigned release
+assembly, publication-exclusion, and bundle-contract validation without Central credentials or an
+upload. Never use `mvn deploy -P release` to test the workflow.
+
+Normal live publication occurs only on the first run of a canonical `vX.Y.Z` tag push whose tag
+matches the non-SNAPSHOT Maven and Gradle version. Release concurrency is global and never cancels
+an in-flight run. A tag workflow rerun is prohibited from deploying because a deployment can be
+accepted yet not visible on the public CDN.
+
+## 6. Duplicate protection and recovery
+
+Before upload, `scripts/verify-central-release.py --mode guard` checks every expected public file.
+An entirely absent version may proceed on a first tag run. A fully published version skips upload
+and proceeds through verification. Partial visibility is `PUBLIC_ARTIFACT_MISMATCH` and stops the
+workflow. The tag-run-attempt guard covers the acceptance-to-CDN gap that public existence checks
+cannot see.
+
+If an upload succeeds but the runner dies or publication monitoring times out:
+
+1. Do not redeploy immediately and do not rerun the failed tag workflow.
+2. Capture the deployment ID from the `central-submission-log` artifact.
+3. Use **Check Deployment Status** for one-shot or bounded polling.
+4. If the state is `PENDING`, `VALIDATING`, `VALIDATED`, or `PUBLISHING`, continue polling.
+5. If it is `FAILED`, inspect Central's evidence and use a new version for changed bytes.
+6. If it is `PUBLISHED`, select the existing release tag in **Release**, set `dry_run=false`, and
+   enter the existing UUID in `recovery_deployment_id`.
+7. Recovery never runs Maven deploy. It monitors the given deployment if needed, verifies public
+   artifacts and clean consumers, then creates or verifies the GitHub Release.
+
+At the 120-minute observation limit the checker reports `PUBLICATION_TIMEOUT`, deployment ID, and
+last observed state. Timeout is intentionally finite and does not imply that Central stopped.
+
+GitHub Release finalization is idempotent: an existing non-draft release for the immutable tag is
+verified and accepted; an absent release is created with generated notes. It never creates a
+duplicate and only runs after public-coordinate and consumer verification.
