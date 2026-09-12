@@ -112,4 +112,19 @@ public class VariableLookupBenchmark {
   public EvaluationValue lookupMissingVariable() {
     return context.lookup(missingVarName);
   }
+
+  /** Measures the cost of allocating a fresh ExecutionFrame of size 10. */
+  @Benchmark
+  public ExecutionFrame createFrameOnly() {
+    return new ExecutionFrame(10);
+  }
+
+  /** Measures allocating a frame and seeding 2 context-backed slots and 2 fresh slots. */
+  @Benchmark
+  public ExecutionFrame createAndSeedFrame() {
+    ExecutionFrame f = new ExecutionFrame(4);
+    f.seed(0, context.lookup(rootVarName));
+    f.seed(1, context.lookup(templateVarName));
+    return f;
+  }
 }

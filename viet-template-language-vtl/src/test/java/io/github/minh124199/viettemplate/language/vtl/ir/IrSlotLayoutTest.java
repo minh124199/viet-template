@@ -429,4 +429,92 @@ class IrSlotLayoutTest {
     assertThat(IrSlotLayout.frameSize(pass2)).isEqualTo(IrSlotLayout.frameSize(pass1));
     assertThat(IrSlotLayout.frameSize(pass3)).isEqualTo(IrSlotLayout.frameSize(pass2));
   }
+
+  @Test
+  @DisplayName("records representative frame sizes and slot counts for benchmark workloads")
+  void representativeWorkloadFrameSizes() {
+    // 1. Workload B02 (with 50 declared model parameters)
+    ModelSchema.Builder b02SchemaBuilder = ModelSchema.builder();
+    StringBuilder b02Source = new StringBuilder();
+    for (int i = 0; i < 50; i++) {
+      b02SchemaBuilder.add(ModelParameter.of("var_" + i, VTypes.STRING));
+      b02Source.append("$var_").append(i).append(" ");
+    }
+    IrTemplate b02Ir = parseAndLower(b02Source.toString(), b02SchemaBuilder.build());
+    SlotLayout b02Layout = IrSlotLayout.layout(b02Ir);
+    assertThat(b02Layout.frameSize()).isEqualTo(50);
+    assertThat(b02Layout.slots()).hasSize(50);
+
+    // 2. Workload B05 / B06 (Single loop table.vm)
+    String tableVm =
+        """
+        <table>
+        #foreach($row in $table)
+          <tr><td>$row.col1</td><td>$row.col2</td></tr>
+        #end
+        </table>
+        """;
+    IrTemplate tableIr = parseAndLower(tableVm, ModelSchema.empty());
+    SlotLayout tableLayout = IrSlotLayout.layout(tableIr);
+    assertThat(tableLayout.frameSize()).isEqualTo(2); // $row (slot 0) and $foreach (slot 1)
+    assertThat(tableLayout.slots()).hasSize(2);
+
+    // 3. Workload B07 (Nested loop nested.vm with $foreach metadata)
+    String nestedVm =
+        """
+        #foreach($row in $matrix)
+          #foreach($item in $row.items)
+            [$foreach.count] $item.name (outer: $foreach.parent.count)
+          #end
+        #end
+        """;
+    IrTemplate nestedIr = parseAndLower(nestedVm, ModelSchema.empty());
+    SlotLayout nestedLayout = IrSlotLayout.layout(nestedIr);
+    assertThat(nestedLayout.frameSize()).isEqualTo(4); // $row, $foreach (outer), $item, $foreach (inner)
+    assertThat(nestedLayout.slots()).hasSize(4);
+
+    // 4. Workload B11 (b11_macros.vm)
+    String b11Vm =
+        """
+        #macro(renderBadge $label $type)
+          <span>$label:$type</span>
+        #end
+        #macro(renderCard $title $desc $tag)
+          <div>$title - $desc - #renderBadge($tag, 'primary')</div>
+        #end
+        #foreach($card in $cards)
+          #renderCard($card.title, $card.desc, $card.tag)
+        #end
+        """;
+    IrTemplate b11Ir = parseAndLower(b11Vm, ModelSchema.empty());
+    SlotLayout b11TemplateLayout = IrSlotLayout.layout(b11Ir);
+    IrFunction renderBadgeFn =
+        b11Ir.functions().stream()
+            .filter(f -> "renderbadge".equals(f.name()))
+            .findFirst()
+            .orElseThrow();
+    SlotLayout badgeLayout = IrSlotLayout.layout(renderBadgeFn);
+    assertThat(badgeLayout.frameSize()).isEqualTo(3); // $label, $type, $bodyContent
+
+    IrFunction renderCardFn =
+        b11Ir.functions().stream()
+            .filter(f -> "rendercard".equals(f.name()))
+            .findFirst()
+            .orElseThrow();
+    SlotLayout cardLayout = IrSlotLayout.layout(renderCardFn);
+    assertThat(cardLayout.frameSize()).isEqualTo(4); // $title, $desc, $tag, $bodyContent
+
+    // 5. Large synthetic template: 200 distinct local variables
+    StringBuilder syntheticSource = new StringBuilder();
+    for (int i = 0; i < 200; i++) {
+      syntheticSource.append("#set($var_").append(i).append(" = ").append(i).append(")\n");
+    }
+    for (int i = 0; i < 200; i++) {
+      syntheticSource.append("$var_").append(i).append(" ");
+    }
+    IrTemplate syntheticIr = parseAndLower(syntheticSource.toString(), ModelSchema.empty());
+    SlotLayout syntheticLayout = IrSlotLayout.layout(syntheticIr);
+    assertThat(syntheticLayout.frameSize()).isEqualTo(200);
+    assertThat(syntheticLayout.slots()).hasSize(200);
+  }
 }
