@@ -23,6 +23,7 @@ import org.openjdk.jmh.annotations.Warmup;
 
 /**
  * Measures isolated operations on {@link TemplateCompileCache}:
+ *
  * <ul>
  *   <li>Active template lookup {@code getActive(TemplateId)} (cache hit)
  *   <li>Exact multi-dimensional key lookup {@code get(CompileCacheKey)} (cache hit)

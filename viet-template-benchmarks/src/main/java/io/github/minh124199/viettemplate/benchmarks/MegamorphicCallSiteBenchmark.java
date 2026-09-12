@@ -22,12 +22,12 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
-import org.openjdk.jmh.infra.Blackhole;
 
 /**
- * Forces {@link DynamicCallSite} beyond {@link DynamicCallSite#MAX_PIC_DEPTH} (4) using 16
- * distinct receiver classes, transitioning it to the {@link DynamicCallSite.State#MEGAMORPHIC} state.
+ * Forces {@link DynamicCallSite} beyond {@link DynamicCallSite#MAX_PIC_DEPTH} (4) using 16 distinct
+ * receiver classes, transitioning it to the {@link DynamicCallSite.State#MEGAMORPHIC} state.
  * Measures:
+ *
  * <ul>
  *   <li>Megamorphic call site invocation hits in {@link BoundedWeakClassCache}
  *   <li>Direct {@link BoundedWeakClassCache#get(Class)} hits
@@ -46,24 +46,40 @@ public class MegamorphicCallSiteBenchmark {
 
   // 16 distinct receiver types to exceed PIC depth 4
   public record Type00(String value) {}
+
   public record Type01(String value) {}
+
   public record Type02(String value) {}
+
   public record Type03(String value) {}
+
   public record Type04(String value) {}
+
   public record Type05(String value) {}
+
   public record Type06(String value) {}
+
   public record Type07(String value) {}
+
   public record Type08(String value) {}
+
   public record Type09(String value) {}
+
   public record Type10(String value) {}
+
   public record Type11(String value) {}
+
   public record Type12(String value) {}
+
   public record Type13(String value) {}
+
   public record Type14(String value) {}
+
   public record Type15(String value) {}
 
   // Extra types that are never registered in the cache, to measure misses
   public record UncachedTypeA(String value) {}
+
   public record UncachedTypeB(String value) {}
 
   private DynamicCallSite megamorphicCallSite;

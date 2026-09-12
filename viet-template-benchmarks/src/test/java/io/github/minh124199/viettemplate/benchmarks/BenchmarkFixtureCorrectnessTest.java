@@ -16,8 +16,6 @@ import io.github.minh124199.viettemplate.runtime.Escaper;
 import io.github.minh124199.viettemplate.runtime.StandardEscapers;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.runtime.Utf8OutputStreamTemplateOutput;
-import io.github.minh124199.viettemplate.runtime.linker.AccessLink;
-import io.github.minh124199.viettemplate.runtime.linker.BoundedWeakClassCache;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicLinker;
 import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
@@ -39,15 +37,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Correctness verification test ensuring every template, context, and fixture used across all
- * JMH benchmarks renders deterministically and maintains 100% byte-for-byte output equivalence
- * between the reference interpreter (IR) and ahead-of-time bytecode (AOT_BYTECODE) execution backends.
+ * Correctness verification test ensuring every template, context, and fixture used across all JMH
+ * benchmarks renders deterministically and maintains 100% byte-for-byte output equivalence between
+ * the reference interpreter (IR) and ahead-of-time bytecode (AOT_BYTECODE) execution backends.
  */
 class BenchmarkFixtureCorrectnessTest {
 
@@ -73,7 +70,8 @@ class BenchmarkFixtureCorrectnessTest {
             + "    <h3>$row.category</h3>\n"
             + "    <ul>\n"
             + "    #foreach($item in $row.items)\n"
-            + "      <li>[$foreach.count] $item.name - $item.score (outerCount: $foreach.parent.count)</li>\n"
+            + "      <li>[$foreach.count] $item.name - $item.score (outerCount:"
+            + " $foreach.parent.count)</li>\n"
             + "    #end\n"
             + "    </ul>\n"
             + "  </div>\n"
@@ -109,7 +107,8 @@ class BenchmarkFixtureCorrectnessTest {
         irUtf8Out.flush();
       }
       ByteArrayOutputStream aotBaos = new ByteArrayOutputStream();
-      try (Utf8OutputStreamTemplateOutput aotUtf8Out = new Utf8OutputStreamTemplateOutput(aotBaos)) {
+      try (Utf8OutputStreamTemplateOutput aotUtf8Out =
+          new Utf8OutputStreamTemplateOutput(aotBaos)) {
         aotEngine.get("table.vm").render(smallContext, aotUtf8Out);
         aotUtf8Out.flush();
       }
@@ -146,7 +145,8 @@ class BenchmarkFixtureCorrectnessTest {
   }
 
   @Test
-  @DisplayName("Verify Workloads B01, B02, B03, B04, B08, B11, B12 render identically in IR and AOT")
+  @DisplayName(
+      "Verify Workloads B01, B02, B03, B04, B08, B11, B12 render identically in IR and AOT")
   void verifyEndToEndWorkloadsParity() throws IOException {
     InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
 
@@ -155,7 +155,8 @@ class BenchmarkFixtureCorrectnessTest {
     b01Sb.append("<!DOCTYPE html><html><head><title>Static Page</title></head><body>\n");
     while (b01Sb.length() < 20480) {
       b01Sb.append(
-          "<div class=\"section\"><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p></div>\n");
+          "<div class=\"section\"><p>Lorem ipsum dolor sit amet, consectetur adipiscing"
+              + " elit.</p></div>\n");
     }
     b01Sb.append("</body></html>\n");
     repo.put("b01.vm", b01Sb.toString());
@@ -175,7 +176,8 @@ class BenchmarkFixtureCorrectnessTest {
         "<div class=\"order\">\n"
             + "  <h2>Order: $order.id</h2>\n"
             + "  <p>Customer: $order.customer.name</p>\n"
-            + "  <p>City: $order.customer.address.city.name ($order.customer.address.city.code)</p>\n"
+            + "  <p>City: $order.customer.address.city.name"
+            + " ($order.customer.address.city.code)</p>\n"
             + "  <p>Postal: $order.payment.billing.postalCode</p>\n"
             + "</div>\n";
     repo.put("b03.vm", b03Tmpl);
@@ -238,8 +240,7 @@ class BenchmarkFixtureCorrectnessTest {
 
     // Workload B12: Layouts
     repo.put(
-        "layout.vm",
-        "<html><head><title>$title</title></head><body>$screen_content</body></html>");
+        "layout.vm", "<html><head><title>$title</title></head><body>$screen_content</body></html>");
     repo.put("screen.vm", "<h2>User: $user</h2><p>Items: $itemCount</p>");
     TemplateId screenId = TemplateId.of("screen.vm");
     RenderContext b12Ctx =
@@ -491,7 +492,8 @@ class BenchmarkFixtureCorrectnessTest {
         .isEqualTo("&lt;script&gt;alert(&#39;XSS &amp; &quot;test&quot;&#39;);&lt;/script&gt;");
   }
 
-  private static String renderToString(Template template, RenderContext context) throws IOException {
+  private static String renderToString(Template template, RenderContext context)
+      throws IOException {
     StringTemplateOutput out = new StringTemplateOutput();
     template.render(context, out);
     return out.toString();

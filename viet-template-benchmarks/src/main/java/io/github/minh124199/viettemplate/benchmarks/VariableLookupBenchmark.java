@@ -21,8 +21,8 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 
 /**
- * Measures {@link ExecutionContext#lookup(String)} across root context, template-local, and
- * nested local scopes under varying scope depths.
+ * Measures {@link ExecutionContext#lookup(String)} across root context, template-local, and nested
+ * local scopes under varying scope depths.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -47,10 +47,7 @@ public class VariableLookupBenchmark {
   @Setup(Level.Trial)
   public void setUp() {
     RenderContext rootContext =
-        RenderContext.builder()
-            .put("rootVar", "rootValue")
-            .put("globalSetting", 42)
-            .build();
+        RenderContext.builder().put("rootVar", "rootValue").put("globalSetting", 42).build();
     context = new ExecutionContext(rootContext);
     context.set("templateVar", EvaluationValue.of("templateValue"));
 

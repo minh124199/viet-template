@@ -31,8 +31,9 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
 /**
- * End-to-end rendering workloads across execution backends ({@link ExecutionTier#IR} and
- * {@link ExecutionTier#AOT_BYTECODE}):
+ * End-to-end rendering workloads across execution backends ({@link ExecutionTier#IR} and {@link
+ * ExecutionTier#AOT_BYTECODE}):
+ *
  * <ul>
  *   <li>Workload B01: Static HTML (20 KB static chunk)
  *   <li>Workload B02: Scalar variables (50 scalar substitutions)
@@ -55,10 +56,15 @@ public class RenderingEndToEndBenchmark {
 
   // Nested domain records for Workload B03 (Deep Property Chains)
   public record City(String name, String code) {}
+
   public record Address(String street, City city) {}
+
   public record Customer(String name, Address address) {}
+
   public record Billing(String id, String postalCode) {}
+
   public record Payment(String method, Billing billing) {}
+
   public record Order(String id, Customer customer, Payment payment) {}
 
   // Record for Workload B11 (Macros)
@@ -130,7 +136,8 @@ public class RenderingEndToEndBenchmark {
             + "  <h2>Order: $order.id</h2>\n"
             + "  <p>Customer: $order.customer.name</p>\n"
             + "  <p>Street: $order.customer.address.street</p>\n"
-            + "  <p>City: $order.customer.address.city.name ($order.customer.address.city.code)</p>\n"
+            + "  <p>City: $order.customer.address.city.name"
+            + " ($order.customer.address.city.code)</p>\n"
             + "  <p>Payment: $order.payment.method</p>\n"
             + "  <p>Billing: $order.payment.billing.postalCode</p>\n"
             + "</div>\n";
@@ -190,7 +197,8 @@ public class RenderingEndToEndBenchmark {
     b08Context = b08CtxBuilder.build();
     htmlEscaper = StandardEscapers.htmlText();
     rawHtmlToEscape =
-        "<script>alert('XSS & payload');</script><div class=\"box\" id='main'>\"Hello & Welcome\"</div>";
+        "<script>alert('XSS & payload');</script><div class=\"box\" id='main'>\"Hello &"
+            + " Welcome\"</div>";
 
     // --- Workload B11: Macros ---
     String b11Tmpl =
@@ -217,8 +225,8 @@ public class RenderingEndToEndBenchmark {
     // --- Workload B12: Layouts ---
     repo.put(
         "layout.vm",
-        "<!DOCTYPE html><html><head><title>$title</title></head><body>"
-            + "<header>Nav Header</header><main>$screen_content</main><footer>Footer</footer></body></html>");
+        "<!DOCTYPE html><html><head><title>$title</title></head><body><header>Nav"
+            + " Header</header><main>$screen_content</main><footer>Footer</footer></body></html>");
     repo.put(
         "screen.vm",
         "<h2>Dashboard for $user</h2><p>Items count: $itemCount</p>"

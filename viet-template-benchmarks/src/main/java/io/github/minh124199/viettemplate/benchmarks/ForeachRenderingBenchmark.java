@@ -29,11 +29,13 @@ import org.openjdk.jmh.infra.Blackhole;
 
 /**
  * End-to-end rendering benchmarks exercising {@code #foreach} loop constructs:
+ *
  * <ul>
  *   <li>Workload B05: Small Table Loop (10 rows x 5 columns)
  *   <li>Workload B06: Large Table Loop (1,000 rows x 5 columns)
  *   <li>Workload B07: Nested Loops (100 outer x 10 inner rows)
  * </ul>
+ *
  * Evaluated across {@link StringTemplateOutput} and {@link Utf8OutputStreamTemplateOutput}.
  */
 @State(Scope.Benchmark)
@@ -46,8 +48,7 @@ import org.openjdk.jmh.infra.Blackhole;
     jvmArgs = {"-server", "-Xms2g", "-Xmx2g", "-XX:+AlwaysPreTouch", "-XX:+UseG1GC"})
 public class ForeachRenderingBenchmark {
 
-  public record TableRow(
-      String col1, int col2, String col3, double col4, boolean col5) {}
+  public record TableRow(String col1, int col2, String col3, double col4, boolean col5) {}
 
   public record NestedItem(String name, int score) {}
 
@@ -83,7 +84,8 @@ public class ForeachRenderingBenchmark {
             + "    <h3>$row.category</h3>\n"
             + "    <ul>\n"
             + "    #foreach($item in $row.items)\n"
-            + "      <li>[$foreach.count] $item.name - $item.score (outerCount: $foreach.parent.count)</li>\n"
+            + "      <li>[$foreach.count] $item.name - $item.score (outerCount:"
+            + " $foreach.parent.count)</li>\n"
             + "    #end\n"
             + "    </ul>\n"
             + "  </div>\n"
@@ -100,8 +102,7 @@ public class ForeachRenderingBenchmark {
     // 1. Small Table Context (10 rows)
     List<TableRow> smallRows = new ArrayList<>(10);
     for (int i = 0; i < 10; i++) {
-      smallRows.add(
-          new TableRow("Item-" + i, i * 10, "Description " + i, i * 1.5, i % 2 == 0));
+      smallRows.add(new TableRow("Item-" + i, i * 10, "Description " + i, i * 1.5, i % 2 == 0));
     }
     smallTableContext = RenderContext.builder().put("table", smallRows).build();
 

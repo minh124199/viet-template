@@ -118,7 +118,9 @@ class MethodSizeSplittingTest {
   }
 
   @Test
-  @DisplayName("Compiles 100-statement template through VtlTemplateEngine with AOT_BYTECODE without ClassFormatError")
+  @DisplayName(
+      "Compiles 100-statement template through VtlTemplateEngine with AOT_BYTECODE without"
+          + " ClassFormatError")
   void testRepeatedOptimizationThroughEngineAndCompiler() throws Exception {
     StringBuilder sb = new StringBuilder();
     StringBuilder expected = new StringBuilder();
@@ -196,8 +198,10 @@ class MethodSizeSplittingTest {
     // Both must compile cleanly to bytecode and render identical output
     BytecodeTemplateCompiler compiler = new BytecodeTemplateCompiler();
     BackendOptions options = BackendOptions.defaultOptions();
-    CompiledTemplate onceCompiled = compiler.compile(once, options).compiledTemplate().orElseThrow();
-    CompiledTemplate twiceCompiled = compiler.compile(twice, options).compiledTemplate().orElseThrow();
+    CompiledTemplate onceCompiled =
+        compiler.compile(once, options).compiledTemplate().orElseThrow();
+    CompiledTemplate twiceCompiled =
+        compiler.compile(twice, options).compiledTemplate().orElseThrow();
 
     StringTemplateOutput outOnce = new StringTemplateOutput();
     onceCompiled.render(MapRenderContext.of(Map.of("val", "hello")), outOnce);

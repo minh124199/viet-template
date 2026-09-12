@@ -26,9 +26,9 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
 /**
- * Measures multi-threaded scaling and contention on {@link TemplateCompileCache#lruLock}.
- * Evaluates read-heavy workloads and mixed read/write workloads (95% reads, 5% writes)
- * across 1, 4, and 8 threads.
+ * Measures multi-threaded scaling and contention on {@link TemplateCompileCache#lruLock}. Evaluates
+ * read-heavy workloads and mixed read/write workloads (95% reads, 5% writes) across 1, 4, and 8
+ * threads.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)

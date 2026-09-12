@@ -18,18 +18,15 @@ class ForeachBytecodeCompilerTest {
   @DisplayName("Verifies nested foreach parent metadata parity between IR and AOT backends")
   void testNestedForeachParentMetadataAotAndIrParity() throws IOException {
     String templateSource =
-        "#foreach($o in [1..2])#foreach($i in [1..3])[$foreach.parent.count:$o-$foreach.count:$i]#end#end";
-    String expected =
-        "[1:1-1:1][1:1-2:2][1:1-3:3][2:2-1:1][2:2-2:2][2:2-3:3]";
+        "#foreach($o in [1..2])#foreach($i in"
+            + " [1..3])[$foreach.parent.count:$o-$foreach.count:$i]#end#end";
+    String expected = "[1:1-1:1][1:1-2:2][1:1-3:3][2:2-1:1][2:2-2:2][2:2-3:3]";
 
     InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
     repo.put("nested_foreach.vm", templateSource);
 
     try (VtlTemplateEngine irEngine =
-            VtlTemplateEngine.builder()
-                .repository(repo)
-                .executionTier(ExecutionTier.IR)
-                .build();
+            VtlTemplateEngine.builder().repository(repo).executionTier(ExecutionTier.IR).build();
         VtlTemplateEngine aotEngine =
             VtlTemplateEngine.builder()
                 .repository(repo)

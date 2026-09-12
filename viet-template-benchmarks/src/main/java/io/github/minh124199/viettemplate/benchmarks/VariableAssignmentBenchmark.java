@@ -49,8 +49,7 @@ public class VariableAssignmentBenchmark {
     updateValue = EvaluationValue.of("updatedValue");
 
     // 1. Template Local Context
-    RenderContext immutableRoot =
-        RenderContext.builder().put("initRoot", "val").build();
+    RenderContext immutableRoot = RenderContext.builder().put("initRoot", "val").build();
     templateContext = new ExecutionContext(immutableRoot);
 
     // 2. Local Scope Context

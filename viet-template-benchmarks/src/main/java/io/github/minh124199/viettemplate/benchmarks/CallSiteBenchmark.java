@@ -21,6 +21,7 @@ import org.openjdk.jmh.annotations.Warmup;
 
 /**
  * Measures dynamic property access via {@link DynamicCallSite} and {@link DynamicLinker}:
+ *
  * <ul>
  *   <li>Workload B09: Monomorphic steady-state property access (single receiver shape)
  *   <li>Polymorphic PIC property access across 2, 3, and 4 distinct receiver types (Workload B10)
@@ -38,8 +39,11 @@ import org.openjdk.jmh.annotations.Warmup;
 public class CallSiteBenchmark {
 
   public record TypeA(String value) {}
+
   public record TypeB(String value) {}
+
   public record TypeC(String value) {}
+
   public record TypeD(String value) {}
 
   private DynamicCallSite monoSite;
@@ -96,22 +100,26 @@ public class CallSiteBenchmark {
     instances4 = new Object[] {instanceA, instanceB, instanceC, instanceD};
 
     // 1. Monomorphic Site (State = MONOMORPHIC)
-    monoSite = new DynamicCallSite(1, key, LinkerAccessPolicy.standard(), linker, new LinkerStatistics());
+    monoSite =
+        new DynamicCallSite(1, key, LinkerAccessPolicy.standard(), linker, new LinkerStatistics());
     monoSite.invoke(instanceA);
 
     // 2. Polymorphic Site - 2 shapes (State = POLYMORPHIC)
-    poly2Site = new DynamicCallSite(2, key, LinkerAccessPolicy.standard(), linker, new LinkerStatistics());
+    poly2Site =
+        new DynamicCallSite(2, key, LinkerAccessPolicy.standard(), linker, new LinkerStatistics());
     poly2Site.invoke(instanceA);
     poly2Site.invoke(instanceB);
 
     // 3. Polymorphic Site - 3 shapes (State = POLYMORPHIC)
-    poly3Site = new DynamicCallSite(3, key, LinkerAccessPolicy.standard(), linker, new LinkerStatistics());
+    poly3Site =
+        new DynamicCallSite(3, key, LinkerAccessPolicy.standard(), linker, new LinkerStatistics());
     poly3Site.invoke(instanceA);
     poly3Site.invoke(instanceB);
     poly3Site.invoke(instanceC);
 
     // 4. Polymorphic Site - 4 shapes (State = POLYMORPHIC, max PIC depth)
-    poly4Site = new DynamicCallSite(4, key, LinkerAccessPolicy.standard(), linker, new LinkerStatistics());
+    poly4Site =
+        new DynamicCallSite(4, key, LinkerAccessPolicy.standard(), linker, new LinkerStatistics());
     poly4Site.invoke(instanceA);
     poly4Site.invoke(instanceB);
     poly4Site.invoke(instanceC);

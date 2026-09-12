@@ -29,10 +29,10 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
 /**
- * Measures the 0.1.x O(N) full table scan during cache invalidation:
- * {@code entries.keySet().removeIf(...)} in {@link TemplateCompileCache#invalidate(TemplateId)}.
- * Parameterized by total cache entries (N) and entries per template (K).
- * Also measures transitive invalidation via {@link TemplateCompileCache#invalidateWithDependents}.
+ * Measures the 0.1.x O(N) full table scan during cache invalidation: {@code
+ * entries.keySet().removeIf(...)} in {@link TemplateCompileCache#invalidate(TemplateId)}.
+ * Parameterized by total cache entries (N) and entries per template (K). Also measures transitive
+ * invalidation via {@link TemplateCompileCache#invalidateWithDependents}.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -138,10 +138,10 @@ public class CacheInvalidationBenchmark {
 
     dependencyGraph.replaceDependencies(
         midId,
-        Set.of(TemplateDependency.of(midId, leafDependencyId, TemplateDependencyKind.STATIC_PARSE)));
+        Set.of(
+            TemplateDependency.of(midId, leafDependencyId, TemplateDependencyKind.STATIC_PARSE)));
     dependencyGraph.replaceDependencies(
-        rootId,
-        Set.of(TemplateDependency.of(rootId, midId, TemplateDependencyKind.STATIC_PARSE)));
+        rootId, Set.of(TemplateDependency.of(rootId, midId, TemplateDependencyKind.STATIC_PARSE)));
 
     dependentTemplateIds = List.of(leafDependencyId, midId, rootId);
     dependentKeys = new ArrayList<>();
@@ -188,8 +188,7 @@ public class CacheInvalidationBenchmark {
 
   @Benchmark
   public void invalidateWithDependents(RestoreDependentState state, Blackhole bh) {
-    Set<TemplateId> invalidated =
-        cache.invalidateWithDependents(leafDependencyId, dependencyGraph);
+    Set<TemplateId> invalidated = cache.invalidateWithDependents(leafDependencyId, dependencyGraph);
     bh.consume(invalidated);
   }
 }
