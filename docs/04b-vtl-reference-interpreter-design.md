@@ -49,15 +49,22 @@ In 0.1.x, `ExecutionContext` manages a nested stack of lexical scopes using stan
 - **Foreach Scope**: Isolates the loop variable (e.g. `$item`) and loop metadata (`$foreach`). Restores any pre-existing context variables upon exiting the loop.
 - **Macro Scope**: Pushes a new frame for macro arguments, ensuring macros do not inadvertently corrupt outer local variables while allowing lexical read-through.
 
-#### 0.2.0 Evolution: Compiler-Assigned Variable Slots (`ExecutionFrame`)
-In 0.2.0, the interpreter runtime introduces an optimized `ExecutionFrame` backed by stable compiler-assigned integer slot IDs (`EvaluationValue[] slots`):
-- **Statically Assigned Slots**: During semantic analysis and IR optimization (`O45 AssignVariableSlots`), all statically known variables (template parameters, local `#set` variables, loop counters/items, and macro arguments) are assigned stable integer slot IDs without slot reuse.
+#### 0.2.0 Evolution: Compiler-Assigned Variable Slots (`ExecutionFrame` & `IrSlotLayout`)
+In 0.2.0 (Milestone M19.2b), the interpreter runtime and compiler backend introduce an optimized `ExecutionFrame` backed by stable compiler-assigned integer slot IDs (`EvaluationValue[] slots`):
+- **Decoupled Identity, Initialization, and Lifetime**:
+  - **Slot Identity (`SlotMetadata`)**: Deterministic, monotonic integer slot assigned during AST lowering and validated by mandatory pass `O45 AssignVariableSlots`.
+  - **Binding Kinds (`BindingKind`)**: `TEMPLATE_PARAMETER`, `TEMPLATE_LOCAL`, `FOREACH_ITEM`, `FOREACH_METADATA`, `FOREACH_LOCAL`, `MACRO_PARAMETER`, `MACRO_LOCAL`.
+  - **Initialization Policy (`InitializationPolicy`)**:
+    - `SEEDED_FROM_CONTEXT`: Seeded once at template frame activation from `ExecutionContext.lookup(name)`. Applied to template parameters and template locals so skipped `#set` directives retain pre-existing root/context variables.
+    - `FRESH_UNDEFINED`: Initialized to `EvaluationValue.undefined()` with zero startup context lookup overhead (fresh lexical locals and macro locals).
+    - `ITERATION_MANAGED`: Managed directly per iteration by the loop driver (element local and `$foreach` metadata).
+    - `INVOCATION_PARAM`: Initialized at macro invocation boundary from evaluated arguments.
 - **Direct Array Access**: Reading or writing a variable compiles to a direct array load (`slots[slotIndex]`) or store (`slots[slotIndex] = value`), bypassing string hashing, bucket index calculation, and node traversal entirely.
-- **Empty Slot Representation**: Java reference-array elements are initially `null`, requiring the runtime implementation to explicitly decide and test how internal empty slots represent undefined.
-- **Preservation of 3-State Evaluation Model**: Both array slots and the dynamic fallback map strictly store `EvaluationValue` instances (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`), preserving exact Velocity non-strict literal rendering (`$missing`), strict mode exception triggers, and alternate value fallbacks (`${var|'default'}`).
-- **Name-Based Fallback**: A name-based fallback is retained for variable accesses whose identity cannot safely be resolved to a static slot while preserving Velocity-compatible semantics.
-- **Slot Reuse Deferred**: Slot reuse remains explicitly deferred as a later optional optimization requiring separate correctness and benchmark evidence.
-- **ArrayDeque Preservation**: Scope stacking, macro execution, and layout evaluation continue using `ArrayDeque` to eliminate linked-list pointer and node overhead, offering low constant factors and good locality.
+- **Empty Slot Representation & 3-State Model**: Array elements are initialized to `EvaluationValue.undefined()`. Java reference `null` is never exposed or treated as `DEFINED_NULL`. The three states (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) are strictly distinct across all slot operations.
+- **Loop Iteration Isolation**: Loop-owned local slots (`FOREACH_LOCAL`) are reset to `EvaluationValue.undefined()` before each iteration and at loop exit in a `finally` block, preventing variable leakage across iterations while outer template locals persist.
+- **Macro Frame Isolation and Recursion**: Each macro invocation instantiates an isolated child `ExecutionFrame` sized exactly to `IrSlotLayout.frameSize(function)`. Caller frame state remains preserved on the Java stack, enabling clean macro recursion up to depth limits.
+- **Dynamic Fallback Coherence & Root Write-Through**: Slotted writes synchronize with `ExecutionContext.set(name, value)` (and write through to `MutableRenderContext` when applicable). Dynamic writes occurring via `#evaluate` or `#parse` trigger `frame.syncFromContext(layout.seededSlots())` upon return to ensure immediate coherence.
+- **Slot Reuse Deferred**: Slot reuse remains explicitly deferred to a later milestone to prioritize invariant stability. Monotonic, contiguous slot assignments guarantee zero aliasing bugs.
 
 ---
 

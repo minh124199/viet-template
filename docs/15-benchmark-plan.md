@@ -272,7 +272,23 @@ Milestone M19.1 establishes the benchmark methodology and measured baseline befo
   viet-template-benchmarks/build/reports/jmh/m19.2a-16aa089-java17-invalidation.json`. The result
   file therefore corresponds exactly to the committed executable source; this documentation-only
   provenance entry was added afterward.
-- **M19.2b (Variable Slots + ExecutionFrame - Pending)**: variable representation remains unchanged.
+- **M19.2b (Variable Slots + ExecutionFrame - Completed)**: Static lexical bindings, model parameters, loop variables, and macro arguments are assigned deterministic, compiler-assigned variable slots and executed through array-backed `ExecutionFrame` activations while preserving Velocity 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) and dynamic fallback coherence.
+  The Java 17 post-change runs (`m19.2b-java17-variable.json`, `m19.2b-java17-nested-scope.json`, `m19.2b-java17-foreach-gc.json`, `m19.2b-java17-endtoend-gc.json`) measured:
+  - `assignStaticSlot`: 489.295M ± 21.409M ops/s vs dynamic `assignTemplateLocal`: 30.781M ± 1.809M ops/s (15.9x throughput advantage).
+  - `lookupStaticSlot`: 856.76M to 864.03M ops/s across all scope depths (depth 0 to 8), showing flat O(1) performance and completely eliminating scope stack traversal cost compared to dynamic `lookupTemplateLocalVariable` (146.29M ops/s at depth 0 decaying to 26.80M ops/s at depth 8, a 32x advantage at depth 8).
+  - End-to-end rendering throughput increased significantly:
+    - B02 (scalar variables): IR +9.1% (23,236 ± 933 ops/s vs 21,293 ± 1,081 ops/s), AOT +13.4% (99,784 ± 12,045 ops/s vs 88,020 ± 4,194 ops/s).
+    - B11 (macro invocation): IR +43.0% (9,687 ± 1,012 ops/s vs 6,775 ± 4,780 ops/s), AOT +29.9% (46,888 ± 2,877 ops/s vs 36,081 ± 2,625 ops/s).
+    - B05 (small table): IR +26.5% (17,780 ± 2,100 ops/s vs 14,054 ± 1,880 ops/s), AOT +9.3% (100,020 ± 14,132 ops/s vs 91,493 ± 7,236 ops/s).
+    - B06 (large table): IR +15.2% (230.1 ± 23.0 ops/s vs 199.8 ± 19.5 ops/s), AOT +12.5% (968.4 ± 93.8 ops/s vs 861.0 ± 69.3 ops/s).
+    - B07 (nested loops): IR +14.8% (430.4 ± 80.6 ops/s vs 374.7 ± 52.2 ops/s), AOT +9.4% (1,349.7 ± 53.0 ops/s vs 1,233.2 ± 71.7 ops/s).
+  - Memory allocation profiling (`-prof gc`) demonstrated major GC churn reduction under AOT execution:
+    - B02: 14,464.1 B/op (AOT) vs 84,815.5 B/op (IR), a 5.9x allocation reduction.
+    - B05: 9,168.1 B/op (AOT) vs 89,261.5 B/op (IR), a 9.7x allocation reduction.
+    - B06: 978,463.4 B/op (AOT) vs 2,923,721.9 B/op (IR), a 3.0x allocation reduction.
+    - B07: 707,306.8 B/op (AOT) vs 1,775,014.0 B/op (IR), a 2.5x allocation reduction.
+    - B11: 21,680.3 B/op (AOT) vs 114,009.5 B/op (IR), a 5.3x allocation reduction.
+  The benchmarks were executed with OpenJDK 17.0.20.1 and JMH 1.37 using one fork, three one-second warmup iterations, five one-second measurement iterations, one thread, throughput mode, and `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC`.
 
 All cross-engine benchmarks will compare Viet Template against current stable versions of:
 
