@@ -141,7 +141,7 @@ Guided strictly by JMH profiling, JFR allocation/contention analysis, and virtua
 
 1. **Rank 1 (Promoted) — LRU Cache Contention Mitigation**:
    - **Evidence**: JFR `contention-by-site` identified `TemplateCompileCache.get(CompileCacheKey)` (`synchronized (lruLock)`) as the top monitor contention site in the runtime ($25\text{ contention events}$, $14.6\text{ ms}$ average wait time). JMH `ConcurrentCacheBenchmark` proved a $>55\%$ throughput collapse under 4 and 8 concurrent worker threads.
-   - **Status**: **QUALIFIED & PROMOTED FOR M19.3 PLANNING**. Evaluate decoupled concurrent bounded eviction structures (e.g. W-TinyLFU, striped access buffers) while preserving bounded memory and $O(K)$ indexed invalidation.
+   - **Status**: **QUALIFIED FOR IMPLEMENTATION (Design Study Completed in [`docs/22-m19.3a-cache-contention-qualification.md`](22-m19.3a-cache-contention-qualification.md))**. Prototype B (Batched deferred maintenance with lossy bounded ring buffers) selected as the target architecture, delivering 5.07x read-hit speedup (30.93M ops/s at 8 threads) and complete immunity to key skew with zero steady-state allocation.
 2. **Rank 2 (Promoted) — Streaming Output Buffer & Primitive Byte Formatting**:
    - **Evidence**: JFR `allocation-by-class` during rendering proved `byte[]` represents $33.11\%$ of steady-state allocation volume. `ForeachRenderingBenchmark` showed streaming UTF-8 output (`Utf8StreamOutput`) running $10\text{--}15\%$ slower than `StringOutput` due to lack of buffer pooling and intermediate byte conversions.
    - **Status**: **QUALIFIED & PROMOTED FOR M19.3 PLANNING**. Evaluate thread-local or pooled output buffers and direct primitive byte encoding.

@@ -672,9 +672,10 @@ This follow-up is release infrastructure work only. It does not start M19.3 or M
 
 ### 19.3 Milestone M19.3 — 0.3.x+ Evidence-Driven Optimizations (Gated on Empirical Evidence)
 
-Post-0.2.0 baseline performance characterization, multi-JDK comparisons, and empirical candidate evaluations are complete and documented in [`docs/21-performance-characterization.md`](21-performance-characterization.md). M19.3 implementation remains NOT STARTED pending planning review.
+Post-0.2.0 baseline performance characterization, multi-JDK comparisons, and empirical candidate evaluations are complete and documented in [`docs/21-performance-characterization.md`](21-performance-characterization.md). M19.3 production implementation remains GATED pending implementation pull request.
 
-- [ ] **Rank 1 (Promoted)**: Mitigate LRU cache lock contention in `TemplateCompileCache.get()` under high concurrency; evaluate decoupled concurrent bounded cache / striped eviction structures while preserving $O(K)$ indexed invalidation (empirically qualified: JFR top contention site, 14.6 ms avg wait, >55% drop under 4/8 threads).
+- [x] **Milestone M19.3a**: Complete qualification and design study for cache contention mitigation (documented in [`docs/22-m19.3a-cache-contention-qualification.md`](22-m19.3a-cache-contention-qualification.md); Prototype B qualified for implementation).
+- [ ] **Rank 1 (Promoted)**: Mitigate LRU cache lock contention in `TemplateCompileCache.get()` under high concurrency; evaluate decoupled concurrent bounded cache / striped eviction structures while preserving $O(K)$ indexed invalidation (empirically qualified: JFR top contention site, 14.6 ms avg wait, >55% drop under 4/8 threads; Prototype B selected).
 - [ ] **Rank 2 (Promoted)**: Optimize streaming output buffer (`TemplateOutput`) and primitive byte formatting with buffer pooling (empirically qualified: `byte[]` accounts for 33.11% of rendering allocation volume).
 - [ ] *(Deferred)*: Lexer and parser token allocation reductions (disqualified: token allocations <0.1% in steady state).
 - [ ] *(Deferred)*: Concurrent read-path optimizations in `TemplateDependencyGraph` (disqualified: 0 contention events observed).
