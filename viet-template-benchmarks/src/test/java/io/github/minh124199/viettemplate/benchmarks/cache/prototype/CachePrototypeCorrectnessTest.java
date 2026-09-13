@@ -63,7 +63,16 @@ class CachePrototypeCorrectnessTest {
             (CacheFactory) cap -> new BatchedDeferredLruCompileCache(cap, 5000L, 50)),
         Arguments.of(
             "PreHardeningDeferredRecencyCache",
-            (CacheFactory) cap -> new PreHardeningDeferredRecencyCache(cap, 5000L, 50)));
+            (CacheFactory) cap -> new PreHardeningDeferredRecencyCache(cap, 5000L, 50)),
+        Arguments.of(
+            "SampledDeferredRecency_1_2",
+            (CacheFactory) cap -> new SampledDeferredRecencyCompileCache(cap, 5000L, 50, 1, 128)),
+        Arguments.of(
+            "SampledDeferredRecency_1_4",
+            (CacheFactory) cap -> new SampledDeferredRecencyCompileCache(cap, 5000L, 50, 2, 256)),
+        Arguments.of(
+            "SampledDeferredRecency_1_8",
+            (CacheFactory) cap -> new SampledDeferredRecencyCompileCache(cap, 5000L, 50, 3, 512)));
   }
 
   static Stream<Arguments> lruCacheFactories() {
@@ -82,7 +91,26 @@ class CachePrototypeCorrectnessTest {
             (CacheFactory) cap -> new BatchedDeferredLruCompileCache(cap, 5000L, 50)),
         Arguments.of(
             "PreHardeningDeferredRecencyCache",
-            (CacheFactory) cap -> new PreHardeningDeferredRecencyCache(cap, 5000L, 50)));
+            (CacheFactory) cap -> new PreHardeningDeferredRecencyCache(cap, 5000L, 50)),
+        Arguments.of(
+            "Drain_128",
+            (CacheFactory) cap -> new SampledDeferredRecencyCompileCache(cap, 5000L, 50, 0, 128)),
+        Arguments.of(
+            "Drain_256",
+            (CacheFactory) cap -> new SampledDeferredRecencyCompileCache(cap, 5000L, 50, 0, 256)));
+  }
+
+  static Stream<Arguments> sampledCacheFactories() {
+    return Stream.of(
+        Arguments.of(
+            "SampledDeferredRecency_1_2",
+            (CacheFactory) cap -> new SampledDeferredRecencyCompileCache(cap, 5000L, 50, 1, 128)),
+        Arguments.of(
+            "SampledDeferredRecency_1_4",
+            (CacheFactory) cap -> new SampledDeferredRecencyCompileCache(cap, 5000L, 50, 2, 256)),
+        Arguments.of(
+            "SampledDeferredRecency_1_8",
+            (CacheFactory) cap -> new SampledDeferredRecencyCompileCache(cap, 5000L, 50, 3, 512)));
   }
 
   // --- a. Basic put and get hit ---
@@ -470,6 +498,95 @@ class CachePrototypeCorrectnessTest {
     cache.put(key, createHandle(missing, key));
     assertThat(cache.isNegativelyCached(missing)).isFalse();
     assertThat(cache.get(key)).isPresent();
+  }
+
+  // --- Eviction Quality under capacity pressure & sampling ---
+
+  @ParameterizedTest(name = "{0}: eviction quality under capacity pressure")
+  @MethodSource("lruCacheFactories")
+  @DisplayName(
+      "Eviction quality: hot entry and warm entries favored over cold churn under capacity"
+          + " pressure")
+  void testEvictionQualityUnderSampling(String name, CacheFactory factory) {
+    CompileCacheInterface cache = factory.apply(10);
+    TemplateId hotId = TemplateId.of("hot.vm");
+    CompileCacheKey hotKey = createKey(hotId, "h1");
+    cache.put(hotKey, createHandle(hotId, hotKey));
+
+    TemplateId warmId = TemplateId.of("warm.vm");
+    CompileCacheKey warmKey = createKey(warmId, "w1");
+    cache.put(warmKey, createHandle(warmId, warmKey));
+
+    // Fill remaining 8 slots
+    for (int i = 0; i < 8; i++) {
+      TemplateId id = TemplateId.of("init-" + i + ".vm");
+      CompileCacheKey k = createKey(id, "init-" + i);
+      cache.put(k, createHandle(id, k));
+    }
+    assertThat(cache.size()).isEqualTo(10);
+
+    // Continuous workload: 500 operations
+    // Every operation: access hotKey
+    // Every 4th operation: access warmKey
+    // Every 10th operation: insert a new cold key (churn)
+    for (int i = 0; i < 500; i++) {
+      cache.get(hotKey);
+      if (i % 4 == 0) {
+        cache.get(warmKey);
+      }
+      if (i % 10 == 0) {
+        TemplateId coldId = TemplateId.of("cold-" + i + ".vm");
+        CompileCacheKey coldKey = createKey(coldId, "cold-" + i);
+        cache.put(coldKey, createHandle(coldId, coldKey));
+      }
+    }
+
+    // Capacity must remain exact: <= 10
+    assertThat(cache.size()).isLessThanOrEqualTo(10);
+    // Hot key must be 100% retained!
+    assertThat(cache.get(hotKey)).isPresent();
+    // Warm key should also be retained (accessed 125 times vs 1 time for cold keys)!
+    assertThat(cache.get(warmKey)).isPresent();
+  }
+
+  @ParameterizedTest(name = "{0}: eviction quality degradation under read sampling")
+  @MethodSource("sampledCacheFactories")
+  @DisplayName("Eviction quality degradation: read sampling drops warm keys under cold churn")
+  void testSampledRecencyEvictionQualityDegradation(String name, CacheFactory factory) {
+    CompileCacheInterface cache = factory.apply(10);
+    TemplateId hotId = TemplateId.of("hot.vm");
+    CompileCacheKey hotKey = createKey(hotId, "h1");
+    cache.put(hotKey, createHandle(hotId, hotKey));
+
+    TemplateId warmId = TemplateId.of("warm.vm");
+    CompileCacheKey warmKey = createKey(warmId, "w1");
+    cache.put(warmKey, createHandle(warmId, warmKey));
+
+    // Fill remaining 8 slots
+    for (int i = 0; i < 8; i++) {
+      TemplateId id = TemplateId.of("init-" + i + ".vm");
+      CompileCacheKey k = createKey(id, "init-" + i);
+      cache.put(k, createHandle(id, k));
+    }
+    assertThat(cache.size()).isEqualTo(10);
+
+    for (int i = 0; i < 500; i++) {
+      cache.get(hotKey);
+      if (i % 4 == 0) {
+        cache.get(warmKey);
+      }
+      if (i % 10 == 0) {
+        TemplateId coldId = TemplateId.of("cold-" + i + ".vm");
+        CompileCacheKey coldKey = createKey(coldId, "cold-" + i);
+        cache.put(coldKey, createHandle(coldId, coldKey));
+      }
+    }
+
+    assertThat(cache.size()).isLessThanOrEqualTo(10);
+    // Hot key accessed every iteration is retained
+    assertThat(cache.get(hotKey)).isPresent();
+    // Warm key accessed 125 times is evicted due to read sampling lossiness!
+    assertThat(cache.get(warmKey)).isEmpty();
   }
 
   private static CompileCacheKey createKey(TemplateId id, String hash) {

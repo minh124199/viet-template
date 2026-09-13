@@ -1,7 +1,9 @@
-package io.github.minh124199.viettemplate.vtl.engine.cache;
+package io.github.minh124199.viettemplate.benchmarks.cache.prototype;
 
 import io.github.minh124199.viettemplate.api.TemplateDependencyGraph;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import io.github.minh124199.viettemplate.vtl.engine.cache.CompileCacheKey;
+import io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -17,118 +19,61 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Thread-safe, bounded compile cache with approximate deferred-recency eviction, negative lookup
- * caching, and atomic template handle replacement.
+ * Parameterized prototype exploring recency sampling ratios and drain thresholds for Milestone
+ * M19.3a.2 low-concurrency fast-path tuning.
  *
- * <h3>Exact State vs. Approximate Recency</h3>
- *
- * <p>Mappings between {@link CompileCacheKey} and {@link CompiledTemplateHandle}, active template
- * versions ({@link #activeKeys}), reverse invalidation sets ({@link #keysByTemplate}), and negative
- * cache entries ({@link #negativeEntries}) are exact and immediately consistent across all threads.
- * Mutations and invalidations are linearized using striped {@code templateLocks}.
- *
- * <p>Recency tracking is intentionally decoupled and approximate. Read hits record cache keys into
- * fixed shared recency stripes selected by thread identity ({@link RecencyStripe}) using atomic
- * slot sampling without global synchronization, heap allocation, or blocking monitors. These
- * recency records are periodically drained into an internal LRU structure under {@link
- * #maintenanceLock}. This design trades strict global LRU access ordering for lock-free read
- * throughput with zero allocations.
- *
- * <h3>Lock Hierarchy</h3>
- *
- * <p>To prevent deadlocks, lock acquisition must strictly follow this hierarchy:
- *
- * <ol>
- *   <li>{@link #maintenanceLock}: guards LRU maintenance, recency stripe draining, and capacity
- *       eviction.
- *   <li>{@code templateLock}: guards mutations and invalidations for a specific template stripe.
- * </ol>
- *
- * <p>A thread holding a {@code templateLock} must never attempt to acquire {@link
- * #maintenanceLock}. Conversely, {@link #maintenanceLock} may acquire one or more {@code
- * templateLocks} (for example, during capacity eviction or full cache invalidation).
+ * <p>Preserves all M19.3a.1 memory model invariants (AtomicReferenceArray slots, setRelease
+ * publication, getAndSet acquire-release draining, lastDrainedCursor stripe-skip fast-path, and
+ * liveEntries check).
  */
-public final class TemplateCompileCache {
+public final class SampledDeferredRecencyCompileCache implements CompileCacheInterface {
 
   private static final int TEMPLATE_LOCK_COUNT = 64;
   private static final int RECENCY_STRIPES = 16;
   private static final int RECENCY_STRIPE_MASK = RECENCY_STRIPES - 1;
   private static final int RECENCY_BUFFER_CAPACITY = 64;
   private static final int RECENCY_BUFFER_MASK = RECENCY_BUFFER_CAPACITY - 1;
-  private static final int READ_DRAIN_THRESHOLD = 256;
 
   private final int maxEntries;
   private final long negativeCacheTtlMillis;
   private final int maxNegativeEntries;
+  private final int sampleShift;
+  private final int drainThreshold;
 
   private final ConcurrentMap<CompileCacheKey, CompiledTemplateHandle> entries =
       new ConcurrentHashMap<>();
   private final ConcurrentMap<TemplateId, CompileCacheKey> activeKeys = new ConcurrentHashMap<>();
-
-  /**
-   * Reverse index for targeted invalidation. Membership mirrors {@link #entries}: every positive
-   * cache key is present in exactly one set, and empty sets are removed.
-   */
   private final ConcurrentMap<TemplateId, Set<CompileCacheKey>> keysByTemplate =
       new ConcurrentHashMap<>();
-
-  private final ConcurrentMap<TemplateId, NegativeCacheEntry> negativeEntries =
+  private final ConcurrentMap<TemplateId, NegativeEntry> negativeEntries =
       new ConcurrentHashMap<>();
 
-  // Serializes mutations for one template without globally serializing unrelated templates.
   private final Object[] templateLocks = new Object[TEMPLATE_LOCK_COUNT];
-
-  // Guards LRU order tracking, recency stripe draining, and capacity eviction.
   final ReentrantLock maintenanceLock = new ReentrantLock();
   private final LinkedHashMap<CompileCacheKey, Boolean> lruOrder =
       new LinkedHashMap<>(128, 0.75f, true);
-
   private final RecencyStripe[] recencyStripes = new RecencyStripe[RECENCY_STRIPES];
 
-  private final AtomicLong globalGeneration = new AtomicLong(1);
-
-  /**
-   * Fixed shared recency stripe selected by thread identity, using atomic slot sampling.
-   *
-   * <h3>Memory Model & Publication Protocol</h3>
-   *
-   * <p>Producers publish access observations into {@link #slots} using {@link
-   * AtomicReferenceArray#setRelease(int, Object)}. This establishes release memory ordering: all
-   * prior program state in the reader thread happens-before the reference write.
-   *
-   * <p>The consumer (executing under {@link #maintenanceLock}) inspects slots via {@link
-   * AtomicReferenceArray#get(int)} and atomically extracts non-null entries via {@link
-   * AtomicReferenceArray#getAndSet(int, Object)} with acquire-release semantics. While {@link
-   * #cursor} may advance before a thread's release write completes, the slot itself is published
-   * atomically. Consequently, maintenance may miss or defer an in-flight advisory sample, but can
-   * never observe an unsafely published reference, stale data, or corrupt exact cache state.
-   *
-   * <h3>Intentional Overwrite & Coalescing Semantics</h3>
-   *
-   * <p>Multiple threads hashing to the same stripe (or a single thread cycling through 64 accesses)
-   * may write to the same slot before maintenance drains it. When this occurs, newer observations
-   * deliberately overwrite older observations. This provides natural sample coalescing for hot keys
-   * and safe, bounded event loss under high saturation without memory allocation or locking.
-   *
-   * <h3>Stale-Slot Observation & Invalidation Immunity</h3>
-   *
-   * <p>Recency tracking is strictly advisory. When a slot is cleared via {@code getAndSet(i,
-   * null)}, it returns to an empty state. Any subsequent drain verifies {@code
-   * liveEntries.containsKey(key)} before adding the key to {@code lruOrder}. Therefore, delayed
-   * writes, invalidated templates, or evicted entries can never resurrect logical cache state or
-   * corrupt reverse indices.
-   */
   private static final class RecencyStripe {
     private final AtomicReferenceArray<CompileCacheKey> slots =
         new AtomicReferenceArray<>(RECENCY_BUFFER_CAPACITY);
     private final AtomicLong cursor = new AtomicLong();
     private long lastDrainedCursor = 0;
+    private final int sampleShift;
+    private final int drainThreshold;
+
+    RecencyStripe(int sampleShift, int drainThreshold) {
+      this.sampleShift = sampleShift;
+      this.drainThreshold = drainThreshold;
+    }
 
     boolean record(CompileCacheKey key) {
       long pos = cursor.getAndIncrement();
-      int index = (int) (pos & RECENCY_BUFFER_MASK);
-      slots.setRelease(index, key);
-      return (pos & (READ_DRAIN_THRESHOLD - 1)) == 0;
+      if ((pos & ((1L << sampleShift) - 1)) == 0) {
+        int index = (int) ((pos >> sampleShift) & RECENCY_BUFFER_MASK);
+        slots.setRelease(index, key);
+      }
+      return (pos & (drainThreshold - 1)) == 0;
     }
 
     void drainInto(
@@ -159,32 +104,50 @@ public final class TemplateCompileCache {
     }
   }
 
-  public TemplateCompileCache(int maxEntries, long negativeCacheTtlMillis, int maxNegativeEntries) {
+  private static final class NegativeEntry {
+    private final TemplateId id;
+    private final String reason;
+    private final long expiresAtMillis;
+
+    NegativeEntry(TemplateId id, String reason, long expiresAtMillis) {
+      this.id = id;
+      this.reason = reason;
+      this.expiresAtMillis = expiresAtMillis;
+    }
+
+    boolean isExpired(long now) {
+      return now >= expiresAtMillis;
+    }
+  }
+
+  public SampledDeferredRecencyCompileCache(
+      int maxEntries,
+      long negativeCacheTtlMillis,
+      int maxNegativeEntries,
+      int sampleShift,
+      int drainThreshold) {
     if (maxEntries <= 0) {
       throw new IllegalArgumentException("maxEntries must be positive: " + maxEntries);
     }
     this.maxEntries = maxEntries;
     this.negativeCacheTtlMillis = negativeCacheTtlMillis;
     this.maxNegativeEntries = Math.max(1, maxNegativeEntries);
+    this.sampleShift = sampleShift;
+    this.drainThreshold = drainThreshold;
     for (int i = 0; i < templateLocks.length; i++) {
       templateLocks[i] = new Object();
     }
     for (int i = 0; i < RECENCY_STRIPES; i++) {
-      recencyStripes[i] = new RecencyStripe();
+      recencyStripes[i] = new RecencyStripe(sampleShift, drainThreshold);
     }
   }
 
-  public TemplateCompileCache() {
-    this(500, 5000L, 200);
+  public SampledDeferredRecencyCompileCache(
+      int maxEntries, long negativeCacheTtlMillis, int maxNegativeEntries, int sampleShift) {
+    this(maxEntries, negativeCacheTtlMillis, maxNegativeEntries, sampleShift, 64 << sampleShift);
   }
 
-  /**
-   * Retrieves a cached {@link CompiledTemplateHandle} by its exact multi-dimensional {@link
-   * CompileCacheKey}.
-   *
-   * <p>On hit, records recency into the current thread's stripe buffer without acquiring locks. If
-   * the stripe's read threshold is reached, maintenance draining is opportunistically attempted.
-   */
+  @Override
   public Optional<CompiledTemplateHandle> get(CompileCacheKey key) {
     Objects.requireNonNull(key, "key must not be null");
     CompiledTemplateHandle handle = entries.get(key);
@@ -199,7 +162,7 @@ public final class TemplateCompileCache {
     return Optional.empty();
   }
 
-  /** Retrieves the currently active handle for a given {@link TemplateId}. */
+  @Override
   public Optional<CompiledTemplateHandle> getActive(TemplateId id) {
     Objects.requireNonNull(id, "id must not be null");
     CompileCacheKey activeKey = activeKeys.get(id);
@@ -209,12 +172,7 @@ public final class TemplateCompileCache {
     return Optional.empty();
   }
 
-  /**
-   * Atomically stores a compiled template handle and sets it as the active version.
-   *
-   * <p>Enforces maximum capacity eviction under {@link #maintenanceLock} if entries exceed {@link
-   * #maxEntries}.
-   */
+  @Override
   public void put(CompileCacheKey key, CompiledTemplateHandle handle) {
     Objects.requireNonNull(key, "key must not be null");
     Objects.requireNonNull(handle, "handle must not be null");
@@ -240,16 +198,13 @@ public final class TemplateCompileCache {
     }
   }
 
-  /**
-   * Checks whether the template is currently negatively cached (i.e. known to not exist or failed
-   * to load).
-   */
+  @Override
   public boolean isNegativelyCached(TemplateId id) {
     Objects.requireNonNull(id, "id must not be null");
     if (negativeCacheTtlMillis <= 0) {
       return false;
     }
-    NegativeCacheEntry entry = negativeEntries.get(id);
+    NegativeEntry entry = negativeEntries.get(id);
     if (entry == null) {
       return false;
     }
@@ -260,7 +215,7 @@ public final class TemplateCompileCache {
     return true;
   }
 
-  /** Records a negative cache entry for a missing or unparseable template. */
+  @Override
   public void recordNegative(TemplateId id, String reason) {
     Objects.requireNonNull(id, "id must not be null");
     Objects.requireNonNull(reason, "reason must not be null");
@@ -269,7 +224,6 @@ public final class TemplateCompileCache {
     }
 
     if (negativeEntries.size() >= maxNegativeEntries) {
-      // Evict oldest negative entry
       Iterator<TemplateId> it = negativeEntries.keySet().iterator();
       if (it.hasNext()) {
         negativeEntries.remove(it.next());
@@ -277,19 +231,12 @@ public final class TemplateCompileCache {
     }
 
     long expiresAt = System.currentTimeMillis() + negativeCacheTtlMillis;
-    negativeEntries.put(id, new NegativeCacheEntry(id, reason, expiresAt));
+    negativeEntries.put(id, new NegativeEntry(id, reason, expiresAt));
   }
 
-  /**
-   * Invalidates all cache entries (positive and negative) for the specified template.
-   *
-   * <p>Linearized under the template stripe lock. Deferred recency buffers are not modified; stale
-   * recency events are discarded lazily during buffer draining or eviction.
-   */
+  @Override
   public void invalidate(TemplateId id) {
     Objects.requireNonNull(id, "id must not be null");
-    // The template stripe is the linearization boundary: a concurrent put for this template is
-    // either wholly before invalidation (and removed) or wholly after it (and retained).
     synchronized (templateLock(id)) {
       Set<CompileCacheKey> keys = keysByTemplate.remove(id);
       activeKeys.remove(id);
@@ -302,14 +249,7 @@ public final class TemplateCompileCache {
     }
   }
 
-  /**
-   * Invalidates the specified template and all its transitive dependents found in the dependency
-   * graph.
-   *
-   * @param id root template identifier being invalidated
-   * @param graph dependency graph tracking relationships
-   * @return set of all invalidated template identifiers (including the root template)
-   */
+  @Override
   public Set<TemplateId> invalidateWithDependents(TemplateId id, TemplateDependencyGraph graph) {
     Objects.requireNonNull(id, "id must not be null");
     Set<TemplateId> toInvalidate = new LinkedHashSet<>();
@@ -323,12 +263,7 @@ public final class TemplateCompileCache {
     return Collections.unmodifiableSet(toInvalidate);
   }
 
-  /**
-   * Completely clears all cached compiled templates, negative entries, recency ring buffers, and
-   * LRU order tracking.
-   *
-   * <p>Acquires {@link #maintenanceLock} first, followed by all template locks in canonical order.
-   */
+  @Override
   public void invalidateAll() {
     maintenanceLock.lock();
     try {
@@ -353,19 +288,6 @@ public final class TemplateCompileCache {
     activeKeys.clear();
     keysByTemplate.clear();
     negativeEntries.clear();
-  }
-
-  /**
-   * Synchronously drains all recency buffers into the LRU order and enforces capacity limits under
-   * {@link #maintenanceLock}.
-   */
-  void drainMaintenance() {
-    maintenanceLock.lock();
-    try {
-      drainAllUnderMaintenanceLock();
-    } finally {
-      maintenanceLock.unlock();
-    }
   }
 
   private void tryDrainMaintenance() {
@@ -427,26 +349,18 @@ public final class TemplateCompileCache {
     lruOrder.remove(key);
   }
 
-  /** Generates and returns the next atomic generation counter for template updates. */
-  public long nextGeneration() {
-    return globalGeneration.getAndIncrement();
-  }
-
-  /** Returns the current generation counter of the active template, or 0 if not loaded. */
-  public long currentGeneration(TemplateId id) {
-    return getActive(id).map(CompiledTemplateHandle::generation).orElse(0L);
-  }
-
+  @Override
   public int size() {
     return entries.size();
   }
 
+  @Override
   public int negativeCacheSize() {
     return negativeEntries.size();
   }
 
-  /** Package-private quiescent-state invariant check for focused cache tests. */
-  boolean isInternallyConsistent() {
+  @Override
+  public boolean isInternallyConsistent() {
     maintenanceLock.lock();
     try {
       drainAllUnderMaintenanceLock();
@@ -475,11 +389,6 @@ public final class TemplateCompileCache {
     } finally {
       maintenanceLock.unlock();
     }
-  }
-
-  int indexedKeyCount(TemplateId id) {
-    Set<CompileCacheKey> keys = keysByTemplate.get(id);
-    return keys == null ? 0 : keys.size();
   }
 
   private Object templateLock(TemplateId id) {
