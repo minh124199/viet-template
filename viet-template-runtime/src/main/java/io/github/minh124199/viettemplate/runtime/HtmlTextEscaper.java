@@ -51,7 +51,7 @@ public final class HtmlTextEscaper implements Escaper {
     }
 
     if (firstSpecial > 0) {
-      output.write(input.subSequence(0, firstSpecial));
+      output.write(input, 0, firstSpecial);
     }
 
     int last = firstSpecial;
@@ -68,7 +68,7 @@ public final class HtmlTextEscaper implements Escaper {
           };
       if (entity != null) {
         if (i > last) {
-          output.write(input.subSequence(last, i));
+          output.write(input, last, i);
         }
         output.write(entity);
         last = i + 1;
@@ -76,7 +76,7 @@ public final class HtmlTextEscaper implements Escaper {
     }
 
     if (last < len) {
-      output.write(input.subSequence(last, len));
+      output.write(input, last, len);
     }
   }
 }

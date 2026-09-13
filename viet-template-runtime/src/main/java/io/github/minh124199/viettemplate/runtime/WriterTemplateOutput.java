@@ -19,14 +19,22 @@ public final class WriterTemplateOutput implements TemplateOutput, Flushable {
   @Override
   public void write(CharSequence value) throws IOException {
     if (value != null) {
+      write(value, 0, value.length());
+    }
+  }
+
+  @Override
+  public void write(CharSequence value, int start, int end) throws IOException {
+    if (value != null) {
+      Objects.checkFromToIndex(start, end, value.length());
       if (value instanceof String s) {
-        writer.write(s);
+        writer.write(s, start, end - start);
       } else {
-        int len = value.length();
+        int len = end - start;
         char[] buf = new char[Math.min(len, 1024)];
-        int srcIdx = 0;
-        while (srcIdx < len) {
-          int chunk = Math.min(buf.length, len - srcIdx);
+        int srcIdx = start;
+        while (srcIdx < end) {
+          int chunk = Math.min(buf.length, end - srcIdx);
           for (int i = 0; i < chunk; i++) {
             buf[i] = value.charAt(srcIdx + i);
           }

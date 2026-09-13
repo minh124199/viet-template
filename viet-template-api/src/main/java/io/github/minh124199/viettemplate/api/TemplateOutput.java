@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.api;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Output destination for streaming template rendering.
@@ -11,6 +12,16 @@ import java.io.IOException;
 public interface TemplateOutput {
 
   void write(CharSequence value) throws IOException;
+
+  default void write(CharSequence value, int start, int end) throws IOException {
+    if (value == null) {
+      return;
+    }
+    Objects.checkFromToIndex(start, end, value.length());
+    for (int i = start; i < end; i++) {
+      write(value.charAt(i));
+    }
+  }
 
   void write(char value) throws IOException;
 

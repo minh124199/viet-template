@@ -25,6 +25,14 @@ public final class StringTemplateOutput implements TemplateOutput {
   }
 
   @Override
+  public void write(CharSequence value, int start, int end) {
+    if (value != null) {
+      Objects.checkFromToIndex(start, end, value.length());
+      builder.append(value, start, end);
+    }
+  }
+
+  @Override
   public void write(char value) {
     builder.append(value);
   }
