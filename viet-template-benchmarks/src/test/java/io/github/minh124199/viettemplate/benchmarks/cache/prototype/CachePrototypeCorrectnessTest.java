@@ -33,6 +33,7 @@ import org.junit.jupiter.params.provider.MethodSource;
  *
  * <ul>
  *   <li>{@link CurrentTemplateCompileCacheAdapter}
+ *   <li>{@link LegacyLockedCompileCache}
  *   <li>{@link NoLruBookkeepingCache}
  *   <li>{@link StripedLruCompileCache}
  *   <li>{@link BatchedDeferredLruCompileCache}
@@ -49,6 +50,9 @@ class CachePrototypeCorrectnessTest {
             "CurrentTemplateCompileCacheAdapter",
             (CacheFactory) cap -> new CurrentTemplateCompileCacheAdapter(cap, 5000L, 50)),
         Arguments.of(
+            "LegacyLockedCompileCache",
+            (CacheFactory) cap -> new LegacyLockedCompileCache(cap, 5000L, 50)),
+        Arguments.of(
             "NoLruBookkeepingCache",
             (CacheFactory) cap -> new NoLruBookkeepingCache(cap, 5000L, 50)),
         Arguments.of(
@@ -64,6 +68,9 @@ class CachePrototypeCorrectnessTest {
         Arguments.of(
             "CurrentTemplateCompileCacheAdapter",
             (CacheFactory) cap -> new CurrentTemplateCompileCacheAdapter(cap, 5000L, 50)),
+        Arguments.of(
+            "LegacyLockedCompileCache",
+            (CacheFactory) cap -> new LegacyLockedCompileCache(cap, 5000L, 50)),
         Arguments.of(
             "StripedLruCompileCache_SingleStripe",
             (CacheFactory) cap -> new StripedLruCompileCache(cap, 5000L, 50, 1)),
@@ -327,7 +334,8 @@ class CachePrototypeCorrectnessTest {
       int size = cache.size();
       assertThat(size).isGreaterThan(0);
 
-      if (cache instanceof CurrentTemplateCompileCacheAdapter) {
+      if (cache instanceof CurrentTemplateCompileCacheAdapter
+          || cache instanceof LegacyLockedCompileCache) {
         assertThat(size).isLessThanOrEqualTo(maxCapacity);
       } else if (cache instanceof BatchedDeferredLruCompileCache) {
         assertThat(size).isLessThanOrEqualTo(maxCapacity);

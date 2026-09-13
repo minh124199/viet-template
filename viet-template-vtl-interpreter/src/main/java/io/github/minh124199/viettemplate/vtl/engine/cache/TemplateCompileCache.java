@@ -2,6 +2,7 @@ package io.github.minh124199.viettemplate.vtl.engine.cache;
 
 import io.github.minh124199.viettemplate.api.TemplateDependencyGraph;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -13,14 +14,47 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Thread-safe, bounded multi-dimensional compile cache with LRU eviction, negative lookup caching,
- * and atomic template handle replacement.
+ * Thread-safe, bounded compile cache with approximate deferred-recency eviction, negative lookup
+ * caching, and atomic template handle replacement.
+ *
+ * <h3>Exact State vs. Approximate Recency</h3>
+ *
+ * <p>Mappings between {@link CompileCacheKey} and {@link CompiledTemplateHandle}, active template
+ * versions ({@link #activeKeys}), reverse invalidation sets ({@link #keysByTemplate}), and negative
+ * cache entries ({@link #negativeEntries}) are exact and immediately consistent across all threads.
+ * Mutations and invalidations are linearized using striped {@code templateLocks}.
+ *
+ * <p>Recency tracking is intentionally decoupled and approximate. Read hits and writes record cache
+ * keys into per-thread striped circular recency buffers ({@link RecencyBuffer}) without global
+ * synchronization, heap allocation, or lock acquisition. These recency records are periodically
+ * drained into an internal LRU structure under {@link #maintenanceLock}. This design trades strict
+ * global LRU access ordering for lock-free read throughput with zero allocations.
+ *
+ * <h3>Lock Hierarchy</h3>
+ *
+ * <p>To prevent deadlocks, lock acquisition must strictly follow this hierarchy:
+ *
+ * <ol>
+ *   <li>{@link #maintenanceLock}: guards LRU maintenance, ring buffer draining, and capacity
+ *       eviction.
+ *   <li>{@code templateLock}: guards mutations and invalidations for a specific template stripe.
+ * </ol>
+ *
+ * <p>A thread holding a {@code templateLock} must never attempt to acquire {@link
+ * #maintenanceLock}. Conversely, {@link #maintenanceLock} may acquire one or more {@code
+ * templateLocks} (for example, during capacity eviction or full cache invalidation).
  */
 public final class TemplateCompileCache {
 
   private static final int TEMPLATE_LOCK_COUNT = 64;
+  private static final int RECENCY_STRIPES = 16;
+  private static final int RECENCY_STRIPE_MASK = RECENCY_STRIPES - 1;
+  private static final int RECENCY_BUFFER_CAPACITY = 64;
+  private static final int RECENCY_BUFFER_MASK = RECENCY_BUFFER_CAPACITY - 1;
+  private static final int READ_DRAIN_THRESHOLD = 64;
 
   private final int maxEntries;
   private final long negativeCacheTtlMillis;
@@ -43,12 +77,56 @@ public final class TemplateCompileCache {
   // Serializes mutations for one template without globally serializing unrelated templates.
   private final Object[] templateLocks = new Object[TEMPLATE_LOCK_COUNT];
 
-  // Guard for LRU order tracking
-  private final Object lruLock = new Object();
+  // Guards LRU order tracking, recency buffer draining, and capacity eviction.
+  private final ReentrantLock maintenanceLock = new ReentrantLock();
   private final LinkedHashMap<CompileCacheKey, Boolean> lruOrder =
       new LinkedHashMap<>(128, 0.75f, true);
 
+  private final RecencyBuffer[] recencyBuffers = new RecencyBuffer[RECENCY_STRIPES];
+
   private final AtomicLong globalGeneration = new AtomicLong(1);
+
+  /**
+   * Per-stripe bounded ring buffer for deferred recency recording.
+   *
+   * <p>Readers and writers record accessed keys lock-free. Read drain threshold checks determine
+   * when maintenance draining should be triggered.
+   */
+  private static final class RecencyBuffer {
+    private final CompileCacheKey[] ring = new CompileCacheKey[RECENCY_BUFFER_CAPACITY];
+    private final AtomicLong tail = new AtomicLong();
+    private long head = 0;
+
+    boolean record(CompileCacheKey key) {
+      long pos = tail.getAndIncrement();
+      ring[(int) (pos & RECENCY_BUFFER_MASK)] = key;
+      return (pos & (READ_DRAIN_THRESHOLD - 1)) == 0;
+    }
+
+    void drainInto(
+        LinkedHashMap<CompileCacheKey, Boolean> lruOrder,
+        ConcurrentMap<CompileCacheKey, ?> liveEntries) {
+      long currentTail = tail.get();
+      if (currentTail - head > RECENCY_BUFFER_CAPACITY) {
+        head = currentTail - RECENCY_BUFFER_CAPACITY;
+      }
+      while (head < currentTail) {
+        int index = (int) (head & RECENCY_BUFFER_MASK);
+        CompileCacheKey key = ring[index];
+        ring[index] = null;
+        head++;
+        if (key != null && liveEntries.containsKey(key)) {
+          lruOrder.put(key, Boolean.TRUE);
+          lruOrder.get(key);
+        }
+      }
+    }
+
+    void clear() {
+      head = tail.get();
+      Arrays.fill(ring, null);
+    }
+  }
 
   public TemplateCompileCache(int maxEntries, long negativeCacheTtlMillis, int maxNegativeEntries) {
     if (maxEntries <= 0) {
@@ -60,6 +138,9 @@ public final class TemplateCompileCache {
     for (int i = 0; i < templateLocks.length; i++) {
       templateLocks[i] = new Object();
     }
+    for (int i = 0; i < RECENCY_STRIPES; i++) {
+      recencyBuffers[i] = new RecencyBuffer();
+    }
   }
 
   public TemplateCompileCache() {
@@ -69,13 +150,18 @@ public final class TemplateCompileCache {
   /**
    * Retrieves a cached {@link CompiledTemplateHandle} by its exact multi-dimensional {@link
    * CompileCacheKey}.
+   *
+   * <p>On hit, records recency into the current thread's stripe buffer without acquiring locks. If
+   * the stripe's read threshold is reached, maintenance draining is opportunistically attempted.
    */
   public Optional<CompiledTemplateHandle> get(CompileCacheKey key) {
     Objects.requireNonNull(key, "key must not be null");
     CompiledTemplateHandle handle = entries.get(key);
     if (handle != null) {
-      synchronized (lruLock) {
-        lruOrder.get(key); // records access order
+      int stripe = (int) (Thread.currentThread().getId() & RECENCY_STRIPE_MASK);
+      boolean shouldDrain = recencyBuffers[stripe].record(key);
+      if (shouldDrain) {
+        tryDrainMaintenance();
       }
       return Optional.of(handle);
     }
@@ -92,12 +178,16 @@ public final class TemplateCompileCache {
     return Optional.empty();
   }
 
-  /** Atomically stores a compiled template handle and sets it as the active version. */
+  /**
+   * Atomically stores a compiled template handle and sets it as the active version.
+   *
+   * <p>Enforces maximum capacity eviction under {@link #maintenanceLock} if entries exceed {@link
+   * #maxEntries}.
+   */
   public void put(CompileCacheKey key, CompiledTemplateHandle handle) {
     Objects.requireNonNull(key, "key must not be null");
     Objects.requireNonNull(handle, "handle must not be null");
 
-    CompileCacheKey toEvict = null;
     synchronized (templateLock(key.templateId())) {
       CompiledTemplateHandle previous = entries.put(key, handle);
       if (previous == null) {
@@ -107,21 +197,15 @@ public final class TemplateCompileCache {
       }
       activeKeys.put(key.templateId(), key);
       negativeEntries.remove(key.templateId());
-
-      synchronized (lruLock) {
-        lruOrder.put(key, Boolean.TRUE);
-        if (lruOrder.size() > maxEntries) {
-          Iterator<Map.Entry<CompileCacheKey, Boolean>> it = lruOrder.entrySet().iterator();
-          if (it.hasNext()) {
-            toEvict = it.next().getKey();
-            it.remove();
-          }
-        }
-      }
     }
 
-    if (toEvict != null && !toEvict.equals(key)) {
-      evictIfStillEldest(toEvict);
+    maintenanceLock.lock();
+    try {
+      drainAllUnderMaintenanceLock();
+      lruOrder.put(key, Boolean.TRUE);
+      enforceCapacityUnderMaintenanceLock();
+    } finally {
+      maintenanceLock.unlock();
     }
   }
 
@@ -165,7 +249,12 @@ public final class TemplateCompileCache {
     negativeEntries.put(id, new NegativeCacheEntry(id, reason, expiresAt));
   }
 
-  /** Invalidates all cache entries (positive and negative) for the specified template. */
+  /**
+   * Invalidates all cache entries (positive and negative) for the specified template.
+   *
+   * <p>Linearized under the template stripe lock. Deferred recency buffers are not modified; stale
+   * recency events are discarded lazily during buffer draining or eviction.
+   */
   public void invalidate(TemplateId id) {
     Objects.requireNonNull(id, "id must not be null");
     // The template stripe is the linearization boundary: a concurrent put for this template is
@@ -176,7 +265,7 @@ public final class TemplateCompileCache {
       negativeEntries.remove(id);
       if (keys != null) {
         for (CompileCacheKey key : keys) {
-          removeEntryUnderTemplateLock(key, true);
+          entries.remove(key);
         }
       }
     }
@@ -203,9 +292,23 @@ public final class TemplateCompileCache {
     return Collections.unmodifiableSet(toInvalidate);
   }
 
-  /** Completely clears all cached compiled templates and negative entries. */
+  /**
+   * Completely clears all cached compiled templates, negative entries, recency ring buffers, and
+   * LRU order tracking.
+   *
+   * <p>Acquires {@link #maintenanceLock} first, followed by all template locks in canonical order.
+   */
   public void invalidateAll() {
-    invalidateAllUnderTemplateLocks(0);
+    maintenanceLock.lock();
+    try {
+      invalidateAllUnderTemplateLocks(0);
+      for (RecencyBuffer buffer : recencyBuffers) {
+        buffer.clear();
+      }
+      lruOrder.clear();
+    } finally {
+      maintenanceLock.unlock();
+    }
   }
 
   private void invalidateAllUnderTemplateLocks(int lockIndex) {
@@ -219,9 +322,78 @@ public final class TemplateCompileCache {
     activeKeys.clear();
     keysByTemplate.clear();
     negativeEntries.clear();
-    synchronized (lruLock) {
-      lruOrder.clear();
+  }
+
+  /**
+   * Synchronously drains all recency buffers into the LRU order and enforces capacity limits under
+   * {@link #maintenanceLock}.
+   */
+  void drainMaintenance() {
+    maintenanceLock.lock();
+    try {
+      drainAllUnderMaintenanceLock();
+    } finally {
+      maintenanceLock.unlock();
     }
+  }
+
+  private void tryDrainMaintenance() {
+    if (maintenanceLock.tryLock()) {
+      try {
+        drainAllUnderMaintenanceLock();
+      } finally {
+        maintenanceLock.unlock();
+      }
+    }
+  }
+
+  private void drainAllUnderMaintenanceLock() {
+    for (RecencyBuffer buffer : recencyBuffers) {
+      buffer.drainInto(lruOrder, entries);
+    }
+    enforceCapacityUnderMaintenanceLock();
+  }
+
+  private void enforceCapacityUnderMaintenanceLock() {
+    while (entries.size() > maxEntries) {
+      CompileCacheKey eldest = null;
+      Iterator<Map.Entry<CompileCacheKey, Boolean>> it = lruOrder.entrySet().iterator();
+      while (it.hasNext()) {
+        CompileCacheKey candidate = it.next().getKey();
+        it.remove();
+        if (entries.containsKey(candidate)) {
+          eldest = candidate;
+          break;
+        }
+      }
+      if (eldest == null) {
+        Iterator<CompileCacheKey> fallbackIt = entries.keySet().iterator();
+        if (fallbackIt.hasNext()) {
+          eldest = fallbackIt.next();
+        }
+      }
+      if (eldest != null) {
+        evictEntry(eldest);
+      } else {
+        break;
+      }
+    }
+  }
+
+  private void evictEntry(CompileCacheKey key) {
+    synchronized (templateLock(key.templateId())) {
+      CompiledTemplateHandle removed = entries.remove(key);
+      if (removed != null) {
+        activeKeys.remove(key.templateId(), key);
+        keysByTemplate.computeIfPresent(
+            key.templateId(),
+            (ignored, keys) -> {
+              keys.remove(key);
+              return keys.isEmpty() ? null : keys;
+            });
+      }
+    }
+    lruOrder.remove(key);
   }
 
   /** Generates and returns the next atomic generation counter for template updates. */
@@ -244,29 +416,33 @@ public final class TemplateCompileCache {
 
   /** Package-private quiescent-state invariant check for focused cache tests. */
   boolean isInternallyConsistent() {
-    Set<CompileCacheKey> indexedKeys = ConcurrentHashMap.newKeySet();
-    boolean[] invalidMembership = {false};
-    keysByTemplate.forEach(
-        (id, keys) -> {
-          for (CompileCacheKey key : keys) {
-            if (!key.templateId().equals(id)) {
-              invalidMembership[0] = true;
+    maintenanceLock.lock();
+    try {
+      drainAllUnderMaintenanceLock();
+      Set<CompileCacheKey> indexedKeys = ConcurrentHashMap.newKeySet();
+      boolean[] invalidMembership = {false};
+      keysByTemplate.forEach(
+          (id, keys) -> {
+            for (CompileCacheKey key : keys) {
+              if (!key.templateId().equals(id)) {
+                invalidMembership[0] = true;
+              }
+              indexedKeys.add(key);
             }
-            indexedKeys.add(key);
-          }
-        });
-    if (invalidMembership[0]
-        || !indexedKeys.equals(entries.keySet())
-        || keysByTemplate.values().stream().anyMatch(Set::isEmpty)
-        || activeKeys.entrySet().stream()
-            .anyMatch(
-                entry ->
-                    !entry.getKey().equals(entry.getValue().templateId())
-                        || !entries.containsKey(entry.getValue()))) {
-      return false;
-    }
-    synchronized (lruLock) {
-      return lruOrder.keySet().equals(entries.keySet());
+          });
+      if (invalidMembership[0]
+          || !indexedKeys.equals(entries.keySet())
+          || keysByTemplate.values().stream().anyMatch(Set::isEmpty)
+          || activeKeys.entrySet().stream()
+              .anyMatch(
+                  entry ->
+                      !entry.getKey().equals(entry.getValue().templateId())
+                          || !entries.containsKey(entry.getValue()))) {
+        return false;
+      }
+      return lruOrder.keySet().containsAll(entries.keySet());
+    } finally {
+      maintenanceLock.unlock();
     }
   }
 
@@ -277,36 +453,5 @@ public final class TemplateCompileCache {
 
   private Object templateLock(TemplateId id) {
     return templateLocks[(id.hashCode() & 0x7fffffff) % templateLocks.length];
-  }
-
-  private void evictIfStillEldest(CompileCacheKey key) {
-    synchronized (templateLock(key.templateId())) {
-      // The key was removed from LRU order before this template lock was acquired. A concurrent
-      // re-put adds it back; in that case it is a new live insertion and must not be evicted.
-      synchronized (lruLock) {
-        if (lruOrder.containsKey(key)) {
-          return;
-        }
-      }
-      removeEntryUnderTemplateLock(key, false);
-    }
-  }
-
-  private void removeEntryUnderTemplateLock(CompileCacheKey key, boolean removeFromLru) {
-    CompiledTemplateHandle removed = entries.remove(key);
-    if (removed != null) {
-      activeKeys.remove(key.templateId(), key);
-      keysByTemplate.computeIfPresent(
-          key.templateId(),
-          (ignored, keys) -> {
-            keys.remove(key);
-            return keys.isEmpty() ? null : keys;
-          });
-    }
-    if (removeFromLru) {
-      synchronized (lruLock) {
-        lruOrder.remove(key);
-      }
-    }
   }
 }
