@@ -133,20 +133,27 @@ The Java 17 production baseline remains strictly frozen for the entire 0.x relea
 
 Milestone M19.3 remains **NOT STARTED** and strictly **GATED**.
 
-Guided strictly by JMH profiling, JFR allocation flame graphs, and virtual-thread stress results from M19.2c, 0.3.x introduces targeted optimizations satisfying the 7-part DSA acceptance rule, the Four-Tier Implementation Preference Hierarchy, and the balanced tradeoff evaluation. Optimizations are undertaken **only** for components that post-0.2.0 profiling proves to be dominant hotspots ($\ge 5\%$ of runtime or allocation volume). Speculative or unverified optimizations are strictly prohibited.
+Post-0.2.0 baseline performance characterization, multi-JDK profiling, and candidate evaluation are formally documented in [`docs/21-performance-characterization.md`](21-performance-characterization.md).
 
-### Candidate Optimization Areas (Milestone M19.3 - Gated on Evidence)
+Guided strictly by JMH profiling, JFR allocation/contention analysis, and virtual-thread stress results from M19.2c, 0.3.x introduces targeted optimizations satisfying the 7-part DSA acceptance rule, the Four-Tier Implementation Preference Hierarchy, and the balanced tradeoff evaluation. Optimizations are undertaken **only** for components that post-0.2.0 profiling proves to be dominant hotspots ($\ge 5\%$ of runtime or allocation volume). Speculative or unverified optimizations are strictly prohibited.
 
-1. **LRU Cache Contention Mitigation**:
-   - If multi-threaded stress tests on `TemplateCompileCache` or `ConcurrentCacheBenchmark` demonstrate measurable lock contention on LRU eviction queues, evaluate concurrent striped or segmented eviction structures while preserving bounded memory guarantees. Gated on proven hotspot evidence.
-2. **Lexer & Parser Allocation Reductions**:
-   - If allocation profiling demonstrates that lexer token objects represent $\ge 5\%$ of allocation churn during cold compilation, evaluate zero-copy token slice representation to eliminate intermediate `String` allocations.
-3. **Dependency Graph Concurrency Refinements**:
-   - If high-frequency hot-reload stress testing reveals read/write lock bottlenecks in `TemplateDependencyGraph`, evaluate copy-on-write or concurrent read-path refinements.
-4. **MethodHandle `invokedynamic` Prototype**:
-   - Benchmark an `invokedynamic` (Indy) call-site implementation against the existing contiguous `AccessLink[]` PIC array scan. Advance only if measurable throughput gains occur without classloader leaks or native-image penalties.
-5. **Streaming Output Buffer Enhancements**:
-   - Optimize `TemplateOutput` buffer pooling and primitive byte encoding (e.g., direct UTF-8 byte encoders for primitives).
+### Candidate Optimization Areas (Milestone M19.3 - Empirical Ranking)
+
+1. **Rank 1 (Promoted) — LRU Cache Contention Mitigation**:
+   - **Evidence**: JFR `contention-by-site` identified `TemplateCompileCache.get(CompileCacheKey)` (`synchronized (lruLock)`) as the top monitor contention site in the runtime ($25\text{ contention events}$, $14.6\text{ ms}$ average wait time). JMH `ConcurrentCacheBenchmark` proved a $>55\%$ throughput collapse under 4 and 8 concurrent worker threads.
+   - **Status**: **QUALIFIED & PROMOTED FOR M19.3 PLANNING**. Evaluate decoupled concurrent bounded eviction structures (e.g. W-TinyLFU, striped access buffers) while preserving bounded memory and $O(K)$ indexed invalidation.
+2. **Rank 2 (Promoted) — Streaming Output Buffer & Primitive Byte Formatting**:
+   - **Evidence**: JFR `allocation-by-class` during rendering proved `byte[]` represents $33.11\%$ of steady-state allocation volume. `ForeachRenderingBenchmark` showed streaming UTF-8 output (`Utf8StreamOutput`) running $10\text{--}15\%$ slower than `StringOutput` due to lack of buffer pooling and intermediate byte conversions.
+   - **Status**: **QUALIFIED & PROMOTED FOR M19.3 PLANNING**. Evaluate thread-local or pooled output buffers and direct primitive byte encoding.
+3. **Disqualified / Deferred — Lexer & Parser Token Allocation Reductions**:
+   - **Evidence**: Token objects represent $<0.1\%$ of allocations. Cold template compilation is a one-time startup cost ($78\text{--}90\text{ ms}$) bypassed once templates are cached.
+   - **Status**: **DISQUALIFIED / DEFERRED**. Fails $\ge 5\%$ steady-state hotspot threshold.
+4. **Disqualified / Deferred — Dependency Graph Concurrency Refinements**:
+   - **Evidence**: JFR recorded zero contention events on `TemplateDependencyGraph`. Read-write locks operate with negligible overhead for typical hierarchy depths.
+   - **Status**: **DISQUALIFIED / DEFERRED**. Fails empirical contention threshold.
+5. **Disqualified / Deferred — MethodHandle `invokedynamic` Prototype**:
+   - **Evidence**: Contiguous `AccessLink[]` PIC array scans achieve $51\text{--}85\text{ million ops/s}$. Property dispatch accounts for $<1.5\%$ of rendering CPU time. Transitioning to `invokedynamic` introduces risks of classloader leakage and native-image penalties for negligible gain.
+   - **Status**: **DISQUALIFIED / DEFERRED**. Fails $\ge 5\%$ runtime threshold.
 
 ---
 

@@ -672,11 +672,13 @@ This follow-up is release infrastructure work only. It does not start M19.3 or M
 
 ### 19.3 Milestone M19.3 — 0.3.x+ Evidence-Driven Optimizations (Gated on Empirical Evidence)
 
-- [ ] Profile LRU cache contention in `TemplateCompileCache` under high concurrent load; evaluate lock-free or striped eviction (e.g. concurrent bounded cache) if lock contention is proven.
-- [ ] Profile lexer and parser allocation hotspots; introduce zero-copy token slice representation to reduce temporary `String` allocations.
-- [ ] Evaluate concurrent read-path optimizations in `TemplateDependencyGraph` for continuous hot-reload environments.
-- [ ] Prototype and benchmark `invokedynamic` dynamic property resolution against the contiguous `AccessLink[]` PIC array scan; advance only if measurable gains occur without classloader leaks.
-- [ ] Profile and optimize streaming output buffer (`TemplateOutput`) and primitive number formatting.
+Post-0.2.0 baseline performance characterization, multi-JDK comparisons, and empirical candidate evaluations are complete and documented in [`docs/21-performance-characterization.md`](21-performance-characterization.md). M19.3 implementation remains NOT STARTED pending planning review.
+
+- [ ] **Rank 1 (Promoted)**: Mitigate LRU cache lock contention in `TemplateCompileCache.get()` under high concurrency; evaluate decoupled concurrent bounded cache / striped eviction structures while preserving $O(K)$ indexed invalidation (empirically qualified: JFR top contention site, 14.6 ms avg wait, >55% drop under 4/8 threads).
+- [ ] **Rank 2 (Promoted)**: Optimize streaming output buffer (`TemplateOutput`) and primitive byte formatting with buffer pooling (empirically qualified: `byte[]` accounts for 33.11% of rendering allocation volume).
+- [ ] *(Deferred)*: Lexer and parser token allocation reductions (disqualified: token allocations <0.1% in steady state).
+- [ ] *(Deferred)*: Concurrent read-path optimizations in `TemplateDependencyGraph` (disqualified: 0 contention events observed).
+- [ ] *(Deferred)*: `invokedynamic` dynamic property resolution prototype (disqualified: contiguous `AccessLink[]` PIC scan achieves 51-85M ops/s, <1.5% rendering CPU time).
 
 ### 19.4 Performance PR Review Checklist
 
