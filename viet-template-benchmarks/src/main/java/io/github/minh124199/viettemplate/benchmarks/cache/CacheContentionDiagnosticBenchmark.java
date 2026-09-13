@@ -11,6 +11,7 @@ import io.github.minh124199.viettemplate.benchmarks.cache.prototype.CurrentTempl
 import io.github.minh124199.viettemplate.benchmarks.cache.prototype.LegacyLockedCompileCache;
 import io.github.minh124199.viettemplate.benchmarks.cache.prototype.NoLruBookkeepingCache;
 import io.github.minh124199.viettemplate.benchmarks.cache.prototype.PreHardeningDeferredRecencyCache;
+import io.github.minh124199.viettemplate.benchmarks.cache.prototype.SampledDeferredRecencyCompileCache;
 import io.github.minh124199.viettemplate.benchmarks.cache.prototype.StripedLruCompileCache;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
@@ -55,7 +56,19 @@ import org.openjdk.jmh.infra.Blackhole;
     jvmArgs = {"-server", "-Xms2g", "-Xmx2g", "-XX:+AlwaysPreTouch", "-XX:+UseG1GC"})
 public class CacheContentionDiagnosticBenchmark {
 
-  @Param({"CURRENT", "PRE_HARDENING_M19_3A", "LEGACY_LOCKED", "NO_LRU", "STRIPED_A", "BATCHED_B"})
+  @Param({
+    "CURRENT",
+    "PRE_HARDENING_M19_3A",
+    "LEGACY_LOCKED",
+    "NO_LRU",
+    "STRIPED_A",
+    "BATCHED_B",
+    "SAMPLED_1_2",
+    "SAMPLED_1_4",
+    "SAMPLED_1_8",
+    "DRAIN_128",
+    "DRAIN_256"
+  })
   private String cacheType;
 
   @Param({"1", "16", "256", "1000"})
@@ -204,6 +217,11 @@ public class CacheContentionDiagnosticBenchmark {
       case "NO_LRU" -> new NoLruBookkeepingCache(capacity, 60000L, 500);
       case "STRIPED_A" -> new StripedLruCompileCache(capacity, 60000L, 500);
       case "BATCHED_B" -> new BatchedDeferredLruCompileCache(capacity, 60000L, 500);
+      case "SAMPLED_1_2" -> new SampledDeferredRecencyCompileCache(capacity, 60000L, 500, 1, 128);
+      case "SAMPLED_1_4" -> new SampledDeferredRecencyCompileCache(capacity, 60000L, 500, 2, 256);
+      case "SAMPLED_1_8" -> new SampledDeferredRecencyCompileCache(capacity, 60000L, 500, 3, 512);
+      case "DRAIN_128" -> new SampledDeferredRecencyCompileCache(capacity, 60000L, 500, 0, 128);
+      case "DRAIN_256" -> new SampledDeferredRecencyCompileCache(capacity, 60000L, 500, 0, 256);
       default -> throw new IllegalArgumentException("Unknown cache type: " + type);
     };
   }
