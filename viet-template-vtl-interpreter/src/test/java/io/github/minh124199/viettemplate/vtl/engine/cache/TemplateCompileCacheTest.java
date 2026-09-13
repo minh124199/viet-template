@@ -11,7 +11,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class TemplateCompileCacheTest {
@@ -116,6 +118,7 @@ class TemplateCompileCacheTest {
 
     // Access k1 to make k2 the eldest
     cache.get(k1);
+    cache.drainMaintenance();
 
     // Insert k3 -> should evict k2
     cache.put(k3, CompiledTemplateHandle.ofIr(id3, 3L, k3, null));
@@ -311,6 +314,274 @@ class TemplateCompileCacheTest {
       cache.invalidate(key.templateId());
     }
     assertThat(cache.size()).isZero();
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void enforcesBoundedApproximateLruEviction() {
+    TemplateCompileCache cache = new TemplateCompileCache(3, 5000L, 5);
+
+    TemplateId id1 = TemplateId.of("approx1.vm");
+    TemplateId id2 = TemplateId.of("approx2.vm");
+    TemplateId id3 = TemplateId.of("approx3.vm");
+    TemplateId id4 = TemplateId.of("approx4.vm");
+
+    CompileCacheKey k1 = key(id1, 1);
+    CompileCacheKey k2 = key(id2, 2);
+    CompileCacheKey k3 = key(id3, 3);
+    CompileCacheKey k4 = key(id4, 4);
+
+    cache.put(k1, handle(k1));
+    cache.put(k2, handle(k2));
+    cache.put(k3, handle(k3));
+    assertThat(cache.size()).isEqualTo(3);
+
+    // Repeatedly hit hot key k1 to record and drain recency
+    for (int i = 0; i < 70; i++) {
+      assertThat(cache.get(k1)).isPresent();
+    }
+    cache.drainMaintenance();
+
+    // Insert k4 under capacity pressure (capacity 3)
+    cache.put(k4, handle(k4));
+
+    assertThat(cache.size()).isEqualTo(3);
+    assertThat(cache.get(k1)).isPresent(); // hot key survives
+    assertThat(cache.get(k3)).isPresent();
+    assertThat(cache.get(k4)).isPresent();
+    assertThat(cache.get(k2)).isEmpty(); // eldest cold key evicted
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void adversarialProducerCollisionStress() throws Exception {
+    TemplateCompileCache cache = new TemplateCompileCache(32, 5000L, 20);
+    int targetStripe = 0;
+    int workerCount = 32;
+
+    List<CompileCacheKey> keys = new ArrayList<>();
+    for (int i = 0; i < 64; i++) {
+      keys.add(key(TemplateId.of("adversarial-" + i + ".vm"), i));
+    }
+    for (int i = 0; i < 32; i++) {
+      cache.put(keys.get(i), handle(keys.get(i)));
+    }
+
+    List<Thread> workers = new ArrayList<>();
+    CountDownLatch ready = new CountDownLatch(workerCount);
+    CountDownLatch start = new CountDownLatch(1);
+    CountDownLatch done = new CountDownLatch(workerCount);
+    AtomicInteger errorCount = new AtomicInteger();
+
+    while (workers.size() < workerCount) {
+      Thread candidate =
+          new Thread(
+              () -> {
+                ready.countDown();
+                try {
+                  start.await();
+                  for (int iter = 0; iter < 1000; iter++) {
+                    CompileCacheKey k = keys.get(iter % keys.size());
+                    if ((iter & 1) == 0) {
+                      cache.get(k);
+                    } else {
+                      cache.put(k, handle(k));
+                    }
+                  }
+                } catch (Throwable ex) {
+                  errorCount.incrementAndGet();
+                } finally {
+                  done.countDown();
+                }
+              });
+      if ((candidate.getId() & 15) == targetStripe) {
+        workers.add(candidate);
+      }
+    }
+
+    for (Thread t : workers) {
+      t.start();
+    }
+    ready.await();
+    start.countDown();
+    assertThat(done.await(15, TimeUnit.SECONDS)).isTrue();
+    assertThat(errorCount.get()).isZero();
+    assertThat(cache.size()).isLessThanOrEqualTo(32);
+    cache.drainMaintenance();
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void recencyBufferSaturationStress() throws Exception {
+    TemplateCompileCache cache = new TemplateCompileCache(16, 5000L, 10);
+    int workerCount = 8;
+    int itemsPerWorker = 1000;
+    ExecutorService executor = Executors.newFixedThreadPool(workerCount);
+    CountDownLatch start = new CountDownLatch(1);
+    List<Future<?>> futures = new ArrayList<>();
+
+    try {
+      for (int w = 0; w < workerCount; w++) {
+        int workerIndex = w;
+        futures.add(
+            executor.submit(
+                () -> {
+                  start.await();
+                  for (int i = 0; i < itemsPerWorker; i++) {
+                    int id = workerIndex * itemsPerWorker + i;
+                    CompileCacheKey key = key(TemplateId.of("sat-" + id + ".vm"), id);
+                    cache.put(key, handle(key));
+                  }
+                  return null;
+                }));
+      }
+      start.countDown();
+      for (Future<?> f : futures) {
+        f.get(15, TimeUnit.SECONDS);
+      }
+    } finally {
+      executor.shutdownNow();
+    }
+
+    assertThat(cache.size()).isLessThanOrEqualTo(16);
+    cache.drainMaintenance();
+    assertThat(cache.size()).isLessThanOrEqualTo(16);
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void duplicateHotKeyStress() throws Exception {
+    TemplateCompileCache cache = new TemplateCompileCache(100, 5000L, 20);
+    CompileCacheKey hotKey = key(TemplateId.of("hot.vm"), 1);
+    cache.put(hotKey, handle(hotKey));
+
+    int workerCount = 32;
+    int readsPerWorker = 50_000;
+    ExecutorService executor = Executors.newFixedThreadPool(workerCount);
+    CountDownLatch start = new CountDownLatch(1);
+    List<Future<?>> futures = new ArrayList<>();
+
+    try {
+      for (int w = 0; w < workerCount; w++) {
+        futures.add(
+            executor.submit(
+                () -> {
+                  start.await();
+                  for (int i = 0; i < readsPerWorker; i++) {
+                    if (cache.get(hotKey).isEmpty()) {
+                      throw new IllegalStateException("Hot key lookup failed");
+                    }
+                  }
+                  return null;
+                }));
+      }
+      start.countDown();
+      for (Future<?> f : futures) {
+        f.get(15, TimeUnit.SECONDS);
+      }
+    } finally {
+      executor.shutdownNow();
+    }
+
+    cache.drainMaintenance();
+    assertThat(cache.size()).isEqualTo(1);
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void broadWorkingSetStress() throws Exception {
+    TemplateCompileCache cache = new TemplateCompileCache(200, 5000L, 50);
+    List<CompileCacheKey> workingSet = new ArrayList<>(1000);
+    for (int i = 0; i < 1000; i++) {
+      workingSet.add(key(TemplateId.of("broad-" + (i % 250) + ".vm"), i));
+    }
+
+    int workerCount = 12;
+    ExecutorService executor = Executors.newFixedThreadPool(workerCount);
+    CountDownLatch start = new CountDownLatch(1);
+    List<Future<?>> futures = new ArrayList<>();
+
+    try {
+      for (int w = 0; w < workerCount; w++) {
+        int workerIndex = w;
+        futures.add(
+            executor.submit(
+                () -> {
+                  start.await();
+                  ThreadLocalRandom random = ThreadLocalRandom.current();
+                  for (int i = 0; i < 2000; i++) {
+                    int keyIdx = random.nextInt(workingSet.size());
+                    CompileCacheKey key = workingSet.get(keyIdx);
+                    if (workerIndex % 3 == 0) {
+                      cache.invalidate(key.templateId());
+                    } else if (workerIndex % 3 == 1) {
+                      cache.put(key, handle(key));
+                    } else {
+                      cache.get(key);
+                      cache.getActive(key.templateId());
+                    }
+                  }
+                  return null;
+                }));
+      }
+      start.countDown();
+      for (Future<?> f : futures) {
+        f.get(15, TimeUnit.SECONDS);
+      }
+    } finally {
+      executor.shutdownNow();
+    }
+
+    assertThat(cache.size()).isLessThanOrEqualTo(200);
+    for (int i = 0; i < 250; i++) {
+      cache.invalidate(TemplateId.of("broad-" + i + ".vm"));
+    }
+    cache.drainMaintenance();
+    assertThat(cache.size()).isZero();
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void staleEventAfterInvalidateIsIgnored() {
+    TemplateCompileCache cache = new TemplateCompileCache(10, 5000L, 5);
+    TemplateId id = TemplateId.of("stale-inv.vm");
+    CompileCacheKey k = key(id, 1);
+
+    cache.put(k, handle(k));
+    assertThat(cache.get(k)).isPresent();
+
+    // Invalidate clears positive mapping, but recency buffer still holds the key event
+    cache.invalidate(id);
+    assertThat(cache.get(k)).isEmpty();
+    assertThat(cache.size()).isZero();
+
+    // Maintenance drain must discard the stale key event without resurrecting it
+    cache.drainMaintenance();
+    assertThat(cache.get(k)).isEmpty();
+    assertThat(cache.size()).isZero();
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void staleEventAfterEvictionIsIgnored() {
+    TemplateCompileCache cache = new TemplateCompileCache(1, 5000L, 5);
+    CompileCacheKey k1 = key(TemplateId.of("e1.vm"), 1);
+    CompileCacheKey k2 = key(TemplateId.of("e2.vm"), 2);
+
+    cache.put(k1, handle(k1));
+    assertThat(cache.get(k1)).isPresent();
+
+    // Capacity pressure evicts k1
+    cache.put(k2, handle(k2));
+    assertThat(cache.size()).isEqualTo(1);
+    assertThat(cache.get(k1)).isEmpty();
+    assertThat(cache.get(k2)).isPresent();
+
+    // Maintenance drain must not resurrect evicted k1
+    cache.drainMaintenance();
+    assertThat(cache.get(k1)).isEmpty();
+    assertThat(cache.get(k2)).isPresent();
+    assertThat(cache.size()).isEqualTo(1);
     assertThat(cache.isInternallyConsistent()).isTrue();
   }
 

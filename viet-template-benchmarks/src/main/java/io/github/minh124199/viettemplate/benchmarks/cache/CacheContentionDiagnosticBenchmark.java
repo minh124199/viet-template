@@ -8,6 +8,7 @@ import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.benchmarks.cache.prototype.BatchedDeferredLruCompileCache;
 import io.github.minh124199.viettemplate.benchmarks.cache.prototype.CompileCacheInterface;
 import io.github.minh124199.viettemplate.benchmarks.cache.prototype.CurrentTemplateCompileCacheAdapter;
+import io.github.minh124199.viettemplate.benchmarks.cache.prototype.LegacyLockedCompileCache;
 import io.github.minh124199.viettemplate.benchmarks.cache.prototype.NoLruBookkeepingCache;
 import io.github.minh124199.viettemplate.benchmarks.cache.prototype.StripedLruCompileCache;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel;
@@ -53,7 +54,7 @@ import org.openjdk.jmh.infra.Blackhole;
     jvmArgs = {"-server", "-Xms2g", "-Xmx2g", "-XX:+AlwaysPreTouch", "-XX:+UseG1GC"})
 public class CacheContentionDiagnosticBenchmark {
 
-  @Param({"CURRENT", "NO_LRU", "STRIPED_A", "BATCHED_B"})
+  @Param({"CURRENT", "LEGACY_LOCKED", "NO_LRU", "STRIPED_A", "BATCHED_B"})
   private String cacheType;
 
   @Param({"1", "16", "256", "1000"})
@@ -197,6 +198,7 @@ public class CacheContentionDiagnosticBenchmark {
   private static CompileCacheInterface createCache(String type, int capacity) {
     return switch (type) {
       case "CURRENT" -> new CurrentTemplateCompileCacheAdapter(capacity, 60000L, 500);
+      case "LEGACY_LOCKED" -> new LegacyLockedCompileCache(capacity, 60000L, 500);
       case "NO_LRU" -> new NoLruBookkeepingCache(capacity, 60000L, 500);
       case "STRIPED_A" -> new StripedLruCompileCache(capacity, 60000L, 500);
       case "BATCHED_B" -> new BatchedDeferredLruCompileCache(capacity, 60000L, 500);
