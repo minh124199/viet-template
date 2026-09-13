@@ -8,6 +8,7 @@ import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -582,6 +583,313 @@ class TemplateCompileCacheTest {
     assertThat(cache.get(k1)).isEmpty();
     assertThat(cache.get(k2)).isPresent();
     assertThat(cache.size()).isEqualTo(1);
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void highThreadCollisionStress16Threads() throws Exception {
+    runAdversarialCollisionTest(16, 1);
+    runAdversarialCollisionTest(16, 16);
+  }
+
+  @Test
+  void highThreadCollisionStress32Threads() throws Exception {
+    runAdversarialCollisionTest(32, 16);
+    runAdversarialCollisionTest(32, 256);
+  }
+
+  @Test
+  void highThreadCollisionStress64Threads() throws Exception {
+    runAdversarialCollisionTest(64, 16);
+    runAdversarialCollisionTest(64, 256);
+  }
+
+  @Test
+  void highThreadCollisionStress128And256Threads() throws Exception {
+    runAdversarialCollisionTest(128, 16);
+    runAdversarialCollisionTest(256, 64);
+  }
+
+  private void runAdversarialCollisionTest(int threadCount, int keyCount) throws Exception {
+    TemplateCompileCache cache = new TemplateCompileCache(100, 5000L, 20);
+    List<CompileCacheKey> keys = new ArrayList<>(keyCount);
+    for (int i = 0; i < keyCount; i++) {
+      CompileCacheKey k = key(TemplateId.of("col-" + i + ".vm"), i);
+      keys.add(k);
+      cache.put(k, handle(k));
+    }
+
+    ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+    CountDownLatch start = new CountDownLatch(1);
+    List<Future<?>> futures = new ArrayList<>();
+    AtomicInteger errorCount = new AtomicInteger(0);
+
+    try {
+      for (int t = 0; t < threadCount; t++) {
+        int threadIdx = t;
+        futures.add(
+            executor.submit(
+                () -> {
+                  start.await();
+                  ThreadLocalRandom random = ThreadLocalRandom.current();
+                  for (int op = 0; op < 2000; op++) {
+                    CompileCacheKey k = keys.get(random.nextInt(keys.size()));
+                    if (threadIdx % 5 == 0 && op % 50 == 0) {
+                      cache.invalidate(k.templateId());
+                    } else if (threadIdx % 5 == 1 && op % 50 == 0) {
+                      cache.put(k, handle(k));
+                    } else {
+                      cache.get(k);
+                    }
+                  }
+                  return null;
+                }));
+      }
+      start.countDown();
+      for (Future<?> f : futures) {
+        f.get(20, TimeUnit.SECONDS);
+      }
+    } catch (Throwable e) {
+      errorCount.incrementAndGet();
+      throw e;
+    } finally {
+      executor.shutdownNow();
+    }
+
+    assertThat(errorCount.get()).isZero();
+    assertThat(cache.size()).isLessThanOrEqualTo(100);
+    cache.drainMaintenance();
+    assertThat(cache.size()).isLessThanOrEqualTo(100);
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void recorderSaturationWithDelayedMaintenance() throws Exception {
+    TemplateCompileCache cache = new TemplateCompileCache(50, 5000L, 20);
+    List<CompileCacheKey> keys = new ArrayList<>();
+    for (int i = 0; i < 50; i++) {
+      CompileCacheKey k = key(TemplateId.of("sat-hold-" + i + ".vm"), i);
+      keys.add(k);
+      cache.put(k, handle(k));
+    }
+
+    CountDownLatch lockHeld = new CountDownLatch(1);
+    CountDownLatch releaseLock = new CountDownLatch(1);
+    ExecutorService lockHolder = Executors.newSingleThreadExecutor();
+    lockHolder.submit(
+        () -> {
+          cache.maintenanceLock.lock();
+          try {
+            lockHeld.countDown();
+            releaseLock.await();
+          } finally {
+            cache.maintenanceLock.unlock();
+          }
+          return null;
+        });
+
+    assertThat(lockHeld.await(5, TimeUnit.SECONDS)).isTrue();
+
+    int workerCount = 16;
+    ExecutorService workers = Executors.newFixedThreadPool(workerCount);
+    CountDownLatch start = new CountDownLatch(1);
+    List<Future<?>> futures = new ArrayList<>();
+    try {
+      for (int w = 0; w < workerCount; w++) {
+        futures.add(
+            workers.submit(
+                () -> {
+                  start.await();
+                  ThreadLocalRandom random = ThreadLocalRandom.current();
+                  for (int i = 0; i < 3000; i++) {
+                    CompileCacheKey k = keys.get(random.nextInt(keys.size()));
+                    assertThat(cache.get(k)).isPresent();
+                  }
+                  return null;
+                }));
+      }
+      start.countDown();
+      for (Future<?> f : futures) {
+        f.get(10, TimeUnit.SECONDS);
+      }
+    } finally {
+      releaseLock.countDown();
+      workers.shutdownNow();
+      lockHolder.shutdownNow();
+    }
+
+    cache.drainMaintenance();
+    assertThat(cache.size()).isEqualTo(50);
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void sequenceWraparoundHarmlessness() {
+    TemplateCompileCache cache = new TemplateCompileCache(10, 5000L, 5);
+    CompileCacheKey k = key(TemplateId.of("wrap.vm"), 1);
+    cache.put(k, handle(k));
+
+    long[] testPositions = {
+      0L,
+      1L,
+      63L,
+      64L,
+      65L,
+      127L,
+      128L,
+      Integer.MAX_VALUE,
+      (long) Integer.MAX_VALUE + 1,
+      -1L,
+      -2L,
+      -63L,
+      -64L,
+      -65L,
+      Long.MAX_VALUE,
+      Long.MIN_VALUE
+    };
+
+    for (long pos : testPositions) {
+      int index = (int) (pos & 63);
+      assertThat(index).isBetween(0, 63);
+      boolean trigger = (pos & 63) == 0;
+      if (pos == 0L || pos == 64L || pos == 128L || pos == -64L || pos == Long.MIN_VALUE) {
+        assertThat(trigger).isTrue();
+      }
+    }
+
+    for (int i = 0; i < 100_000; i++) {
+      assertThat(cache.get(k)).isPresent();
+    }
+    cache.drainMaintenance();
+    assertThat(cache.size()).isEqualTo(1);
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void consumerProducerConcurrentSlotRace() throws Exception {
+    TemplateCompileCache cache = new TemplateCompileCache(20, 5000L, 10);
+    List<CompileCacheKey> keys = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      CompileCacheKey k = key(TemplateId.of("slot-race-" + i + ".vm"), i);
+      keys.add(k);
+      cache.put(k, handle(k));
+    }
+
+    int threadCount = 8;
+    ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+    CyclicBarrier barrier = new CyclicBarrier(threadCount);
+    List<Future<?>> futures = new ArrayList<>();
+
+    try {
+      for (int t = 0; t < threadCount; t++) {
+        int threadId = t;
+        futures.add(
+            executor.submit(
+                () -> {
+                  for (int round = 0; round < 2000; round++) {
+                    barrier.await();
+                    if (threadId == 0) {
+                      cache.drainMaintenance();
+                    } else {
+                      CompileCacheKey k = keys.get(round % keys.size());
+                      cache.get(k);
+                    }
+                  }
+                  return null;
+                }));
+      }
+      for (Future<?> f : futures) {
+        f.get(15, TimeUnit.SECONDS);
+      }
+    } finally {
+      executor.shutdownNow();
+    }
+
+    cache.drainMaintenance();
+    assertThat(cache.size()).isEqualTo(10);
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void invalidateAllRaceUnderContinuousReadHits() throws Exception {
+    TemplateCompileCache cache = new TemplateCompileCache(100, 5000L, 20);
+    TemplateId id = TemplateId.of("inv-race.vm");
+    CompileCacheKey k = key(id, 1);
+    cache.put(k, handle(k));
+
+    int readerCount = 16;
+    ExecutorService executor = Executors.newFixedThreadPool(readerCount + 1);
+    CountDownLatch start = new CountDownLatch(1);
+    CountDownLatch stopReaders = new CountDownLatch(1);
+    List<Future<?>> futures = new ArrayList<>();
+
+    try {
+      for (int r = 0; r < readerCount; r++) {
+        futures.add(
+            executor.submit(
+                () -> {
+                  start.await();
+                  while (stopReaders.getCount() > 0) {
+                    cache.get(k);
+                    Thread.onSpinWait();
+                  }
+                  return null;
+                }));
+      }
+
+      futures.add(
+          executor.submit(
+              () -> {
+                start.await();
+                for (int i = 0; i < 100; i++) {
+                  cache.invalidateAll();
+                  if (i % 2 == 0) {
+                    cache.put(k, handle(k));
+                  }
+                }
+                cache.invalidateAll();
+                stopReaders.countDown();
+                return null;
+              }));
+
+      start.countDown();
+      for (Future<?> f : futures) {
+        f.get(15, TimeUnit.SECONDS);
+      }
+    } finally {
+      executor.shutdownNow();
+    }
+
+    cache.drainMaintenance();
+    assertThat(cache.size()).isZero();
+    assertThat(cache.getActive(id)).isEmpty();
+    assertThat(cache.get(k)).isEmpty();
+    assertThat(cache.isInternallyConsistent()).isTrue();
+  }
+
+  @Test
+  void extremeEventLossUnderSaturationFavorsHotEntry() {
+    TemplateCompileCache cache = new TemplateCompileCache(10, 5000L, 5);
+    CompileCacheKey hotKey = key(TemplateId.of("fav-hot.vm"), 0);
+    cache.put(hotKey, handle(hotKey));
+
+    for (int i = 1; i < 10; i++) {
+      CompileCacheKey k = key(TemplateId.of("cold-" + i + ".vm"), i);
+      cache.put(k, handle(k));
+    }
+    assertThat(cache.size()).isEqualTo(10);
+
+    for (int i = 0; i < 1000; i++) {
+      cache.get(hotKey);
+    }
+
+    for (int i = 10; i < 15; i++) {
+      CompileCacheKey k = key(TemplateId.of("cold-" + i + ".vm"), i);
+      cache.put(k, handle(k));
+    }
+
+    assertThat(cache.size()).isLessThanOrEqualTo(10);
+    assertThat(cache.get(hotKey)).isPresent();
     assertThat(cache.isInternallyConsistent()).isTrue();
   }
 

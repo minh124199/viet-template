@@ -193,6 +193,60 @@ class CompileCacheConcurrencyStressTest {
     }
   }
 
+  @Test
+  @DisplayName("High-cardinality virtual-thread collision stress across shared recency stripes")
+  void testVirtualThreadSharedStripeCollisionStress() throws Exception {
+    int maxCapacity = 200;
+    TemplateCompileCache cache = new TemplateCompileCache(maxCapacity, 5000L, 50);
+    int totalTasks = 5000;
+    int workingSetSize = 100;
+    List<CompileCacheKey> keys = new ArrayList<>(workingSetSize);
+    for (int i = 0; i < workingSetSize; i++) {
+      TemplateId tId = TemplateId.of("vt-stripe-" + i + ".vm");
+      CompileCacheKey key = createKey(tId, "hash-" + i);
+      keys.add(key);
+      cache.put(key, CompiledTemplateHandle.ofIr(tId, 1L, key, null));
+    }
+
+    ExecutorService executor = VirtualThreadSupport.createVirtualThreadExecutor();
+    try {
+      List<Callable<Void>> tasks = new ArrayList<>(totalTasks);
+      for (int i = 0; i < totalTasks; i++) {
+        int taskIndex = i;
+        tasks.add(
+            () -> {
+              CompileCacheKey key = keys.get(taskIndex % keys.size());
+              if (taskIndex % 20 == 0) {
+                cache.invalidate(key.templateId());
+              } else if (taskIndex % 20 == 1) {
+                cache.put(key, CompiledTemplateHandle.ofIr(key.templateId(), 1L, key, null));
+              } else {
+                cache.get(key);
+              }
+              return null;
+            });
+      }
+
+      List<Future<Void>> futures = executor.invokeAll(tasks);
+      for (Future<Void> f : futures) {
+        f.get(15, TimeUnit.SECONDS);
+      }
+
+      // Re-populate working set to verify post-stress capacity and consistency
+      for (CompileCacheKey k : keys) {
+        cache.put(k, CompiledTemplateHandle.ofIr(k.templateId(), 1L, k, null));
+      }
+      Method drainMethod = TemplateCompileCache.class.getDeclaredMethod("drainMaintenance");
+      drainMethod.setAccessible(true);
+      drainMethod.invoke(cache);
+
+      assertThat(cache.size()).isLessThanOrEqualTo(maxCapacity);
+      assertThat(isInternallyConsistent(cache)).isTrue();
+    } finally {
+      executor.shutdown();
+    }
+  }
+
   private static CompileCacheKey createKey(TemplateId id, String hash) {
     return CompileCacheKey.of(
         id,

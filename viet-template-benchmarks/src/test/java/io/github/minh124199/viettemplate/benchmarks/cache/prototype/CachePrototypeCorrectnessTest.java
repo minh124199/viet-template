@@ -60,7 +60,10 @@ class CachePrototypeCorrectnessTest {
             (CacheFactory) cap -> new StripedLruCompileCache(cap, 5000L, 50, 16)),
         Arguments.of(
             "BatchedDeferredLruCompileCache",
-            (CacheFactory) cap -> new BatchedDeferredLruCompileCache(cap, 5000L, 50)));
+            (CacheFactory) cap -> new BatchedDeferredLruCompileCache(cap, 5000L, 50)),
+        Arguments.of(
+            "PreHardeningDeferredRecencyCache",
+            (CacheFactory) cap -> new PreHardeningDeferredRecencyCache(cap, 5000L, 50)));
   }
 
   static Stream<Arguments> lruCacheFactories() {
@@ -76,7 +79,10 @@ class CachePrototypeCorrectnessTest {
             (CacheFactory) cap -> new StripedLruCompileCache(cap, 5000L, 50, 1)),
         Arguments.of(
             "BatchedDeferredLruCompileCache",
-            (CacheFactory) cap -> new BatchedDeferredLruCompileCache(cap, 5000L, 50)));
+            (CacheFactory) cap -> new BatchedDeferredLruCompileCache(cap, 5000L, 50)),
+        Arguments.of(
+            "PreHardeningDeferredRecencyCache",
+            (CacheFactory) cap -> new PreHardeningDeferredRecencyCache(cap, 5000L, 50)));
   }
 
   // --- a. Basic put and get hit ---
