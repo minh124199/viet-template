@@ -54,11 +54,18 @@ public final class Utf8OutputStreamTemplateOutput
 
   @Override
   public void write(CharSequence value) throws IOException {
+    if (value != null) {
+      write(value, 0, value.length());
+    }
+  }
+
+  @Override
+  public void write(CharSequence value, int start, int end) throws IOException {
     if (value == null) {
       return;
     }
-    int len = value.length();
-    for (int i = 0; i < len; i++) {
+    Objects.checkFromToIndex(start, end, value.length());
+    for (int i = start; i < end; i++) {
       char c = value.charAt(i);
       if (c <= 0x7F) {
         if (position >= buffer.length) {
@@ -70,7 +77,7 @@ public final class Utf8OutputStreamTemplateOutput
         buffer[position++] = (byte) (0xC0 | (c >> 6));
         buffer[position++] = (byte) (0x80 | (c & 0x3F));
       } else if (Character.isHighSurrogate(c)
-          && i + 1 < len
+          && i + 1 < end
           && Character.isLowSurrogate(value.charAt(i + 1))) {
         char low = value.charAt(++i);
         int codePoint = Character.toCodePoint(c, low);

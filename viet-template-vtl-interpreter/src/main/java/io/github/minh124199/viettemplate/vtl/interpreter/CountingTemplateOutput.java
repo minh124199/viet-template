@@ -55,6 +55,15 @@ public class CountingTemplateOutput implements TemplateOutput {
   }
 
   @Override
+  public void write(CharSequence value, int start, int end) throws IOException {
+    if (value != null) {
+      Objects.checkFromToIndex(start, end, value.length());
+      checkLimit(end - start);
+      delegate.write(value, start, end);
+    }
+  }
+
+  @Override
   public void write(char value) throws IOException {
     checkLimit(1);
     delegate.write(value);
