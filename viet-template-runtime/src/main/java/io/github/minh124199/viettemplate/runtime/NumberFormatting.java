@@ -96,19 +96,17 @@ public final class NumberFormatting {
       target[offset] = '0';
       return 1;
     }
-    byte[] temp = new byte[11];
-    int pos = 11;
     boolean negative = value < 0;
     int v = negative ? -value : value;
+    int len = stringSize(value);
+    if (negative) {
+      target[offset] = '-';
+    }
+    int pos = offset + len;
     while (v > 0) {
-      temp[--pos] = (byte) ('0' + (v % 10));
+      target[--pos] = (byte) ('0' + (v % 10));
       v /= 10;
     }
-    if (negative) {
-      temp[--pos] = '-';
-    }
-    int len = 11 - pos;
-    System.arraycopy(temp, pos, target, offset, len);
     return len;
   }
 
@@ -129,19 +127,17 @@ public final class NumberFormatting {
       target[offset] = '0';
       return 1;
     }
-    byte[] temp = new byte[20];
-    int pos = 20;
     boolean negative = value < 0;
     long v = negative ? -value : value;
+    int len = stringSize(value);
+    if (negative) {
+      target[offset] = '-';
+    }
+    int pos = offset + len;
     while (v > 0) {
-      temp[--pos] = (byte) ('0' + (v % 10));
+      target[--pos] = (byte) ('0' + (v % 10));
       v /= 10;
     }
-    if (negative) {
-      temp[--pos] = '-';
-    }
-    int len = 20 - pos;
-    System.arraycopy(temp, pos, target, offset, len);
     return len;
   }
 
