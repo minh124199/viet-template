@@ -131,7 +131,7 @@ The Java 17 production baseline remains strictly frozen for the entire 0.x relea
 
 ## Release Phase 0.3.x+ — Evidence-Driven Optimizations (Gated on Empirical Hotspot Evidence)
 
-Milestone M19.3a is **IMPLEMENTED — PR PENDING**; subsequent M19.3 optimizations remain strictly **GATED**.
+Milestone M19.3a is **COMPLETE**; subsequent M19.3 optimizations remain strictly **GATED**.
 
 Post-0.2.0 baseline performance characterization, multi-JDK profiling, and candidate evaluation are formally documented in [`docs/21-performance-characterization.md`](21-performance-characterization.md). Production implementation of M19.3a is documented in [`docs/23-m19.3a-cache-production-implementation.md`](23-m19.3a-cache-production-implementation.md).
 
@@ -141,7 +141,7 @@ Guided strictly by JMH profiling, JFR allocation/contention analysis, and virtua
 
 1. **Rank 1 (Promoted) — LRU Cache Contention Mitigation**:
    - **Evidence**: JFR `contention-by-site` identified `TemplateCompileCache.get(CompileCacheKey)` (`synchronized (lruLock)`) as the top monitor contention site in the runtime ($25\text{ contention events}$, $14.6\text{ ms}$ average wait time). JMH `ConcurrentCacheBenchmark` proved a $>55\%$ throughput collapse under 4 and 8 concurrent worker threads.
-   - **Status**: **IMPLEMENTED — PR PENDING (Production Implementation Documented in [`docs/23-m19.3a-cache-production-implementation.md`](23-m19.3a-cache-production-implementation.md))**. Batched deferred maintenance with per-thread striped ring buffers implemented in `TemplateCompileCache`, delivering 6.85x read-hit speedup (50.32M ops/s at 8 threads) and 5.05x end-to-end rendering speedup with 0 JFR monitor contention events and zero steady-state allocation.
+   - **Status**: **COMPLETE (Production Implementation Documented in [`docs/23-m19.3a-cache-production-implementation.md`](23-m19.3a-cache-production-implementation.md))**. Batched deferred maintenance with per-thread striped ring buffers implemented in `TemplateCompileCache`, delivering 6.85x read-hit speedup (50.32M ops/s at 8 threads) and 5.05x end-to-end rendering speedup with 0 JFR monitor contention events and zero steady-state allocation.
 2. **Rank 2 (Promoted) — Streaming Output Buffer & Primitive Byte Formatting**:
    - **Evidence**: JFR `allocation-by-class` during rendering proved `byte[]` represents $33.11\%$ of steady-state allocation volume. `ForeachRenderingBenchmark` showed streaming UTF-8 output (`Utf8StreamOutput`) running $10\text{--}15\%$ slower than `StringOutput` due to lack of buffer pooling and intermediate byte conversions.
    - **Status**: **QUALIFIED & PROMOTED FOR M19.3 PLANNING**. Evaluate thread-local or pooled output buffers and direct primitive byte encoding.
