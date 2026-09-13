@@ -57,7 +57,11 @@ Following the official release of `0.2.0` and the integration of the `M19.2c` pe
 
 ## 2. Methodology, Configuration & Statistical Controls
 
-All benchmark measurements follow the strict guidelines specified in `docs/15-benchmark-plan.md` (`VT-PERF-METHODOLOGY-1`):
+All benchmark measurements follow the guidelines specified in `docs/15-benchmark-plan.md` (`VT-PERF-METHODOLOGY-1`):
+
+> [!NOTE]
+> **Methodology Context**:
+> `VT-PERF-METHODOLOGY-1` is an **authoritative engineering reference baseline** designed for broad coverage across all 10 canonical benchmark suites (117 configurations) and multi-JDK matrix execution within reasonable local workstation runtimes. For targeted optimization qualification (such as Milestone M19.3a), a stronger benchmarking protocol (`VT-PERF-M19.3A-QUALIFICATION-1`) with at least $\ge 3$ forks, $\ge 5$ warmup iterations, $\ge 10$ measurement iterations, and multiple independent repeated runs is required to confirm optimization candidates before runtime changes are considered.
 
 ### 2.1 Hardware and OS Profile
 
@@ -70,7 +74,7 @@ All benchmark measurements follow the strict guidelines specified in `docs/15-be
 | **Background Load** | Controlled, single-user environment ($1\text{-minute load average} < 1.0$) |
 | **Power State** | AC mains connected, governor performance |
 
-### 2.2 Standardized JMH Execution Parameters
+### 2.2 Standardized JMH Execution Parameters (Engineering Reference Baseline)
 
 To ensure statistical confidence while maintaining reproducible turnaround times:
 - **Forks**: $2$ independent JVM subprocess forks.
@@ -251,7 +255,7 @@ Using `scripts/perf/compare-jmh.py`, all benchmark configurations were conservat
 ### 4.3 Garbage Collector & Memory Footprint Observations
 
 - **Generational ZGC (`J21-ZGC`)**: On allocation-heavy rendering benchmarks (`ForeachRenderingBenchmark.b05_smallTable`), Generational ZGC delivered $96,271\text{ ops/s}$ compared to G1's $102,216\text{ ops/s}$ (within $\sim 5\%$). The minor throughput difference is the expected tradeoff for sub-millisecond maximum pause times.
-- **Compact Object Headers (`J25-G1-COH`)**: Running with experimental Compact Object Headers (JEP 519) enabled yielded $520,542\text{ ops/s}$ on static HTML and $112,455\text{ ops/s}$ on scalars, matching or slightly exceeding standard 64-bit object headers while cutting per-instance object header size from 12/16 bytes to 8 bytes.
+- **Compact Object Headers (`J25-G1-COH`)**: Running with Compact Object Headers (JEP 519) enabled yielded $520,542\text{ ops/s}$ on static HTML and $112,455\text{ ops/s}$ on scalars, matching or slightly exceeding standard 64-bit object headers while cutting per-instance object header size from 12/16 bytes to 8 bytes.
 
 ---
 
