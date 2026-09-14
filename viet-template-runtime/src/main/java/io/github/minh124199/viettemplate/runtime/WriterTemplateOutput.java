@@ -10,7 +10,10 @@ import java.util.Objects;
 /** Streaming {@link TemplateOutput} implementation backed by a {@link Writer}. */
 public final class WriterTemplateOutput implements TemplateOutput, Flushable {
 
+  private static final int SCRATCH_BUFFER_SIZE = 1024;
+
   private final Writer writer;
+  private char[] scratchBuffer;
 
   public WriterTemplateOutput(Writer writer) {
     this.writer = Objects.requireNonNull(writer, "writer must not be null");
@@ -30,16 +33,19 @@ public final class WriterTemplateOutput implements TemplateOutput, Flushable {
       if (value instanceof String s) {
         writer.write(s, start, end - start);
       } else {
-        int len = end - start;
-        char[] buf = new char[Math.min(len, 1024)];
         int srcIdx = start;
-        while (srcIdx < end) {
-          int chunk = Math.min(buf.length, end - srcIdx);
-          for (int i = 0; i < chunk; i++) {
-            buf[i] = value.charAt(srcIdx + i);
+        if (srcIdx < end) {
+          if (scratchBuffer == null) {
+            scratchBuffer = new char[SCRATCH_BUFFER_SIZE];
           }
-          writer.write(buf, 0, chunk);
-          srcIdx += chunk;
+          while (srcIdx < end) {
+            int chunk = Math.min(scratchBuffer.length, end - srcIdx);
+            for (int i = 0; i < chunk; i++) {
+              scratchBuffer[i] = value.charAt(srcIdx + i);
+            }
+            writer.write(scratchBuffer, 0, chunk);
+            srcIdx += chunk;
+          }
         }
       }
     }
