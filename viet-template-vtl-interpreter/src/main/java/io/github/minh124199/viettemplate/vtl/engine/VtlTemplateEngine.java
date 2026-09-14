@@ -301,11 +301,13 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     return cache;
   }
 
+  @Override
   public void invalidate(TemplateId id) {
     globalMacroManager.invalidate(id);
     cache.invalidate(id);
   }
 
+  @Override
   public void invalidateAll() {
     globalMacroManager.invalidateAll();
     cache.invalidateAll();

@@ -1,11 +1,23 @@
 package io.github.minh124199.viettemplate.api;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
-/** Primary entrypoint contract for loading and managing templates. */
-public interface TemplateEngine {
+/**
+ * Primary entrypoint contract for loading, compiling, and rendering templates.
+ *
+ * <p><strong>Thread Safety &amp; Lifecycle:</strong> {@code TemplateEngine} instances are
+ * long-lived, thread-safe, and designed for concurrent multi-threaded sharing across application
+ * runtimes. All template retrieval, compilation caching, and rendering operations can be safely
+ * executed concurrently from multiple threads.
+ *
+ * <p>Implements {@link AutoCloseable} to allow graceful release of background resources (such as
+ * filesystem watchers or thread pools) upon application shutdown.
+ */
+public interface TemplateEngine extends AutoCloseable {
 
   /**
    * Retrieves and returns a loaded or compiled {@link Template} by its identifier.
@@ -66,6 +78,85 @@ public interface TemplateEngine {
   }
 
   /**
+   * Convenience method to render a screen template by name string directly to a {@link String}.
+   *
+   * @param screenName screen template name or path
+   * @param context user model context
+   * @return rendered template output string
+   * @throws IOException on write failures
+   */
+  default String render(String screenName, RenderContext context) throws IOException {
+    return render(TemplateId.normalize(screenName), context);
+  }
+
+  /**
+   * Convenience method to render a screen template by identifier directly to a {@link String}.
+   *
+   * @param screenId normalized screen template identifier
+   * @param context user model context
+   * @return rendered template output string
+   * @throws IOException on write failures
+   */
+  default String render(TemplateId screenId, RenderContext context) throws IOException {
+    StringBuilder sb = new StringBuilder();
+    render(
+        screenId,
+        context,
+        new TemplateOutput() {
+          @Override
+          public void write(CharSequence v) {
+            if (v != null) {
+              sb.append(v);
+            }
+          }
+
+          @Override
+          public void write(CharSequence v, int s, int e) {
+            if (v != null) {
+              Objects.checkFromToIndex(s, e, v.length());
+              sb.append(v, s, e);
+            }
+          }
+
+          @Override
+          public void write(char v) {
+            sb.append(v);
+          }
+
+          @Override
+          public void writeUtf8(byte[] b) {
+            sb.append(new String(b, StandardCharsets.UTF_8));
+          }
+
+          @Override
+          public void writeUtf8(byte[] b, int off, int len) {
+            sb.append(new String(b, off, len, StandardCharsets.UTF_8));
+          }
+
+          @Override
+          public void writeInt(int v) {
+            sb.append(v);
+          }
+
+          @Override
+          public void writeLong(long v) {
+            sb.append(v);
+          }
+
+          @Override
+          public void writeDouble(double v) {
+            sb.append(v);
+          }
+
+          @Override
+          public void writeBoolean(boolean v) {
+            sb.append(v);
+          }
+        });
+    return sb.toString();
+  }
+
+  /**
    * Prepares an executable {@link LayoutRenderPlan} for the specified screen template and context.
    *
    * @param screenId screen template identifier
@@ -85,6 +176,24 @@ public interface TemplateEngine {
    * @return set of all invalidated template identifiers
    */
   Set<TemplateId> invalidateWithDependents(TemplateId id);
+
+  /**
+   * Invalidates the specified template from the compilation cache.
+   *
+   * <p>The default implementation delegates to {@link #invalidateWithDependents(TemplateId)}.
+   *
+   * @param id template identifier
+   */
+  default void invalidate(TemplateId id) {
+    invalidateWithDependents(id);
+  }
+
+  /** Invalidates all templates and compilation cache entries in this engine. */
+  default void invalidateAll() {}
+
+  /** Closes this template engine, releasing any underlying background resources. */
+  @Override
+  default void close() {}
 
   /** Returns the underlying {@link TemplateRepository} associated with this engine. */
   TemplateRepository repository();

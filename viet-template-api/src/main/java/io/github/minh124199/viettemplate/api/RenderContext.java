@@ -1,12 +1,19 @@
 package io.github.minh124199.viettemplate.api;
 
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-/** Read-only evaluation context supplied during template rendering. */
+/**
+ * Read-only evaluation context supplied during template rendering.
+ *
+ * <p>Variable keys must not be {@code null}. Context entries may have {@code null} values; a {@code
+ * null} value represents a defined-null variable ({@code DEFINED_NULL}), distinguishing an
+ * explicitly defined {@code null} from an absent / undefined variable.
+ */
 public interface RenderContext {
 
   Object get(String name);
@@ -25,14 +32,32 @@ public interface RenderContext {
     return EmptyRenderContext.INSTANCE;
   }
 
+  /**
+   * Creates an immutable {@link RenderContext} backed by the provided map.
+   *
+   * @param map map of variable names to values; keys must not be null, null values represent
+   *     defined-null variables
+   * @return read-only render context
+   * @throws NullPointerException if map is null or any key in map is null
+   */
   static RenderContext of(Map<String, Object> map) {
     Objects.requireNonNull(map, "map must not be null");
     return new MapBackedRenderContext(map);
   }
 
+  /**
+   * Creates an immutable single-variable {@link RenderContext}.
+   *
+   * @param key variable name (must not be null)
+   * @param value variable value (may be null, representing a defined-null variable)
+   * @return read-only render context
+   * @throws NullPointerException if key is null
+   */
   static RenderContext of(String key, Object value) {
     Objects.requireNonNull(key, "key must not be null");
-    return new MapBackedRenderContext(Map.of(key, value));
+    Map<String, Object> map = new LinkedHashMap<>(1);
+    map.put(key, value);
+    return new MapBackedRenderContext(map);
   }
 
   static Builder builder() {
@@ -41,7 +66,7 @@ public interface RenderContext {
 
   /** Fluent builder for constructing immutable {@link RenderContext} instances. */
   final class Builder {
-    private final Map<String, Object> map = new HashMap<>();
+    private final Map<String, Object> map = new LinkedHashMap<>();
 
     public Builder put(String key, Object value) {
       Objects.requireNonNull(key, "key must not be null");
@@ -51,7 +76,7 @@ public interface RenderContext {
 
     public Builder putAll(Map<String, ?> entries) {
       if (entries != null) {
-        map.putAll(entries);
+        entries.forEach(this::put);
       }
       return this;
     }
@@ -82,7 +107,12 @@ final class MapBackedRenderContext implements RenderContext {
   private final Map<String, Object> map;
 
   MapBackedRenderContext(Map<String, Object> map) {
-    this.map = Map.copyOf(map);
+    Objects.requireNonNull(map, "map must not be null");
+    Map<String, Object> copy = new LinkedHashMap<>(map);
+    for (String key : copy.keySet()) {
+      Objects.requireNonNull(key, "variable key must not be null");
+    }
+    this.map = Collections.unmodifiableMap(copy);
   }
 
   @Override

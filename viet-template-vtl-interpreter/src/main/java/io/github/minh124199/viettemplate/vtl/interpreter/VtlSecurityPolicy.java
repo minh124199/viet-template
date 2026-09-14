@@ -198,6 +198,102 @@ final class SafeSecurityPolicy implements VtlSecurityPolicy {
 }
 
 final class MemberAccessPolicyVtlAdapter implements VtlSecurityPolicy {
+
+  private static final java.util.Set<String> CORE_DENIED_CLASSES =
+      java.util.Set.of(
+          Class.class.getName(),
+          ClassLoader.class.getName(),
+          Module.class.getName(),
+          Runtime.class.getName(),
+          ProcessBuilder.class.getName(),
+          Process.class.getName(),
+          Thread.class.getName(),
+          ThreadGroup.class.getName(),
+          System.class.getName(),
+          Method.class.getName(),
+          Field.class.getName(),
+          java.lang.reflect.Constructor.class.getName(),
+          java.lang.reflect.Member.class.getName(),
+          java.lang.invoke.MethodHandle.class.getName(),
+          java.lang.invoke.MethodHandles.class.getName(),
+          java.lang.invoke.MethodHandles.Lookup.class.getName(),
+          java.security.ProtectionDomain.class.getName(),
+          "java.security.AccessController",
+          java.security.Security.class.getName(),
+          java.util.concurrent.Executor.class.getName(),
+          java.util.concurrent.ExecutorService.class.getName(),
+          java.util.concurrent.ThreadPoolExecutor.class.getName(),
+          java.util.concurrent.ScheduledExecutorService.class.getName(),
+          java.util.concurrent.ForkJoinPool.class.getName(),
+          java.util.concurrent.CompletableFuture.class.getName());
+
+  private static final java.util.Set<String> CORE_DENIED_PREFIXES =
+      java.util.Set.of(
+          "java.lang.reflect.",
+          "java.lang.invoke.",
+          "java.security.",
+          "sun.",
+          "jdk.internal.",
+          "jdk.nashorn.",
+          "com.sun.",
+          "org.graalvm.");
+
+  private static final java.util.Set<String> CORE_DENIED_METHODS =
+      java.util.Set.of(
+          "getClass",
+          "getClassLoader",
+          "getModule",
+          "getProtectionDomain",
+          "getDeclaredMethods",
+          "getDeclaredFields",
+          "getDeclaredConstructors",
+          "getMethods",
+          "getFields",
+          "getConstructors",
+          "getDeclaredMethod",
+          "getDeclaredField",
+          "getDeclaredConstructor",
+          "getMethod",
+          "getField",
+          "getConstructor",
+          "newInstance",
+          "invoke",
+          "setAccessible",
+          "trySetAccessible",
+          "forName",
+          "loadClass",
+          "findClass",
+          "defineClass",
+          "lookup",
+          "exit",
+          "halt",
+          "load",
+          "loadLibrary",
+          "wait",
+          "notify",
+          "notifyAll",
+          "shutdown",
+          "shutdownNow",
+          "interrupt",
+          "suspend",
+          "resume");
+
+  private static boolean isCoreDenied(Class<?> clazz) {
+    if (clazz == null) {
+      return true;
+    }
+    String name = clazz.getName();
+    if (CORE_DENIED_CLASSES.contains(name)) {
+      return true;
+    }
+    for (String prefix : CORE_DENIED_PREFIXES) {
+      if (name.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private final MemberAccessPolicy policy;
 
   MemberAccessPolicyVtlAdapter(MemberAccessPolicy policy) {
@@ -220,43 +316,128 @@ final class MemberAccessPolicyVtlAdapter implements VtlSecurityPolicy {
 
   @Override
   public boolean isClassPermitted(Class<?> clazz) {
+    if (clazz == null || isCoreDenied(clazz)) {
+      return false;
+    }
     return policy.isClassPermitted(clazz);
   }
 
   @Override
   public boolean isMethodPermitted(Class<?> receiverClass, Method method) {
+    if (receiverClass == null || isCoreDenied(receiverClass)) {
+      return false;
+    }
+    if (method != null) {
+      if (isCoreDenied(method.getDeclaringClass())
+          || isCoreDenied(method.getReturnType())
+          || CORE_DENIED_METHODS.contains(method.getName())) {
+        return false;
+      }
+    }
     return policy.isMethodPermitted(receiverClass, method);
   }
 
   @Override
   public boolean isFieldPermitted(Class<?> receiverClass, Field field) {
+    if (receiverClass == null || isCoreDenied(receiverClass)) {
+      return false;
+    }
+    if (field != null
+        && (isCoreDenied(field.getDeclaringClass()) || isCoreDenied(field.getType()))) {
+      return false;
+    }
     return policy.isFieldPermitted(receiverClass, field);
   }
 
   @Override
   public boolean isPropertyPermitted(Class<?> receiverClass, String propertyName) {
+    if (receiverClass == null || isCoreDenied(receiverClass)) {
+      return false;
+    }
+    if (propertyName != null
+        && propertyName.equalsIgnoreCase("class")
+        && !java.util.Map.class.isAssignableFrom(receiverClass)) {
+      return false;
+    }
     return policy.isPropertyPermitted(receiverClass, propertyName);
   }
 
   @Override
   public boolean isPropertyMutationPermitted(Class<?> receiverClass, String propertyName) {
+    if (receiverClass == null || isCoreDenied(receiverClass)) {
+      return false;
+    }
     return policy.isPropertyMutationPermitted(receiverClass, propertyName);
   }
 
   @Override
   public boolean isIndexMutationPermitted(Class<?> receiverClass) {
+    if (receiverClass == null || isCoreDenied(receiverClass)) {
+      return false;
+    }
     return policy.isIndexMutationPermitted(receiverClass);
   }
 
   @Override
   public boolean isPropertyMethodPermitted(
       Class<?> receiverClass, Method method, String propertyName) {
-    return policy.isPropertyMethodPermitted(receiverClass, method, propertyName);
+    if (!isPropertyPermitted(receiverClass, propertyName)) {
+      return false;
+    }
+    return isMethodPermitted(receiverClass, method);
   }
 
   @Override
   public LinkerAccessPolicy toLinkerAccessPolicy() {
-    return LinkerAccessPolicy.of(policy);
+    return new LinkerAccessPolicy() {
+      @Override
+      public String policyId() {
+        return MemberAccessPolicyVtlAdapter.this.policyFingerprint();
+      }
+
+      @Override
+      public boolean isSafeProfile() {
+        return MemberAccessPolicyVtlAdapter.this.isSafeProfile();
+      }
+
+      @Override
+      public boolean isClassPermitted(Class<?> clazz) {
+        return MemberAccessPolicyVtlAdapter.this.isClassPermitted(clazz);
+      }
+
+      @Override
+      public boolean isMethodPermitted(Class<?> receiverClass, Method method) {
+        return MemberAccessPolicyVtlAdapter.this.isMethodPermitted(receiverClass, method);
+      }
+
+      @Override
+      public boolean isFieldPermitted(Class<?> receiverClass, Field field) {
+        return MemberAccessPolicyVtlAdapter.this.isFieldPermitted(receiverClass, field);
+      }
+
+      @Override
+      public boolean isPropertyPermitted(Class<?> receiverClass, String propertyName) {
+        return MemberAccessPolicyVtlAdapter.this.isPropertyPermitted(receiverClass, propertyName);
+      }
+
+      @Override
+      public boolean isPropertyMutationPermitted(Class<?> receiverClass, String propertyName) {
+        return MemberAccessPolicyVtlAdapter.this.isPropertyMutationPermitted(
+            receiverClass, propertyName);
+      }
+
+      @Override
+      public boolean isIndexMutationPermitted(Class<?> receiverClass) {
+        return MemberAccessPolicyVtlAdapter.this.isIndexMutationPermitted(receiverClass);
+      }
+
+      @Override
+      public boolean isPropertyMethodPermitted(
+          Class<?> receiverClass, Method method, String propertyName) {
+        return MemberAccessPolicyVtlAdapter.this.isPropertyMethodPermitted(
+            receiverClass, method, propertyName);
+      }
+    };
   }
 }
 
