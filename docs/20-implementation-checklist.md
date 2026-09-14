@@ -504,21 +504,21 @@ Every optimization must preserve:
 
 ## 14. Public API
 
-- [ ] `TemplateEngine`.
-- [ ] `Template`.
+- [x] `TemplateEngine`.
+- [x] `Template`.
 - [x] `CompiledTemplate`.
-- [ ] `TemplateRepository`.
-- [ ] `TemplateCompiler`.
-- [ ] `TemplateModelDescriptor`.
-- [ ] `RenderContext`.
-- [ ] `TemplateOutput`.
-- [ ] `Escaper`.
-- [ ] `MemberAccessPolicy`.
-- [ ] `TemplateDiagnostic`.
-- [ ] `TemplateException` taxonomy.
-- [ ] Extension API separated from internal compiler API.
-- [ ] Thread-safety guarantees in Javadoc.
-- [ ] Compatibility/versioning policy.
+- [x] `TemplateRepository`.
+- [x] `TemplateCompiler`.
+- [x] `TemplateModelDescriptor`.
+- [x] `RenderContext`.
+- [x] `TemplateOutput`.
+- [x] `Escaper`.
+- [x] `MemberAccessPolicy`.
+- [x] `TemplateDiagnostic`.
+- [x] `TemplateException` taxonomy.
+- [x] Extension API separated from internal compiler API.
+- [x] Thread-safety guarantees in Javadoc.
+- [x] Compatibility/versioning policy.
 
 ---
 

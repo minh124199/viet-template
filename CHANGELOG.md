@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Public API & SPI Stabilization (Milestone M14)**:
+  - **Lifecycle Management**: `TemplateEngine` implements `AutoCloseable` with `default void close() {}`, providing graceful resource cleanup in try-with-resources blocks.
+  - **Engine Invalidation Conveniences**: Added `TemplateEngine.invalidate(TemplateId)` and `TemplateEngine.invalidateAll()`.
+  - **Convenience Rendering Methods**: Added `TemplateEngine.render(String/TemplateId, RenderContext)` and `Template.render(RenderContext)` returning rendered strings directly.
+  - **Automated API Compatibility Enforcement**: Added `config/api-baseline/1.0-public-api.txt` and `scripts/verify-api-compatibility.py` integrated into CI to detect binary and source breaking changes.
+  - **Architecture Isolation**: Added ArchUnit rule `api_must_not_depend_on_runtime_or_interpreter` to strictly enforce `viet-template-api` modular independence.
+  - **Dedicated Contract Test Suites**: Added `PublicApiContractTest`, `TemplateOutputSpiContractTest`, `TemplateEngineContractTest`, `TemplateRepositorySpiContractTest`, `SecuritySpiContractTest`, and `ApiConsumerSmokeTest`.
+
+### Changed
+- **Contract & Null Semantics Hardening**:
+  - `RenderContext.of`, `RenderContext.Builder`, and `MapBackedRenderContext` now preserve null variable values (`DEFINED_NULL`) without throwing `NullPointerException` or collapsing into `UNDEFINED`.
+  - `DefaultMutableRenderContext` preserves `null` values via internal sentinel instead of removing the variable from the context.
+  - `MemberAccessPolicy` no longer extends `java.io.Serializable`.
+  - Fail-closed security enforced in `MemberAccessPolicyVtlAdapter` and `MemberAccessPolicyLinkerAdapter` against dangerous types (`Class`, `ClassLoader`, `Runtime`, `ProcessBuilder`, `Thread`, reflection).
+  - Documented thread-confinement of `TemplateOutput` and thread-safety of `TemplateEngine`, `Template`, `RenderContext`, `Escaper`, and `MemberAccessPolicy`.
+
 ## [0.2.0] - 2026-09-12
 
 ### Added
