@@ -14,7 +14,7 @@ public final class CallSiteRegistry {
   private final ConcurrentHashMap<CallSiteKey, DynamicCallSite> sites = new ConcurrentHashMap<>();
 
   /** Compound key uniquely identifying a call site by its site id, member key, and policy id. */
-  public record CallSiteKey(int siteId, MemberKey memberKey, String policyId) {
+  private record CallSiteKey(int siteId, MemberKey memberKey, String policyId) {
     public CallSiteKey {
       Objects.requireNonNull(memberKey, "memberKey must not be null");
       Objects.requireNonNull(policyId, "policyId must not be null");

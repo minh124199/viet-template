@@ -520,6 +520,29 @@ Every optimization must preserve:
 - [x] Thread-safety guarantees in Javadoc.
 - [x] Compatibility/versioning policy.
 
+### 14.1 Public Surface Containment + Lifecycle Finalization (Milestone M14.1)
+
+- [x] Safe visibility reductions: `CallSiteRegistry.CallSiteKey` (private), `AccessLink.Status` and `status()` (package-private), `VtlAstDumper` (package-private), `VtlSemanticDiagnosticCodes` (package-private).
+- [x] Deterministic 4-category classification of all 341 public/protected production types in `config/api-baseline/public-surface-classification.txt`:
+  - `STABLE_API`: 66 types.
+  - `STABLE_SPI`: 14 types.
+  - `EXPERIMENTAL`: 6 types.
+  - `PUBLIC_BUT_INTERNAL_ACCIDENT`: 255 types.
+  - 0 unclassified types.
+- [x] Automated CI classification verification (`scripts/verify-public-surface-classification.py`):
+  - Check 1: 0 unclassified public types.
+  - Check 2: No stale classified types.
+  - Check 3: Baseline parity with `config/api-baseline/1.0-public-api.txt` (80/80 types).
+  - Check 4: Zero signature leaks from internal/experimental types into `STABLE_API` or `STABLE_SPI`.
+- [x] Concrete output stream lifecycle and resource ownership contracts:
+  - `Utf8OutputStreamTemplateOutput`: render-scoped, flushes and closes wrapped `OutputStream` on `close()`, releases buffer to `Utf8BufferPool`, idempotent double close, managed response non-closing delegate pattern.
+  - `WriterTemplateOutput`: render-scoped, caller retains ownership of `Writer`, flush delegation.
+  - `StringTemplateOutput`: render-scoped, in-memory, `reset()` contract.
+  - `TemplateEngine`: long-lived singleton, thread-safe, `AutoCloseable` with idempotent `close()`.
+- [x] Dedicated lifecycle contract test suite: `ConcreteOutputLifecycleContractTest` (9 tests passing).
+- [x] Integration boundary ArchUnit rule: `integration_and_tooling_boundary_must_not_access_internal_packages` in `ArchitectureRulesTest`.
+- [x] M15 AOT facade readiness audit: documented requirement for narrow build-time compiler facade (`TemplateAotCompiler`) in M15.
+
 ---
 
 ## 15. Maven/Gradle AOT tooling

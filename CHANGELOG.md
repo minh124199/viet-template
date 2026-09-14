@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Architecture Isolation**: Added ArchUnit rule `api_must_not_depend_on_runtime_or_interpreter` to strictly enforce `viet-template-api` modular independence.
   - **Dedicated Contract Test Suites**: Added `PublicApiContractTest`, `TemplateOutputSpiContractTest`, `TemplateEngineContractTest`, `TemplateRepositorySpiContractTest`, `SecuritySpiContractTest`, and `ApiConsumerSmokeTest`.
 
+- **Public Surface Containment & Output Lifecycle Finalization (Milestone M14.1)**:
+  - **Safe Visibility Reductions**: Lowered visibility on 4 unneeded public internal classes/members (`CallSiteRegistry.CallSiteKey` to private; `AccessLink.Status`, `AccessLink.status()`, `VtlAstDumper`, and `VtlSemanticDiagnosticCodes` to package-private).
+  - **Public Surface Classification Baseline**: Established `config/api-baseline/public-surface-classification.txt` classifying all 341 public types across production modules into 66 `STABLE_API`, 14 `STABLE_SPI`, 6 `EXPERIMENTAL`, and 255 `PUBLIC_BUT_INTERNAL_ACCIDENT` (0 unclassified types).
+  - **Automated CI Surface & Leak Verification**: Added `scripts/generate-public-surface.py` and `scripts/verify-public-surface-classification.py` integrated into CI to enforce zero unclassified types, zero stale types, baseline parity, and zero internal/experimental signature leaks.
+  - **Output Stream Lifecycle & Resource Ownership Contracts**: Added comprehensive class and method-level Javadoc to `Utf8OutputStreamTemplateOutput`, `WriterTemplateOutput`, `StringTemplateOutput`, and `TemplateEngine` detailing thread confinement, stream ownership on close, double-close idempotency, flush semantics, and the container-managed non-closing stream pattern.
+  - **Dedicated Lifecycle Contract Test Suite**: Added `ConcreteOutputLifecycleContractTest` in `viet-template-runtime` covering 9 comprehensive streaming lifecycle scenarios.
+  - **Integration Boundary ArchUnit Rule**: Added `integration_and_tooling_boundary_must_not_access_internal_packages` in `viet-template-tck`.
+  - **M15 AOT Facade Readiness Audit**: Documented requirement for a narrow build-time compiler facade (`TemplateAotCompiler`) in M15 to decouple build tooling from internal compiler machinery.
+
 ### Changed
 - **Contract & Null Semantics Hardening**:
   - `RenderContext.of`, `RenderContext.Builder`, and `MapBackedRenderContext` now preserve null variable values (`DEFINED_NULL`) without throwing `NullPointerException` or collapsing into `UNDEFINED`.

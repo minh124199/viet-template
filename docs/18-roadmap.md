@@ -170,7 +170,16 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
   - Automated binary & source compatibility tooling (`config/api-baseline/1.0-public-api.txt`, `scripts/verify-api-compatibility.py`, CI enforcement).
   - Third-party SPI implementor fixtures and external consumer smoke tests.
   - Formally documented in [`docs/32-m14-public-api-spi-stabilization.md`](32-m14-public-api-spi-stabilization.md).
-- **Milestone M15 (Maven & Gradle AOT Tooling) — NEXT**:
+- **Milestone M14.1 (Public Surface Containment + Lifecycle Finalization) — COMPLETE**:
+  - Reduced visibility on 4 unneeded public internal types/members to private or package-private.
+  - Full 4-category classification of all 341 production public types (66 `STABLE_API`, 14 `STABLE_SPI`, 6 `EXPERIMENTAL`, 255 `PUBLIC_BUT_INTERNAL_ACCIDENT`) in `config/api-baseline/public-surface-classification.txt`.
+  - Automated CI verification (`scripts/verify-public-surface-classification.py`) enforcing 0 unclassified types, 0 stale types, baseline parity, and 0 signature leaks.
+  - Hardened concrete output stream lifecycles (`Utf8OutputStreamTemplateOutput`, `WriterTemplateOutput`, `StringTemplateOutput`, `TemplateEngine`), verified by `ConcreteOutputLifecycleContractTest`.
+  - Added ArchUnit rule `integration_and_tooling_boundary_must_not_access_internal_packages` in `viet-template-tck`.
+  - Audited M15 AOT readiness; mandated a narrow build-time compiler facade (`TemplateAotCompiler`) in M15 to decouple build tooling from internal compiler machinery.
+  - Formally documented in [`docs/33-m14-1-public-surface-containment.md`](33-m14-1-public-surface-containment.md).
+- **Milestone M15 (Maven & Gradle AOT Tooling) — NEXT (Requires Narrow Build Facade)**:
+  - Implement narrow build-time compiler facade (`TemplateAotCompiler` / `BuildTemplateCompiler`) encapsulating AST/IR/bytecode compilation from tooling plugins.
   - Dedicated `viet-template-maven-plugin` and `viet-template-gradle-plugin` for build-time template precompilation, model validation, and class generation.
 - **Milestone M16 & M17 (Spring Framework 7 & Spring Boot 4 Integration)**:
   - `viet-template-spring` providing Spring MVC `View` and `ViewResolver`.
