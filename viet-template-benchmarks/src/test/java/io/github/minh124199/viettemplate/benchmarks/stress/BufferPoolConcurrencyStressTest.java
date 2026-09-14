@@ -8,8 +8,12 @@ import io.github.minh124199.viettemplate.benchmarks.output.prototype.AtomicSlotP
 import io.github.minh124199.viettemplate.benchmarks.output.prototype.BufferPool;
 import io.github.minh124199.viettemplate.benchmarks.output.prototype.PrototypePooledUtf8Output;
 import io.github.minh124199.viettemplate.benchmarks.output.prototype.SynchronizedArrayStackPool;
+import io.github.minh124199.viettemplate.runtime.HtmlTextEscaper;
+import io.github.minh124199.viettemplate.runtime.Utf8OutputStreamTemplateOutput;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /** Comprehensive stress and correctness qualification suite for bounded buffer pools. */
 class BufferPoolConcurrencyStressTest {
@@ -312,5 +317,216 @@ class BufferPoolConcurrencyStressTest {
     byte[] finalBytes = baos2.toByteArray();
     assertThat(finalBytes).hasSize(10);
     assertThat(new String(finalBytes, StandardCharsets.UTF_8)).isEqualTo("0123456789");
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {100, 1_000, 10_000})
+  @DisplayName(
+      "Test 8: Production Utf8OutputStreamTemplateOutput virtual-thread concurrency stress")
+  void testProductionVirtualThreadConcurrencyStress(int taskCount) throws Exception {
+    ExecutorService executor = VirtualThreadSupport.createVirtualThreadExecutor();
+    try {
+      List<Callable<Void>> tasks = new ArrayList<>(taskCount);
+      for (int i = 0; i < taskCount; i++) {
+        final int taskId = i;
+        tasks.add(
+            () -> {
+              long timestamp = 1730000000000L + taskId;
+              ByteArrayOutputStream baos = new ByteArrayOutputStream(256);
+              try (Utf8OutputStreamTemplateOutput out = new Utf8OutputStreamTemplateOutput(baos)) {
+                out.writeInt(taskId);
+                out.writeLong(timestamp);
+                out.write("Xin chào thế giới 🇻🇳; ");
+                HtmlTextEscaper.INSTANCE.escape("Safe & <Fast> '100%' \"Quoted\"", out);
+                out.writeDouble(99.95);
+              }
+
+              String expected =
+                  taskId
+                      + Long.toString(timestamp)
+                      + "Xin chào thế giới 🇻🇳; "
+                      + "Safe &amp; &lt;Fast&gt; &#39;100%&#39; &quot;Quoted&quot;"
+                      + "99.95";
+              byte[] actualBytes = baos.toByteArray();
+              byte[] expectedBytes = expected.getBytes(StandardCharsets.UTF_8);
+              assertThat(actualBytes).isEqualTo(expectedBytes);
+              assertThat(baos.toString(StandardCharsets.UTF_8)).isEqualTo(expected);
+              return null;
+            });
+      }
+
+      List<Future<Void>> futures = executor.invokeAll(tasks);
+      for (Future<Void> future : futures) {
+        future.get(30, TimeUnit.SECONDS);
+      }
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "Test 9: Production pool empty repeated misses, fallback allocation, and leak-free recovery")
+  void testEmptyPoolRepeatedMissCostAndFallback() throws Exception {
+    // 1. Drain the production pool using 16 sequential leases held open
+    List<Utf8OutputStreamTemplateOutput> heldOutputs = new ArrayList<>(16);
+    for (int i = 0; i < 16; i++) {
+      heldOutputs.add(new Utf8OutputStreamTemplateOutput(new ByteArrayOutputStream()));
+    }
+    assertThat(getProductionPoolSize()).isEqualTo(0);
+
+    // 2. Execute 1,000 renders while pool is empty; verify fallback allocation correctness
+    ExecutorService executor = VirtualThreadSupport.createVirtualThreadExecutor();
+    try {
+      List<Callable<Void>> tasks = new ArrayList<>(1_000);
+      for (int i = 0; i < 1_000; i++) {
+        final int taskId = i;
+        tasks.add(
+            () -> {
+              ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
+              try (Utf8OutputStreamTemplateOutput out = new Utf8OutputStreamTemplateOutput(baos)) {
+                out.write("empty-pool-fallback-task-");
+                out.writeInt(taskId);
+              }
+              String expected = "empty-pool-fallback-task-" + taskId;
+              assertThat(baos.toString(StandardCharsets.UTF_8)).isEqualTo(expected);
+              return null;
+            });
+      }
+      List<Future<Void>> futures = executor.invokeAll(tasks);
+      for (Future<Void> f : futures) {
+        f.get(30, TimeUnit.SECONDS);
+      }
+    } finally {
+      executor.shutdownNow();
+    }
+
+    // 3. Close the 16 held outputs; verify pool recovers without leaks
+    for (Utf8OutputStreamTemplateOutput held : heldOutputs) {
+      held.close();
+    }
+    int poolSize = getProductionPoolSize();
+    int capacity = getProductionPoolCapacity();
+    assertThat(poolSize).isGreaterThan(0);
+    assertThat(poolSize).isLessThanOrEqualTo(capacity);
+  }
+
+  @Test
+  @DisplayName("Test 10: Full pool surplus and invalid release rejection with AtomicSlotPool")
+  void testFullPoolSurplusReleaseRejection() {
+    AtomicSlotPool pool = new AtomicSlotPool(16);
+    for (int i = 0; i < 16; i++) {
+      boolean accepted = pool.release(new byte[AtomicSlotPool.BUFFER_SIZE]);
+      assertThat(accepted).isTrue();
+    }
+    assertThat(pool.size()).isEqualTo(16);
+    assertThat(pool.capacity()).isEqualTo(16);
+
+    // Attempt to release a 17th valid buffer: rejected, pool size remains 16
+    byte[] surplusBuffer = new byte[AtomicSlotPool.BUFFER_SIZE];
+    boolean surplusAccepted = pool.release(surplusBuffer);
+    assertThat(surplusAccepted).isFalse();
+    assertThat(pool.size()).isEqualTo(16);
+
+    // Attempt to release null: rejected, pool size remains 16
+    boolean nullAccepted = pool.release(null);
+    assertThat(nullAccepted).isFalse();
+    assertThat(pool.size()).isEqualTo(16);
+
+    // Attempt to release buffer of invalid size (e.g. 4096): rejected, pool size remains 16
+    boolean invalidSizeAccepted = pool.release(new byte[4096]);
+    assertThat(invalidSizeAccepted).isFalse();
+    assertThat(pool.size()).isEqualTo(16);
+  }
+
+  @Test
+  @DisplayName(
+      "Test 11: Production output close exception guarantees buffer release and state closure")
+  void testProductionOutputCloseExceptionGuaranteesBufferRelease() throws Exception {
+    // Warm up one buffer in pool so acquire decrements size
+    ByteArrayOutputStream warmup = new ByteArrayOutputStream();
+    try (Utf8OutputStreamTemplateOutput out = new Utf8OutputStreamTemplateOutput(warmup)) {
+      out.write("warmup");
+    }
+    int initialPoolSize = getProductionPoolSize();
+    assertThat(initialPoolSize).isGreaterThanOrEqualTo(1);
+
+    OutputStream failingStream =
+        new OutputStream() {
+          @Override
+          public void write(int b) throws IOException {
+            throw new IOException("Simulated network/disk error on flush");
+          }
+
+          @Override
+          public void write(byte[] b, int off, int len) throws IOException {
+            throw new IOException("Simulated network/disk error on flush");
+          }
+
+          @Override
+          public void flush() throws IOException {
+            throw new IOException("Simulated network/disk error on flush");
+          }
+        };
+
+    Utf8OutputStreamTemplateOutput out = new Utf8OutputStreamTemplateOutput(failingStream);
+    int sizeWhileHeld = getProductionPoolSize();
+    assertThat(sizeWhileHeld).isEqualTo(initialPoolSize - 1);
+
+    out.write("trigger flush on close");
+
+    // Close must throw IOException from failingStream during flush
+    assertThatThrownBy(out::close)
+        .isInstanceOf(IOException.class)
+        .hasMessage("Simulated network/disk error on flush");
+
+    // Pool size must recover despite the exception
+    assertThat(getProductionPoolSize()).isEqualTo(initialPoolSize);
+
+    // Subsequent writes and flush must throw IOException("Output is closed")
+    assertThatThrownBy(() -> out.write("post-exception write"))
+        .isInstanceOf(IOException.class)
+        .hasMessage("Output is closed");
+    assertThatThrownBy(() -> out.write("post-exception write", 0, 4))
+        .isInstanceOf(IOException.class)
+        .hasMessage("Output is closed");
+    assertThatThrownBy(() -> out.write('c'))
+        .isInstanceOf(IOException.class)
+        .hasMessage("Output is closed");
+    assertThatThrownBy(() -> out.writeInt(123))
+        .isInstanceOf(IOException.class)
+        .hasMessage("Output is closed");
+    assertThatThrownBy(() -> out.writeLong(123456L))
+        .isInstanceOf(IOException.class)
+        .hasMessage("Output is closed");
+    assertThatThrownBy(out::flush).isInstanceOf(IOException.class).hasMessage("Output is closed");
+
+    // Second close is idempotent
+    out.close();
+    assertThat(getProductionPoolSize()).isEqualTo(initialPoolSize);
+  }
+
+  private static int getProductionPoolSize() {
+    try {
+      Class<?> poolClass =
+          Class.forName("io.github.minh124199.viettemplate.runtime.Utf8BufferPool");
+      Method m = poolClass.getDeclaredMethod("size");
+      m.setAccessible(true);
+      return (int) m.invoke(null);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to access Utf8BufferPool.size()", e);
+    }
+  }
+
+  private static int getProductionPoolCapacity() {
+    try {
+      Class<?> poolClass =
+          Class.forName("io.github.minh124199.viettemplate.runtime.Utf8BufferPool");
+      Method m = poolClass.getDeclaredMethod("capacity");
+      m.setAccessible(true);
+      return (int) m.invoke(null);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to access Utf8BufferPool.capacity()", e);
+    }
   }
 }
