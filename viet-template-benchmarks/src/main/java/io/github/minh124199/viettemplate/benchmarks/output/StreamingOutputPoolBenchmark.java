@@ -37,16 +37,16 @@ import org.openjdk.jmh.infra.Blackhole;
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-@Warmup(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 10, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(
-    value = 1,
+    value = 3,
     jvmArgs = {"-server", "-Xms2g", "-Xmx2g", "-XX:+AlwaysPreTouch", "-XX:+UseG1GC"})
 public class StreamingOutputPoolBenchmark {
 
   public record TableRow(int id, String name, double price, String status) {}
 
-  @Param({"CURRENT_NEW", "POOLED_SYNC_STACK", "POOLED_ATOMIC_SLOT"})
+  @Param({"CURRENT_NEW", "POOLED_PRODUCTION"})
   private String outputMode;
 
   private VtlTemplateEngine engine;
@@ -240,6 +240,14 @@ public class StreamingOutputPoolBenchmark {
     ByteArrayOutputStream baos = new ByteArrayOutputStream(preSizedBuffer);
     switch (outputMode) {
       case "CURRENT_NEW" -> {
+        // Unpooled 8 KiB buffer allocated on every render, identical encoding and formatting paths
+        try (Utf8OutputStreamTemplateOutput out = new Utf8OutputStreamTemplateOutput(baos, 8191)) {
+          tpl.render(ctx, out);
+        }
+        bh.consume(baos);
+      }
+      case "POOLED_PRODUCTION" -> {
+        // Production merged pool (capacity 16 AtomicReferenceArray)
         try (Utf8OutputStreamTemplateOutput out = new Utf8OutputStreamTemplateOutput(baos)) {
           tpl.render(ctx, out);
         }
