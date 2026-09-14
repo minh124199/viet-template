@@ -108,6 +108,11 @@ Streaming template renders via `Utf8OutputStreamTemplateOutput` standard constru
 - **Non-Blocking Resilience**: If the pool is temporarily exhausted under high concurrency, `tryAcquire()` returns `null`, and the constructor falls back to allocating an unpooled private `byte[8192]`. The render path never blocks, spins, or parks.
 - **Custom Buffer Sizing**: Non-default buffer sizes (e.g. 64, 1024) allocate privately with `isPooled = false` and are never admitted to or released from the pool.
 - **Virtual Thread Friendly**: Zero use of `ThreadLocal`; fully safe under massive virtual thread concurrency (JEP 444) without carrier-thread pinning or memory leakage.
+- **Lifecycle & Stream Ownership Guidance**:
+  - `close()` flushes buffered bytes, closes the wrapped underlying `OutputStream`, and returns the pooled buffer to `Utf8BufferPool`.
+  - `flush()` flushes buffered bytes to the underlying stream but **does not release the buffer lease**, allowing continued writing.
+  - **Best Practice**: Use `try-with-resources` whenever the caller owns the underlying stream. If the underlying stream must remain open (e.g. certain servlet container response streams), wrap the stream in a non-closing delegate (such as a `FilterOutputStream` that suppresses `close()`) before passing it to `Utf8OutputStreamTemplateOutput`.
+  - **Unclosed Output Safety**: If an output instance is discarded without `close()`, its leased buffer is retained on that instance until reclaimed by the garbage collector. This does not cause an unbounded pool leak because the pool's retained capacity remains strictly bounded at 16 buffers.
 
 ## 8. Escaping
 
