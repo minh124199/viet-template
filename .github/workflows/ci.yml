@@ -150,6 +150,9 @@ jobs:
       - name: Run Public API Compatibility Verification
         run: python3 scripts/verify-api-compatibility.py
 
+      - name: Run Public Surface Classification Verification
+        run: python3 scripts/verify-public-surface-classification.py
+
   release-infrastructure:
     name: Release Infrastructure Contract
     runs-on: ubuntu-latest

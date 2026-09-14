@@ -53,6 +53,7 @@ Many existing JVM template engines require teams to choose between familiar, fle
   - Pluggable member access policies (`MemberAccessPolicy`, `SensitiveObjectClassifier`) and monotonic render budgets (`RenderBudget`).
   - Authoritative Technology Compatibility Kit (`viet-template-tck`) evaluating 301 differential scenarios against Apache Velocity 2.4.1.
   - Dedicated JMH benchmark module (`viet-template-benchmarks`) under Milestone M19.1 with 10 canonical suites and dual Gradle/Maven build parity.
+  - Public API & SPI stabilization and surface containment (Milestones M14 and M14.1): 80 stable baseline contracts (`1.0-public-api.txt`), exact 341-type deterministic public surface classification, signature leak protection, integration boundary architecture enforcement, and hardened concrete output stream lifecycles.
 - **Experimental**:
   - Dynamic call-site specialization in AOT bytecode when complete type signatures are absent.
   - File-system hot-reload watcher (`DevelopmentFileWatcher`) using NIO `WatchService`.
@@ -249,6 +250,32 @@ try (TemplateEngine engine = TemplateEngine.builder()
   // Convenient single-call string rendering:
   String output = engine.render("hello.vm", RenderContext.of("name", "World"));
   assert output.equals("Hello World from Viet Template!");
+}
+```
+
+### Output Stream Lifecycle & Resource Ownership
+
+Viet Template provides three concrete `TemplateOutput` targets with explicit lifecycle contracts:
+
+| Output Type | Scope | Concurrency | Close Ownership Semantics |
+| :--- | :--- | :--- | :--- |
+| **`Utf8OutputStreamTemplateOutput`** | Render-scoped | Single-threaded | Flushes buffer, returns pooled buffer to `Utf8BufferPool`, and **closes the wrapped `OutputStream`**. Calling `close()` is idempotent. Write after close throws `IOException`. |
+| **`WriterTemplateOutput`** | Render-scoped | Single-threaded | Not `AutoCloseable`; **caller retains full ownership of the wrapped `Writer`** and is responsible for closing it. |
+| **`StringTemplateOutput`** | Render-scoped | Single-threaded | Purely in-memory (`StringBuilder`). Calling `reset()` clears the buffer for sequential reuse within the same thread. |
+
+#### Managed / Servlet Response Streams Pattern
+When writing to container-managed output streams (e.g. `HttpServletResponse.getOutputStream()`), where closing the stream prematurely would break container lifecycle or response filters, wrap the stream in a non-closing delegate:
+
+```java
+OutputStream nonClosingStream = new FilterOutputStream(response.getOutputStream()) {
+    @Override
+    public void close() throws IOException {
+        flush(); // Flush content but leave response stream open for container management
+    }
+};
+
+try (Utf8OutputStreamTemplateOutput out = new Utf8OutputStreamTemplateOutput(nonClosingStream)) {
+    engine.render(request, out);
 }
 ```
 

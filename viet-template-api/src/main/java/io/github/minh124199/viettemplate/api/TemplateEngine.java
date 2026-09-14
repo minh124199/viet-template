@@ -9,13 +9,21 @@ import java.util.Set;
 /**
  * Primary entrypoint contract for loading, compiling, and rendering templates.
  *
- * <p><strong>Thread Safety &amp; Lifecycle:</strong> {@code TemplateEngine} instances are
- * long-lived, thread-safe, and designed for concurrent multi-threaded sharing across application
- * runtimes. All template retrieval, compilation caching, and rendering operations can be safely
- * executed concurrently from multiple threads.
+ * <h2>Thread Safety &amp; Concurrency Guarantees</h2>
  *
- * <p>Implements {@link AutoCloseable} to allow graceful release of background resources (such as
- * filesystem watchers or thread pools) upon application shutdown.
+ * <p>{@code TemplateEngine} instances are long-lived, fully thread-safe application singletons
+ * designed for concurrent multi-threaded sharing across application runtimes. All
+ * operations—including template retrieval, dynamic compilation, compilation caching, and template
+ * rendering—can be safely executed concurrently from thousands of worker threads without external
+ * synchronization.
+ *
+ * <h2>Lifecycle and Resource Teardown</h2>
+ *
+ * <p>Implements {@link AutoCloseable} to enable clean and graceful teardown of background resources
+ * upon application termination or container shutdown. Typical resources managed by an engine
+ * implementation include hot-reload filesystem watchers, compilation cache eviction workers, and
+ * buffer pools. Calling {@link #close()} must be idempotent; closing an already closed engine has
+ * no effect.
  */
 public interface TemplateEngine extends AutoCloseable {
 
@@ -191,7 +199,15 @@ public interface TemplateEngine extends AutoCloseable {
   /** Invalidates all templates and compilation cache entries in this engine. */
   default void invalidateAll() {}
 
-  /** Closes this template engine, releasing any underlying background resources. */
+  /**
+   * Closes this template engine, releasing any underlying background resources.
+   *
+   * <p>Shuts down any running filesystem watcher services, cache eviction threads, and releases
+   * shared buffer pools. The default implementation is a safe no-op.
+   *
+   * <p>Invocations to this method must be safe, idempotent, and non-blocking. Invoking {@code
+   * close()} on an already closed engine has no effect.
+   */
   @Override
   default void close() {}
 

@@ -13,7 +13,7 @@ import java.util.Objects;
 public final class AccessLink {
 
   /** Resolution status of the link. */
-  public enum Status {
+  enum Status {
     OK,
     DENIED,
     MISSING
@@ -69,7 +69,7 @@ public final class AccessLink {
     return handle;
   }
 
-  public Status status() {
+  Status status() {
     return status;
   }
 

@@ -70,6 +70,21 @@ public class ArchitectureRulesTest {
           .resideInAnyPackage("org.apache.velocity..", "org.objectweb.asm..", "net.bytebuddy..");
 
   @ArchTest
+  public static final ArchRule integration_and_tooling_boundary_must_not_access_internal_packages =
+      noClasses()
+          .that()
+          .resideInAnyPackage("..viettemplate.integration..", "..viettemplate.tooling..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              "..viettemplate.runtime.linker..",
+              "..viettemplate.language.vtl.ast..",
+              "..viettemplate.language.vtl.ir..",
+              "..viettemplate.vtl.compiler..",
+              "..viettemplate.vtl.interpreter..")
+          .allowEmptyShould(true);
+
+  @ArchTest
   public static final ArchRule packages_must_be_free_of_cycles =
       slices().matching("io.github.minh124199.viettemplate.(*)..").should().beFreeOfCycles();
 }

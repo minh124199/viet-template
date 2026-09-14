@@ -4,11 +4,11 @@ import io.github.minh124199.viettemplate.language.vtl.ast.*;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 
 /** Deterministic indented AST dumper for debugging, golden testing, and inspection. */
-public final class VtlAstDumper {
+final class VtlAstDumper {
 
   private VtlAstDumper() {}
 
-  public static String dump(VtlNode root, SourceText source) {
+  static String dump(VtlNode root, SourceText source) {
     StringBuilder sb = new StringBuilder();
     dumpNode(root, 0, sb, source);
     return sb.toString();

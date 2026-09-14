@@ -14,6 +14,31 @@ import java.util.Objects;
  * <p>Emits static pre-encoded UTF-8 byte chunks with zero-copy buffer transfer, formats primitive
  * values directly into byte buffers without intermediate heap object allocations, and iterates
  * {@link CharSequence} inputs without forcing {@link String} creation.
+ *
+ * <h2>Lifecycle and Resource Ownership</h2>
+ *
+ * <ul>
+ *   <li><strong>Thread Confinement:</strong> Instances are single-threaded, render-scoped, and
+ *       <strong>not</strong> thread-safe. Concurrent writes from multiple threads are prohibited.
+ *       Each template render operation must use its own dedicated {@code
+ *       Utf8OutputStreamTemplateOutput}.
+ *   <li><strong>Underlying Stream Ownership on {@link #close()}:</strong> When {@link #close()} is
+ *       invoked, this output flushes any remaining buffered content to the underlying stream,
+ *       returns the pooled buffer to {@code Utf8BufferPool} (if using a pooled buffer), and
+ *       <strong>closes the wrapped {@link OutputStream}</strong>.
+ *   <li><strong>Flush Semantics:</strong> {@link #flush()} flushes buffered bytes to the underlying
+ *       stream and calls {@link OutputStream#flush()} without closing the stream or releasing the
+ *       buffer. Subsequent writes after {@code flush()} continue normally.
+ *   <li><strong>Idempotent Close:</strong> Invoking {@link #close()} multiple times is safe and
+ *       idempotent; subsequent close calls are immediate no-ops.
+ *   <li><strong>Post-Close Failures:</strong> Any attempt to write or flush after {@link #close()}
+ *       unconditionally throws {@link IOException} with message {@code "Output is closed"}.
+ *   <li><strong>Managed / Servlet Response Streams:</strong> When rendering to container-managed
+ *       streams (such as {@code HttpServletResponse.getOutputStream()}) where the container manages
+ *       the stream lifecycle and closing the stream prematurely would break filter chains or
+ *       response trailers, callers must wrap the target stream in a non-closing {@link
+ *       OutputStream} delegate before passing it to this constructor.
+ * </ul>
  */
 public final class Utf8OutputStreamTemplateOutput
     implements TemplateOutput, Flushable, AutoCloseable {
@@ -28,10 +53,24 @@ public final class Utf8OutputStreamTemplateOutput
   private int position;
   private boolean closed;
 
+  /**
+   * Constructs an instance backed by the specified {@link OutputStream} using the default 8 KiB
+   * buffer acquired from {@code Utf8BufferPool}.
+   *
+   * @param out target output stream to write UTF-8 bytes to; owned and closed on {@link #close()}
+   */
   public Utf8OutputStreamTemplateOutput(OutputStream out) {
     this(out, DEFAULT_BUFFER_SIZE);
   }
 
+  /**
+   * Constructs an instance backed by the specified {@link OutputStream} with a custom buffer size.
+   * If {@code bufferSize} equals 8192, a pooled buffer is acquired from {@code Utf8BufferPool};
+   * otherwise an unpooled byte array is allocated.
+   *
+   * @param out target output stream to write UTF-8 bytes to; owned and closed on {@link #close()}
+   * @param bufferSize buffer size in bytes (minimum 64)
+   */
   public Utf8OutputStreamTemplateOutput(OutputStream out, int bufferSize) {
     this.out = Objects.requireNonNull(out, "out must not be null");
     if (bufferSize < 64) {
@@ -217,6 +256,15 @@ public final class Utf8OutputStreamTemplateOutput
     writeUtf8(value ? TRUE_BYTES : FALSE_BYTES);
   }
 
+  /**
+   * Flushes any pending buffered bytes to the underlying stream and calls {@link
+   * OutputStream#flush()} on the wrapped output stream.
+   *
+   * <p>This method does <em>not</em> close the stream or release the buffer; subsequent write
+   * operations may continue normally.
+   *
+   * @throws IOException if this output is closed or an I/O error occurs
+   */
   @Override
   public void flush() throws IOException {
     ensureOpen();
@@ -224,6 +272,24 @@ public final class Utf8OutputStreamTemplateOutput
     out.flush();
   }
 
+  /**
+   * Closes this template output, releasing internal buffers and closing the underlying stream.
+   *
+   * <p>The close operation executes the following sequence:
+   *
+   * <ol>
+   *   <li>Flushes any unwritten buffered bytes to the wrapped {@link OutputStream}.
+   *   <li>Marks this instance as closed (preventing future writes or flushes).
+   *   <li>Releases the internal byte buffer back to {@code Utf8BufferPool} if acquired from the
+   *       pool.
+   *   <li>Closes the wrapped {@link OutputStream}.
+   * </ol>
+   *
+   * <p>This method is idempotent. If this output is already closed, subsequent invocations have no
+   * effect.
+   *
+   * @throws IOException if an I/O error occurs while flushing or closing the underlying stream
+   */
   @Override
   public void close() throws IOException {
     if (closed) {

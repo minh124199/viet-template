@@ -3,7 +3,7 @@ package io.github.minh124199.viettemplate.language.vtl.semantics;
 import io.github.minh124199.viettemplate.api.DiagnosticCode;
 
 /** Standard diagnostic codes emitted during VTL semantic analysis. */
-public final class VtlSemanticDiagnosticCodes {
+final class VtlSemanticDiagnosticCodes {
 
   public static final DiagnosticCode PROPERTY_NOT_FOUND = DiagnosticCode.of("VTLS", "2104");
   public static final DiagnosticCode METHOD_NOT_FOUND = DiagnosticCode.of("VTLS", "2105");
