@@ -23,8 +23,10 @@ public final class Utf8OutputStreamTemplateOutput
   private static final byte[] FALSE_BYTES = "false".getBytes(StandardCharsets.US_ASCII);
 
   private final OutputStream out;
-  private final byte[] buffer;
+  private final boolean isPooled;
+  private byte[] buffer;
   private int position;
+  private boolean closed;
 
   public Utf8OutputStreamTemplateOutput(OutputStream out) {
     this(out, DEFAULT_BUFFER_SIZE);
@@ -35,11 +37,25 @@ public final class Utf8OutputStreamTemplateOutput
     if (bufferSize < 64) {
       throw new IllegalArgumentException("bufferSize must be at least 64 bytes");
     }
-    this.buffer = new byte[bufferSize];
+    if (bufferSize == DEFAULT_BUFFER_SIZE) {
+      byte[] b = Utf8BufferPool.tryAcquire();
+      this.buffer = b != null ? b : new byte[DEFAULT_BUFFER_SIZE];
+      this.isPooled = true;
+    } else {
+      this.buffer = new byte[bufferSize];
+      this.isPooled = false;
+    }
     this.position = 0;
   }
 
+  private void ensureOpen() throws IOException {
+    if (closed || buffer == null) {
+      throw new IOException("Output is closed");
+    }
+  }
+
   private void flushBuffer() throws IOException {
+    ensureOpen();
     if (position > 0) {
       out.write(buffer, 0, position);
       position = 0;
@@ -54,6 +70,7 @@ public final class Utf8OutputStreamTemplateOutput
 
   @Override
   public void write(CharSequence value) throws IOException {
+    ensureOpen();
     if (value != null) {
       write(value, 0, value.length());
     }
@@ -61,6 +78,7 @@ public final class Utf8OutputStreamTemplateOutput
 
   @Override
   public void write(CharSequence value, int start, int end) throws IOException {
+    ensureOpen();
     if (value == null) {
       return;
     }
@@ -97,6 +115,7 @@ public final class Utf8OutputStreamTemplateOutput
 
   @Override
   public void write(char value) throws IOException {
+    ensureOpen();
     if (value <= 0x7F) {
       if (position >= buffer.length) {
         flushBuffer();
@@ -116,6 +135,7 @@ public final class Utf8OutputStreamTemplateOutput
 
   @Override
   public void writeUtf8(byte[] bytes) throws IOException {
+    ensureOpen();
     if (bytes != null) {
       writeUtf8(bytes, 0, bytes.length);
     }
@@ -123,6 +143,7 @@ public final class Utf8OutputStreamTemplateOutput
 
   @Override
   public void writeUtf8(byte[] bytes, int offset, int length) throws IOException {
+    ensureOpen();
     if (bytes == null || length <= 0) {
       return;
     }
@@ -141,18 +162,21 @@ public final class Utf8OutputStreamTemplateOutput
 
   @Override
   public void writeInt(int value) throws IOException {
+    ensureOpen();
     ensureCapacity(11);
     position += NumberFormatting.formatInt(value, buffer, position);
   }
 
   @Override
   public void writeLong(long value) throws IOException {
+    ensureOpen();
     ensureCapacity(20);
     position += NumberFormatting.formatLong(value, buffer, position);
   }
 
   @Override
   public void writeDouble(double value) throws IOException {
+    ensureOpen();
     if (value == (long) value
         && value >= Long.MIN_VALUE
         && value <= Long.MAX_VALUE
@@ -166,6 +190,7 @@ public final class Utf8OutputStreamTemplateOutput
 
   @Override
   public void writeFloat(float value) throws IOException {
+    ensureOpen();
     if (value == (long) value
         && value >= Long.MIN_VALUE
         && value <= Long.MAX_VALUE
@@ -194,13 +219,29 @@ public final class Utf8OutputStreamTemplateOutput
 
   @Override
   public void flush() throws IOException {
+    ensureOpen();
     flushBuffer();
     out.flush();
   }
 
   @Override
   public void close() throws IOException {
-    flush();
-    out.close();
+    if (closed) {
+      return;
+    }
+    try {
+      flush();
+    } finally {
+      closed = true;
+      byte[] b = this.buffer;
+      this.buffer = null;
+      try {
+        if (isPooled && b != null) {
+          Utf8BufferPool.release(b);
+        }
+      } finally {
+        out.close();
+      }
+    }
   }
 }
