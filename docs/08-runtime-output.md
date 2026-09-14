@@ -53,6 +53,7 @@ Implementations: immutable map context, schema/slot context, framework adapter. 
 ```java
 public interface TemplateOutput {
     void write(CharSequence value);
+    default void write(CharSequence value, int start, int end) throws IOException;
     void write(char value);
     void writeInt(int value);
     void writeLong(long value);
@@ -62,6 +63,20 @@ public interface TemplateOutput {
     void writeEscaped(CharSequence value, EscapeMode mode);
 }
 ```
+
+### 5.1 Range-Write SPI Contract (`write(CharSequence, int, int)`)
+
+The range-write method writes a subsequence of the specified `CharSequence` using half-open interval indexing `[start, end)`:
+- **Interval**: `start` is inclusive, `end` is exclusive; written character count is `end - start`.
+- **Null Safety**: Passing a `null` `CharSequence` is explicitly a safe no-op.
+- **Empty Range**: If `start == end`, the method returns immediately without writing characters.
+- **Bounds Validation**: Throws `IndexOutOfBoundsException` if `start < 0`, `end < start`, or `end > value.length()`, matching `Objects.checkFromToIndex(start, end, value.length())`.
+- **Backward Compatibility**: Default implementation delegates to `write(value.charAt(i))` in a sequential loop, allowing external custom `TemplateOutput` implementations to function without immediate recompilation or code changes.
+- **Implementation Characteristics**:
+  - `StringTemplateOutput`: Zero allocation, delegates to `StringBuilder.append(CharSequence, int, int)`.
+  - `Utf8OutputStreamTemplateOutput`: Zero allocation, direct bit-level UTF-8 encoding into stream buffer with surrogate pair validation.
+  - `WriterTemplateOutput`: String writes forward directly to `Writer.write(String, int, int)` without allocation; non-String `CharSequence` writes use an instance-confined lazy scratch buffer (`char[1024]`), delivering zero per-call allocation ($0.000\text{ B/op}$) and avoiding per-character `Writer.write(int)` synchronization bottlenecks.
+  - `CountingTemplateOutput`: Accurately debits output limit budget by `end - start` before delegating.
 
 A backend may choose a Writer-oriented or UTF-8-oriented compiled artifact so capability checks are not repeated for every literal.
 
@@ -85,7 +100,7 @@ For dynamic content, escape while encoding where possible. Avoid per-value `Stri
 
 ## 8. Escaping
 
-Escaping writes directly to output without intermediate `String` allocation.
+Escaping writes directly to output without intermediate `String` allocation. `HtmlTextEscaper` segment allocation is eliminated by streaming unescaped character slices directly to `TemplateOutput.write(CharSequence, int, int)`. `String` and `UTF-8` optimized range paths are allocation-free ($0.000\text{ B/op}$). `WriterTemplateOutput` uses direct string writes for `String` inputs and lazy instance-buffer batching for non-`String` inputs to eliminate per-range allocation without incurring per-character lock synchronization penalties.
 
 Avoid:
 
