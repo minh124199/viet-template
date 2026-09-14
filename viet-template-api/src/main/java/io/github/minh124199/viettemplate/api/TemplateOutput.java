@@ -13,6 +13,33 @@ public interface TemplateOutput {
 
   void write(CharSequence value) throws IOException;
 
+  /**
+   * Writes a subsequence of the specified {@link CharSequence} over the half-open interval {@code
+   * [start, end)}.
+   *
+   * <p>If {@code value} is {@code null}, this method performs no operation and returns immediately
+   * without throwing an exception.
+   *
+   * <p>If {@code start == end}, this method writes nothing and completes normally.
+   *
+   * <p>Indices are validated using {@link Objects#checkFromToIndex(int, int, int)}. If {@code value
+   * != null} and {@code start < 0}, {@code end < start}, or {@code end > value.length()}, an {@link
+   * IndexOutOfBoundsException} is thrown.
+   *
+   * <p><strong>Backward Compatibility &amp; Implementation Note:</strong> This method is defined as
+   * a default interface method to preserve binary and source compatibility with custom {@link
+   * TemplateOutput} implementors. The default implementation iterates through the range {@code
+   * [start, end)} and delegates each character to {@link #write(char)}. Implementors are strongly
+   * encouraged to override this method with specialized, zero-allocation slicing logic (such as
+   * intrinsic buffer transfers or zero-copy encoding) to avoid per-character dispatch overhead.
+   *
+   * @param value the character sequence to write, or {@code null} for a safe no-op
+   * @param start the beginning index of the subsequence, inclusive
+   * @param end the ending index of the subsequence, exclusive
+   * @throws IOException if an I/O error occurs during writing
+   * @throws IndexOutOfBoundsException if {@code value != null} and the range {@code [start, end)}
+   *     is out of bounds ({@code start < 0}, {@code end < start}, or {@code end > value.length()})
+   */
   default void write(CharSequence value, int start, int end) throws IOException {
     if (value == null) {
       return;
