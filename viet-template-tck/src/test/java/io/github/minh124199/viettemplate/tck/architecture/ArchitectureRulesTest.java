@@ -33,6 +33,16 @@ public class ArchitectureRulesTest {
               "org.openjdk.jmh..");
 
   @ArchTest
+  public static final ArchRule api_must_not_depend_on_runtime_or_interpreter =
+      noClasses()
+          .that()
+          .resideInAPackage("..viettemplate.api..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              "..viettemplate.runtime..", "..viettemplate.language.vtl..", "..viettemplate.vtl..");
+
+  @ArchTest
   public static final ArchRule runtime_must_not_depend_on_parser_or_compiler =
       noClasses()
           .that()
