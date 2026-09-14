@@ -98,6 +98,17 @@ literal -> UTF-8 bytes at compile time -> bulk output write at runtime
 
 For dynamic content, escape while encoding where possible. Avoid per-value `String.getBytes()` allocations.
 
+### 7.1 Bounded UTF-8 Stream-Buffer Reuse (`Utf8BufferPool`)
+
+Streaming template renders via `Utf8OutputStreamTemplateOutput` standard constructor (`DEFAULT_BUFFER_SIZE = 8192`) lease their internal 8 KiB buffer from a package-private bounded pool (`Utf8BufferPool`).
+
+- **Architecture**: Backed by a lock-free `AtomicReferenceArray<byte[]>` with a strictly bounded capacity of 16 slots ($128\text{ KiB}$ maximum retained payload).
+- **Single-Owner Confinement**: The buffer is acquired upon `Utf8OutputStreamTemplateOutput` instantiation and released strictly upon `close()` inside a `try/finally` block. `flush()` preserves the buffer lease without premature release.
+- **Post-Close Safety**: Upon `close()`, the internal buffer reference is immediately cleared to `null` and `closed` is set to `true`. Subsequent writes or flushes throw `IOException("Output is closed")`. Double `close()` is strictly idempotent.
+- **Non-Blocking Resilience**: If the pool is temporarily exhausted under high concurrency, `tryAcquire()` returns `null`, and the constructor falls back to allocating an unpooled private `byte[8192]`. The render path never blocks, spins, or parks.
+- **Custom Buffer Sizing**: Non-default buffer sizes (e.g. 64, 1024) allocate privately with `isPooled = false` and are never admitted to or released from the pool.
+- **Virtual Thread Friendly**: Zero use of `ThreadLocal`; fully safe under massive virtual thread concurrency (JEP 444) without carrier-thread pinning or memory leakage.
+
 ## 8. Escaping
 
 Escaping writes directly to output without intermediate `String` allocation. `HtmlTextEscaper` segment allocation is eliminated by streaming unescaped character slices directly to `TemplateOutput.write(CharSequence, int, int)`. `String` and `UTF-8` optimized range paths are allocation-free ($0.000\text{ B/op}$). `WriterTemplateOutput` uses direct string writes for `String` inputs and lazy instance-buffer batching for non-`String` inputs to eliminate per-range allocation without incurring per-character lock synchronization penalties.
@@ -211,11 +222,13 @@ Typed hot path should allocate nothing solely for:
 - property access;
 - truthiness;
 - unused loop metadata;
-- primitive formatting when specialized;
+- primitive formatting when specialized (direct decimal encoding via NumberFormatting);
 - static literals;
-- direct template calls.
+- direct template calls;
+- HTML text escaping (direct range forwarding);
+- streaming UTF-8 buffer setup (eliminated via 128 KiB bounded Utf8BufferPool).
 
-Expected allocations may come from user code, requested String result, or transport buffers.
+Expected allocations may come from user code, requested String result, or underlying transport buffers (e.g. ByteArrayOutputStream resizing).
 
 ## 12. Render limits
 
