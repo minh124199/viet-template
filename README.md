@@ -210,26 +210,26 @@ public class TemplateEngineExample {
   public static void main(String[] args) throws IOException {
     // 1. Build the engine with a classpath template repository
     TemplateRepository repository = TemplateRepository.classpath("templates/");
-    TemplateEngine engine = TemplateEngine.builder()
+    try (TemplateEngine engine = TemplateEngine.builder()
         .repository(repository)
-        .build();
+        .build()) {
 
-    // 2. Retrieve the template
-    Template template = engine.get("user-card.vm");
+      // 2. Retrieve the template
+      Template template = engine.get("user-card.vm");
 
-    // 3. Populate the render context
-    User user = new User("Alice", true, List.of("DEVELOPER", "SECURITY_AUDITOR"));
-    RenderContext context = RenderContext.builder()
-        .put("user", user)
-        .build();
+      // 3. Populate the render context
+      User user = new User("Alice", true, List.of("DEVELOPER", "SECURITY_AUDITOR"));
+      RenderContext context = RenderContext.builder()
+          .put("user", user)
+          .build();
 
-    // 4. Render to an in-memory buffer
-    StringTemplateOutput output = new StringTemplateOutput();
-    template.render(context, output);
-    System.out.println(output);
+      // 4. Render directly to a String:
+      String rendered = template.render(context);
+      System.out.println(rendered);
 
-    // Or stream directly to a Writer (e.g. HTTP response writer) without String buffering:
-    // template.render(context, new WriterTemplateOutput(response.getWriter()));
+      // Or stream directly to a Writer (e.g. HTTP response writer) without intermediate String buffering:
+      // template.render(context, new WriterTemplateOutput(response.getWriter()));
+    }
   }
 }
 ```
@@ -242,14 +242,14 @@ For unit testing without filesystem resources, use `InMemoryTemplateRepository`:
 InMemoryTemplateRepository repository = InMemoryTemplateRepository.create();
 repository.put("hello.vm", "Hello $name from Viet Template!");
 
-TemplateEngine engine = TemplateEngine.builder()
+try (TemplateEngine engine = TemplateEngine.builder()
     .repository(repository)
-    .build();
+    .build()) {
 
-StringTemplateOutput output = new StringTemplateOutput();
-engine.get("hello.vm").render(RenderContext.of("name", "World"), output);
-
-assert output.toString().equals("Hello World from Viet Template!");
+  // Convenient single-call string rendering:
+  String output = engine.render("hello.vm", RenderContext.of("name", "World"));
+  assert output.equals("Hello World from Viet Template!");
+}
 ```
 
 ---

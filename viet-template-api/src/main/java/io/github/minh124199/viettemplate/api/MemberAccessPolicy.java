@@ -1,7 +1,5 @@
 package io.github.minh124199.viettemplate.api;
 
-import java.io.Serial;
-import java.io.Serializable;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
@@ -30,8 +28,38 @@ import java.util.TreeSet;
  *
  * <p>Supports both defense-in-depth deny rules and explicit allowlist-based safe profiles. Deny
  * rules always take precedence over allow rules.
+ *
+ * <p><strong>Security Model &amp; Profiles:</strong>
+ *
+ * <ul>
+ *   <li><strong>Standard Profile ({@link #standard()}):</strong> Employs defense-in-depth
+ *       default-deny rules blocking core reflection, dynamic class loading, OS execution,
+ *       threading, and sensitive infrastructure types (such as {@link Class}, {@link ClassLoader},
+ *       {@link Runtime}, etc.).
+ *   <li><strong>Safe Profile ({@link #safe()}):</strong> Enforces a strict allowlist sandbox where
+ *       only safe primitives, boxed types, strings, standard collections, maps, records, classes
+ *       annotated with {@link TemplateData}, and explicitly registered methods/properties are
+ *       permitted.
+ *   <li><strong>Deny-All Profile ({@link #denyAll()}):</strong> Unconditionally denies all
+ *       reflection and member accesses.
+ * </ul>
+ *
+ * <p><strong>Member Access Categories:</strong>
+ *
+ * <ul>
+ *   <li>{@link #isClassPermitted(Class)}: Permitted receiver or argument type.
+ *   <li>{@link #isMethodPermitted(Class, String, int)}: Method invocation by signature.
+ *   <li>{@link #isPropertyPermitted(Class, String)}: Property read access.
+ *   <li>{@link #isFieldPermitted(Class, String)}: Public direct field read access.
+ *   <li>{@link #isPropertyMutationPermitted(Class, String)}: Property write/mutation (#set).
+ *   <li>{@link #isIndexMutationPermitted(Class)}: Array/collection index mutation.
+ * </ul>
+ *
+ * <p><strong>Fail-Closed Guarantee:</strong> Deny rules unconditionally supersede allow rules. Any
+ * null, unresolvable, or unapproved member fails closed (denies access), preventing security
+ * bypasses via subclassing or reflection indirection.
  */
-public interface MemberAccessPolicy extends Serializable {
+public interface MemberAccessPolicy {
 
   /** Checks whether the given class is permitted for template access or linkage. */
   boolean isClassPermitted(Class<?> clazz);
@@ -263,10 +291,7 @@ public interface MemberAccessPolicy extends Serializable {
   }
 }
 
-@SuppressWarnings("serial")
 final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
-
-  @Serial private static final long serialVersionUID = 1L;
 
   static final Set<String> CORE_DENIED_PACKAGE_PREFIXES =
       Set.of(
@@ -1266,10 +1291,7 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
   }
 }
 
-@SuppressWarnings("serial")
 final class DenyAllMemberAccessPolicy implements MemberAccessPolicy {
-
-  @Serial private static final long serialVersionUID = 1L;
 
   static final DenyAllMemberAccessPolicy INSTANCE = new DenyAllMemberAccessPolicy();
 
@@ -1321,10 +1343,7 @@ final class DenyAllMemberAccessPolicy implements MemberAccessPolicy {
   }
 }
 
-@SuppressWarnings("serial")
 final class MandatorySafeMemberAccessPolicy implements MemberAccessPolicy {
-
-  @Serial private static final long serialVersionUID = 1L;
 
   private final MemberAccessPolicy delegate;
   private final SecurityPolicyFingerprint fingerprint;

@@ -8,6 +8,15 @@ import java.util.Objects;
  *
  * <p>Supports character-based, primitive, and UTF-8 pre-encoded byte writes without forcing
  * intermediate string allocation.
+ *
+ * <p><strong>Thread Safety &amp; Confinement:</strong> {@code TemplateOutput} instances are
+ * render-scoped and are <em>not</em> thread-safe for concurrent writes. Each concurrent render
+ * invocation must be provided with its own dedicated {@code TemplateOutput} instance, or access
+ * must be synchronized externally by the caller.
+ *
+ * <p><strong>Stream Lifecycle:</strong> {@code TemplateOutput} does not own stream lifecycle or
+ * closing; closing underlying sinks, sockets, or streams is the responsibility of the caller or
+ * specific concrete stream wrapper implementations.
  */
 public interface TemplateOutput {
 

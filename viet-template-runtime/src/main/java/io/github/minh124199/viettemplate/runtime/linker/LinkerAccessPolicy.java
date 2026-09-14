@@ -236,37 +236,60 @@ final class MemberAccessPolicyLinkerAdapter implements LinkerAccessPolicy {
 
   @Override
   public boolean isClassPermitted(Class<?> clazz) {
+    if (clazz == null || !StandardLinkerAccessPolicy.INSTANCE.isClassPermitted(clazz)) {
+      return false;
+    }
     return policy.isClassPermitted(clazz);
   }
 
   @Override
   public boolean isMethodPermitted(Class<?> receiverClass, Method method) {
+    if (!StandardLinkerAccessPolicy.INSTANCE.isMethodPermitted(receiverClass, method)) {
+      return false;
+    }
     return policy.isMethodPermitted(receiverClass, method);
   }
 
   @Override
   public boolean isFieldPermitted(Class<?> receiverClass, Field field) {
+    if (!StandardLinkerAccessPolicy.INSTANCE.isFieldPermitted(receiverClass, field)) {
+      return false;
+    }
     return policy.isFieldPermitted(receiverClass, field);
   }
 
   @Override
   public boolean isPropertyPermitted(Class<?> receiverClass, String propertyName) {
+    if (!StandardLinkerAccessPolicy.INSTANCE.isPropertyPermitted(receiverClass, propertyName)) {
+      return false;
+    }
     return policy.isPropertyPermitted(receiverClass, propertyName);
   }
 
   @Override
   public boolean isPropertyMutationPermitted(Class<?> receiverClass, String propertyName) {
+    if (receiverClass == null
+        || !StandardLinkerAccessPolicy.INSTANCE.isClassPermitted(receiverClass)) {
+      return false;
+    }
     return policy.isPropertyMutationPermitted(receiverClass, propertyName);
   }
 
   @Override
   public boolean isIndexMutationPermitted(Class<?> receiverClass) {
+    if (receiverClass == null
+        || !StandardLinkerAccessPolicy.INSTANCE.isClassPermitted(receiverClass)) {
+      return false;
+    }
     return policy.isIndexMutationPermitted(receiverClass);
   }
 
   @Override
   public boolean isPropertyMethodPermitted(
       Class<?> receiverClass, Method method, String propertyName) {
-    return policy.isPropertyMethodPermitted(receiverClass, method, propertyName);
+    if (!isPropertyPermitted(receiverClass, propertyName)) {
+      return false;
+    }
+    return isMethodPermitted(receiverClass, method);
   }
 }

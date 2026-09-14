@@ -1,0 +1,746 @@
+# Viet Template 1.0 Public API and SPI Baseline
+# Machine-readable public signatures for source and binary compatibility enforcement
+# Format: TYPE <class-header>
+#         MEMBER <member-signature>
+
+TYPE public final class io.github.minh124199.viettemplate.api.ClasspathTemplateRepository implements io.github.minh124199.viettemplate.api.TemplateRepository
+  MEMBER public io.github.minh124199.viettemplate.api.ClasspathTemplateRepository(java.lang.ClassLoader, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.api.ClasspathTemplateRepository(java.lang.ClassLoader, java.lang.String, java.nio.charset.Charset)
+  MEMBER public java.lang.String prefix()
+  MEMBER public java.nio.charset.Charset charset()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateSource> find(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public static io.github.minh124199.viettemplate.api.ClasspathTemplateRepository of(java.lang.ClassLoader, java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.ClasspathTemplateRepository of(java.lang.ClassLoader, java.lang.String, java.nio.charset.Charset)
+  MEMBER public static io.github.minh124199.viettemplate.api.ClasspathTemplateRepository of(java.lang.String)
+
+TYPE public interface io.github.minh124199.viettemplate.api.CompiledTemplate extends io.github.minh124199.viettemplate.api.Template
+  MEMBER public abstract void render(io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.api.CompositeTemplateRepository implements io.github.minh124199.viettemplate.api.TemplateRepository
+  MEMBER public io.github.minh124199.viettemplate.api.CompositeTemplateRepository(java.util.List<io.github.minh124199.viettemplate.api.TemplateRepository>)
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.api.TemplateRepository> repositories()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateSource> find(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public static io.github.minh124199.viettemplate.api.CompositeTemplateRepository of(io.github.minh124199.viettemplate.api.TemplateRepository...)
+  MEMBER public static io.github.minh124199.viettemplate.api.CompositeTemplateRepository of(java.util.List<io.github.minh124199.viettemplate.api.TemplateRepository>)
+
+TYPE public class io.github.minh124199.viettemplate.api.ContextCollisionException extends io.github.minh124199.viettemplate.api.TemplateException
+  MEMBER public io.github.minh124199.viettemplate.api.ContextCollisionException(java.lang.String, java.lang.String, io.github.minh124199.viettemplate.api.ValueOrigin, io.github.minh124199.viettemplate.api.ValueOrigin)
+  MEMBER public io.github.minh124199.viettemplate.api.ValueOrigin collidingOrigin()
+  MEMBER public io.github.minh124199.viettemplate.api.ValueOrigin existingOrigin()
+  MEMBER public java.lang.String variableName()
+
+TYPE public final class io.github.minh124199.viettemplate.api.ContextCollisionPolicy extends java.lang.Enum<io.github.minh124199.viettemplate.api.ContextCollisionPolicy>
+  MEMBER public static final io.github.minh124199.viettemplate.api.ContextCollisionPolicy CONTRIBUTOR_WINS
+  MEMBER public static final io.github.minh124199.viettemplate.api.ContextCollisionPolicy ERROR_ON_COLLISION
+  MEMBER public static final io.github.minh124199.viettemplate.api.ContextCollisionPolicy MODEL_WINS
+  MEMBER public static io.github.minh124199.viettemplate.api.ContextCollisionPolicy valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.ContextCollisionPolicy[] values()
+
+TYPE public interface io.github.minh124199.viettemplate.api.ContributorContext
+  MEMBER public abstract boolean contains(java.lang.String)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.ContributorContext put(java.lang.String, java.lang.Object)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.ContributorContext putAll(java.util.Map<java.lang.String, ?>)
+  MEMBER public abstract java.lang.Object get(java.lang.String)
+
+TYPE public final class io.github.minh124199.viettemplate.api.Diagnostic extends java.lang.Record implements java.io.Serializable
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.Diagnostic(io.github.minh124199.viettemplate.api.DiagnosticSeverity, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.String, io.github.minh124199.viettemplate.api.SourceSpan)
+  MEMBER public io.github.minh124199.viettemplate.api.DiagnosticCode code()
+  MEMBER public io.github.minh124199.viettemplate.api.DiagnosticSeverity severity()
+  MEMBER public io.github.minh124199.viettemplate.api.SourceSpan primarySpan()
+  MEMBER public java.lang.String message()
+  MEMBER public static io.github.minh124199.viettemplate.api.Diagnostic error(io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.String, io.github.minh124199.viettemplate.api.SourceSpan)
+  MEMBER public static io.github.minh124199.viettemplate.api.Diagnostic info(io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.String, io.github.minh124199.viettemplate.api.SourceSpan)
+  MEMBER public static io.github.minh124199.viettemplate.api.Diagnostic warning(io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.String, io.github.minh124199.viettemplate.api.SourceSpan)
+
+TYPE public final class io.github.minh124199.viettemplate.api.DiagnosticCode extends java.lang.Record implements java.io.Serializable
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public io.github.minh124199.viettemplate.api.DiagnosticCode(java.lang.String, java.lang.String)
+  MEMBER public java.lang.String category()
+  MEMBER public java.lang.String id()
+  MEMBER public java.lang.String qualifiedCode()
+  MEMBER public java.lang.String toString()
+  MEMBER public static io.github.minh124199.viettemplate.api.DiagnosticCode of(java.lang.String, java.lang.String)
+
+TYPE public final class io.github.minh124199.viettemplate.api.DiagnosticSeverity extends java.lang.Enum<io.github.minh124199.viettemplate.api.DiagnosticSeverity>
+  MEMBER public static final io.github.minh124199.viettemplate.api.DiagnosticSeverity ERROR
+  MEMBER public static final io.github.minh124199.viettemplate.api.DiagnosticSeverity INFO
+  MEMBER public static final io.github.minh124199.viettemplate.api.DiagnosticSeverity WARNING
+  MEMBER public static io.github.minh124199.viettemplate.api.DiagnosticSeverity valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.DiagnosticSeverity[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.api.FilesystemTemplateRepository implements io.github.minh124199.viettemplate.api.TemplateRepository
+  MEMBER public boolean followSymlinks()
+  MEMBER public io.github.minh124199.viettemplate.api.FilesystemTemplateRepository(java.nio.file.Path)
+  MEMBER public io.github.minh124199.viettemplate.api.FilesystemTemplateRepository(java.nio.file.Path, java.nio.charset.Charset, boolean)
+  MEMBER public java.nio.charset.Charset charset()
+  MEMBER public java.nio.file.Path rootDirectory()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateSource> find(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public static io.github.minh124199.viettemplate.api.FilesystemTemplateRepository of(java.nio.file.Path)
+  MEMBER public static io.github.minh124199.viettemplate.api.FilesystemTemplateRepository of(java.nio.file.Path, java.nio.charset.Charset)
+  MEMBER public static io.github.minh124199.viettemplate.api.FilesystemTemplateRepository of(java.nio.file.Path, java.nio.charset.Charset, boolean)
+
+TYPE public final class io.github.minh124199.viettemplate.api.GlobalMacroPrecedence extends java.lang.Enum<io.github.minh124199.viettemplate.api.GlobalMacroPrecedence>
+  MEMBER public static final io.github.minh124199.viettemplate.api.GlobalMacroPrecedence FIRST_WINS
+  MEMBER public static final io.github.minh124199.viettemplate.api.GlobalMacroPrecedence LAST_WINS
+  MEMBER public static io.github.minh124199.viettemplate.api.GlobalMacroPrecedence valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.GlobalMacroPrecedence[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.api.InMemoryTemplateRepository implements io.github.minh124199.viettemplate.api.TemplateRepository
+  MEMBER public int size()
+  MEMBER public io.github.minh124199.viettemplate.api.InMemoryTemplateRepository put(io.github.minh124199.viettemplate.api.TemplateId, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.api.InMemoryTemplateRepository put(java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.api.InMemoryTemplateRepository remove(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public io.github.minh124199.viettemplate.api.InMemoryTemplateRepository()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateSource> find(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public static io.github.minh124199.viettemplate.api.InMemoryTemplateRepository create()
+  MEMBER public static io.github.minh124199.viettemplate.api.InMemoryTemplateRepository of(java.util.Map<io.github.minh124199.viettemplate.api.TemplateId, java.lang.String>)
+  MEMBER public void clear()
+
+TYPE public final class io.github.minh124199.viettemplate.api.LayoutConfiguration extends java.lang.Record
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public int maxLayoutDepth()
+  MEMBER public io.github.minh124199.viettemplate.api.LayoutConfiguration(io.github.minh124199.viettemplate.api.LayoutResolver, java.lang.String, io.github.minh124199.viettemplate.api.LayoutContextScope, int)
+  MEMBER public io.github.minh124199.viettemplate.api.LayoutContextScope contextScope()
+  MEMBER public io.github.minh124199.viettemplate.api.LayoutResolver resolver()
+  MEMBER public java.lang.String screenContentKey()
+  MEMBER public static final int DEFAULT_MAX_LAYOUT_DEPTH
+  MEMBER public static final java.lang.String DEFAULT_SCREEN_CONTENT_KEY
+  MEMBER public static io.github.minh124199.viettemplate.api.LayoutConfiguration$Builder builder()
+
+TYPE public final class io.github.minh124199.viettemplate.api.LayoutConfiguration$Builder
+  MEMBER public io.github.minh124199.viettemplate.api.LayoutConfiguration build()
+  MEMBER public io.github.minh124199.viettemplate.api.LayoutConfiguration$Builder contextScope(io.github.minh124199.viettemplate.api.LayoutContextScope)
+  MEMBER public io.github.minh124199.viettemplate.api.LayoutConfiguration$Builder defaultLayout(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public io.github.minh124199.viettemplate.api.LayoutConfiguration$Builder maxLayoutDepth(int)
+  MEMBER public io.github.minh124199.viettemplate.api.LayoutConfiguration$Builder resolver(io.github.minh124199.viettemplate.api.LayoutResolver)
+  MEMBER public io.github.minh124199.viettemplate.api.LayoutConfiguration$Builder screenContentKey(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.api.LayoutConfiguration$Builder()
+
+TYPE public final class io.github.minh124199.viettemplate.api.LayoutContextScope extends java.lang.Enum<io.github.minh124199.viettemplate.api.LayoutContextScope>
+  MEMBER public static final io.github.minh124199.viettemplate.api.LayoutContextScope ISOLATED_SCREEN_SCOPE
+  MEMBER public static final io.github.minh124199.viettemplate.api.LayoutContextScope SHARED_COMPATIBILITY_SCOPE
+  MEMBER public static io.github.minh124199.viettemplate.api.LayoutContextScope valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.LayoutContextScope[] values()
+
+TYPE public interface io.github.minh124199.viettemplate.api.LayoutRenderPlan
+  MEMBER public abstract io.github.minh124199.viettemplate.api.LayoutConfiguration configuration()
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateId screenId()
+  MEMBER public abstract java.util.Optional<io.github.minh124199.viettemplate.api.TemplateId> layoutId()
+  MEMBER public abstract void render(io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+
+TYPE public interface io.github.minh124199.viettemplate.api.LayoutResolver
+  MEMBER public abstract java.util.Optional<io.github.minh124199.viettemplate.api.TemplateId> resolveLayout(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.RenderContext)
+  MEMBER public static io.github.minh124199.viettemplate.api.LayoutResolver constant(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public static io.github.minh124199.viettemplate.api.LayoutResolver fromContextVariable(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public static io.github.minh124199.viettemplate.api.LayoutResolver none()
+
+TYPE public interface io.github.minh124199.viettemplate.api.MemberAccessPolicy
+  MEMBER public abstract boolean isClassPermitted(java.lang.Class<?>)
+  MEMBER public abstract boolean isFieldPermitted(java.lang.Class<?>, java.lang.String)
+  MEMBER public abstract boolean isMethodPermitted(java.lang.Class<?>, java.lang.String, int)
+  MEMBER public abstract boolean isPropertyPermitted(java.lang.Class<?>, java.lang.String)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.SecurityPolicyFingerprint fingerprint()
+  MEMBER public default boolean isFieldPermitted(java.lang.Class<?>, java.lang.reflect.Field)
+  MEMBER public default boolean isIndexMutationPermitted(java.lang.Class<?>)
+  MEMBER public default boolean isMethodPermitted(java.lang.Class<?>, java.lang.reflect.Method)
+  MEMBER public default boolean isPropertyMethodPermitted(java.lang.Class<?>, java.lang.reflect.Method, java.lang.String)
+  MEMBER public default boolean isPropertyMutationPermitted(java.lang.Class<?>, java.lang.String)
+  MEMBER public default boolean isSafeProfile()
+  MEMBER public default io.github.minh124199.viettemplate.api.MemberAccessPolicy toSafeProfile()
+  MEMBER public default java.lang.String policyFingerprint()
+  MEMBER public static io.github.minh124199.viettemplate.api.MemberAccessPolicy denyAll()
+  MEMBER public static io.github.minh124199.viettemplate.api.MemberAccessPolicy safe()
+  MEMBER public static io.github.minh124199.viettemplate.api.MemberAccessPolicy standard()
+  MEMBER public static io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder builder()
+
+TYPE public final class io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy build()
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder allowAllIndexMutations(boolean)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder allowAllPropertyMutations(boolean)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder allowClass(java.lang.Class<?>)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder allowClasses(java.lang.Class<?>...)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder allowHelper(java.lang.Class<?>)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder allowHelperMethod(java.lang.Class<?>, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder allowIndexMutation(java.lang.Class<?>)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder allowMethod(java.lang.Class<?>, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder allowProperty(java.lang.Class<?>, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder allowPropertyMutation(java.lang.Class<?>, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder denyClass(java.lang.Class<?>)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder denyMethod(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder denyPackage(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder safeProfile(boolean)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder sensitiveClassifier(io.github.minh124199.viettemplate.api.SensitiveObjectClassifier)
+  MEMBER public io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder()
+
+TYPE public interface io.github.minh124199.viettemplate.api.MutableRenderContext extends io.github.minh124199.viettemplate.api.RenderContext
+  MEMBER public abstract java.util.Map<java.lang.String, java.lang.Object> asMap()
+  MEMBER public abstract void put(java.lang.String, java.lang.Object)
+  MEMBER public abstract void remove(java.lang.String)
+  MEMBER public default void putAll(java.util.Map<java.lang.String, ?>)
+  MEMBER public static io.github.minh124199.viettemplate.api.MutableRenderContext of()
+  MEMBER public static io.github.minh124199.viettemplate.api.MutableRenderContext of(java.util.Map<java.lang.String, java.lang.Object>)
+  MEMBER public static io.github.minh124199.viettemplate.api.MutableRenderContext of(java.util.Map<java.lang.String, java.lang.Object>, java.util.Set<java.lang.String>)
+
+TYPE public interface io.github.minh124199.viettemplate.api.RenderContext
+  MEMBER public abstract boolean contains(java.lang.String)
+  MEMBER public abstract java.lang.Object get(java.lang.String)
+  MEMBER public default java.util.Optional<java.lang.Object> find(java.lang.String)
+  MEMBER public default java.util.Set<java.lang.String> keys()
+  MEMBER public static io.github.minh124199.viettemplate.api.RenderContext empty()
+  MEMBER public static io.github.minh124199.viettemplate.api.RenderContext of(java.lang.String, java.lang.Object)
+  MEMBER public static io.github.minh124199.viettemplate.api.RenderContext of(java.util.Map<java.lang.String, java.lang.Object>)
+  MEMBER public static io.github.minh124199.viettemplate.api.RenderContext$Builder builder()
+
+TYPE public final class io.github.minh124199.viettemplate.api.RenderContext$Builder
+  MEMBER public io.github.minh124199.viettemplate.api.RenderContext build()
+  MEMBER public io.github.minh124199.viettemplate.api.RenderContext$Builder put(java.lang.String, java.lang.Object)
+  MEMBER public io.github.minh124199.viettemplate.api.RenderContext$Builder putAll(java.util.Map<java.lang.String, ?>)
+  MEMBER public io.github.minh124199.viettemplate.api.RenderContext$Builder()
+
+TYPE public interface io.github.minh124199.viettemplate.api.RenderContextContributor
+  MEMBER public abstract void contribute(io.github.minh124199.viettemplate.api.ContributorContext, io.github.minh124199.viettemplate.api.RenderRequest)
+
+TYPE public final class io.github.minh124199.viettemplate.api.RenderRequest extends java.lang.Record
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.RenderContext userModel()
+  MEMBER public io.github.minh124199.viettemplate.api.RenderRequest(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.RenderContext, java.util.Map<java.lang.String, java.lang.Object>)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId templateId()
+  MEMBER public java.util.Map<java.lang.String, java.lang.Object> attributes()
+  MEMBER public static io.github.minh124199.viettemplate.api.RenderRequest of(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.RenderContext)
+  MEMBER public static io.github.minh124199.viettemplate.api.RenderRequest of(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.RenderContext, java.util.Map<java.lang.String, java.lang.Object>)
+
+TYPE public final class io.github.minh124199.viettemplate.api.SecurityPolicyFingerprint extends java.lang.Record implements java.io.Serializable
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public io.github.minh124199.viettemplate.api.SecurityPolicyFingerprint(java.lang.String)
+  MEMBER public java.lang.String toString()
+  MEMBER public java.lang.String value()
+  MEMBER public static io.github.minh124199.viettemplate.api.SecurityPolicyFingerprint of(java.lang.String)
+
+TYPE public final class io.github.minh124199.viettemplate.api.SensitiveObjectClassifier
+  MEMBER public boolean isSensitive(java.lang.Class<?>)
+  MEMBER public boolean isSensitive(java.lang.Object)
+  MEMBER public io.github.minh124199.viettemplate.api.SensitiveObjectClassifier(java.util.Set<java.lang.String>)
+  MEMBER public java.util.Set<java.lang.String> sensitiveTypeNames()
+  MEMBER public static boolean isSensitiveClassName(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.SensitiveObjectClassifier standard()
+
+TYPE public final class io.github.minh124199.viettemplate.api.SourceSpan extends java.lang.Record implements java.io.Serializable
+  MEMBER public boolean isKnown()
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public int endColumn()
+  MEMBER public int endLine()
+  MEMBER public int endOffset()
+  MEMBER public int length()
+  MEMBER public int startColumn()
+  MEMBER public int startLine()
+  MEMBER public int startOffset()
+  MEMBER public io.github.minh124199.viettemplate.api.SourceSpan(int, int, int, int, int, int)
+  MEMBER public static final io.github.minh124199.viettemplate.api.SourceSpan UNKNOWN
+  MEMBER public static io.github.minh124199.viettemplate.api.SourceSpan of(int, int, int, int, int, int)
+
+TYPE public interface io.github.minh124199.viettemplate.api.Template
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateDescriptor descriptor()
+  MEMBER public abstract void render(io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+  MEMBER public default java.lang.String render(io.github.minh124199.viettemplate.api.RenderContext) throws java.io.IOException
+
+TYPE public interface io.github.minh124199.viettemplate.api.TemplateCallable extends java.lang.annotation.Annotation
+
+TYPE public class io.github.minh124199.viettemplate.api.TemplateCompilationException extends io.github.minh124199.viettemplate.api.TemplateException
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateCompilationException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateCompilationException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
+
+TYPE public interface io.github.minh124199.viettemplate.api.TemplateData extends java.lang.annotation.Annotation
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateDependency extends java.lang.Record implements java.io.Serializable
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateDependency(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.TemplateDependencyKind)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateDependencyKind kind()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId source()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId target()
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateDependency of(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.TemplateDependencyKind)
+
+TYPE public interface io.github.minh124199.viettemplate.api.TemplateDependencyGraph
+  MEMBER public abstract int size()
+  MEMBER public abstract java.util.Set<io.github.minh124199.viettemplate.api.TemplateDependency> dependenciesOf(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public abstract java.util.Set<io.github.minh124199.viettemplate.api.TemplateId> dependentsOf(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public abstract java.util.Set<io.github.minh124199.viettemplate.api.TemplateId> transitiveDependentsOf(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public abstract void clear()
+  MEMBER public abstract void removeTemplate(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public abstract void replaceDependencies(io.github.minh124199.viettemplate.api.TemplateId, java.util.Set<io.github.minh124199.viettemplate.api.TemplateDependency>)
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateDependencyKind extends java.lang.Enum<io.github.minh124199.viettemplate.api.TemplateDependencyKind>
+  MEMBER public static final io.github.minh124199.viettemplate.api.TemplateDependencyKind GLOBAL_MACRO_LIBRARY
+  MEMBER public static final io.github.minh124199.viettemplate.api.TemplateDependencyKind LAYOUT
+  MEMBER public static final io.github.minh124199.viettemplate.api.TemplateDependencyKind STATIC_INCLUDE
+  MEMBER public static final io.github.minh124199.viettemplate.api.TemplateDependencyKind STATIC_PARSE
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateDependencyKind valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateDependencyKind[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateDescriptor extends java.lang.Record
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateDescriptor(io.github.minh124199.viettemplate.api.TemplateId, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId id()
+  MEMBER public java.lang.String executionTier()
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateDescriptor of(io.github.minh124199.viettemplate.api.TemplateId, java.lang.String)
+
+TYPE public interface io.github.minh124199.viettemplate.api.TemplateEngine extends java.lang.AutoCloseable
+  MEMBER public abstract boolean rejectRuntimeCompilation()
+  MEMBER public abstract io.github.minh124199.viettemplate.api.LayoutRenderPlan prepareLayoutPlan(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.RenderContext)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.Template get(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateDependencyGraph dependencyGraph()
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateRepository repository()
+  MEMBER public abstract java.util.Set<io.github.minh124199.viettemplate.api.TemplateId> invalidateWithDependents(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public abstract void render(io.github.minh124199.viettemplate.api.RenderRequest, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+  MEMBER public default io.github.minh124199.viettemplate.api.Template get(java.lang.String)
+  MEMBER public default java.lang.String render(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.RenderContext) throws java.io.IOException
+  MEMBER public default java.lang.String render(java.lang.String, io.github.minh124199.viettemplate.api.RenderContext) throws java.io.IOException
+  MEMBER public default void close()
+  MEMBER public default void invalidate(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public default void invalidateAll()
+  MEMBER public default void render(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+  MEMBER public default void render(java.lang.String, io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateEngine$Builder builder()
+
+TYPE public interface io.github.minh124199.viettemplate.api.TemplateEngine$Builder
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine build()
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder addContextContributor(io.github.minh124199.viettemplate.api.RenderContextContributor)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder contextCollisionPolicy(io.github.minh124199.viettemplate.api.ContextCollisionPolicy)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder contextContributors(java.util.List<io.github.minh124199.viettemplate.api.RenderContextContributor>)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder globalMacroLibraries(java.util.List<io.github.minh124199.viettemplate.api.TemplateId>)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder globalMacroPrecedence(io.github.minh124199.viettemplate.api.GlobalMacroPrecedence)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder hotReload(boolean)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder layoutConfiguration(io.github.minh124199.viettemplate.api.LayoutConfiguration)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder maxCacheEntries(int)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder memberAccessPolicy(io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder negativeCacheTtlMillis(long)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder rejectRuntimeCompilation(boolean)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder repository(io.github.minh124199.viettemplate.api.TemplateRepository)
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder watchDebounceMillis(long)
+
+TYPE public interface io.github.minh124199.viettemplate.api.TemplateEngineProvider
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateEngine$Builder createBuilder()
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateEngineProvider load()
+
+TYPE public abstract class io.github.minh124199.viettemplate.api.TemplateException extends java.lang.RuntimeException
+  MEMBER protected io.github.minh124199.viettemplate.api.TemplateException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
+  MEMBER public io.github.minh124199.viettemplate.api.SourceSpan span()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.DiagnosticCode> code()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateId> templateId()
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateId extends java.lang.Record implements java.io.Serializable, java.lang.Comparable<io.github.minh124199.viettemplate.api.TemplateId>
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public int compareTo(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public int compareTo(java.lang.Object)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId(java.lang.String)
+  MEMBER public java.lang.String toString()
+  MEMBER public java.lang.String value()
+  MEMBER public static boolean isTraversalSafe(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateId normalize(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateId of(java.lang.String)
+
+TYPE public class io.github.minh124199.viettemplate.api.TemplateLayoutException extends io.github.minh124199.viettemplate.api.TemplateException
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateLayoutException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateLayoutException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
+
+TYPE public class io.github.minh124199.viettemplate.api.TemplateLimitException extends io.github.minh124199.viettemplate.api.TemplateException
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateLimitException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateLimitException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
+
+TYPE public interface io.github.minh124199.viettemplate.api.TemplateOutput
+  MEMBER public abstract void write(char) throws java.io.IOException
+  MEMBER public abstract void write(java.lang.CharSequence) throws java.io.IOException
+  MEMBER public abstract void writeBoolean(boolean) throws java.io.IOException
+  MEMBER public abstract void writeDouble(double) throws java.io.IOException
+  MEMBER public abstract void writeInt(int) throws java.io.IOException
+  MEMBER public abstract void writeLong(long) throws java.io.IOException
+  MEMBER public abstract void writeUtf8(byte[]) throws java.io.IOException
+  MEMBER public default void flush() throws java.io.IOException
+  MEMBER public default void write(java.lang.CharSequence, int, int) throws java.io.IOException
+  MEMBER public default void writeByte(byte) throws java.io.IOException
+  MEMBER public default void writeFloat(float) throws java.io.IOException
+  MEMBER public default void writeShort(short) throws java.io.IOException
+  MEMBER public default void writeUtf8(byte[], int, int) throws java.io.IOException
+
+TYPE public class io.github.minh124199.viettemplate.api.TemplateRenderException extends io.github.minh124199.viettemplate.api.TemplateException
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateRenderException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateRenderException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
+
+TYPE public interface io.github.minh124199.viettemplate.api.TemplateRepository
+  MEMBER public abstract java.util.Optional<io.github.minh124199.viettemplate.api.TemplateSource> find(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public static io.github.minh124199.viettemplate.api.InMemoryTemplateRepository inMemory()
+  MEMBER public static io.github.minh124199.viettemplate.api.InMemoryTemplateRepository inMemory(java.util.Map<io.github.minh124199.viettemplate.api.TemplateId, java.lang.String>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateRepository classpath(java.lang.ClassLoader, java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateRepository classpath(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateRepository composite(io.github.minh124199.viettemplate.api.TemplateRepository...)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateRepository filesystem(java.nio.file.Path)
+
+TYPE public class io.github.minh124199.viettemplate.api.TemplateResourceException extends io.github.minh124199.viettemplate.api.TemplateException
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateResourceException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateResourceException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
+
+TYPE public class io.github.minh124199.viettemplate.api.TemplateSecurityException extends io.github.minh124199.viettemplate.api.TemplateException
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateSecurityException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateSecurityException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateSecurityException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
+
+TYPE public class io.github.minh124199.viettemplate.api.TemplateSemanticException extends io.github.minh124199.viettemplate.api.TemplateException
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateSemanticException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateSemanticException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateSource extends java.lang.Record
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId id()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateSource(io.github.minh124199.viettemplate.api.TemplateId, java.net.URI, java.nio.charset.Charset, java.lang.String, java.lang.String, long)
+  MEMBER public java.lang.String content()
+  MEMBER public java.lang.String fingerprint()
+  MEMBER public java.net.URI origin()
+  MEMBER public java.nio.charset.Charset charset()
+  MEMBER public long lastModifiedEpochMillis()
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateSource fromString(io.github.minh124199.viettemplate.api.TemplateId, java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateSource of(io.github.minh124199.viettemplate.api.TemplateId, java.net.URI, java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateSource of(io.github.minh124199.viettemplate.api.TemplateId, java.net.URI, java.nio.charset.Charset, java.lang.String, long)
+  MEMBER public static java.lang.String computeSha256(java.lang.String)
+
+TYPE public class io.github.minh124199.viettemplate.api.TemplateSyntaxException extends io.github.minh124199.viettemplate.api.TemplateException
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateSyntaxException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateSyntaxException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
+
+TYPE public final class io.github.minh124199.viettemplate.api.ValueOrigin extends java.lang.Enum<io.github.minh124199.viettemplate.api.ValueOrigin>
+  MEMBER public static final io.github.minh124199.viettemplate.api.ValueOrigin CONTRIBUTOR
+  MEMBER public static final io.github.minh124199.viettemplate.api.ValueOrigin ENGINE_INTERNAL
+  MEMBER public static final io.github.minh124199.viettemplate.api.ValueOrigin MODEL
+  MEMBER public static io.github.minh124199.viettemplate.api.ValueOrigin valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.ValueOrigin[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.language.vtl.source.SourceText implements java.lang.CharSequence
+  MEMBER public char charAt(int)
+  MEMBER public int length()
+  MEMBER public int lineCount()
+  MEMBER public int lineStartOffset(int)
+  MEMBER public io.github.minh124199.viettemplate.api.SourceSpan fullSpan()
+  MEMBER public io.github.minh124199.viettemplate.api.SourceSpan spanAt(int, int)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId templateId()
+  MEMBER public java.lang.CharSequence slice(int, int)
+  MEMBER public java.lang.CharSequence subSequence(int, int)
+  MEMBER public java.lang.String content()
+  MEMBER public java.lang.String substring(int, int)
+  MEMBER public java.lang.String toString()
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.source.SourceText from(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.source.SourceText of(io.github.minh124199.viettemplate.api.TemplateId, java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.source.SourceText of(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.source.SourceText of(java.lang.String, java.lang.String)
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.CssStringEscaper implements io.github.minh124199.viettemplate.runtime.Escaper
+  MEMBER public io.github.minh124199.viettemplate.runtime.EscapeMode mode()
+  MEMBER public static final io.github.minh124199.viettemplate.runtime.CssStringEscaper INSTANCE
+  MEMBER public void escape(java.lang.CharSequence, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.EscapeMode extends java.lang.Enum<io.github.minh124199.viettemplate.runtime.EscapeMode>
+  MEMBER public static final io.github.minh124199.viettemplate.runtime.EscapeMode CSS_STRING
+  MEMBER public static final io.github.minh124199.viettemplate.runtime.EscapeMode HTML_ATTRIBUTE_QUOTED
+  MEMBER public static final io.github.minh124199.viettemplate.runtime.EscapeMode HTML_TEXT
+  MEMBER public static final io.github.minh124199.viettemplate.runtime.EscapeMode JS_STRING
+  MEMBER public static final io.github.minh124199.viettemplate.runtime.EscapeMode RAW
+  MEMBER public static final io.github.minh124199.viettemplate.runtime.EscapeMode URL_COMPONENT
+  MEMBER public static io.github.minh124199.viettemplate.runtime.EscapeMode valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.runtime.EscapeMode[] values()
+
+TYPE public interface io.github.minh124199.viettemplate.runtime.Escaper
+  MEMBER public abstract io.github.minh124199.viettemplate.runtime.EscapeMode mode()
+  MEMBER public abstract void escape(java.lang.CharSequence, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.EscaperRegistry
+  MEMBER public io.github.minh124199.viettemplate.runtime.Escaper get(io.github.minh124199.viettemplate.runtime.EscapeMode)
+  MEMBER public io.github.minh124199.viettemplate.runtime.Escaper get(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.runtime.EscaperRegistry()
+  MEMBER public static io.github.minh124199.viettemplate.runtime.EscaperRegistry standard()
+  MEMBER public void register(io.github.minh124199.viettemplate.runtime.Escaper)
+  MEMBER public void register(java.lang.String, io.github.minh124199.viettemplate.runtime.Escaper)
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.HtmlAttributeEscaper implements io.github.minh124199.viettemplate.runtime.Escaper
+  MEMBER public io.github.minh124199.viettemplate.runtime.EscapeMode mode()
+  MEMBER public static final io.github.minh124199.viettemplate.runtime.HtmlAttributeEscaper INSTANCE
+  MEMBER public void escape(java.lang.CharSequence, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.HtmlTextEscaper implements io.github.minh124199.viettemplate.runtime.Escaper
+  MEMBER public io.github.minh124199.viettemplate.runtime.EscapeMode mode()
+  MEMBER public static final io.github.minh124199.viettemplate.runtime.HtmlTextEscaper INSTANCE
+  MEMBER public void escape(java.lang.CharSequence, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.JsStringEscaper implements io.github.minh124199.viettemplate.runtime.Escaper
+  MEMBER public io.github.minh124199.viettemplate.runtime.EscapeMode mode()
+  MEMBER public static final io.github.minh124199.viettemplate.runtime.JsStringEscaper INSTANCE
+  MEMBER public void escape(java.lang.CharSequence, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.MapRenderContext implements io.github.minh124199.viettemplate.api.RenderContext
+  MEMBER public boolean contains(java.lang.String)
+  MEMBER public java.lang.Object get(java.lang.String)
+  MEMBER public java.util.Map<java.lang.String, java.lang.Object> asMap()
+  MEMBER public java.util.Set<java.lang.String> keys()
+  MEMBER public static io.github.minh124199.viettemplate.runtime.MapRenderContext of(java.lang.String, java.lang.Object)
+  MEMBER public static io.github.minh124199.viettemplate.runtime.MapRenderContext of(java.util.Map<java.lang.String, java.lang.Object>)
+  MEMBER public static io.github.minh124199.viettemplate.runtime.MapRenderContext$Builder builder()
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.MapRenderContext$Builder
+  MEMBER public io.github.minh124199.viettemplate.runtime.MapRenderContext build()
+  MEMBER public io.github.minh124199.viettemplate.runtime.MapRenderContext$Builder put(java.lang.String, java.lang.Object)
+  MEMBER public io.github.minh124199.viettemplate.runtime.MapRenderContext$Builder putAll(java.util.Map<java.lang.String, ?>)
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.NumberFormatting
+  MEMBER public static int formatInt(int, byte[], int)
+  MEMBER public static int formatLong(long, byte[], int)
+  MEMBER public static int stringSize(int)
+  MEMBER public static int stringSize(long)
+  MEMBER public static void write(java.io.Writer, boolean) throws java.io.IOException
+  MEMBER public static void write(java.io.Writer, double) throws java.io.IOException
+  MEMBER public static void write(java.io.Writer, int) throws java.io.IOException
+  MEMBER public static void write(java.io.Writer, long) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.RawEscaper implements io.github.minh124199.viettemplate.runtime.Escaper
+  MEMBER public io.github.minh124199.viettemplate.runtime.EscapeMode mode()
+  MEMBER public static final io.github.minh124199.viettemplate.runtime.RawEscaper INSTANCE
+  MEMBER public void escape(java.lang.CharSequence, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.RenderBudget
+  MEMBER public int maxLoopIterations()
+  MEMBER public io.github.minh124199.viettemplate.runtime.RenderBudget(long, long, int)
+  MEMBER public long charactersWritten()
+  MEMBER public long loopIterations()
+  MEMBER public long maxExecutionTimeMillis()
+  MEMBER public long maxOutputCharacters()
+  MEMBER public static final io.github.minh124199.viettemplate.api.DiagnosticCode CODE_LIMIT_EXCEEDED
+  MEMBER public static final io.github.minh124199.viettemplate.api.DiagnosticCode CODE_TIME_LIMIT
+  MEMBER public static io.github.minh124199.viettemplate.runtime.RenderBudget unlimited()
+  MEMBER public void checkDeadline(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan)
+  MEMBER public void consumeCharacters(int, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan)
+  MEMBER public void countLoopIteration()
+  MEMBER public void countLoopIteration(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan)
+
+TYPE public interface io.github.minh124199.viettemplate.runtime.SafeContent
+  MEMBER public abstract java.lang.CharSequence content()
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.SafeHtml extends java.lang.Record implements io.github.minh124199.viettemplate.runtime.SafeContent,java.lang.CharSequence
+  MEMBER public char charAt(int)
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public int length()
+  MEMBER public io.github.minh124199.viettemplate.runtime.SafeHtml(java.lang.CharSequence)
+  MEMBER public java.lang.CharSequence content()
+  MEMBER public java.lang.CharSequence subSequence(int, int)
+  MEMBER public java.lang.String toString()
+  MEMBER public static io.github.minh124199.viettemplate.runtime.SafeHtml of(java.lang.CharSequence)
+  MEMBER public static io.github.minh124199.viettemplate.runtime.SafeHtml ofTrusted(java.lang.CharSequence)
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.SafeUrl implements io.github.minh124199.viettemplate.runtime.SafeContent,java.lang.CharSequence
+  MEMBER public boolean equals(java.lang.Object)
+  MEMBER public char charAt(int)
+  MEMBER public int hashCode()
+  MEMBER public int length()
+  MEMBER public java.lang.CharSequence content()
+  MEMBER public java.lang.CharSequence subSequence(int, int)
+  MEMBER public java.lang.String toString()
+  MEMBER public static io.github.minh124199.viettemplate.runtime.SafeUrl of(java.lang.CharSequence)
+  MEMBER public static io.github.minh124199.viettemplate.runtime.SafeUrl ofTrusted(java.lang.CharSequence)
+  MEMBER public static io.github.minh124199.viettemplate.runtime.SafeUrl ofValidated(java.lang.CharSequence)
+  MEMBER public static java.util.Optional<io.github.minh124199.viettemplate.runtime.SafeUrl> tryOf(java.lang.CharSequence)
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.SafeUrlValidator
+  MEMBER public static boolean isValid(java.lang.CharSequence)
+  MEMBER public static java.lang.String sanitizeOrValidate(java.lang.CharSequence)
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.StandardEscapers
+  MEMBER public static io.github.minh124199.viettemplate.runtime.Escaper cssString()
+  MEMBER public static io.github.minh124199.viettemplate.runtime.Escaper get(io.github.minh124199.viettemplate.runtime.EscapeMode)
+  MEMBER public static io.github.minh124199.viettemplate.runtime.Escaper htmlAttribute()
+  MEMBER public static io.github.minh124199.viettemplate.runtime.Escaper htmlText()
+  MEMBER public static io.github.minh124199.viettemplate.runtime.Escaper jsString()
+  MEMBER public static io.github.minh124199.viettemplate.runtime.Escaper raw()
+  MEMBER public static io.github.minh124199.viettemplate.runtime.Escaper urlComponent()
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.StringTemplateOutput implements io.github.minh124199.viettemplate.api.TemplateOutput
+  MEMBER public int length()
+  MEMBER public io.github.minh124199.viettemplate.runtime.StringTemplateOutput()
+  MEMBER public io.github.minh124199.viettemplate.runtime.StringTemplateOutput(int)
+  MEMBER public java.lang.String toString()
+  MEMBER public void flush()
+  MEMBER public void reset()
+  MEMBER public void write(char)
+  MEMBER public void write(java.lang.CharSequence)
+  MEMBER public void write(java.lang.CharSequence, int, int)
+  MEMBER public void writeBoolean(boolean)
+  MEMBER public void writeByte(byte)
+  MEMBER public void writeDouble(double)
+  MEMBER public void writeFloat(float)
+  MEMBER public void writeInt(int)
+  MEMBER public void writeLong(long)
+  MEMBER public void writeShort(short)
+  MEMBER public void writeUtf8(byte[])
+  MEMBER public void writeUtf8(byte[], int, int)
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.UrlComponentEscaper implements io.github.minh124199.viettemplate.runtime.Escaper
+  MEMBER public io.github.minh124199.viettemplate.runtime.EscapeMode mode()
+  MEMBER public static final io.github.minh124199.viettemplate.runtime.UrlComponentEscaper INSTANCE
+  MEMBER public void escape(java.lang.CharSequence, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.Utf8OutputStreamTemplateOutput implements io.github.minh124199.viettemplate.api.TemplateOutput,java.io.Flushable,java.lang.AutoCloseable
+  MEMBER public io.github.minh124199.viettemplate.runtime.Utf8OutputStreamTemplateOutput(java.io.OutputStream)
+  MEMBER public io.github.minh124199.viettemplate.runtime.Utf8OutputStreamTemplateOutput(java.io.OutputStream, int)
+  MEMBER public void close() throws java.io.IOException
+  MEMBER public void flush() throws java.io.IOException
+  MEMBER public void write(char) throws java.io.IOException
+  MEMBER public void write(java.lang.CharSequence) throws java.io.IOException
+  MEMBER public void write(java.lang.CharSequence, int, int) throws java.io.IOException
+  MEMBER public void writeBoolean(boolean) throws java.io.IOException
+  MEMBER public void writeByte(byte) throws java.io.IOException
+  MEMBER public void writeDouble(double) throws java.io.IOException
+  MEMBER public void writeFloat(float) throws java.io.IOException
+  MEMBER public void writeInt(int) throws java.io.IOException
+  MEMBER public void writeLong(long) throws java.io.IOException
+  MEMBER public void writeShort(short) throws java.io.IOException
+  MEMBER public void writeUtf8(byte[]) throws java.io.IOException
+  MEMBER public void writeUtf8(byte[], int, int) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.runtime.WriterTemplateOutput implements io.github.minh124199.viettemplate.api.TemplateOutput,java.io.Flushable
+  MEMBER public io.github.minh124199.viettemplate.runtime.WriterTemplateOutput(java.io.Writer)
+  MEMBER public void flush() throws java.io.IOException
+  MEMBER public void write(char) throws java.io.IOException
+  MEMBER public void write(java.lang.CharSequence) throws java.io.IOException
+  MEMBER public void write(java.lang.CharSequence, int, int) throws java.io.IOException
+  MEMBER public void writeBoolean(boolean) throws java.io.IOException
+  MEMBER public void writeByte(byte) throws java.io.IOException
+  MEMBER public void writeDouble(double) throws java.io.IOException
+  MEMBER public void writeFloat(float) throws java.io.IOException
+  MEMBER public void writeInt(int) throws java.io.IOException
+  MEMBER public void writeLong(long) throws java.io.IOException
+  MEMBER public void writeShort(short) throws java.io.IOException
+  MEMBER public void writeUtf8(byte[]) throws java.io.IOException
+  MEMBER public void writeUtf8(byte[], int, int) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.engine.VtlTemplate implements io.github.minh124199.viettemplate.api.Template
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateDescriptor descriptor()
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplate(io.github.minh124199.viettemplate.api.TemplateDescriptor, io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle, io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle handle()
+  MEMBER public void render(io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine implements io.github.minh124199.viettemplate.api.TemplateEngine,java.lang.AutoCloseable
+  MEMBER public boolean rejectRuntimeCompilation()
+  MEMBER public io.github.minh124199.viettemplate.api.LayoutRenderPlan prepareLayoutPlan(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.RenderContext)
+  MEMBER public io.github.minh124199.viettemplate.api.Template get(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateDependencyGraph dependencyGraph()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateRepository repository()
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.cache.TemplateCompileCache cache()
+  MEMBER public java.util.Set<io.github.minh124199.viettemplate.api.TemplateId> invalidateWithDependents(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public static io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder builder()
+  MEMBER public void close()
+  MEMBER public void invalidate(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public void invalidateAll()
+  MEMBER public void render(io.github.minh124199.viettemplate.api.RenderRequest, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder implements io.github.minh124199.viettemplate.api.TemplateEngine$Builder
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine build()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder addContextContributor(io.github.minh124199.viettemplate.api.RenderContextContributor)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder contextCollisionPolicy(io.github.minh124199.viettemplate.api.ContextCollisionPolicy)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder contextContributors(java.util.List)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder globalMacroLibraries(java.util.List)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder globalMacroPrecedence(io.github.minh124199.viettemplate.api.GlobalMacroPrecedence)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder hotReload(boolean)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder layoutConfiguration(io.github.minh124199.viettemplate.api.LayoutConfiguration)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder maxCacheEntries(int)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder memberAccessPolicy(io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder negativeCacheTtlMillis(long)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder rejectRuntimeCompilation(boolean)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder repository(io.github.minh124199.viettemplate.api.TemplateRepository)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder watchDebounceMillis(long)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine build()
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder addContextContributor(io.github.minh124199.viettemplate.api.RenderContextContributor)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder contextCollisionPolicy(io.github.minh124199.viettemplate.api.ContextCollisionPolicy)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder contextContributors(java.util.List<io.github.minh124199.viettemplate.api.RenderContextContributor>)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder dependencyGraph(io.github.minh124199.viettemplate.api.TemplateDependencyGraph)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder executionTier(io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder globalMacroLibraries(java.util.List<io.github.minh124199.viettemplate.api.TemplateId>)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder globalMacroPrecedence(io.github.minh124199.viettemplate.api.GlobalMacroPrecedence)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder hotReload(boolean)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder interpreterOptions(io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder layoutConfiguration(io.github.minh124199.viettemplate.api.LayoutConfiguration)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder maxCacheEntries(int)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder maxNegativeEntries(int)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder memberAccessPolicy(io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder negativeCacheTtlMillis(long)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder optimizationLevel(io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder rejectRuntimeCompilation(boolean)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder repository(io.github.minh124199.viettemplate.api.TemplateRepository)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder semanticOptions(io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder watchDebounceMillis(long)
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder()
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineProvider implements io.github.minh124199.viettemplate.api.TemplateEngineProvider
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder createBuilder()
+  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineProvider()
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue evaluateExpression(io.github.minh124199.viettemplate.language.vtl.ast.VtlExpression, io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter$ExecutionState)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue evaluateReference(io.github.minh124199.viettemplate.language.vtl.ast.VtlReference, io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter$ExecutionState)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter()
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter(io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions options()
+  MEMBER public void interpret(io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate, io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+  MEMBER public void render(io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate, io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+  MEMBER public void render(io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate, io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+  MEMBER public void render(io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate, io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+  MEMBER public void render(io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate, io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+  MEMBER public void render(io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions extends java.lang.Record
+  MEMBER public boolean allowBareNullLiteral()
+  MEMBER public boolean emptyCheck()
+  MEMBER public boolean setNullAllowed()
+  MEMBER public boolean strictReferences()
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.VtlProfile profile()
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions optimizationOptions()
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits limits()
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier executionTier()
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode spaceGobbling()
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver resourceResolver()
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder toBuilder()
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions(io.github.minh124199.viettemplate.language.vtl.VtlProfile, boolean, boolean, boolean, io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode, boolean, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits, io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy, io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions(io.github.minh124199.viettemplate.language.vtl.VtlProfile, boolean, boolean, boolean, io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode, boolean, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits, io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy, io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions(io.github.minh124199.viettemplate.language.vtl.VtlProfile, boolean, boolean, boolean, io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode, boolean, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits, io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy, io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier, io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy securityPolicy()
+  MEMBER public static final io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions DEFAULT
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder builder()
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions build()
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder allowBareNullLiteral(boolean)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder emptyCheck(boolean)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder executionTier(io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder limits(io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder optimizationOptions(io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder profile(io.github.minh124199.viettemplate.language.vtl.VtlProfile)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder resourceResolver(io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder securityPolicy(io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder setNullAllowed(boolean)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder spaceGobbling(io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder strictReferences(boolean)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder()

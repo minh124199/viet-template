@@ -163,10 +163,14 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
 
 ### Key Milestones
 
-- **Milestone M14 (Public API & SPI Stabilization)**:
-  - Finalize public abstractions: `TemplateEngine`, `Template`, `CompiledTemplate`, `TemplateRepository`, `RenderContext`, `TemplateOutput`, `Escaper`, `MemberAccessPolicy`.
-  - Guarantee strict semantic versioning and backward compatibility.
-- **Milestone M15 (Maven & Gradle AOT Tooling)**:
+- **Milestone M14 (Public API & SPI Stabilization) — COMPLETE**:
+  - Finalized 8 core public abstractions: `TemplateEngine`, `Template`, `CompiledTemplate`, `TemplateRepository`, `RenderContext`, `TemplateOutput`, `Escaper`, `MemberAccessPolicy`.
+  - Complete public inventory and classification of 345 types across production modules.
+  - Contract hardening: strict 3-state evaluation preservation (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`), `AutoCloseable` lifecycle, fail-closed security enforcement, thread-confinement documentation.
+  - Automated binary & source compatibility tooling (`config/api-baseline/1.0-public-api.txt`, `scripts/verify-api-compatibility.py`, CI enforcement).
+  - Third-party SPI implementor fixtures and external consumer smoke tests.
+  - Formally documented in [`docs/32-m14-public-api-spi-stabilization.md`](32-m14-public-api-spi-stabilization.md).
+- **Milestone M15 (Maven & Gradle AOT Tooling) — NEXT**:
   - Dedicated `viet-template-maven-plugin` and `viet-template-gradle-plugin` for build-time template precompilation, model validation, and class generation.
 - **Milestone M16 & M17 (Spring Framework 7 & Spring Boot 4 Integration)**:
   - `viet-template-spring` providing Spring MVC `View` and `ViewResolver`.
