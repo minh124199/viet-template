@@ -85,6 +85,22 @@ public class ArchitectureRulesTest {
           .allowEmptyShould(true);
 
   @ArchTest
+  public static final ArchRule aot_public_api_must_not_depend_on_internal_packages =
+      noClasses()
+          .that()
+          .resideInAPackage("..viettemplate.aot..")
+          .and()
+          .arePublic()
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              "..viettemplate.runtime.linker..",
+              "..viettemplate.language.vtl.ast..",
+              "..viettemplate.language.vtl.ir..",
+              "..viettemplate.vtl.compiler..",
+              "..viettemplate.vtl.interpreter..");
+
+  @ArchTest
   public static final ArchRule packages_must_be_free_of_cycles =
       slices().matching("io.github.minh124199.viettemplate.(*)..").should().beFreeOfCycles();
 }

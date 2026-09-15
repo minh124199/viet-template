@@ -42,7 +42,10 @@
         <module>viet-template-vtl-interpreter</module>
         <module>viet-template-tck</module>
         <module>viet-template-benchmarks</module>
+        <module>viet-template-maven-plugin</module>
+        <module>viet-template-gradle-plugin</module>
     </modules>
+
 
     <properties>
         <!-- Java Baseline & Encoding -->
@@ -100,6 +103,17 @@
                 <artifactId>viet-template-tck</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>io.github.minh124199</groupId>
+                <artifactId>viet-template-maven-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.minh124199</groupId>
+                <artifactId>viet-template-gradle-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
 
             <!-- JUnit 5 BOM -->
             <dependency>

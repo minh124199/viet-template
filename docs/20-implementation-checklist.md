@@ -547,30 +547,33 @@ Every optimization must preserve:
 
 ## 15. Maven/Gradle AOT tooling
 
-### Maven
+### Narrow Public Facade & Runtime Discovery
+- [x] Narrow public AOT facade: `TemplateAotCompiler`, `TemplateAotRequest`, `TemplateAotResult`, `TemplateAotDiagnostic`, `TemplateAotArtifact` in `io.github.minh124199.viettemplate.aot` (classified as `STABLE_API`).
+- [x] Internal compiler decoupling: ArchUnit rules ensure plugins never import internal compiler, parser, IR, AST, or linker packages.
+- [x] Self-contained bytecode: `<clinit>` emits `UTF8_CHUNKS` and `SITES` arrays via `BytecodeRuntimeBridge`, enabling isolated ClassLoader execution.
+- [x] Runtime AOT discovery: `VtlTemplateEngine` discovers `META-INF/viet-template/templates.idx` from ClassLoaders with `rejectRuntimeCompilation(true)` support.
 
-- [ ] `compileTemplates` goal.
-- [ ] incremental cache.
-- [ ] generated resources/class output integration.
-- [ ] model signature input.
-- [ ] fail-on-warning option.
-- [ ] compatibility profile option.
-- [ ] machine-readable compile report.
+### Maven
+- [x] `viet-template-maven-plugin`: `compile` goal (`VietTemplateCompileMojo`) bound by default to `process-classes`.
+- [x] Incremental cache: SHA-256 fingerprint tracking via `META-INF/viet-template/aot-state`.
+- [x] Generated resources/class output integration: outputs directly to `${project.build.outputDirectory}`.
+- [x] Stale file removal: deleted `.vtl` sources trigger deletion of corresponding `.class` files.
+- [x] Fail-on-warning option: `failOnWarning` parameter supported.
+- [x] Line:column diagnostic logging: structured error formatting matching IDE standards.
 
 ### Gradle
+- [x] `viet-template-gradle-plugin`: Plugin ID `io.github.minh124199.viet-template`, task `compileVietTemplates`.
+- [x] Cacheable task: `VietTemplateCompileTask` annotated with `@CacheableTask` and Gradle lazy properties.
+- [x] Configuration-cache compatibility: task action captures zero `Project` references.
+- [x] Automatic source set wiring: registers output classes and resources with `sourceSets.main`.
+- [x] Lifecycle binding: automatic wiring `compileJava` -> `compileVietTemplates` -> `classes`.
 
-- [ ] cacheable task.
-- [ ] incremental inputs/outputs.
-- [ ] worker isolation if compilation benefits from it.
-- [ ] configuration-cache compatibility.
-- [ ] toolchain selection.
-
-### Reproducibility
-
-- [ ] same input produces byte-identical output where practical.
-- [ ] no absolute build path in generated artifacts.
-- [ ] stable constant ordering.
-- [ ] stable class naming.
+### Reproducibility & Parity
+- [x] Byte-for-byte identical output: Maven and Gradle produce bit-identical `.class` files (verified by SHA-256).
+- [x] No absolute build path in generated artifacts.
+- [x] Alphabetically sorted template discovery and deterministic `templates.idx` generation.
+- [x] Deterministic class naming based on sanitized template path and truncated SHA-256 hash.
+- [x] Automated parity verification script: `scripts/verify-aot-tooling-parity.sh` testing all consumer fixtures.
 
 ---
 

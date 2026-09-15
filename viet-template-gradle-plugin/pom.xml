@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.minh124199</groupId>
+        <artifactId>viet-template-parent</artifactId>
+        <version>0.2.1-SNAPSHOT</version>
+    </parent>
+
+    <groupId>io.github.minh124199</groupId>
+    <artifactId>viet-template-gradle-plugin</artifactId>
+    <packaging>jar</packaging>
+
+    <name>viet-template-gradle-plugin</name>
+    <description>Official build-time AOT template compiler Gradle plugin for Viet Template</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.minh124199</groupId>
+            <artifactId>viet-template-vtl-interpreter</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.gradleplugins</groupId>
+            <artifactId>gradle-api</artifactId>
+            <version>8.10.2</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.gradleplugins</groupId>
+            <artifactId>gradle-test-kit</artifactId>
+            <version>8.10.2</version>
+            <scope>test</scope>
+        </dependency>
+
+
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.11.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.27.7</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>--add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -217,7 +217,11 @@ def main():
     api_and_spi_to_check = {
         cls for cls, cat in classification.items()
         if cat in ("STABLE_API", "STABLE_SPI")
-        and (cls.startswith("io.github.minh124199.viettemplate.api.") or cls.startswith("io.github.minh124199.viettemplate.runtime."))
+        and (
+            cls.startswith("io.github.minh124199.viettemplate.api.")
+            or cls.startswith("io.github.minh124199.viettemplate.runtime.")
+            or cls.startswith("io.github.minh124199.viettemplate.aot.")
+        )
     }
 
     leaks = check_signature_leaks(api_and_spi_to_check, internal_and_exp)

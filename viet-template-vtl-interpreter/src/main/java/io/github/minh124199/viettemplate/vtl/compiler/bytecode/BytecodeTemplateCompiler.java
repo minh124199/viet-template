@@ -261,8 +261,56 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     // Static initializer: <clinit>()
     ClassFileWriter.MethodWriter clinit =
         cf.addMethod(ClassFileWriter.ACC_STATIC, "<clinit>", "()V");
+    clinit.setMaxStack(10);
+    clinit.setMaxLocals(4);
+
+    // 1. Initialize UTF8_CHUNKS array
+    int utf8Size = context.utf8Chunks.size();
+    clinit.iconst(utf8Size);
+    clinit.anewarray("[B");
+    for (int i = 0; i < utf8Size; i++) {
+      clinit.dup();
+      clinit.iconst(i);
+      byte[] chunkBytes = context.utf8Chunks.get(i);
+      String chunkStr = new String(chunkBytes, java.nio.charset.StandardCharsets.UTF_8);
+      clinit.ldc(chunkStr);
+      clinit.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "toUtf8Bytes",
+          "(Ljava/lang/String;)[B");
+      clinit.aastore();
+    }
+    clinit.putstatic(internalName, "UTF8_CHUNKS", "[[B");
+
+    // 2. Initialize SITES array
+    int sitesSize = context.dynamicSites.size();
+    clinit.iconst(sitesSize);
+    clinit.anewarray("io/github/minh124199/viettemplate/runtime/linker/DynamicCallSite");
+    for (int i = 0; i < sitesSize; i++) {
+      DynamicSiteSpec spec = context.dynamicSites.get(i);
+      clinit.dup();
+      clinit.iconst(i);
+      clinit.iconst(spec.siteId);
+      clinit.ldc(spec.memberName);
+      clinit.iconst(spec.operation.ordinal());
+      clinit.iconst(spec.arity);
+      clinit.aconst_null();
+      clinit.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "createCallSite",
+          "(ILjava/lang/String;IILio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;)Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;");
+      clinit.aastore();
+    }
+    clinit.putstatic(
+        internalName,
+        "SITES",
+        "[Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;");
+
+    // 3. Initialize TEMPLATE_ID static field
     clinit.ldc(optimized.id().value());
     clinit.putstatic(internalName, "TEMPLATE_ID", "Ljava/lang/String;");
+
+    // 4. Return
     clinit.returnOp();
 
     // 7. Binary class bytes emission

@@ -28,9 +28,18 @@ import io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler;
 import io.github.minh124199.viettemplate.vtl.interpreter.TemplateResource;
 import io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.reflect.Field;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -57,6 +66,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
   private final List<RenderContextContributor> contextContributors;
   private final ContextCollisionPolicy contextCollisionPolicy;
   private final LayoutConfiguration layoutConfiguration;
+  private final Map<TemplateId, Class<? extends CompiledTemplate>> aotTemplates;
   private final ThreadLocal<Set<TemplateId>> compilingTemplates =
       ThreadLocal.withInitial(java.util.HashSet::new);
 
@@ -154,6 +164,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     } else {
       this.fileWatcher = Optional.empty();
     }
+    this.aotTemplates = discoverAotTemplates(repository);
   }
 
   public static VtlTemplateEngineBuilder builder() {
@@ -163,6 +174,41 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
   @Override
   public Template get(TemplateId id) {
     Objects.requireNonNull(id, "id must not be null");
+
+    // 0. AOT precompiled template registry check
+    Class<? extends CompiledTemplate> aotClass = aotTemplates.get(id);
+    if (aotClass == null) {
+      try {
+        aotClass = aotTemplates.get(TemplateId.normalize(id.value()));
+      } catch (Exception ignored) {
+      }
+    }
+    if (aotClass != null) {
+      try {
+        CompiledTemplate ct = aotClass.getDeclaredConstructor().newInstance();
+        CompileCacheKey key =
+            CompileCacheKey.of(
+                id,
+                "aot",
+                COMPILER_VERSION,
+                optimizationLevel,
+                ExecutionTier.AOT_BYTECODE,
+                interpreterOptions.securityPolicy().policyFingerprint(),
+                semanticOptions.modelSchema().parameters().toString(),
+                interpreterOptions.profile().name() + ":" + semanticOptions.profile().name(),
+                "");
+        CompiledTemplateHandle handle =
+            CompiledTemplateHandle.ofBytecode(id, 0L, key, ct, null, null);
+        return new VtlTemplate(
+            TemplateDescriptor.of(id, ExecutionTier.AOT_BYTECODE.name()),
+            handle,
+            SourceText.of(id, ""),
+            interpreterOptions);
+      } catch (Exception e) {
+        throw new IllegalStateException(
+            "Failed to instantiate AOT compiled template: " + id.value(), e);
+      }
+    }
 
     // 1. Negative cache check
     if (cache.isNegativelyCached(id)) {
@@ -399,5 +445,82 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     }
 
     return CompiledTemplateHandle.ofIr(id, gen, key, optimizedIr);
+  }
+
+  private static Map<TemplateId, Class<? extends CompiledTemplate>> discoverAotTemplates(
+      TemplateRepository repository) {
+    Map<TemplateId, Class<? extends CompiledTemplate>> registry = new HashMap<>();
+
+    Set<ClassLoader> classLoaders = new LinkedHashSet<>();
+    ClassLoader contextCl = Thread.currentThread().getContextClassLoader();
+    if (contextCl != null) {
+      classLoaders.add(contextCl);
+    }
+    if (repository instanceof ClasspathTemplateRepository) {
+      try {
+        Field clField = ClasspathTemplateRepository.class.getDeclaredField("classLoader");
+        clField.setAccessible(true);
+        ClassLoader repoCl = (ClassLoader) clField.get(repository);
+        if (repoCl != null) {
+          classLoaders.add(repoCl);
+        }
+      } catch (Exception ignored) {
+      }
+    }
+    ClassLoader engineCl = VtlTemplateEngine.class.getClassLoader();
+    if (engineCl != null) {
+      classLoaders.add(engineCl);
+    }
+
+    for (ClassLoader cl : classLoaders) {
+      try {
+        Enumeration<URL> resources = cl.getResources("META-INF/viet-template/templates.idx");
+        while (resources != null && resources.hasMoreElements()) {
+          URL url = resources.nextElement();
+          loadTemplateIndex(url, cl, registry);
+        }
+      } catch (IOException ignored) {
+      }
+    }
+
+    return Collections.unmodifiableMap(registry);
+  }
+
+  private static void loadTemplateIndex(
+      URL url, ClassLoader cl, Map<TemplateId, Class<? extends CompiledTemplate>> registry) {
+    try (BufferedReader reader =
+        new BufferedReader(new InputStreamReader(url.openStream(), StandardCharsets.UTF_8))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        line = line.trim();
+        if (line.isEmpty() || line.startsWith("#")) {
+          continue;
+        }
+        int eq = line.indexOf('=');
+        if (eq > 0) {
+          String idStr = line.substring(0, eq).trim();
+          String fqcn = line.substring(eq + 1).trim();
+          if (!idStr.isEmpty() && !fqcn.isEmpty()) {
+            TemplateId templateId;
+            try {
+              templateId = TemplateId.normalize(idStr);
+            } catch (Exception e) {
+              templateId = TemplateId.of(idStr);
+            }
+            try {
+              Class<?> loaded = cl.loadClass(fqcn);
+              if (CompiledTemplate.class.isAssignableFrom(loaded)) {
+                @SuppressWarnings("unchecked")
+                Class<? extends CompiledTemplate> compiledClass =
+                    (Class<? extends CompiledTemplate>) loaded;
+                registry.putIfAbsent(templateId, compiledClass);
+              }
+            } catch (ClassNotFoundException | LinkageError ignored) {
+            }
+          }
+        }
+      }
+    } catch (IOException ignored) {
+    }
   }
 }

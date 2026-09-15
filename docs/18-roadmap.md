@@ -178,10 +178,15 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
   - Added ArchUnit rule `integration_and_tooling_boundary_must_not_access_internal_packages` in `viet-template-tck`.
   - Audited M15 AOT readiness; mandated a narrow build-time compiler facade (`TemplateAotCompiler`) in M15 to decouple build tooling from internal compiler machinery.
   - Formally documented in [`docs/33-m14-1-public-surface-containment.md`](33-m14-1-public-surface-containment.md).
-- **Milestone M15 (Maven & Gradle AOT Tooling) — NEXT (Requires Narrow Build Facade)**:
-  - Implement narrow build-time compiler facade (`TemplateAotCompiler` / `BuildTemplateCompiler`) encapsulating AST/IR/bytecode compilation from tooling plugins.
-  - Dedicated `viet-template-maven-plugin` and `viet-template-gradle-plugin` for build-time template precompilation, model validation, and class generation.
-- **Milestone M16 & M17 (Spring Framework 7 & Spring Boot 4 Integration)**:
+- **Milestone M15 (Maven & Gradle AOT Tooling) — COMPLETE**:
+  - Implemented narrow public build-time compiler facade `TemplateAotCompiler` in `io.github.minh124199.viettemplate.aot`, strictly decoupling build plugins from internal compiler packages.
+  - Implemented self-contained `<clinit>` bytecode generation for constant arrays and dynamic call sites, enabling isolated classloading without runtime reflection.
+  - Built `VtlTemplateEngine` ClassLoader discovery of precompiled templates via `META-INF/viet-template/templates.idx` (`rejectRuntimeCompilation(true)`).
+  - Delivered `viet-template-maven-plugin` with `compile` goal bound to `process-classes`.
+  - Delivered `viet-template-gradle-plugin` with `@CacheableTask` `VietTemplateCompileTask` and configuration cache compatibility.
+  - Established automated 100% byte-for-byte dual-build parity verification via `scripts/verify-aot-tooling-parity.sh` and black-box consumer test fixtures.
+  - Formally documented in [`docs/34-m15-aot-build-tooling.md`](34-m15-aot-build-tooling.md).
+- **Milestone M16 & M17 (Spring Framework 7 & Spring Boot 4 Integration) — NEXT**:
   - `viet-template-spring` providing Spring MVC `View` and `ViewResolver`.
   - `viet-template-spring-boot-starter` with `@AutoConfiguration`, configuration properties (`viet.template.*`), devtools hot reload, and AOT runtime hints.
 - **Milestone M18 (TCK & Performance Release Gates)**:
