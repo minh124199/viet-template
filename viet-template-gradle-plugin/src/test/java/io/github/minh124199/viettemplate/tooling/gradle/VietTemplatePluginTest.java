@@ -40,7 +40,7 @@ class VietTemplatePluginTest {
 
   @Test
   @DisplayName("Applies plugin and registers extension and task with correct conventions")
-  void testPluginApplicationWithProjectBuilder(@TempDir Path tempDir) {
+  void testPluginApplicationWithProjectBuilder(@TempDir Path tempDir) throws Exception {
     Project project = ProjectBuilder.builder().withProjectDir(tempDir.toFile()).build();
     project.getPlugins().apply(JavaPlugin.class);
     project.getPlugins().apply("io.github.minh124199.viet-template");
@@ -60,12 +60,14 @@ class VietTemplatePluginTest {
     assertThat(taskObj).isInstanceOf(VietTemplateCompileTask.class);
     VietTemplateCompileTask task = (VietTemplateCompileTask) taskObj;
 
-    assertThat(task.getSourceDirectory().get().getAsFile())
-        .isEqualTo(tempDir.resolve("src/main/viet-template").toFile());
-    assertThat(task.getOutputDirectory().get().getAsFile())
-        .isEqualTo(tempDir.resolve("build/generated/viet-template/classes").toFile());
-    assertThat(task.getResourceOutputDirectory().get().getAsFile())
-        .isEqualTo(tempDir.resolve("build/generated/viet-template/resources").toFile());
+    assertThat(task.getSourceDirectory().get().getAsFile().getCanonicalFile())
+        .isEqualTo(tempDir.resolve("src/main/viet-template").toFile().getCanonicalFile());
+    assertThat(task.getOutputDirectory().get().getAsFile().getCanonicalFile())
+        .isEqualTo(
+            tempDir.resolve("build/generated/viet-template/classes").toFile().getCanonicalFile());
+    assertThat(task.getResourceOutputDirectory().get().getAsFile().getCanonicalFile())
+        .isEqualTo(
+            tempDir.resolve("build/generated/viet-template/resources").toFile().getCanonicalFile());
 
     // Verify task dependencies
     assertThat(task.getDependsOn()).contains(JavaPlugin.COMPILE_JAVA_TASK_NAME);

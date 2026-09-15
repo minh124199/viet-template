@@ -1,5 +1,6 @@
 plugins {
     `java-gradle-plugin`
+    `maven-publish`
 }
 
 description = "Official build-time AOT template compiler for Viet Template"
