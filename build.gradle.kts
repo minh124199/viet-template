@@ -71,12 +71,22 @@ subprojects {
         }
     }
 
+    val spotlessCheckSkip = providers.gradleProperty("spotless.check.skip")
+        .map { it.toBoolean() }
+        .orElse(providers.systemProperty("spotless.check.skip").map { it.toBoolean() })
+        .getOrElse(false)
+    if (spotlessCheckSkip) {
+        tasks.matching { it.name.startsWith("spotless") }.configureEach {
+            onlyIf { false }
+        }
+    }
+
     // Publication configuration for production modules.
     // NOTE: Apache Maven is the single authoritative release publisher for Maven Central.
     // Gradle publication is maintained for local installation (publishToMavenLocal),
     // POM metadata verification, and dual-build parity validation.
     // The test module (:viet-template-tck) and benchmark module (:viet-template-benchmarks) intentionally define zero publications.
-    if (project.name != "viet-template-tck" && project.name != "viet-template-benchmarks") {
+    if (project.name != "viet-template-tck" && project.name != "viet-template-benchmarks" && project.name != "viet-template-gradle-plugin") {
         apply(plugin = "maven-publish")
         apply(plugin = "signing")
 

@@ -23,7 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Output Stream Lifecycle & Resource Ownership Contracts**: Added comprehensive class and method-level Javadoc to `Utf8OutputStreamTemplateOutput`, `WriterTemplateOutput`, `StringTemplateOutput`, and `TemplateEngine` detailing thread confinement, stream ownership on close, double-close idempotency, flush semantics, and the container-managed non-closing stream pattern.
   - **Dedicated Lifecycle Contract Test Suite**: Added `ConcreteOutputLifecycleContractTest` in `viet-template-runtime` covering 9 comprehensive streaming lifecycle scenarios.
   - **Integration Boundary ArchUnit Rule**: Added `integration_and_tooling_boundary_must_not_access_internal_packages` in `viet-template-tck`.
-  - **M15 AOT Facade Readiness Audit**: Documented requirement for a narrow build-time compiler facade (`TemplateAotCompiler`) in M15 to decouple build tooling from internal compiler machinery.
+- **Maven & Gradle Ahead-Of-Time (AOT) Tooling (Milestone M15)**:
+  - **Narrow Public AOT Facade**: Introduced `io.github.minh124199.viettemplate.aot` with 5 public types (`TemplateAotCompiler`, `TemplateAotRequest`, `TemplateAotResult`, `TemplateAotDiagnostic`, `TemplateAotArtifact`), fully classified as `STABLE_API` with zero signature leaks.
+  - **Bytecode Self-Containment**: `BytecodeTemplateCompiler` emits JVM `<clinit>` bytecode allocating and populating `UTF8_CHUNKS`, `SITES`, and `TEMPLATE_ID`, making generated `.class` files 100% self-contained and runnable in standalone ClassLoaders without reflection.
+  - **Runtime AOT Discovery**: `VtlTemplateEngine` automatically discovers `META-INF/viet-template/templates.idx` from ClassLoaders at startup, executing precompiled templates with zero runtime compilation (`rejectRuntimeCompilation(true)`).
+  - **Official Maven Plugin**: Introduced `viet-template-maven-plugin` (`VietTemplateCompileMojo`, goal `compile`, phase `process-classes`) supporting incremental compilation, glob scanning, line:column diagnostics, and stale file cleanup.
+  - **Official Gradle Plugin**: Introduced `viet-template-gradle-plugin` (`VietTemplatePlugin`, id `io.github.minh124199.viet-template`) with `@CacheableTask` `VietTemplateCompileTask`, lazy Gradle property wiring, and Configuration Cache compatibility.
+  - **Deterministic Dual-Build Parity**: Verified 100% byte-for-byte identical bytecode and index output across Maven and Gradle builds via `scripts/verify-aot-tooling-parity.sh` and black-box consumer fixtures (`integration-tests/aot/*`).
+  - **Architectural Isolation**: Added ArchUnit rule `aot_public_api_must_not_depend_on_internal_packages` and verified `integration_and_tooling_boundary_must_not_access_internal_packages`.
 
 ### Changed
 - **Contract & Null Semantics Hardening**:

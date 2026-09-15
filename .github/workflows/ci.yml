@@ -123,6 +123,14 @@ jobs:
       - name: Run Build Parity Verification Script
         run: ./scripts/verify-build-parity.sh
 
+      - name: Publish artifacts to Maven Local
+        run: |
+          ./gradlew publishToMavenLocal --no-daemon -x test
+          ./mvnw install -DskipTests -B -Dspotless.check.skip=true
+
+      - name: Run AOT Tooling Parity Verification Script
+        run: ./scripts/verify-aot-tooling-parity.sh
+
   api-compatibility:
     name: Public API & SPI Compatibility Check
     runs-on: ubuntu-latest

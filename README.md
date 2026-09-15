@@ -54,6 +54,7 @@ Many existing JVM template engines require teams to choose between familiar, fle
   - Authoritative Technology Compatibility Kit (`viet-template-tck`) evaluating 301 differential scenarios against Apache Velocity 2.4.1.
   - Dedicated JMH benchmark module (`viet-template-benchmarks`) under Milestone M19.1 with 10 canonical suites and dual Gradle/Maven build parity.
   - Public API & SPI stabilization and surface containment (Milestones M14 and M14.1): 80 stable baseline contracts (`1.0-public-api.txt`), exact 341-type deterministic public surface classification, signature leak protection, integration boundary architecture enforcement, and hardened concrete output stream lifecycles.
+  - Ahead-Of-Time (AOT) build tooling (`viet-template-maven-plugin` and `viet-template-gradle-plugin`) under Milestone M15: precompiling templates at build time into self-contained Java 17 bytecode with automated ClassLoader discovery (`templates.idx`), incremental SHA-256 caching, and 100% byte-for-byte dual-build parity.
 - **Experimental**:
   - Dynamic call-site specialization in AOT bytecode when complete type signatures are absent.
   - File-system hot-reload watcher (`DevelopmentFileWatcher`) using NIO `WatchService`.
@@ -339,14 +340,16 @@ Viet Template provides targeted extensions to ease migration and support safe mo
 
 ## Repository Modules
 
-The repository is organized into five focused modules:
+The repository is organized into focused modules:
 
 | Module | Published Artifact | Description | Target Consumer |
 | :--- | :--- | :--- | :--- |
 | **`viet-template-api`** | `viet-template-api` | Stable public contracts: `TemplateEngine`, `Template`, `RenderContext`, `TemplateOutput`, `TemplateRepository`, security policies, and diagnostics. | Library authors, embedding applications, compile-only dependencies. |
 | **`viet-template-runtime`** | `viet-template-runtime` | Low-allocation streaming output buffers (`StringTemplateOutput`, `WriterTemplateOutput`, `Utf8OutputStreamTemplateOutput`), contextual escaping (`HTML`, `XML`, `JAVASCRIPT`), `SafeHtml`, and dynamic linker call sites. | Direct streaming consumers and custom escaper developers. |
 | **`viet-template-language-vtl`** | `viet-template-language-vtl` | Clean-room VTL lexer, Pratt parser, AST model, semantic analyzer, IR, and 12-pass optimization pipeline. | Compiler tooling, template analyzers, and AST inspectors. |
-| **`viet-template-vtl-interpreter`** | `viet-template-vtl-interpreter` | Canonical template engine implementation (`VtlTemplateEngine`), reference AST and IR interpreters, AOT bytecode compiler, compile cache, layout rendering, and global macro manager. | **Normal application developers** (main runtime dependency). |
+| **`viet-template-vtl-interpreter`** | `viet-template-vtl-interpreter` | Canonical template engine implementation (`VtlTemplateEngine`), reference AST and IR interpreters, AOT bytecode compiler, narrow public AOT facade (`io.github.minh124199.viettemplate.aot`), compile cache, layout rendering, and global macro manager. | **Normal application developers** (main runtime dependency). |
+| **`viet-template-maven-plugin`** | `viet-template-maven-plugin` | Official Apache Maven plugin for build-time AOT template precompilation and class/resource generation (`viet-template:compile`). | Maven build pipelines. |
+| **`viet-template-gradle-plugin`** | `viet-template-gradle-plugin` | Official Gradle plugin for build-time AOT template precompilation (`compileVietTemplates`, id `io.github.minh124199.viet-template`). | Gradle build pipelines. |
 | **`viet-template-tck`** | *(Internal / Not Published)* | Technology Compatibility Kit and differential test suite running side-by-side verification against official Apache Velocity 2.4.1. | Repository contributors and verification tooling. |
 | **`viet-template-benchmarks`** | *(Internal / Not Published)* | Dedicated JMH benchmark and profiling module covering workloads B01–B15 across AST, IR, PIC, and AOT tiers. | Performance engineers, CI regression tracking, and repository contributors. |
 

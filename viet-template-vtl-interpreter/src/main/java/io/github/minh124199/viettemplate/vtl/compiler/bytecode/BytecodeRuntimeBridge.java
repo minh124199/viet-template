@@ -154,6 +154,11 @@ public final class BytecodeRuntimeBridge {
     }
   }
 
+  /** Converts a string to UTF-8 bytes for bytecode constant pool chunk initialization. */
+  public static byte[] toUtf8Bytes(String s) {
+    return s.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+  }
+
   /**
    * Streams an object value to {@link TemplateOutput} respecting contextual escaping and safe
    * types.
@@ -665,8 +670,9 @@ public final class BytecodeRuntimeBridge {
       int id, String name, int operationOrdinal, int arity, LinkerAccessPolicy policy) {
     MemberOperation op = MemberOperation.values()[operationOrdinal];
     MemberKey key = new MemberKey(op, name, arity);
-    DynamicLinker linker = new DynamicLinker(policy);
-    return new DynamicCallSite(id, key, policy, linker, new LinkerStatistics());
+    LinkerAccessPolicy effectivePolicy = policy != null ? policy : LinkerAccessPolicy.standard();
+    DynamicLinker linker = new DynamicLinker(effectivePolicy);
+    return new DynamicCallSite(id, key, effectivePolicy, linker, new LinkerStatistics());
   }
 
   private static SourceSpan makeSpan(int startLine, int startCol, int endLine, int endCol) {
