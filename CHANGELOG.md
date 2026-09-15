@@ -31,6 +31,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Official Gradle Plugin**: Introduced `viet-template-gradle-plugin` (`VietTemplatePlugin`, id `io.github.minh124199.viet-template`) with `@CacheableTask` `VietTemplateCompileTask`, lazy Gradle property wiring, and Configuration Cache compatibility.
   - **Deterministic Dual-Build Parity**: Verified 100% byte-for-byte identical bytecode and index output across Maven and Gradle builds via `scripts/verify-aot-tooling-parity.sh` and black-box consumer fixtures (`integration-tests/aot/*`).
   - **Architectural Isolation**: Added ArchUnit rule `aot_public_api_must_not_depend_on_internal_packages` and verified `integration_and_tooling_boundary_must_not_access_internal_packages`.
+- **Spring Framework & Spring Boot 3 Integration (Milestone M16)**:
+  - **Spring MVC View & ViewResolver (`viet-template-spring`)**:
+    - Introduced `VietTemplateView`: thread-safe, immutable, and request-stateless Spring MVC `View` streaming pre-encoded UTF-8 byte chunks directly to the servlet output stream via `Utf8OutputStreamTemplateOutput`.
+    - Non-closing servlet stream ownership: implemented `NonClosingOutputStream` delegating flush on `close()` while preserving servlet response stream lifecycle for container and filter management.
+    - Introduced `VietTemplateViewResolver`: caching Spring MVC `ViewResolver` with path traversal defense (`validateViewName`), configurable prefix/suffix, view caching (`ConcurrentHashMap`), and seamless fallback to AOT index discovery (`META-INF/viet-template/templates.idx`) when source files are absent.
+    - Introduced `VietTemplateEngineCustomizer`: `@FunctionalInterface` callback allowing ordered customization of `TemplateEngine.Builder` prior to engine initialization.
+  - **Spring Boot 3 Auto-Configuration (`viet-template-spring-boot-autoconfigure`)**:
+    - Introduced `VietTemplateAutoConfiguration`: Spring Boot 3 auto-configuration registering `TemplateEngine` (with `destroyMethod = "close"`) and `VietTemplateViewResolver`, backing off cleanly when custom beans are declared.
+    - Comprehensive configuration properties: introduced `VietTemplateProperties` mapped under prefix `viet-template.*` supporting prefix, suffix, content type, charset, cache, location check, runtime compilation rejection, negative cache TTL, and hot reload settings.
+    - Template location validation with AOT detection: verifies presence of `META-INF/viet-template/templates.idx` before falling back to source classpath checks.
+  - **Production Starter (`viet-template-spring-boot-starter`)**:
+    - Aggregator starter POM/JAR pulling in `viet-template-spring`, `viet-template-spring-boot-autoconfigure`, and `viet-template-vtl-interpreter`.
+  - **Dual-Build AOT Fixtures & Live Server Verification**:
+    - Established black-box consumer test fixtures for Maven (`integration-tests/spring/maven-mvc-aot`) and Gradle (`integration-tests/spring/gradle-mvc-aot`) testing MockMvc and real embedded HTTP server flows.
+    - Automated parity verification via `scripts/verify-spring-integration-parity.sh` proving 100% byte-for-byte bytecode and index parity, absence of `.vtl` source files in runtime JARs, and successful HTTP 200 execution in pure AOT mode (`viet-template.runtime-compilation-enabled=false`).
+  - **Architectural Boundary Enforcement**:
+    - Added ArchUnit rule `spring_integration_must_not_access_internal_packages` ensuring `viet-template-spring` depends exclusively on public engine APIs and does not leak into internal compiler or interpreter packages.
 
 ### Changed
 - **Contract & Null Semantics Hardening**:

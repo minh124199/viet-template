@@ -55,12 +55,11 @@ Many existing JVM template engines require teams to choose between familiar, fle
   - Dedicated JMH benchmark module (`viet-template-benchmarks`) under Milestone M19.1 with 10 canonical suites and dual Gradle/Maven build parity.
   - Public API & SPI stabilization and surface containment (Milestones M14 and M14.1): 80 stable baseline contracts (`1.0-public-api.txt`), exact 341-type deterministic public surface classification, signature leak protection, integration boundary architecture enforcement, and hardened concrete output stream lifecycles.
   - Ahead-Of-Time (AOT) build tooling (`viet-template-maven-plugin` and `viet-template-gradle-plugin`) under Milestone M15: precompiling templates at build time into self-contained Java 17 bytecode with automated ClassLoader discovery (`templates.idx`), incremental SHA-256 caching, and 100% byte-for-byte dual-build parity.
+  - Spring Framework & Spring Boot 3 integration (`viet-template-spring-boot-starter`, `viet-template-spring`, `viet-template-spring-boot-autoconfigure`) under Milestone M16: thread-safe `VietTemplateView`, caching `VietTemplateViewResolver` with AOT index discovery fallback, non-closing servlet stream ownership, full configuration properties (`viet-template.*`), and 100% byte-for-byte dual-build parity.
 - **Experimental**:
   - Dynamic call-site specialization in AOT bytecode when complete type signatures are absent.
   - File-system hot-reload watcher (`DevelopmentFileWatcher`) using NIO `WatchService`.
 - **Planned (Future Releases)**:
-  - Spring Framework 7 MVC `ViewResolver` and Spring Boot 4 auto-configuration starter.
-  - Dedicated Maven (`viet-template-maven-plugin`) and Gradle (`viet-template-gradle-plugin`) AOT pre-compilation plugins.
   - GraalVM Native Image reachability metadata verification.
 
 ---
@@ -73,6 +72,7 @@ Viet Template artifacts are published to Maven Central under group ID `io.github
 
 - **`viet-template-vtl-interpreter`** *(Recommended)*: The complete template engine for standard applications. Declaring this dependency transitively brings in `viet-template-api`, `viet-template-runtime`, and `viet-template-language-vtl`, providing the full parser, runtime, compiler, cache, and execution backends.
 - **`viet-template-api`**: Core public interfaces and records only. Useful for libraries or modules defining template contracts without pulling in the runtime engine.
+- **`viet-template-spring-boot-starter`**: Spring Boot 3 starter providing auto-configuration for Spring MVC `View` and `ViewResolver`, Ahead-Of-Time precompiled template discovery, and configuration properties.
 - **`viet-template-runtime`**: Streaming output primitives, escapers, and dynamic linker. Only declared directly when developing custom output buffers or standalone escapers without the interpreter.
 - **`viet-template-language-vtl`**: VTL grammar parser, AST model, semantic analyzer, and IR compiler.
 
@@ -254,6 +254,93 @@ try (TemplateEngine engine = TemplateEngine.builder()
 }
 ```
 
+### 4. Spring Boot Integration (Milestone M16)
+
+Viet Template integrates seamlessly with Spring Boot 3 (3.3+) and Spring Framework 6 (6.1+) via `viet-template-spring-boot-starter`.
+
+#### Dependencies
+
+##### Apache Maven
+```xml
+<dependency>
+    <groupId>io.github.minh124199</groupId>
+    <artifactId>viet-template-spring-boot-starter</artifactId>
+    <version>0.2.1-SNAPSHOT</version>
+</dependency>
+```
+
+##### Gradle (Kotlin DSL)
+```kotlin
+implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.1-SNAPSHOT")
+```
+
+##### Gradle (Groovy DSL)
+```groovy
+implementation 'io.github.minh124199:viet-template-spring-boot-starter:0.2.1-SNAPSHOT'
+```
+
+#### Application Properties
+
+Configure template resolution and AOT options in `application.properties`:
+
+```properties
+# Suffix appended to logical view names
+viet-template.suffix=.vtl
+
+# Enforce pure Ahead-Of-Time (AOT) precompiled execution in production
+viet-template.runtime-compilation-enabled=false
+
+# Cache resolved View instances
+viet-template.cache=true
+
+# View resolver order in the Spring MVC chain
+viet-template.order=1
+```
+
+#### Template Placement
+
+When using AOT build tooling (`viet-template-maven-plugin` or `viet-template-gradle-plugin`), place templates in `src/main/viet-template/` (e.g. `src/main/viet-template/hello.vtl`):
+
+```velocity
+<!DOCTYPE html>
+<html>
+<head><title>Viet Template</title></head>
+<body>
+  <h1>Hello, $name!</h1>
+  <p>Welcome to $location.</p>
+</body>
+</html>
+```
+
+#### Spring MVC Controller
+
+Return the logical view name corresponding to your template. Spring MVC and `VietTemplateViewResolver` automatically bind the model:
+
+```java
+package com.example.demo;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+@Controller
+public class HelloController {
+
+  @GetMapping("/hello")
+  public String hello(
+      @RequestParam(name = "name", defaultValue = "World") String name,
+      @RequestParam(name = "location", defaultValue = "Vietnam") String location,
+      Model model) {
+    model.addAttribute("name", name);
+    model.addAttribute("location", location);
+    return "hello";
+  }
+}
+```
+
+For complete architecture details, streaming invariants, and configuration properties, see [docs/35-m16-spring-integration.md](docs/35-m16-spring-integration.md).
+
 ### Output Stream Lifecycle & Resource Ownership
 
 Viet Template provides three concrete `TemplateOutput` targets with explicit lifecycle contracts:
@@ -350,6 +437,9 @@ The repository is organized into focused modules:
 | **`viet-template-vtl-interpreter`** | `viet-template-vtl-interpreter` | Canonical template engine implementation (`VtlTemplateEngine`), reference AST and IR interpreters, AOT bytecode compiler, narrow public AOT facade (`io.github.minh124199.viettemplate.aot`), compile cache, layout rendering, and global macro manager. | **Normal application developers** (main runtime dependency). |
 | **`viet-template-maven-plugin`** | `viet-template-maven-plugin` | Official Apache Maven plugin for build-time AOT template precompilation and class/resource generation (`viet-template:compile`). | Maven build pipelines. |
 | **`viet-template-gradle-plugin`** | `viet-template-gradle-plugin` | Official Gradle plugin for build-time AOT template precompilation (`compileVietTemplates`, id `io.github.minh124199.viet-template`). | Gradle build pipelines. |
+| **`viet-template-spring`** | `viet-template-spring` | Spring MVC `View` and `ViewResolver` integration, zero-allocation binary streaming, and engine customization SPI. | Spring MVC applications and custom integration authors. |
+| **`viet-template-spring-boot-autoconfigure`** | `viet-template-spring-boot-autoconfigure` | Spring Boot 3 auto-configuration and configuration properties (`viet-template.*`). | Spring Boot applications. |
+| **`viet-template-spring-boot-starter`** | `viet-template-spring-boot-starter` | Production starter aggregator combining view resolution, auto-configuration, and VTL interpreter. | **Spring Boot web applications** (recommended entrypoint). |
 | **`viet-template-tck`** | *(Internal / Not Published)* | Technology Compatibility Kit and differential test suite running side-by-side verification against official Apache Velocity 2.4.1. | Repository contributors and verification tooling. |
 | **`viet-template-benchmarks`** | *(Internal / Not Published)* | Dedicated JMH benchmark and profiling module covering workloads B01–B15 across AST, IR, PIC, and AOT tiers. | Performance engineers, CI regression tracking, and repository contributors. |
 
@@ -516,7 +606,7 @@ Viet Template follows an evidence-driven, benchmark-verified phased roadmap:
 - **Phase 0.1.x**: Baseline stabilization, adversarial security fuzzing, and Milestone M19.1 JMH benchmark infrastructure.
 - **Phase 0.2.0 (Current)**: High-performance runtime architecture with compiler-assigned variable slot execution frames (`EvaluationValue[] slots`) and indexed compilation cache invalidation.
 - **Phase 0.3.x+**: Evidence-driven optimizations guided by profiling (cache contention reduction, zero-copy token slices).
-- **Phase 1.0**: Stable public API freeze, Spring Framework 7 MVC `ViewResolver`, Spring Boot 4 starter (`viet-template-spring-boot-starter`), Maven and Gradle AOT pre-compilation build plugins, and GraalVM Native Image verification.
+- **Phase 1.0**: Stable public API freeze (M14/M14.1), Maven and Gradle AOT build plugins (M15), Spring Framework 6.1+ MVC & Spring Boot 3.3+ starter (M16), GraalVM Native Image verification, and formal publication.
 
 For complete details on upcoming milestones, see [docs/18-roadmap.md](docs/18-roadmap.md).
 

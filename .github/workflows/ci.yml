@@ -131,6 +131,9 @@ jobs:
       - name: Run AOT Tooling Parity Verification Script
         run: ./scripts/verify-aot-tooling-parity.sh
 
+      - name: Run Spring Integration Parity Verification Script
+        run: ./scripts/verify-spring-integration-parity.sh
+
   api-compatibility:
     name: Public API & SPI Compatibility Check
     runs-on: ubuntu-latest

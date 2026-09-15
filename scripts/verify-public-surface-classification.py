@@ -38,6 +38,8 @@ MODULES = [
     "viet-template-runtime",
     "viet-template-language-vtl",
     "viet-template-vtl-interpreter",
+    "viet-template-spring",
+    "viet-template-spring-boot-autoconfigure",
 ]
 
 FULL_CP = ":".join([os.path.join(REPO_ROOT, m, "build/classes/java/main") for m in MODULES])
@@ -221,6 +223,7 @@ def main():
             cls.startswith("io.github.minh124199.viettemplate.api.")
             or cls.startswith("io.github.minh124199.viettemplate.runtime.")
             or cls.startswith("io.github.minh124199.viettemplate.aot.")
+            or cls.startswith("io.github.minh124199.viettemplate.spring.")
         )
     }
 

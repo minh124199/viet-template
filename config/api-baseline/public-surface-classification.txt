@@ -1,7 +1,7 @@
 # Viet Template Public Surface Classification Baseline
-# Total Types: 347
-# STABLE_API: 72
-# STABLE_SPI: 14
+# Total Types: 352
+# STABLE_API: 76
+# STABLE_SPI: 15
 # EXPERIMENTAL: 6
 # PUBLIC_BUT_INTERNAL_ACCIDENT: 255
 #
@@ -287,6 +287,11 @@ io.github.minh124199.viettemplate.runtime.linker.LinkerStatistics PUBLIC_BUT_INT
 io.github.minh124199.viettemplate.runtime.linker.LinkerStatistics$Snapshot PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.runtime.linker.MemberKey PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.runtime.linker.MemberOperation PUBLIC_BUT_INTERNAL_ACCIDENT
+io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration STABLE_API
+io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties STABLE_API
+io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer STABLE_SPI
+io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView STABLE_API
+io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver STABLE_API
 io.github.minh124199.viettemplate.vtl.compiler.BackendCapabilities PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.vtl.compiler.BackendId PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.vtl.compiler.BackendOptions PUBLIC_BUT_INTERNAL_ACCIDENT

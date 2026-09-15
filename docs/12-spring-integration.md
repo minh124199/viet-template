@@ -1,4 +1,9 @@
-# 12 — Spring Framework 7 / Spring Boot 4 Integration
+# 12 — Spring Framework / Spring Boot Integration Design
+
+> [!IMPORTANT]
+> **Production Implementation Notice**: This document outlines the early conceptual design for Spring integration. For the authoritative, production-implemented architecture, components, configuration properties reference (`viet-template.*`), Ahead-Of-Time (AOT) workflow, and dual-build parity guarantees delivered in Milestone M16 (Spring Framework 6.1+ / Spring Boot 3.3+), please refer to:
+>
+> 👉 **[`docs/35-m16-spring-integration.md`](35-m16-spring-integration.md)**
 
 ## 1. Goal
 
