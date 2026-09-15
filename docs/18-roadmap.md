@@ -186,9 +186,16 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
   - Delivered `viet-template-gradle-plugin` with `@CacheableTask` `VietTemplateCompileTask` and configuration cache compatibility.
   - Established automated 100% byte-for-byte dual-build parity verification via `scripts/verify-aot-tooling-parity.sh` and black-box consumer test fixtures.
   - Formally documented in [`docs/34-m15-aot-build-tooling.md`](34-m15-aot-build-tooling.md).
-- **Milestone M16 & M17 (Spring Framework 7 & Spring Boot 4 Integration) — NEXT**:
-  - `viet-template-spring` providing Spring MVC `View` and `ViewResolver`.
-  - `viet-template-spring-boot-starter` with `@AutoConfiguration`, configuration properties (`viet.template.*`), devtools hot reload, and AOT runtime hints.
+- **Milestone M16 (Spring Framework & Spring Boot Integration) — COMPLETE**:
+  - Delivered `viet-template-spring` providing thread-safe, immutable `VietTemplateView`, caching `VietTemplateViewResolver` with AOT fallback, non-closing servlet stream ownership (`NonClosingOutputStream`), zero-allocation binary streaming via `Utf8OutputStreamTemplateOutput`, strict path traversal rejection, and `VietTemplateEngineCustomizer` SPI.
+  - Delivered `viet-template-spring-boot-autoconfigure` providing `VietTemplateAutoConfiguration`, comprehensive configuration properties (`viet-template.*`), template location verification with AOT index discovery (`templates.idx`), and Spring lifecycle management (`destroyMethod = "close"`).
+  - Delivered `viet-template-spring-boot-starter` aggregator starter combining view resolution, auto-configuration, and VTL interpreter.
+  - Established dual-build AOT consumer test fixtures (`integration-tests/spring/maven-mvc-aot` and `integration-tests/spring/gradle-mvc-aot`) testing MockMvc and real embedded HTTP server execution.
+  - Verified 100% byte-for-byte bytecode and index dual-build parity and pure AOT execution via `scripts/verify-spring-integration-parity.sh`.
+  - Formally documented in [`docs/35-m16-spring-integration.md`](35-m16-spring-integration.md).
+- **Milestone M17 (GraalVM Native Image & Advanced Framework Features) — NEXT**:
+  - Native image reachability-metadata verification for Spring Boot AOT / GraalVM Native Image.
+  - Spring Boot DevTools restart/refresh integration hardening and preview lane validation.
 - **Milestone M18 (TCK & Performance Release Gates)**:
   - Independently executable public TCK verifying 100% of claimed language features.
   - Reproducible benchmark report published with full hardware metadata, raw JMH outputs, and comparative analyses against Velocity, Qute, jte, and Thymeleaf.

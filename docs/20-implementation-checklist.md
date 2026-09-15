@@ -577,35 +577,36 @@ Every optimization must preserve:
 
 ---
 
-## 16. Spring Framework 7 integration
+## 16. Spring Framework & Spring Boot integration (Milestone M16)
 
-- [ ] `VelocityLikeView` / final product naming.
-- [ ] `ViewResolver`.
-- [ ] stream directly to response output where safe.
-- [ ] content type/charset behavior.
-- [ ] locale-aware template resolution where enabled.
-- [ ] model binding without copying when possible.
-- [ ] explicit policy for request/session attributes.
-- [ ] no automatic application-context exposure.
-- [ ] exception mapping with template source location.
-- [ ] MVC integration tests using MockMvc and real server tests.
+- [x] `VietTemplateView` (Spring MVC `View` implementation).
+- [x] `VietTemplateViewResolver` with caching and AOT index discovery fallback.
+- [x] Stream directly to response output where safe (`Utf8OutputStreamTemplateOutput` + `NonClosingOutputStream`).
+- [x] Content type/charset behavior (`text/html;charset=UTF-8`, UTF-8 validated).
+- [x] Locale-aware template resolution / view caching (`ConcurrentHashMap`).
+- [x] Model binding without copying when possible (`RenderContext.of(model)`).
+- [x] Explicit policy for request/session attributes (default denied/isolated).
+- [x] No automatic application-context exposure.
+- [x] Path traversal defense and exception mapping with template location.
+- [x] MVC integration tests using MockMvc and real server tests across Maven and Gradle fixtures.
+- [x] Dedicated `viet-template-spring-boot-autoconfigure` module.
+- [x] Dedicated starter `viet-template-spring-boot-starter`.
+- [x] Configuration properties namespace owned by the project (`viet-template.*`).
+- [x] `@AutoConfiguration` (`VietTemplateAutoConfiguration`).
+- [x] Classpath, web-application, and property conditions.
+- [x] Auto-config imports metadata (`AutoConfiguration.imports`).
+- [x] User beans back off auto-configuration (`@ConditionalOnMissingBean`).
+- [x] Engine customization SPI (`VietTemplateEngineCustomizer`).
+- [x] Dual-build parity verification script: `scripts/verify-spring-integration-parity.sh`.
 
 ---
 
-## 17. Spring Boot 4 integration
+## 17. Spring Boot Advanced & Native Image Integration (Milestone M17)
 
-- [ ] dedicated `*-spring-boot-autoconfigure` module.
-- [ ] dedicated starter.
-- [ ] configuration properties namespace owned by the project.
-- [ ] `@AutoConfiguration`.
-- [ ] classpath/web-application/property conditions.
-- [ ] auto-config imports metadata.
-- [ ] user bean backs off auto-configuration.
-- [ ] devtools/hot reload integration decision.
-- [ ] AOT runtime hints only where genuinely required.
-- [ ] native-image smoke test.
-- [ ] Boot 4.1 stable CI lane.
-- [ ] preview lane for the next Spring/Boot generation without making preview APIs public dependencies.
+- [ ] AOT runtime hints for native image reachability metadata.
+- [ ] Native-image smoke test and CI lane.
+- [ ] Spring Boot DevTools live reload lifecycle hook hardening.
+- [ ] Preview lane for next Spring/Boot generation without making preview APIs public dependencies.
 
 ---
 
@@ -748,7 +749,7 @@ Do not advertise ratios before measurement. Internal engineering targets:
 - [ ] secure-template guide.
 - [ ] typed-model guide.
 - [ ] Maven/Gradle setup.
-- [ ] Spring MVC/Boot setup.
+- [x] Spring MVC/Boot setup.
 - [ ] production/AOT setup.
 - [ ] native-image guide.
 - [ ] optimization/explain guide.
