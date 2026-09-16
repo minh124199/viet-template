@@ -159,4 +159,25 @@ public class VietTemplateProperties {
   public void setOrder(int order) {
     this.order = order;
   }
+
+  /** Security-specific integration properties. */
+  private final Security security = new Security();
+
+  public Security getSecurity() {
+    return this.security;
+  }
+
+  /** Configuration properties for Spring Security integration. */
+  public static class Security {
+    /** Whether to enable Spring Security integration for Viet Template. */
+    private boolean enabled = true;
+
+    public boolean isEnabled() {
+      return this.enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+      this.enabled = enabled;
+    }
+  }
 }

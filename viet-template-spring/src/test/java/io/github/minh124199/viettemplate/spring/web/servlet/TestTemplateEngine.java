@@ -27,6 +27,7 @@ final class TestTemplateEngine implements TemplateEngine {
   private IOException renderIoException;
   private RenderContext lastRenderContext;
   private TemplateId lastScreenId;
+  private RenderRequest lastRenderRequest;
 
   TestTemplateEngine() {
     this.repository =
@@ -65,6 +66,10 @@ final class TestTemplateEngine implements TemplateEngine {
     return this.lastScreenId;
   }
 
+  RenderRequest getLastRenderRequest() {
+    return this.lastRenderRequest;
+  }
+
   @Override
   public Template get(TemplateId id) {
     Template template = this.templates.get(id);
@@ -86,6 +91,7 @@ final class TestTemplateEngine implements TemplateEngine {
     if (this.renderException != null) {
       throw this.renderException;
     }
+    this.lastRenderRequest = request;
     this.lastScreenId = request.templateId();
     this.lastRenderContext = request.userModel();
     Template template = this.templates.get(request.templateId());

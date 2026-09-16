@@ -282,4 +282,33 @@ class VietTemplateViewTest {
     assertThat(view1).isNotEqualTo(view3);
     assertThat(view1.toString()).contains("pages/home.vtl");
   }
+
+  @Test
+  @DisplayName(
+      "RenderRequest bridges servlet metadata through attributes without polluting RenderContext")
+  void renderBridgesMetadataViaAttributes() throws Exception {
+    VietTemplateView view = new VietTemplateView(engine, templateId);
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    request.setAttribute("test-attr", "test-val");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    Map<String, Object> model = Map.of("user", "Alice");
+
+    view.render(model, request, response);
+
+    assertThat(engine.getLastRenderRequest()).isNotNull();
+    assertThat(engine.getLastRenderRequest().templateId()).isEqualTo(templateId);
+
+    // Attributes contain trusted integration metadata
+    Map<String, Object> attributes = engine.getLastRenderRequest().attributes();
+    assertThat(attributes).containsEntry(SpringRenderAttributes.SERVLET_REQUEST, request);
+
+    // Template-visible RenderContext contains ONLY user model data, NEVER servlet infrastructure
+    RenderContext context = engine.getLastRenderContext();
+    assertThat(context.get("user")).isEqualTo("Alice");
+    assertThat(context.get("request")).isNull();
+    assertThat(context.get("response")).isNull();
+    assertThat(context.get("session")).isNull();
+    assertThat(context.get("securityContext")).isNull();
+    assertThat(context.get(SpringRenderAttributes.SERVLET_REQUEST)).isNull();
+  }
 }
