@@ -40,6 +40,7 @@ MODULES = [
     "viet-template-vtl-interpreter",
     "viet-template-spring",
     "viet-template-spring-boot-autoconfigure",
+    "viet-template-spring-security",
 ]
 
 FULL_CP = ":".join([os.path.join(REPO_ROOT, m, "build/classes/java/main") for m in MODULES])

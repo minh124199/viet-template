@@ -43,6 +43,9 @@ MODULES = [
     "viet-template-runtime",
     "viet-template-language-vtl",
     "viet-template-vtl-interpreter",
+    "viet-template-spring",
+    "viet-template-spring-boot-autoconfigure",
+    "viet-template-spring-security",
 ]
 
 FULL_CP = ":".join([os.path.join(REPO_ROOT, m, "build/classes/java/main") for m in MODULES])
@@ -62,6 +65,11 @@ STABLE_SPI_SET = {
     "io.github.minh124199.viettemplate.runtime.EscaperRegistry",
     "io.github.minh124199.viettemplate.runtime.SafeContent",
     "io.github.minh124199.viettemplate.runtime.StandardEscapers",
+    "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer",
+    "io.github.minh124199.viettemplate.spring.web.servlet.SpringRenderAttributes",
+    "io.github.minh124199.viettemplate.spring.security.SecurityViewFactory",
+    "io.github.minh124199.viettemplate.spring.security.CsrfViewFactory",
+    "io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor",
 }
 
 EXPERIMENTAL_SET = {
@@ -71,6 +79,18 @@ EXPERIMENTAL_SET = {
     "io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult",
     "io.github.minh124199.viettemplate.language.vtl.parser.VtlParser",
     "io.github.minh124199.viettemplate.language.vtl.parser.VtlParserOptions",
+}
+
+
+STABLE_API_EXTRA_SET = {
+    "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration",
+    "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties",
+    "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties$Security",
+    "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateSecurityAutoConfiguration",
+    "io.github.minh124199.viettemplate.spring.security.CsrfView",
+    "io.github.minh124199.viettemplate.spring.security.SecurityView",
+    "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView",
+    "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver",
 }
 
 
@@ -146,7 +166,7 @@ def classify_types(public_types, baseline_api_types):
             cat = "STABLE_SPI"
         elif cls in EXPERIMENTAL_SET:
             cat = "EXPERIMENTAL"
-        elif cls in baseline_api_types:
+        elif cls in baseline_api_types or cls in STABLE_API_EXTRA_SET:
             cat = "STABLE_API"
         else:
             cat = "PUBLIC_BUT_INTERNAL_ACCIDENT"

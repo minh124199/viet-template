@@ -1,9 +1,9 @@
 # Viet Template Public Surface Classification Baseline
-# Total Types: 352
-# STABLE_API: 76
-# STABLE_SPI: 15
+# Total Types: 360
+# STABLE_API: 74
+# STABLE_SPI: 19
 # EXPERIMENTAL: 6
-# PUBLIC_BUT_INTERNAL_ACCIDENT: 255
+# PUBLIC_BUT_INTERNAL_ACCIDENT: 261
 #
 # Categories:
 #   STABLE_API: Consumer-facing contracts under long-term 1.x compatibility guarantee
@@ -289,6 +289,13 @@ io.github.minh124199.viettemplate.runtime.linker.MemberKey PUBLIC_BUT_INTERNAL_A
 io.github.minh124199.viettemplate.runtime.linker.MemberOperation PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration STABLE_API
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties STABLE_API
+io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties$Security STABLE_API
+io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateSecurityAutoConfiguration STABLE_API
+io.github.minh124199.viettemplate.spring.security.CsrfView STABLE_API
+io.github.minh124199.viettemplate.spring.security.CsrfViewFactory STABLE_SPI
+io.github.minh124199.viettemplate.spring.security.SecurityView STABLE_API
+io.github.minh124199.viettemplate.spring.security.SecurityViewFactory STABLE_SPI
+io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor STABLE_SPI
 io.github.minh124199.viettemplate.spring.web.servlet.SpringRenderAttributes STABLE_SPI
 io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer STABLE_SPI
 io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView STABLE_API
