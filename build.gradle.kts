@@ -97,7 +97,7 @@ subprojects {
                     pom {
                         name.set(project.name)
                         description.set(provider { project.description })
-                        url.set("https://github.com/minh124199/viet-template")
+                        url.set("https://github.com/minh124199/viet-template/tree/main/${project.name}")
                         licenses {
                             license {
                                 name.set("Apache License, Version 2.0")
@@ -113,8 +113,8 @@ subprojects {
                             }
                         }
                         scm {
-                            connection.set("scm:git:git://github.com/minh124199/viet-template.git")
-                            developerConnection.set("scm:git:ssh://github.com:minh124199/viet-template.git")
+                            connection.set("scm:git:https://github.com/minh124199/viet-template.git")
+                            developerConnection.set("scm:git:ssh://git@github.com/minh124199/viet-template.git")
                             url.set("https://github.com/minh124199/viet-template")
                         }
                     }

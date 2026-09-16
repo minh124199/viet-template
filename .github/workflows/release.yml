@@ -53,7 +53,7 @@ jobs:
         id: metadata
         env:
           RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-        run: python3 scripts/verify-release-metadata.py --check-workflow-contract
+        run: python3 scripts/verify-release-metadata.py --check-workflow-contract --check-publication-metadata
       - name: Decide release mode
         id: decide
         env:
@@ -122,6 +122,8 @@ jobs:
         run: ./mvnw clean verify -B -Dspotless.check.skip=true
       - name: Run build parity verification
         run: python3 scripts/verify-build-parity.py
+      - name: Verify effective POM publication metadata
+        run: python3 scripts/verify-release-metadata.py --check-effective-pom
       - name: Run release infrastructure unit tests
         run: python3 -m unittest discover -s scripts/tests -v
 

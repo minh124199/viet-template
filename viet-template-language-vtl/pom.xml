@@ -15,6 +15,7 @@
 
     <name>viet-template-language-vtl</name>
     <description>Viet Template VTL Language Frontend and Compatibility Contracts</description>
+    <url>${github.repository.url}/tree/main/viet-template-language-vtl</url>
 
     <dependencies>
         <!-- Module Dependencies -->

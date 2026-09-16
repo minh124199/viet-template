@@ -12,21 +12,60 @@ Once Maven Central accepts or publishes a version, that version must never be re
 republished with different bytes. Never delete, move, or force-push a release tag to correct a
 published version. Use the next patch version for fixes.
 
-Expected public coordinates are:
+Expected public coordinates in Maven Central:
 
-- `viet-template-parent` (POM)
-- `viet-template-api` (POM, main JAR, sources JAR, Javadoc JAR)
-- `viet-template-runtime` (POM, main JAR, sources JAR, Javadoc JAR)
-- `viet-template-language-vtl` (POM, main JAR, sources JAR, Javadoc JAR)
-- `viet-template-vtl-interpreter` (POM, main JAR, sources JAR, Javadoc JAR)
+> **Publication Scope & Branch State Distinction**:
+> - **Historically Published Coordinates (`0.2.0`)**: Published 5 public coordinates (`viet-template-parent`, `viet-template-api`, `viet-template-runtime`, `viet-template-language-vtl`, `viet-template-vtl-interpreter`). In accordance with Maven Central immutability rules, published 0.2.0 artifacts remain immutable and unchanged.
+> - **Remote `main`**: Authoritatively contains the merged reactor modules on GitHub. Newly developed modules (such as `viet-template-spring-security`) are developed separately on integration branches and are not part of remote `main` until formally merged.
+> - **Working Tree / Integration State**: May include active unmerged modules (e.g. `viet-template-spring-security`). The release infrastructure dynamically derives the publication set directly from the active reactor `pom.xml` configuration rather than relying on brittle hardcoded counts.
+> - **Planned Next Release (`0.2.1-SNAPSHOT` $\to$ `0.2.1`)**: Will publish all approved production modules in the merged reactor with verified and corrected POM/SCM metadata.
 
-The following internal modules must remain absent from Maven Central:
+The following internal verification modules must remain strictly absent from Maven Central:
 
-- `viet-template-tck`
-- `viet-template-benchmarks`
+- `viet-template-tck` (Technology Compatibility Kit)
+- `viet-template-benchmarks` (JMH benchmarks suite)
 
 Their exclusion is enforced in each module POM, the Central publisher, Gradle publication
-selection, workflow-contract checks, bundle validation, and the post-publication audit.
+selection, workflow-contract checks, bundle validation, and the post-publication audit. Non-published
+modules must never declare `<url>` and must set `<maven.deploy.skip>true</maven.deploy.skip>`,
+`<skipPublishing>true</skipPublishing>`, and `<central.publishing.skip>true</central.publishing.skip>`.
+
+## 1.1 Maven publication metadata inheritance and URL convention
+
+In multi-module Apache Maven projects, child POMs inherit metadata from parent POMs according to
+strict inheritance rules:
+1. **SCM Appended Path Defect**: By default, Maven appends `/<artifactId>` to inherited `<connection>`,
+   `<developerConnection>`, and `<url>` tags in `<scm>`, producing invalid Git URLs such as
+   `scm:git:https://github.com/minh124199/viet-template.git/viet-template-api`.
+2. **SCM Inheritance Controls**: The root `pom.xml` explicitly suppresses path appending using attributes:
+   ```xml
+   <scm child.scm.connection.inherit.append.path="false"
+        child.scm.developerConnection.inherit.append.path="false"
+        child.scm.url.inherit.append.path="false">
+       <connection>scm:git:https://github.com/minh124199/viet-template.git</connection>
+       <developerConnection>scm:git:ssh://git@github.com/minh124199/viet-template.git</developerConnection>
+       <url>https://github.com/minh124199/viet-template</url>
+   </scm>
+   ```
+   These inheritance-control attributes (`child.scm.*.inherit.append.path="false"`) are standard Maven model attributes supported since Maven 3.6.1.
+   All effective POMs for parent and child modules resolve clean repository-level SCM coordinates.
+3. **Project URL Inheritance Defense-in-Depth**: The root `<project>` element declares:
+   ```xml
+   child.project.url.inherit.append.path="false"
+   ```
+   (also supported since Maven 3.6.1). This prevents Maven from appending child paths if a POM omits `<url>`.
+4. **Mandatory Module Tree URL Convention**: As defense-in-depth, every Central-published child module
+   must explicitly declare:
+   ```xml
+   <url>${github.repository.url}/tree/main/<module></url>
+   ```
+   This resolves directly to the respective module's source tree on GitHub while the root POM points to
+   `https://github.com/minh124199/viet-template`. Release verification tooling strictly fails if any published child
+   module merely inherits the repository-root URL.
+5. **Automated Verification**: Build parity (`scripts/verify-build-parity.py`), publication metadata
+   verification (`scripts/verify-release-metadata.py --check-publication-metadata --check-effective-pom`),
+   and release bundle validation (`scripts/validate-release-bundle.py`) guard these invariants in local builds and in CI workflows once merged.
+
 
 ## 2. The 0.2.0 incident model
 
@@ -130,7 +169,7 @@ Before tagging, keep all existing gates green:
 ./mvnw clean verify -B -Dspotless.check.skip=true
 python3 scripts/verify-build-parity.py
 python3 scripts/verify-release-metadata.py --require-release --require-match-tag \
-  --tag vX.Y.Z --check-workflow-contract
+  --tag vX.Y.Z --check-workflow-contract --check-publication-metadata --check-effective-pom
 python3 -m unittest discover -s scripts/tests -v
 ```
 

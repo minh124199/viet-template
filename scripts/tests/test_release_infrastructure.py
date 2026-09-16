@@ -1,6 +1,7 @@
 import importlib.util
 import io
 import json
+import re
 import shutil
 import tempfile
 import unittest
@@ -23,6 +24,8 @@ status = load_script("check-central-deployment.py")
 extractor = load_script("extract-central-deployment-id.py")
 central = load_script("verify-central-release.py")
 metadata = load_script("verify-release-metadata.py")
+bundle = load_script("validate-release-bundle.py")
+parity = load_script("verify-build-parity.py")
 
 
 class FakeResponse:
@@ -238,6 +241,220 @@ class MetadataTagSelectionTests(unittest.TestCase):
             with self.assertRaises(SystemExit) as result:
                 metadata.main()
             self.assertEqual(0, result.exception.code)
+
+
+class PublicationMetadataTests(unittest.TestCase):
+    def fixture(self, directory):
+        root = Path(directory)
+        shutil.copy2(ROOT / "pom.xml", root / "pom.xml")
+        shutil.copy2(ROOT / "build.gradle.kts", root / "build.gradle.kts")
+        for mod in metadata.PUBLISHED_MODULES + metadata.NON_PUBLISHED_MODULES:
+            mod_dir = root / mod
+            mod_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / mod / "pom.xml", mod_dir / "pom.xml")
+        return root
+
+    def test_current_publication_metadata(self):
+        errors = []
+        metadata.validate_publication_metadata(errors, check_effective=False, check_online=False)
+        self.assertEqual([], errors)
+
+    def test_root_project_url_stays_repo_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.fixture(directory)
+            pom = root / "pom.xml"
+            pom.write_text(
+                pom.read_text().replace(
+                    "<url>https://github.com/minh124199/viet-template</url>",
+                    "<url>https://github.com/minh124199/viet-template/viet-template-parent</url>",
+                )
+            )
+            with mock.patch.object(metadata, "ROOT_DIR", root):
+                errors = []
+                metadata.validate_publication_metadata(errors)
+                self.assertTrue(
+                    any("Root pom.xml url must be 'https://github.com/minh124199/viet-template'" in e for e in errors)
+                )
+
+    def test_child_module_urls_are_tree_main(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.fixture(directory)
+            api_pom = root / "viet-template-api/pom.xml"
+            # Test missing URL
+            api_pom.write_text(re.sub(r"\s*<url>.*?</url>", "", api_pom.read_text()))
+            with mock.patch.object(metadata, "ROOT_DIR", root):
+                errors = []
+                metadata.validate_publication_metadata(errors)
+                self.assertTrue(any("viet-template-api must have explicit <url>" in e for e in errors))
+
+            # Test child merely inheriting repository-root URL
+            api_pom.write_text(
+                api_pom.read_text().replace(
+                    "<description>Viet Template Public API and Core Contracts</description>",
+                    "<description>Viet Template Public API and Core Contracts</description>\n    <url>https://github.com/minh124199/viet-template</url>",
+                )
+            )
+            with mock.patch.object(metadata, "ROOT_DIR", root):
+                errors = []
+                metadata.validate_publication_metadata(errors)
+                self.assertTrue(any("merely inherited repository-root url" in e for e in errors))
+
+            # Test malformed / invalid URL (without /tree/main)
+            api_pom.write_text(
+                api_pom.read_text().replace(
+                    "<url>https://github.com/minh124199/viet-template</url>",
+                    "<url>https://github.com/minh124199/viet-template/viet-template-api</url>",
+                )
+            )
+            with mock.patch.object(metadata, "ROOT_DIR", root):
+                errors = []
+                metadata.validate_publication_metadata(errors)
+                self.assertTrue(any("viet-template-api url matches invalid appended pattern" in e for e in errors))
+
+    def test_detection_of_missing_project_url_inheritance_attribute_on_parent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.fixture(directory)
+            pom = root / "pom.xml"
+            # Remove child.project.url.inherit.append.path attribute
+            pom.write_text(pom.read_text().replace('child.project.url.inherit.append.path="false"', ""))
+            with mock.patch.object(metadata, "ROOT_DIR", root):
+                errors = []
+                metadata.validate_publication_metadata(errors)
+                self.assertTrue(any("child.project.url.inherit.append.path" in e for e in errors))
+
+    def test_detection_of_missing_scm_inheritance_attributes_on_parent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.fixture(directory)
+            pom = root / "pom.xml"
+            # Remove inheritance attributes
+            pom.write_text(pom.read_text().replace('child.scm.connection.inherit.append.path="false"', ""))
+            with mock.patch.object(metadata, "ROOT_DIR", root):
+                errors = []
+                metadata.validate_publication_metadata(errors)
+                self.assertTrue(any("child.scm.connection.inherit.append.path" in e for e in errors))
+
+    def test_generic_rejection_of_malformed_urls_and_scm(self):
+        self.assertTrue(metadata.RE_INVALID_URL.match("https://github.com/minh124199/viet-template/viet-template-api"))
+        self.assertFalse(metadata.RE_INVALID_URL.match("https://github.com/minh124199/viet-template/tree/main/viet-template-api"))
+        self.assertFalse(metadata.RE_INVALID_URL.match("https://github.com/minh124199/viet-template"))
+
+        # Reject obsolete git:// protocol for Viet Template
+        self.assertTrue(metadata.RE_INVALID_SCM.search("scm:git:git://github.com/minh124199/viet-template.git"))
+        self.assertTrue(metadata.RE_INVALID_SCM.search("scm:git:git://github.com/minh124199/viet-template.git/viet-template-api"))
+
+        # Accept HTTPS read-only and SSH developer connections
+        self.assertFalse(metadata.RE_INVALID_SCM.search("scm:git:https://github.com/minh124199/viet-template.git"))
+        self.assertFalse(metadata.RE_INVALID_SCM.search("scm:git:ssh://git@github.com/minh124199/viet-template.git"))
+        self.assertFalse(metadata.RE_INVALID_SCM.search("https://github.com/minh124199/viet-template"))
+
+        # Reject appended module paths in HTTPS connection
+        self.assertTrue(
+            metadata.RE_INVALID_SCM.search("scm:git:https://github.com/minh124199/viet-template.git/viet-template-api")
+        )
+        self.assertTrue(metadata.RE_INVALID_SCM.search("https://github.com/minh124199/viet-template/viet-template-api"))
+
+    def test_child_effective_pom_does_not_append_artifact_id_to_scm(self):
+        # 1. Clean effective POM should produce 0 errors
+        projects_xml = [
+            f"""  <project xmlns="http://maven.apache.org/POM/4.0.0">
+    <artifactId>{m}</artifactId>
+    <url>https://github.com/minh124199/viet-template/tree/main/{m}</url>
+    <scm>
+      <connection>scm:git:https://github.com/minh124199/viet-template.git</connection>
+      <developerConnection>scm:git:ssh://git@github.com/minh124199/viet-template.git</developerConnection>
+      <url>https://github.com/minh124199/viet-template</url>
+    </scm>
+  </project>"""
+            for m in metadata.PUBLISHED_MODULES
+        ]
+        sample_clean_effective = """<?xml version="1.0" encoding="UTF-8"?>
+<projects>
+  <project xmlns="http://maven.apache.org/POM/4.0.0">
+    <artifactId>viet-template-parent</artifactId>
+    <url>https://github.com/minh124199/viet-template</url>
+    <scm>
+      <connection>scm:git:https://github.com/minh124199/viet-template.git</connection>
+      <developerConnection>scm:git:ssh://git@github.com/minh124199/viet-template.git</developerConnection>
+      <url>https://github.com/minh124199/viet-template</url>
+    </scm>
+  </project>
+""" + "\n".join(projects_xml) + "\n</projects>"
+
+        with tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False) as f:
+            f.write(sample_clean_effective)
+            clean_file = f.name
+        try:
+            errors = []
+            metadata.validate_effective_pom(errors, effective_pom_path=clean_file)
+            self.assertEqual([], errors)
+        finally:
+            Path(clean_file).unlink()
+
+        # 2. Malformed effective POM with appended artifactId in SCM
+        sample_malformed_effective = sample_clean_effective.replace(
+            "<connection>scm:git:https://github.com/minh124199/viet-template.git</connection>",
+            "<connection>scm:git:https://github.com/minh124199/viet-template.git/viet-template-api</connection>",
+            1,
+        )
+        with tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False) as f:
+            f.write(sample_malformed_effective)
+            bad_file = f.name
+        try:
+            errors = []
+            metadata.validate_effective_pom(errors, effective_pom_path=bad_file)
+            self.assertTrue(any("invalid scm.connection (appended module" in e for e in errors))
+        finally:
+            Path(bad_file).unlink()
+
+        # 3. Malformed effective POM with obsolete git:// protocol
+        sample_git_proto_effective = sample_clean_effective.replace(
+            "<connection>scm:git:https://github.com/minh124199/viet-template.git</connection>",
+            "<connection>scm:git:git://github.com/minh124199/viet-template.git</connection>",
+            1,
+        )
+        with tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False) as f:
+            f.write(sample_git_proto_effective)
+            git_file = f.name
+        try:
+            errors = []
+            metadata.validate_effective_pom(errors, effective_pom_path=git_file)
+            self.assertTrue(any("obsolete git://" in e for e in errors))
+        finally:
+            Path(git_file).unlink()
+
+    def test_publication_bundle_pom_metadata_validation(self):
+        errors = []
+        bundle.validate_parent_pom(ROOT, "0.2.1-SNAPSHOT", errors)
+        self.assertEqual([], errors)
+
+        for mod in bundle.ALL_PUBLISHED_MODULES:
+            bundle.validate_pom_metadata(
+                ROOT / mod / "pom.xml",
+                mod,
+                "0.2.1-SNAPSHOT",
+                errors,
+                enforce_production_dependencies=(mod in bundle.PRODUCTION_MODULES),
+            )
+        self.assertEqual([], errors)
+
+        # Test failure on corrupted POM
+        with tempfile.TemporaryDirectory() as directory:
+            fake_pom = Path(directory) / "bad-pom.xml"
+            fake_pom.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <groupId>io.github.minh124199</groupId>
+  <artifactId>viet-template-api</artifactId>
+  <version>0.2.1-SNAPSHOT</version>
+  <url>https://github.com/minh124199/viet-template/viet-template-api</url>
+  <scm>
+    <connection>scm:git:https://github.com/minh124199/viet-template.git/viet-template-api</connection>
+  </scm>
+</project>""")
+            bad_errors = []
+            bundle.validate_pom_metadata(fake_pom, "viet-template-api", "0.2.1-SNAPSHOT", bad_errors)
+            self.assertTrue(any("Malformed appended url" in e for e in bad_errors))
+            self.assertTrue(any("Malformed appended scm connection" in e for e in bad_errors))
+
 
 
 if __name__ == "__main__":

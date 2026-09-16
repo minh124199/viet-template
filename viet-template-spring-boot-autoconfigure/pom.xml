@@ -15,6 +15,7 @@
 
     <name>viet-template-spring-boot-autoconfigure</name>
     <description>Viet Template Spring Boot Auto-Configuration</description>
+    <url>${github.repository.url}/tree/main/viet-template-spring-boot-autoconfigure</url>
 
     <dependencies>
         <!-- Module Dependencies -->

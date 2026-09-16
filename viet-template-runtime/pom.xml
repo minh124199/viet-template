@@ -15,6 +15,7 @@
 
     <name>viet-template-runtime</name>
     <description>Viet Template Low-Allocation Runtime and Output Primitives</description>
+    <url>${github.repository.url}/tree/main/viet-template-runtime</url>
 
     <dependencies>
         <!-- Module Dependencies -->

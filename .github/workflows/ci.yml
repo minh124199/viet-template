@@ -134,6 +134,9 @@ jobs:
       - name: Run Spring Integration Parity Verification Script
         run: ./scripts/verify-spring-integration-parity.sh
 
+      - name: Run Spring Security Parity Verification Script
+        run: ./scripts/verify-spring-security-parity.sh
+
   api-compatibility:
     name: Public API & SPI Compatibility Check
     runs-on: ubuntu-latest
@@ -182,7 +185,7 @@ jobs:
       - name: Validate release workflow contract
         env:
           RELEASE_TAG: ''
-        run: python3 scripts/verify-release-metadata.py --check-workflow-contract
+        run: python3 scripts/verify-release-metadata.py --check-workflow-contract --check-publication-metadata
 
       - name: Run release infrastructure unit tests
         run: python3 -m unittest discover -s scripts/tests -v

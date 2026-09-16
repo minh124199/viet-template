@@ -185,6 +185,12 @@ def check_jar_contents(errors):
         "viet-template-runtime",
         "viet-template-language-vtl",
         "viet-template-vtl-interpreter",
+        "viet-template-spring",
+        "viet-template-spring-security",
+        "viet-template-spring-boot-autoconfigure",
+        "viet-template-spring-boot-starter",
+        "viet-template-maven-plugin",
+        "viet-template-gradle-plugin",
     ]
     checked = 0
     for mod in modules:
@@ -207,6 +213,120 @@ def check_jar_contents(errors):
     if checked > 0:
         print(f"[PASS] Verified identical class/resource contents across {checked} production JARs.")
 
+def check_publication_metadata(errors):
+    build_gradle = (ROOT_DIR / "build.gradle.kts").read_text(encoding="utf-8")
+    pom_tree = ET.parse(ROOT_DIR / "pom.xml")
+    pom_root = pom_tree.getroot()
+    ns = {"m": pom_root.tag.split("}")[0].strip("{")} if "}" in pom_root.tag else {}
+    prefix = "m:" if ns else ""
+
+    # Check Gradle SCM developerConnection and URL pattern
+    gradle_dev_conn_match = re.search(r'developerConnection\.set\(["\']([^"\']+)["\']\)', build_gradle)
+    gradle_dev_conn = gradle_dev_conn_match.group(1) if gradle_dev_conn_match else None
+
+    gradle_url_match = re.search(r'url\.set\(["\'](https://github\.com/minh124199/viet-template/tree/main/\$\{project\.name\})["\']\)', build_gradle)
+    gradle_url_pattern = gradle_url_match.group(1) if gradle_url_match else None
+
+    if not gradle_url_pattern:
+        errors.append("build.gradle.kts missing expected module publication URL pattern 'https://github.com/minh124199/viet-template/tree/main/${project.name}'")
+
+    # Check Maven SCM developerConnection
+    pom_dev_conn_elem = pom_root.find(f"./{prefix}scm/{prefix}developerConnection", ns)
+    pom_dev_conn = pom_dev_conn_elem.text.strip() if pom_dev_conn_elem is not None else None
+
+    print(f"[CHECK] SCM developerConnection: Gradle={gradle_dev_conn}, Maven={pom_dev_conn}")
+    if gradle_dev_conn != pom_dev_conn:
+        errors.append(f"SCM developerConnection mismatch: Gradle={gradle_dev_conn}, Maven={pom_dev_conn}")
+    elif pom_dev_conn != "scm:git:ssh://git@github.com/minh124199/viet-template.git":
+        errors.append(f"SCM developerConnection must be 'scm:git:ssh://git@github.com/minh124199/viet-template.git', found '{pom_dev_conn}'")
+
+    # Check Maven root properties for github.repository.url
+    props_elem = pom_root.find(f"./{prefix}properties", ns)
+    github_repo_url = None
+    if props_elem is not None:
+        prop = props_elem.find(f"./{prefix}github.repository.url", ns)
+        if prop is not None and prop.text:
+            github_repo_url = prop.text.strip()
+    if github_repo_url != "https://github.com/minh124199/viet-template":
+        errors.append(f"pom.xml missing property github.repository.url (expected 'https://github.com/minh124199/viet-template', found '{github_repo_url}')")
+
+    # Check SCM inheritance attributes on Maven root POM
+    scm_elem = pom_root.find(f"./{prefix}scm", ns)
+    if scm_elem is not None:
+        for attr in ("child.scm.connection.inherit.append.path", "child.scm.developerConnection.inherit.append.path", "child.scm.url.inherit.append.path"):
+            val = scm_elem.attrib.get(attr)
+            if val != "false":
+                errors.append(f"pom.xml <scm> must declare {attr}=\"false\", found '{val}'")
+
+    # Check child.project.url.inherit.append.path attribute on Maven root POM
+    proj_url_inherit = pom_root.attrib.get("child.project.url.inherit.append.path")
+    if proj_url_inherit != "false":
+        errors.append(f"pom.xml <project> must declare child.project.url.inherit.append.path=\"false\", found '{proj_url_inherit}'")
+
+    # Check SCM connection parity
+    gradle_conn_match = re.search(r'connection\.set\(["\']([^"\']+)["\']\)', build_gradle)
+    gradle_conn = gradle_conn_match.group(1) if gradle_conn_match else None
+    pom_conn_elem = pom_root.find(f"./{prefix}scm/{prefix}connection", ns)
+    pom_conn = pom_conn_elem.text.strip() if pom_conn_elem is not None else None
+
+    print(f"[CHECK] SCM connection: Gradle={gradle_conn}, Maven={pom_conn}")
+    if gradle_conn != pom_conn:
+        errors.append(f"SCM connection mismatch: Gradle={gradle_conn}, Maven={pom_conn}")
+    elif pom_conn != "scm:git:https://github.com/minh124199/viet-template.git":
+        errors.append(f"SCM connection must be 'scm:git:https://github.com/minh124199/viet-template.git', found '{pom_conn}'")
+
+    # Check child published module POMs match the Gradle URL scheme
+    modules_elem = pom_root.find(f"./{prefix}modules", ns)
+    published_modules = []
+    if modules_elem is not None:
+        for mod_elem in modules_elem.findall(f"./{prefix}module", ns):
+            m_name = mod_elem.text.strip() if mod_elem.text else ""
+            if not m_name:
+                continue
+            child_pom = ROOT_DIR / m_name / "pom.xml"
+            if not child_pom.exists():
+                continue
+            c_tree = ET.parse(child_pom)
+            c_root = c_tree.getroot()
+            c_ns = {"m": c_root.tag.split("}")[0].strip("{")} if "}" in c_root.tag else {}
+            c_prefix = "m:" if c_ns else ""
+            deploy_skip = c_root.findtext(f"./{c_prefix}properties/{c_prefix}maven.deploy.skip", namespaces=c_ns)
+            if deploy_skip and deploy_skip.strip() == "true":
+                continue
+            published_modules.append(m_name)
+    if not published_modules:
+        published_modules = [
+            "viet-template-api",
+            "viet-template-runtime",
+            "viet-template-language-vtl",
+            "viet-template-vtl-interpreter",
+            "viet-template-spring",
+            "viet-template-spring-security",
+            "viet-template-spring-boot-autoconfigure",
+            "viet-template-spring-boot-starter",
+            "viet-template-maven-plugin",
+            "viet-template-gradle-plugin",
+        ]
+    for mod in published_modules:
+        mod_pom = ROOT_DIR / mod / "pom.xml"
+        if mod_pom.exists():
+            m_tree = ET.parse(mod_pom)
+            m_root = m_tree.getroot()
+            m_ns = {"m": m_root.tag.split("}")[0].strip("{")} if "}" in m_root.tag else {}
+            m_prefix = "m:" if m_ns else ""
+            url_elem = m_root.find(f"./{m_prefix}url", m_ns)
+            url_text = url_elem.text.strip() if url_elem is not None and url_elem.text else ""
+            expected_1 = f"https://github.com/minh124199/viet-template/tree/main/{mod}"
+            expected_2 = f"${{github.repository.url}}/tree/main/{mod}"
+            if url_text == "https://github.com/minh124199/viet-template":
+                errors.append(f"Module {mod} pom.xml merely inherited repository-root url; must explicitly declare '{expected_1}' or '{expected_2}'")
+            elif url_text not in (expected_1, expected_2):
+                errors.append(f"Module {mod} pom.xml URL '{url_text}' does not match expected parity URL '{expected_1}' or '{expected_2}'")
+
+    if not errors:
+        print("[PASS] Publication POM metadata (url, connection, developerConnection, and inheritance controls) matches across Gradle and Maven.")
+
+
 def main():
     print("=== Viet Template Build Parity Verification ===")
     errors = []
@@ -215,6 +335,7 @@ def main():
     check_identity(errors)
     check_java_baseline_and_flags(errors)
     check_dependency_versions(errors)
+    check_publication_metadata(errors)
     check_jar_contents(errors)
 
     if errors:

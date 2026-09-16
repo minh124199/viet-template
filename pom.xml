@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         child.project.url.inherit.append.path="false">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.minh124199</groupId>
@@ -29,9 +30,11 @@
         </developer>
     </developers>
 
-    <scm>
-        <connection>scm:git:git://github.com/minh124199/viet-template.git</connection>
-        <developerConnection>scm:git:ssh://github.com:minh124199/viet-template.git</developerConnection>
+    <scm child.scm.connection.inherit.append.path="false"
+         child.scm.developerConnection.inherit.append.path="false"
+         child.scm.url.inherit.append.path="false">
+        <connection>scm:git:https://github.com/minh124199/viet-template.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/minh124199/viet-template.git</developerConnection>
         <url>https://github.com/minh124199/viet-template</url>
     </scm>
 
@@ -51,6 +54,8 @@
 
 
     <properties>
+        <github.repository.url>https://github.com/minh124199/viet-template</github.repository.url>
+
         <!-- Java Baseline & Encoding -->
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

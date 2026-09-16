@@ -15,6 +15,7 @@
 
     <name>viet-template-spring</name>
     <description>Viet Template Spring Framework and Spring MVC Integration</description>
+    <url>${github.repository.url}/tree/main/viet-template-spring</url>
 
     <dependencies>
         <!-- Module Dependencies -->

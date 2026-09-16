@@ -16,6 +16,7 @@
 
     <name>viet-template-maven-plugin</name>
     <description>Official build-time AOT template compiler Maven plugin for Viet Template</description>
+    <url>${github.repository.url}/tree/main/viet-template-maven-plugin</url>
 
     <dependencies>
         <dependency>
