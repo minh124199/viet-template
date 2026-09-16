@@ -29,6 +29,14 @@ O160 Verify
 
 Every pass can be disabled for debugging and A/B benchmarking.
 
+> [!NOTE]
+> **Pipeline Structure & Stage Classification**:
+> The compiler pipeline in `IrOptimizer.java` executes distinct functional stages:
+> 1. **Mandatory Preparation Stage**: `O45 AssignVariableSlots` (runs unconditionally before the O0 check to assign deterministic slot indices to template variables without slot reuse, enabling direct array indexing in `ExecutionFrame`).
+> 2. **11 Optimization Pass Implementations (13 Transformation Executions)**: Configurable mutating transformations that optimize control flow, constants, accessors, loops, and inlining. The pipeline includes 11 distinct optimization pass implementations (`DeadCodeEliminationPass`, `MergeTextConstantsPass`, `ConstantFoldingPass`, `RedundantConversionPass`, `BooleanSimplificationPass`, `DirectAccessorBindingPass`, `LoopSpecializationPass`, `PrimitiveSpecializationPass`, `MacroInliningPass`, `EscapeSpecializationPass`, and `MethodSizePlanningPass`), executing 13 transformation passes in sequence because `DeadCodeEliminationPass` runs at O10 and O50, and `MergeTextConstantsPass` runs at O20 and post-escape hoisting.
+> 3. **Lowering / Pre-Encoding Stage**: `PreEncodeUtf8Pass` (computes UTF-8 byte arrays for static text constants into constant pool for zero-allocation streaming).
+> 4. **Invariant Verification Gate**: `O160 Verify` (`IrVerifier.verify`: unconditional non-mutating validation gate asserting IR integrity, slot bounds, and typing rules).
+
 ## 3. Normalize (O00)
 
 Canonicalize logical aliases, numeric literal representation, null-render mode, escape mode and alternate-reference representation.

@@ -601,6 +601,32 @@ Every optimization must preserve:
 
 ---
 
+## 16.1. Spring Security Integration (Milestone M16.1)
+
+- [x] Dedicated optional `viet-template-spring-security` module.
+- [x] Unidirectional dependency rule enforced: core engine never depends on Spring Security.
+- [x] Starter classpath isolation: `viet-template-spring-boot-starter` does not pull in Spring Security.
+- [x] Generic request metadata bridge (`SpringRenderAttributes`) in `viet-template-spring`.
+- [x] Strict security boundary: raw `Authentication`, `SecurityContext`, request/session, and credentials never exposed to template.
+- [x] Read-only immutable projections: `SecurityView` and `CsrfView` with minimized JavaBean accessors (`getName()`, `isAuthenticated()`, `isAnonymous()`, `getAuthorities()`, `hasAuthority()`, `hasAnyAuthority()`, `getToken()`, `getParameterName()`, `getHeaderName()`).
+- [x] Full `VTL_SAFE` compatibility: properties resolve without core engine modifications.
+- [x] Sensitive token redaction: `CsrfView.toString()` strictly redacts token secret.
+- [x] Contextual auto-escaping: plain String returns for principal name and authorities to prevent XSS.
+- [x] SPI contributor: `SpringSecurityRenderContextContributor` implementing `RenderContextContributor`.
+- [x] Factory SPIs: `SecurityViewFactory` and `CsrfViewFactory` with `@ConditionalOnMissingBean`.
+- [x] Spring Boot auto-configuration: `VietTemplateSecurityAutoConfiguration` (`viet-template.security.enabled=true`).
+- [x] Comprehensive test coverage: unit tests, multithreaded concurrency tests, 3-party tests, Virtual Thread tests, ArchUnit boundary tests, auto-configuration tests, starter isolation tests.
+- [x] Multi-generation dual-build AOT consumer fixtures:
+  - Spring Boot 3.3.5 / Spring Security 6.3.4: `maven-security-aot` & `gradle-security-aot`
+  - Spring Boot 4.0.0-RC1 / Spring Framework 7 / Spring Security 7: `maven-security7-aot` & `gradle-security7-aot`
+- [x] 10-step dual-build parity verification suite (`scripts/verify-spring-security-parity.sh` & `scripts/verify-spring-security7-integration.sh`) verifying 100% byte-for-byte bytecode and index parity and live HTTP execution.
+- [x] Multi-version compatibility verification: single artifact verified against Spring Security 6.3.4, 6.5.11, 7.0.7, 7.1.1 via `scripts/verify-spring-security-compatibility.py`.
+- [x] Layered public API baselines (`1.0-core-public-api.txt`, `1.0-spring-public-api.txt`, `1.0-spring-security-public-api.txt`) protecting 93 types mechanically via `scripts/verify-api-compatibility.py`.
+- [x] Formally classified in public surface baseline (`config/api-baseline/public-surface-classification.txt`).
+- [x] Formally documented in [`docs/36-spring-security-integration.md`](36-spring-security-integration.md).
+
+---
+
 ## 17. Spring Boot Advanced & Native Image Integration (Milestone M17)
 
 - [ ] AOT runtime hints for native image reachability metadata.
@@ -679,7 +705,19 @@ Every optimization must preserve:
 - [x] Add deterministic state/API/timeout/deployment-ID/publication-contract tests and a no-publish dry run.
 - [x] Record the 0.2.0 asynchronous-publication incident and recovery procedure.
 
-This follow-up is release infrastructure work only. It does not start M19.3 or M15.
+This follow-up was release infrastructure work only; it did not start M19.3 (M15 was subsequently implemented under Section 15).
+
+### 19.2.1a Maven Central Publication Metadata Audit & Correction (COMPLETE)
+
+- [x] Configure SCM and project URL inheritance controls on root POM (`child.project.url.inherit.append.path="false"`, `child.scm.connection.inherit.append.path="false"`, `child.scm.developerConnection.inherit.append.path="false"`, `child.scm.url.inherit.append.path="false"` supported since Maven 3.6.1).
+- [x] Update SCM connection to HTTPS read-only `scm:git:https://github.com/minh124199/viet-template.git` and developerConnection to standard `scm:git:ssh://git@github.com/minh124199/viet-template.git`.
+- [x] Add explicit canonical `<url>${github.repository.url}/tree/main/<module></url>` across published production child modules; strictly fail verification if a published child merely inherits the repository-root URL.
+- [x] Verify non-published modules (`viet-template-tck`, `viet-template-benchmarks`) omit `<url>` and enforce triple publication skipping (`maven.deploy.skip`, `skipPublishing`, `central.publishing.skip`).
+- [x] Ensure dual-build parity in `build.gradle.kts` and `viet-template-gradle-plugin/build.gradle.kts` with matching `/tree/main/${project.name}` URL and HTTPS/SSH SCM settings.
+- [x] Implement automated publication metadata validation in `scripts/verify-release-metadata.py` (`--check-publication-metadata`, `--check-effective-pom`, `--check-urls-online`) rejecting obsolete `git://` and malformed appended paths.
+- [x] Enhance `scripts/validate-release-bundle.py` to dynamically derive reactor published modules, validate POM metadata across all published coordinates, and reject malformed SCM/URL patterns.
+- [x] Add comprehensive release infrastructure unit tests in `scripts/tests/test_release_infrastructure.py`.
+- [x] Integrate `--check-publication-metadata` and `--check-effective-pom` into release and CI workflows.
 
 ### 19.2.2 Milestone M19.2c — Performance Engineering Infrastructure & Cross-JDK Analysis (COMPLETE)
 
@@ -766,8 +804,9 @@ Do not advertise ratios before measurement. Internal engineering targets:
 3. Interpreter, optimized dynamic backend, and AOT backend agree on shared semantics.
 4. Typed/AOT rendering is competitive with modern compiled JVM template engines in reproducible benchmarks.
 5. Security-sensitive dynamic features are disabled unless explicitly enabled.
-6. Spring Framework 7 and Spring Boot 4 integration are production-tested.
+6. Spring integration verified baseline: Spring Framework 6.1.14 and Spring Boot 3.3.5 tested on Java 17 / Jakarta Servlet 6.0 (intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions are not independently guaranteed; future major lines such as Spring 7 / Boot 4 are planned future targets).
 7. Java 17/21/25 runtime compatibility is CI-verified for modules claiming it.
 8. Build-time compilation is incremental and reproducible.
 9. Generated-code/source diagnostics are actionable.
 10. No benchmark or compatibility marketing claim exceeds the evidence produced by the checked-in suites.
+11. Stable public surface convergence: reconcile `config/api-baseline/public-surface-classification.txt` with `config/api-baseline/1.0-public-api.txt` so every public type classified as `STABLE_API` or `STABLE_SPI` is mechanically verified and protected by automated compatibility verification before 1.0 freeze.

@@ -38,6 +38,9 @@
 
 ## 2. Logical modules
 
+> [!NOTE]
+> **Conceptual vs. Physical Modules**: The 22 logical modules listed below reflect the original conceptual architecture design. In the implemented codebase, the repository consolidates these responsibilities into 11 physical build modules (`viet-template-api`, `viet-template-runtime`, `viet-template-language-vtl`, `viet-template-vtl-interpreter`, `viet-template-spring`, `viet-template-spring-boot-autoconfigure`, `viet-template-spring-boot-starter`, `viet-template-tck`, `viet-template-benchmarks`, `viet-template-maven-plugin`, and `viet-template-gradle-plugin`), maintaining strict package and dependency boundaries.
+
 ```text
 viet-template-api
 viet-template-source
