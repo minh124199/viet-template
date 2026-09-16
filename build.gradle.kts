@@ -35,12 +35,16 @@ subprojects {
 
     tasks.withType<Test>().configureEach {
         useJUnitPlatform()
+        maxHeapSize = "1024m"
         testLogging {
             events("passed", "skipped", "failed")
         }
         systemProperties(
             System.getProperties()
-                .filter { it.key.toString().startsWith("viet.") }
+                .filter {
+                    val key = it.key.toString()
+                    key.startsWith("viet.") || key.startsWith("vietTemplate.")
+                }
                 .mapKeys { it.key.toString() }
         )
     }
