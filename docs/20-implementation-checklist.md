@@ -624,6 +624,7 @@ Every optimization must preserve:
 - [x] Layered public API baselines (`1.0-core-public-api.txt` [80 types], `1.0-aot-public-api.txt` [6 types], `1.0-spring-public-api.txt` [8 types], `1.0-spring-security-public-api.txt` [5 types]) protecting 99 types mechanically with full bijection invariant via `scripts/verify-api-compatibility.py`.
 - [x] Formally classified in public surface baseline (`config/api-baseline/public-surface-classification.txt`) with 99 stable types (80 `STABLE_API`, 19 `STABLE_SPI`).
 - [x] Formally documented in [`docs/36-spring-security-integration.md`](36-spring-security-integration.md).
+- [x] Milestones M15, M16, and M16.1 released as 0.2.1 on 2026-09-17 (published to Maven Central and GitHub Releases, public consumer smoke tests passing).
 
 ---
 

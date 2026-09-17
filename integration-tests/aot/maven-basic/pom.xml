@@ -11,7 +11,7 @@
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <viet-template.version>0.2.1</viet-template.version>
+        <viet-template.version>0.2.2-SNAPSHOT</viet-template.version>
     </properties>
 
     <dependencies>

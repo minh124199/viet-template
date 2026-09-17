@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-parent</artifactId>
-        <version>0.2.1</version>
+        <version>0.2.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>viet-template-spring-boot-autoconfigure</artifactId>
