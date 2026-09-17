@@ -38,9 +38,6 @@ native-image --version
 
 BOOT_GEN="${1:-boot4}"
 EXPECTED_MAJOR=65
-if [ "${BOOT_GEN}" = "boot3" ]; then
-    EXPECTED_MAJOR=61
-fi
 
 MAVEN_DIR="${ROOT_DIR}/integration-tests/native/maven-${BOOT_GEN}-native"
 GRADLE_DIR="${ROOT_DIR}/integration-tests/native/gradle-${BOOT_GEN}-native"
