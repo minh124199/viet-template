@@ -214,12 +214,15 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
     - Automated native image dual-build consumer fixtures (`maven-boot3-native`, `gradle-boot3-native`, `maven-boot4-native`, `gradle-boot4-native`).
     - Verified full native binary compilation and live HTTP request rendering with runtime compilation disabled via `scripts/verify-native-image-integration.sh` and `.github/workflows/native-image.yml`.
     - Formally documented in [`docs/37-m17-graalvm-native-image.md`](37-m17-graalvm-native-image.md).
-  - **M17 Phase B (DevTools Restart/Refresh Hardening) — NEXT**:
+  - **M17 Phase B (DevTools Restart/Refresh Hardening) — COMPLETE**:
     - Spring Boot DevTools live reload lifecycle hook hardening and ClassLoader boundary isolation.
-    - Preview lane for next Spring/Boot generation without making preview APIs public dependencies.
-- **Milestone M18 (TCK & Performance Release Gates)**:
-  - Independently executable public TCK verifying 100% of claimed language features.
-  - Reproducible benchmark report published with full hardware metadata, raw JMH outputs, and comparative analyses against Velocity, Qute, jte, and Thymeleaf.
+    - Delivered `close()` lifecycle and thread shutdown for `DevelopmentFileWatcher` and `VtlTemplateEngine`.
+    - Added 4 dual-build DevTools integration fixtures (`maven-boot3-devtools`, `gradle-boot3-devtools`, `maven-boot4-devtools`, `gradle-boot4-devtools`).
+    - Verified Mode A (dynamic hot reload without restart), Mode B (AOT recompile + trigger restart with ClassLoader turnover), stale template deletion, and 10x restart stress test with zero ClassLoader leaks via `scripts/verify-devtools-restart-integration.sh` and `.github/workflows/devtools-restart.yml`.
+    - Formally documented in [`docs/38-m17-devtools-restart-hardening.md`](38-m17-devtools-restart-hardening.md).
+- **Milestone M18 (TCK & Performance Release Gates) — NEXT**:
+    - Independently executable public TCK verifying 100% of claimed language features.
+    - Reproducible benchmark report published with full hardware metadata, raw JMH outputs, and comparative analyses against Velocity, Qute, jte, and Thymeleaf.
 - **Production Hardening**:
   - GraalVM Native Image reachability-metadata verification.
   - Comprehensive migration guide from Apache Velocity.
