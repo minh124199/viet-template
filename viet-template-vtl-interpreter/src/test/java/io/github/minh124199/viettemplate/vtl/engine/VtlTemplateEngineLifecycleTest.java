@@ -2,10 +2,12 @@ package io.github.minh124199.viettemplate.vtl.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.minh124199.viettemplate.api.FilesystemTemplateRepository;
 import io.github.minh124199.viettemplate.api.InMemoryTemplateRepository;
 import io.github.minh124199.viettemplate.api.Template;
+import io.github.minh124199.viettemplate.api.TemplateException;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.runtime.linker.BoundedWeakClassCache;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite;
@@ -25,7 +27,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -199,7 +203,6 @@ class VtlTemplateEngineLifecycleTest {
     boolean allCollected = false;
     for (int i = 0; i < 50; i++) {
       System.gc();
-      System.runFinalization();
       boolean anyClAlive = classLoaderRefs.stream().anyMatch(ref -> ref.get() != null);
       boolean anyClassAlive = classRefs.stream().anyMatch(ref -> ref.get() != null);
       if (!anyClAlive && !anyClassAlive) {
@@ -215,5 +218,89 @@ class VtlTemplateEngineLifecycleTest {
 
     // BoundedWeakClassCache should purge stale weak references
     assertThat(weakCache.size()).isEqualTo(0);
+  }
+
+  @Test
+  void compilingTemplatesThreadLocalCleanedUpAfterSuccessfulCompilation() {
+    InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
+    TemplateId parentId = TemplateId.of("parent.vtl");
+    TemplateId childId = TemplateId.of("child.vtl");
+    repo.put(parentId, "Parent start; #parse(\"child.vtl\") Parent end;");
+    repo.put(childId, "Child content;");
+
+    VtlTemplateEngine engine = VtlTemplateEngine.builder().repository(repo).build();
+
+    Template template = engine.get(parentId);
+    assertThat(template).isNotNull();
+
+    // Verify ThreadLocal is completely cleared (returns null)
+    assertThat(engine.compilingTemplates.get()).isNull();
+  }
+
+  @Test
+  void compilingTemplatesThreadLocalCleanedUpAfterParseException() {
+    InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
+    TemplateId brokenId = TemplateId.of("broken.vtl");
+    repo.put(brokenId, "#if (unclosed expression");
+
+    VtlTemplateEngine engine = VtlTemplateEngine.builder().repository(repo).build();
+
+    assertThatThrownBy(() -> engine.get(brokenId)).isInstanceOf(TemplateException.class);
+
+    // Verify ThreadLocal is completely cleared (returns null)
+    assertThat(engine.compilingTemplates.get()).isNull();
+  }
+
+  @Test
+  void compilingTemplatesThreadLocalCleanedUpAfterRecursiveAndCyclicCompilation() {
+    InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
+    TemplateId idA = TemplateId.of("a.vtl");
+    TemplateId idB = TemplateId.of("b.vtl");
+    TemplateId idC = TemplateId.of("c.vtl");
+    repo.put(idA, "#parse(\"b.vtl\")");
+    repo.put(idB, "#parse(\"c.vtl\")");
+    repo.put(idC, "#parse(\"a.vtl\")"); // Cycle back to A
+
+    VtlTemplateEngine engine = VtlTemplateEngine.builder().repository(repo).build();
+
+    Template template = engine.get(idA);
+    assertThat(template).isNotNull();
+
+    // Verify ThreadLocal is completely cleared (returns null)
+    assertThat(engine.compilingTemplates.get()).isNull();
+
+    // Nested failure scenario: parent parses broken child
+    TemplateId parentBroken = TemplateId.of("parentBroken.vtl");
+    TemplateId badChild = TemplateId.of("badChild.vtl");
+    repo.put(parentBroken, "#parse(\"badChild.vtl\")");
+    repo.put(badChild, "#invalid syntax");
+
+    engine.get(parentBroken);
+    assertThat(engine.compilingTemplates.get()).isNull();
+  }
+
+  @Test
+  void compilingTemplatesThreadLocalCleanedUpOnInterruptedThread() throws Exception {
+    InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
+    TemplateId id = TemplateId.of("test.vtl");
+    repo.put(id, "Hello $name!");
+
+    VtlTemplateEngine engine = VtlTemplateEngine.builder().repository(repo).build();
+
+    AtomicReference<Set<TemplateId>> threadLocalVal = new AtomicReference<>();
+    Thread t =
+        new Thread(
+            () -> {
+              Thread.currentThread().interrupt();
+              try {
+                engine.get(id);
+              } catch (Exception ignored) {
+              }
+              threadLocalVal.set(engine.compilingTemplates.get());
+            });
+    t.start();
+    t.join();
+
+    assertThat(threadLocalVal.get()).isNull();
   }
 }

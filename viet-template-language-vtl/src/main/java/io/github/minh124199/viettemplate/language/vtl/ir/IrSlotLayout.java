@@ -3,6 +3,7 @@ package io.github.minh124199.viettemplate.language.vtl.ir;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrAlternateValue;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrBinaryOp;
+import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrConst;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrConvert;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrDynamicDispatch;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrExpression;
@@ -157,36 +158,37 @@ public final class IrSlotLayout {
       Map<IrLoop, List<Integer>> loopLocals,
       boolean isTemplateRoot) {
     for (IrStatement stmt : block.statements()) {
-      if (stmt instanceof IrStoreLocal store) {
-        int slot = store.local().slot();
-        if (!slots.containsKey(slot)) {
-          BindingKind kind = isTemplateRoot ? BindingKind.TEMPLATE_LOCAL : BindingKind.MACRO_LOCAL;
-          InitializationPolicy policy =
-              isTemplateRoot
-                  ? InitializationPolicy.SEEDED_FROM_CONTEXT
-                  : InitializationPolicy.FRESH_UNDEFINED;
-          SlotMetadata meta =
-              new SlotMetadata(slot, store.local().name(), kind, policy, store.local().span());
-          slots.put(slot, meta);
-          if (policy == InitializationPolicy.SEEDED_FROM_CONTEXT) {
-            seededSlots.add(meta);
+      switch (stmt) {
+        case IrStoreLocal store -> {
+          int slot = store.local().slot();
+          if (!slots.containsKey(slot)) {
+            BindingKind kind =
+                isTemplateRoot ? BindingKind.TEMPLATE_LOCAL : BindingKind.MACRO_LOCAL;
+            InitializationPolicy policy =
+                isTemplateRoot
+                    ? InitializationPolicy.SEEDED_FROM_CONTEXT
+                    : InitializationPolicy.FRESH_UNDEFINED;
+            SlotMetadata meta =
+                new SlotMetadata(slot, store.local().name(), kind, policy, store.local().span());
+            slots.put(slot, meta);
+            if (policy == InitializationPolicy.SEEDED_FROM_CONTEXT) {
+              seededSlots.add(meta);
+            }
+            outerSlots.add(slot);
           }
-          outerSlots.add(slot);
         }
-      } else if (stmt instanceof IrIf conditional) {
-        collectBlockSlots(
-            conditional.thenBlock(), outerSlots, slots, seededSlots, loopLocals, isTemplateRoot);
-        if (conditional.elseBlock().isPresent()) {
+        case IrIf conditional -> {
           collectBlockSlots(
-              conditional.elseBlock().get(),
-              outerSlots,
-              slots,
-              seededSlots,
-              loopLocals,
-              isTemplateRoot);
+              conditional.thenBlock(), outerSlots, slots, seededSlots, loopLocals, isTemplateRoot);
+          conditional
+              .elseBlock()
+              .ifPresent(
+                  elseBlk ->
+                      collectBlockSlots(
+                          elseBlk, outerSlots, slots, seededSlots, loopLocals, isTemplateRoot));
         }
-      } else if (stmt instanceof IrLoop loop) {
-        collectLoopSlots(loop, outerSlots, slots, seededSlots, loopLocals);
+        case IrLoop loop -> collectLoopSlots(loop, outerSlots, slots, seededSlots, loopLocals);
+        default -> {}
       }
     }
   }
@@ -208,19 +210,17 @@ public final class IrSlotLayout {
               loop.elementLocal().span());
       slots.put(elemSlot, elemMeta);
     }
-
-    int stateSlot = -1;
     if (loop.loopStateLocal().isPresent()) {
-      IrLocal sLocal = loop.loopStateLocal().get();
-      stateSlot = sLocal.slot();
+      IrLocal stateLocal = loop.loopStateLocal().get();
+      int stateSlot = stateLocal.slot();
       if (!slots.containsKey(stateSlot)) {
         SlotMetadata stateMeta =
             new SlotMetadata(
                 stateSlot,
-                sLocal.name(),
+                stateLocal.name(),
                 BindingKind.FOREACH_METADATA,
                 InitializationPolicy.ITERATION_MANAGED,
-                sLocal.span());
+                stateLocal.span());
         slots.put(stateSlot, stateMeta);
       }
     }
@@ -228,8 +228,8 @@ public final class IrSlotLayout {
     List<Integer> ownedSlots = new ArrayList<>();
     Set<Integer> loopInnerOuter = new HashSet<>(enclosingOuterSlots);
     loopInnerOuter.add(elemSlot);
-    if (stateSlot != -1) {
-      loopInnerOuter.add(stateSlot);
+    if (loop.loopStateLocal().isPresent()) {
+      loopInnerOuter.add(loop.loopStateLocal().get().slot());
     }
 
     collectLoopBodySlots(loop.body(), loopInnerOuter, slots, ownedSlots, loopLocals);
@@ -248,47 +248,53 @@ public final class IrSlotLayout {
       List<Integer> ownedSlots,
       Map<IrLoop, List<Integer>> loopLocals) {
     for (IrStatement stmt : block.statements()) {
-      if (stmt instanceof IrStoreLocal store) {
-        int slot = store.local().slot();
-        if (!outerSlots.contains(slot)) {
-          if (!ownedSlots.contains(slot)) {
-            ownedSlots.add(slot);
-          }
-          if (!slots.containsKey(slot)) {
-            SlotMetadata meta =
-                new SlotMetadata(
-                    slot,
-                    store.local().name(),
-                    BindingKind.FOREACH_LOCAL,
-                    InitializationPolicy.FRESH_UNDEFINED,
-                    store.local().span());
-            slots.put(slot, meta);
-          }
-        }
-      } else if (stmt instanceof IrIf conditional) {
-        collectLoopBodySlots(conditional.thenBlock(), outerSlots, slots, ownedSlots, loopLocals);
-        if (conditional.elseBlock().isPresent()) {
-          collectLoopBodySlots(
-              conditional.elseBlock().get(), outerSlots, slots, ownedSlots, loopLocals);
-        }
-      } else if (stmt instanceof IrLoop innerLoop) {
-        collectLoopSlots(innerLoop, outerSlots, slots, new ArrayList<>(), loopLocals);
-        int innerElemSlot = innerLoop.elementLocal().slot();
-        if (!outerSlots.contains(innerElemSlot) && !ownedSlots.contains(innerElemSlot)) {
-          ownedSlots.add(innerElemSlot);
-        }
-        if (innerLoop.loopStateLocal().isPresent()) {
-          int innerStateSlot = innerLoop.loopStateLocal().get().slot();
-          if (!outerSlots.contains(innerStateSlot) && !ownedSlots.contains(innerStateSlot)) {
-            ownedSlots.add(innerStateSlot);
+      switch (stmt) {
+        case IrStoreLocal store -> {
+          int slot = store.local().slot();
+          if (!outerSlots.contains(slot)) {
+            if (!ownedSlots.contains(slot)) {
+              ownedSlots.add(slot);
+            }
+            if (!slots.containsKey(slot)) {
+              SlotMetadata meta =
+                  new SlotMetadata(
+                      slot,
+                      store.local().name(),
+                      BindingKind.FOREACH_LOCAL,
+                      InitializationPolicy.FRESH_UNDEFINED,
+                      store.local().span());
+              slots.put(slot, meta);
+            }
           }
         }
-        List<Integer> innerOwned = loopLocals.getOrDefault(innerLoop, List.of());
-        for (int s : innerOwned) {
-          if (!outerSlots.contains(s) && !ownedSlots.contains(s)) {
-            ownedSlots.add(s);
+        case IrIf conditional -> {
+          collectLoopBodySlots(conditional.thenBlock(), outerSlots, slots, ownedSlots, loopLocals);
+          conditional
+              .elseBlock()
+              .ifPresent(
+                  elseBlk ->
+                      collectLoopBodySlots(elseBlk, outerSlots, slots, ownedSlots, loopLocals));
+        }
+        case IrLoop innerLoop -> {
+          collectLoopSlots(innerLoop, outerSlots, slots, new ArrayList<>(), loopLocals);
+          int innerElemSlot = innerLoop.elementLocal().slot();
+          if (!outerSlots.contains(innerElemSlot) && !ownedSlots.contains(innerElemSlot)) {
+            ownedSlots.add(innerElemSlot);
+          }
+          if (innerLoop.loopStateLocal().isPresent()) {
+            int innerStateSlot = innerLoop.loopStateLocal().get().slot();
+            if (!outerSlots.contains(innerStateSlot) && !ownedSlots.contains(innerStateSlot)) {
+              ownedSlots.add(innerStateSlot);
+            }
+          }
+          List<Integer> innerOwned = loopLocals.getOrDefault(innerLoop, List.of());
+          for (int s : innerOwned) {
+            if (!outerSlots.contains(s) && !ownedSlots.contains(s)) {
+              ownedSlots.add(s);
+            }
           }
         }
+        default -> {}
       }
     }
   }
@@ -336,82 +342,87 @@ public final class IrSlotLayout {
 
   private static void collectBindings(IrBlock block, Map<Integer, String> bindings) {
     for (IrStatement statement : block.statements()) {
-      if (statement instanceof IrStoreLocal store) {
-        bindings.putIfAbsent(store.local().slot(), store.local().name());
-        collectBindings(store.value(), bindings);
-      } else if (statement instanceof IrWriteValue write) {
-        collectBindings(write.value(), bindings);
-      } else if (statement instanceof IrIf conditional) {
-        collectBindings(conditional.condition(), bindings);
-        collectBindings(conditional.thenBlock(), bindings);
-        conditional.elseBlock().ifPresent(value -> collectBindings(value, bindings));
-      } else if (statement instanceof IrLoop loop) {
-        collectBindings(loop.iterable(), bindings);
-        bindings.putIfAbsent(loop.elementLocal().slot(), loop.elementLocal().name());
-        loop.loopStateLocal().ifPresent(local -> bindings.putIfAbsent(local.slot(), local.name()));
-        collectBindings(loop.body(), bindings);
-        loop.elseBody().ifPresent(value -> collectBindings(value, bindings));
-      } else if (statement instanceof IrLoopSetup setup) {
-        collectBindings(setup.iterable(), bindings);
-        bindings.putIfAbsent(setup.iteratorLocal().slot(), setup.iteratorLocal().name());
-      } else if (statement instanceof IrLoopNext next) {
-        bindings.putIfAbsent(next.iteratorLocal().slot(), next.iteratorLocal().name());
-        bindings.putIfAbsent(next.elementLocal().slot(), next.elementLocal().name());
-        next.loopStateLocal().ifPresent(local -> bindings.putIfAbsent(local.slot(), local.name()));
-      } else if (statement instanceof IrCallMacro call && call.bodyContent().isPresent()) {
-        for (IrExpression argument : call.arguments()) collectBindings(argument, bindings);
-        collectBindings(call.bodyContent().get(), bindings);
-      } else if (statement instanceof IrCallMacro call) {
-        for (IrExpression argument : call.arguments()) collectBindings(argument, bindings);
-      } else if (statement instanceof IrCallTemplate call) {
-        collectBindings(call.templateNameExpr(), bindings);
-      } else if (statement instanceof IrEvaluate evaluate) {
-        collectBindings(evaluate.expression(), bindings);
-      } else if (statement instanceof IrSetProperty set) {
-        collectBindings(set.target(), bindings);
-        collectBindings(set.value(), bindings);
-      } else if (statement instanceof IrSetIndex set) {
-        collectBindings(set.target(), bindings);
-        collectBindings(set.index(), bindings);
-        collectBindings(set.value(), bindings);
-      } else if (statement instanceof IrBranchIf branch) {
-        collectBindings(branch.condition(), bindings);
-      } else if (statement instanceof IrReturn ret && ret.value().isPresent()) {
-        collectBindings(ret.value().get(), bindings);
+      switch (statement) {
+        case IrStoreLocal store -> {
+          bindings.putIfAbsent(store.local().slot(), store.local().name());
+          collectBindings(store.value(), bindings);
+        }
+        case IrWriteValue write -> collectBindings(write.value(), bindings);
+        case IrIf conditional -> {
+          collectBindings(conditional.condition(), bindings);
+          collectBindings(conditional.thenBlock(), bindings);
+          conditional.elseBlock().ifPresent(value -> collectBindings(value, bindings));
+        }
+        case IrLoop loop -> {
+          collectBindings(loop.iterable(), bindings);
+          bindings.putIfAbsent(loop.elementLocal().slot(), loop.elementLocal().name());
+          loop.loopStateLocal()
+              .ifPresent(local -> bindings.putIfAbsent(local.slot(), local.name()));
+          collectBindings(loop.body(), bindings);
+          loop.elseBody().ifPresent(value -> collectBindings(value, bindings));
+        }
+        case IrLoopSetup setup -> {
+          collectBindings(setup.iterable(), bindings);
+          bindings.putIfAbsent(setup.iteratorLocal().slot(), setup.iteratorLocal().name());
+        }
+        case IrLoopNext next -> {
+          bindings.putIfAbsent(next.iteratorLocal().slot(), next.iteratorLocal().name());
+          bindings.putIfAbsent(next.elementLocal().slot(), next.elementLocal().name());
+          next.loopStateLocal()
+              .ifPresent(local -> bindings.putIfAbsent(local.slot(), local.name()));
+        }
+        case IrCallMacro call -> {
+          for (IrExpression argument : call.arguments()) collectBindings(argument, bindings);
+          call.bodyContent().ifPresent(body -> collectBindings(body, bindings));
+        }
+        case IrCallTemplate call -> collectBindings(call.templateNameExpr(), bindings);
+        case IrEvaluate evaluate -> collectBindings(evaluate.expression(), bindings);
+        case IrSetProperty set -> {
+          collectBindings(set.target(), bindings);
+          collectBindings(set.value(), bindings);
+        }
+        case IrSetIndex set -> {
+          collectBindings(set.target(), bindings);
+          collectBindings(set.index(), bindings);
+          collectBindings(set.value(), bindings);
+        }
+        case IrBranchIf branch -> collectBindings(branch.condition(), bindings);
+        case IrReturn ret -> ret.value().ifPresent(val -> collectBindings(val, bindings));
+        default -> {}
       }
     }
   }
 
   private static void collectBindings(IrExpression expression, Map<Integer, String> bindings) {
-    if (expression instanceof IrLoadLocal load) {
-      bindings.putIfAbsent(load.slot(), load.name());
-    } else if (expression instanceof IrLoadParam load) {
-      bindings.putIfAbsent(load.slot(), load.name());
-    } else if (expression instanceof IrGetProperty get) {
-      collectBindings(get.receiver(), bindings);
-    } else if (expression instanceof IrIndexGet get) {
-      collectBindings(get.receiver(), bindings);
-      collectBindings(get.index(), bindings);
-    } else if (expression instanceof IrInvokeAllowedMethod call) {
-      collectBindings(call.receiver(), bindings);
-      for (IrExpression argument : call.arguments()) collectBindings(argument, bindings);
-    } else if (expression instanceof IrDynamicDispatch call) {
-      call.receiver().ifPresent(value -> collectBindings(value, bindings));
-      for (IrExpression argument : call.arguments()) collectBindings(argument, bindings);
-    } else if (expression instanceof IrBinaryOp binary) {
-      collectBindings(binary.left(), bindings);
-      collectBindings(binary.right(), bindings);
-    } else if (expression instanceof IrUnaryOp unary) {
-      collectBindings(unary.operand(), bindings);
-    } else if (expression instanceof IrTruthiness truthiness) {
-      collectBindings(truthiness.expression(), bindings);
-    } else if (expression instanceof IrIsNull isNull) {
-      collectBindings(isNull.expression(), bindings);
-    } else if (expression instanceof IrConvert convert) {
-      collectBindings(convert.expression(), bindings);
-    } else if (expression instanceof IrAlternateValue alternate) {
-      collectBindings(alternate.primary(), bindings);
-      collectBindings(alternate.fallback(), bindings);
+    switch (expression) {
+      case IrLoadLocal load -> bindings.putIfAbsent(load.slot(), load.name());
+      case IrLoadParam load -> bindings.putIfAbsent(load.slot(), load.name());
+      case IrGetProperty get -> collectBindings(get.receiver(), bindings);
+      case IrIndexGet get -> {
+        collectBindings(get.receiver(), bindings);
+        collectBindings(get.index(), bindings);
+      }
+      case IrInvokeAllowedMethod call -> {
+        collectBindings(call.receiver(), bindings);
+        for (IrExpression argument : call.arguments()) collectBindings(argument, bindings);
+      }
+      case IrDynamicDispatch call -> {
+        call.receiver().ifPresent(value -> collectBindings(value, bindings));
+        for (IrExpression argument : call.arguments()) collectBindings(argument, bindings);
+      }
+      case IrBinaryOp binary -> {
+        collectBindings(binary.left(), bindings);
+        collectBindings(binary.right(), bindings);
+      }
+      case IrUnaryOp unary -> collectBindings(unary.operand(), bindings);
+      case IrTruthiness truthiness -> collectBindings(truthiness.expression(), bindings);
+      case IrIsNull isNull -> collectBindings(isNull.expression(), bindings);
+      case IrConvert convert -> collectBindings(convert.expression(), bindings);
+      case IrAlternateValue alternate -> {
+        collectBindings(alternate.primary(), bindings);
+        collectBindings(alternate.fallback(), bindings);
+      }
+      case IrConst c -> {}
     }
   }
 
@@ -419,9 +430,6 @@ public final class IrSlotLayout {
     int max = -1;
     for (IrParameter parameter : parameters) {
       max = Math.max(max, parameter.slot());
-      if (parameter.defaultValue().isPresent()) {
-        max = Math.max(max, maxExpression(parameter.defaultValue().get()));
-      }
     }
     return max;
   }
@@ -443,80 +451,75 @@ public final class IrSlotLayout {
   }
 
   private static int maxStatement(IrStatement statement) {
-    if (statement instanceof IrStoreLocal store) {
-      return Math.max(store.local().slot(), maxExpression(store.value()));
-    }
-    if (statement instanceof IrWriteValue write) return maxExpression(write.value());
-    if (statement instanceof IrIf conditional) {
-      int max = Math.max(maxExpression(conditional.condition()), maxBlock(conditional.thenBlock()));
-      return conditional
-          .elseBlock()
-          .map(IrSlotLayout::maxBlock)
-          .map(v -> Math.max(max, v))
-          .orElse(max);
-    }
-    if (statement instanceof IrLoop loop) {
-      int max = Math.max(maxExpression(loop.iterable()), loop.elementLocal().slot());
-      max = Math.max(max, loop.loopStateLocal().map(IrLocal::slot).orElse(-1));
-      max = Math.max(max, maxBlock(loop.body()));
-      if (loop.elseBody().isPresent()) max = Math.max(max, maxBlock(loop.elseBody().get()));
-      return max;
-    }
-    if (statement instanceof IrLoopSetup setup) {
-      return Math.max(setup.iteratorLocal().slot(), maxExpression(setup.iterable()));
-    }
-    if (statement instanceof IrLoopNext next) {
-      int max = Math.max(next.iteratorLocal().slot(), next.elementLocal().slot());
-      return Math.max(max, next.loopStateLocal().map(IrLocal::slot).orElse(-1));
-    }
-    if (statement instanceof IrCallMacro call) {
-      int max = -1;
-      for (IrExpression argument : call.arguments()) max = Math.max(max, maxExpression(argument));
-      if (call.bodyContent().isPresent()) max = Math.max(max, maxBlock(call.bodyContent().get()));
-      return max;
-    }
-    if (statement instanceof IrCallTemplate call) return maxExpression(call.templateNameExpr());
-    if (statement instanceof IrEvaluate evaluate) return maxExpression(evaluate.expression());
-    if (statement instanceof IrSetProperty set) {
-      return Math.max(maxExpression(set.target()), maxExpression(set.value()));
-    }
-    if (statement instanceof IrSetIndex set) {
-      return Math.max(
-          maxExpression(set.target()),
-          Math.max(maxExpression(set.index()), maxExpression(set.value())));
-    }
-    if (statement instanceof IrBranchIf branch) return maxExpression(branch.condition());
-    if (statement instanceof IrReturn ret && ret.value().isPresent())
-      return maxExpression(ret.value().get());
-    return -1;
+    return switch (statement) {
+      case IrStoreLocal store -> Math.max(store.local().slot(), maxExpression(store.value()));
+      case IrWriteValue write -> maxExpression(write.value());
+      case IrIf conditional -> {
+        int max =
+            Math.max(maxExpression(conditional.condition()), maxBlock(conditional.thenBlock()));
+        yield conditional
+            .elseBlock()
+            .map(IrSlotLayout::maxBlock)
+            .map(v -> Math.max(max, v))
+            .orElse(max);
+      }
+      case IrLoop loop -> {
+        int max = Math.max(maxExpression(loop.iterable()), loop.elementLocal().slot());
+        max = Math.max(max, loop.loopStateLocal().map(IrLocal::slot).orElse(-1));
+        max = Math.max(max, maxBlock(loop.body()));
+        if (loop.elseBody().isPresent()) max = Math.max(max, maxBlock(loop.elseBody().get()));
+        yield max;
+      }
+      case IrLoopSetup setup ->
+          Math.max(setup.iteratorLocal().slot(), maxExpression(setup.iterable()));
+      case IrLoopNext next -> {
+        int max = Math.max(next.iteratorLocal().slot(), next.elementLocal().slot());
+        yield Math.max(max, next.loopStateLocal().map(IrLocal::slot).orElse(-1));
+      }
+      case IrCallMacro call -> {
+        int max = -1;
+        for (IrExpression argument : call.arguments()) max = Math.max(max, maxExpression(argument));
+        if (call.bodyContent().isPresent()) max = Math.max(max, maxBlock(call.bodyContent().get()));
+        yield max;
+      }
+      case IrCallTemplate call -> maxExpression(call.templateNameExpr());
+      case IrEvaluate evaluate -> maxExpression(evaluate.expression());
+      case IrSetProperty set -> Math.max(maxExpression(set.target()), maxExpression(set.value()));
+      case IrSetIndex set ->
+          Math.max(
+              maxExpression(set.target()),
+              Math.max(maxExpression(set.index()), maxExpression(set.value())));
+      case IrBranchIf branch -> maxExpression(branch.condition());
+      case IrReturn ret -> ret.value().map(IrSlotLayout::maxExpression).orElse(-1);
+      default -> -1;
+    };
   }
 
   private static int maxExpression(IrExpression expression) {
-    if (expression instanceof IrLoadLocal load) return load.slot();
-    if (expression instanceof IrLoadParam load) return load.slot();
-    if (expression instanceof IrGetProperty get) return maxExpression(get.receiver());
-    if (expression instanceof IrIndexGet get)
-      return Math.max(maxExpression(get.receiver()), maxExpression(get.index()));
-    if (expression instanceof IrInvokeAllowedMethod call) {
-      int max = maxExpression(call.receiver());
-      for (IrExpression argument : call.arguments()) max = Math.max(max, maxExpression(argument));
-      return max;
-    }
-    if (expression instanceof IrDynamicDispatch call) {
-      int max = call.receiver().map(IrSlotLayout::maxExpression).orElse(-1);
-      for (IrExpression argument : call.arguments()) max = Math.max(max, maxExpression(argument));
-      return max;
-    }
-    if (expression instanceof IrBinaryOp binary)
-      return Math.max(maxExpression(binary.left()), maxExpression(binary.right()));
-    if (expression instanceof IrUnaryOp unary) return maxExpression(unary.operand());
-    if (expression instanceof IrTruthiness truthiness)
-      return maxExpression(truthiness.expression());
-    if (expression instanceof IrIsNull isNull) return maxExpression(isNull.expression());
-    if (expression instanceof IrConvert convert) return maxExpression(convert.expression());
-    if (expression instanceof IrAlternateValue alternate) {
-      return Math.max(maxExpression(alternate.primary()), maxExpression(alternate.fallback()));
-    }
-    return -1;
+    return switch (expression) {
+      case IrLoadLocal load -> load.slot();
+      case IrLoadParam load -> load.slot();
+      case IrGetProperty get -> maxExpression(get.receiver());
+      case IrIndexGet get -> Math.max(maxExpression(get.receiver()), maxExpression(get.index()));
+      case IrInvokeAllowedMethod call -> {
+        int max = maxExpression(call.receiver());
+        for (IrExpression argument : call.arguments()) max = Math.max(max, maxExpression(argument));
+        yield max;
+      }
+      case IrDynamicDispatch call -> {
+        int max = call.receiver().map(IrSlotLayout::maxExpression).orElse(-1);
+        for (IrExpression argument : call.arguments()) max = Math.max(max, maxExpression(argument));
+        yield max;
+      }
+      case IrBinaryOp binary ->
+          Math.max(maxExpression(binary.left()), maxExpression(binary.right()));
+      case IrUnaryOp unary -> maxExpression(unary.operand());
+      case IrTruthiness truthiness -> maxExpression(truthiness.expression());
+      case IrIsNull isNull -> maxExpression(isNull.expression());
+      case IrConvert convert -> maxExpression(convert.expression());
+      case IrAlternateValue alternate ->
+          Math.max(maxExpression(alternate.primary()), maxExpression(alternate.fallback()));
+      case IrConst c -> -1;
+    };
   }
 }

@@ -58,9 +58,9 @@ class ClassFileWriterTest {
     assertThat(bytes[1]).isEqualTo((byte) 0xFE);
     assertThat(bytes[2]).isEqualTo((byte) 0xBA);
     assertThat(bytes[3]).isEqualTo((byte) 0xBE);
-    // Major version 61 (Java 17)
+    // Major version 65 (Java 21)
     assertThat(bytes[6]).isEqualTo((byte) 0x00);
-    assertThat(bytes[7]).isEqualTo((byte) 0x3D);
+    assertThat(bytes[7]).isEqualTo((byte) 0x41);
 
     // Load and execute
     TemplateClassLoader loader = new TemplateClassLoader(getClass().getClassLoader());
@@ -148,9 +148,9 @@ class ClassFileWriterTest {
     Path classFile = tempDir.resolve("JavapVerification.class");
     Files.write(classFile, bytes);
 
-    File javapBin = new File("/home/lynguyen/opt/usr/lib/jvm/java-17-openjdk/bin/javap");
+    File javapBin = new File(System.getProperty("java.home"), "bin/javap");
     if (!javapBin.exists()) {
-      javapBin = new File(System.getProperty("java.home"), "bin/javap");
+      javapBin = new File("/usr/bin/javap");
     }
 
     if (javapBin.exists()) {
@@ -161,7 +161,7 @@ class ClassFileWriterTest {
       int exitCode = process.waitFor();
 
       assertThat(exitCode).isZero();
-      assertThat(output).contains("major version: 61");
+      assertThat(output).contains("major version: 65");
       assertThat(output).contains("JavapVerification");
     }
   }

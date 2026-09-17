@@ -83,7 +83,7 @@ public final class BatchedDeferredLruCompileCache implements CompileCacheInterfa
     CompiledTemplateHandle handle = entries.get(key);
     if (handle != null) {
       // 100% lock-free read hit: record access to striped ring buffer
-      int stripe = ((int) Thread.currentThread().getId()) & (READ_BUFFER_STRIPES - 1);
+      int stripe = ((int) Thread.currentThread().threadId()) & (READ_BUFFER_STRIPES - 1);
       readBuffers[stripe].offer(key);
 
       // Amortized non-blocking maintenance drain check

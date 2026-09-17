@@ -71,6 +71,73 @@ class SharedEngineVirtualThreadStressTest {
     runOrderRendersStress(2_000, VirtualThreadSupport.createVirtualThreadExecutor());
   }
 
+  @Test
+  @DisplayName(
+      "Audit virtual threads with JFR to verify zero pinned events under 1,000 and 10,000 renders")
+  void testVirtualThreadJfrPinningAuditUnder1000And10000Renders() throws Exception {
+    // Prewarm template compilation so steady-state rendering is isolated from classloader
+    // initialization
+    engine.render(
+        RenderRequest.of(
+            TemplateId.of("item.vm"),
+            RenderContext.builder().put("item", new Item("ITM-0", "Warmup", 0.0)).build()),
+        new StringTemplateOutput());
+
+    try (jdk.jfr.Recording recording = new jdk.jfr.Recording()) {
+      recording.enable("jdk.VirtualThreadPinned");
+      recording.start();
+
+      // Stress scenario 1: 1,000 renders
+      runItemRendersStress(1_000, VirtualThreadSupport.createVirtualThreadExecutor());
+
+      // Stress scenario 2: 10,000 renders
+      runItemRendersStress(10_000, VirtualThreadSupport.createVirtualThreadExecutor());
+
+      recording.stop();
+      java.nio.file.Path tempJfr = java.nio.file.Files.createTempFile("vt-pinned-audit", ".jfr");
+      try {
+        recording.dump(tempJfr);
+        List<jdk.jfr.consumer.RecordedEvent> events =
+            jdk.jfr.consumer.RecordingFile.readAllEvents(tempJfr);
+        List<jdk.jfr.consumer.RecordedEvent> pinnedEvents =
+            events.stream()
+                .filter(e -> e.getEventType().getName().equals("jdk.VirtualThreadPinned"))
+                .toList();
+        long pinnedCount = pinnedEvents.size();
+        if (pinnedCount > 0) {
+          System.out.println(
+              "=== DIAGNOSTIC: PINNED VIRTUAL THREAD EVENTS DETECTED (" + pinnedCount + ") ===");
+          pinnedEvents.stream()
+              .limit(5)
+              .forEach(
+                  e -> {
+                    System.out.println("Event: " + e);
+                    jdk.jfr.consumer.RecordedStackTrace stack = e.getStackTrace();
+                    if (stack != null) {
+                      System.out.println("Stack trace:");
+                      stack
+                          .getFrames()
+                          .forEach(
+                              f ->
+                                  System.out.println(
+                                      "  at "
+                                          + f.getMethod().getType().getName()
+                                          + "."
+                                          + f.getMethod().getName()
+                                          + ":"
+                                          + f.getLineNumber()));
+                    }
+                  });
+        }
+        assertThat(pinnedCount)
+            .as("No pinned virtual threads observed in tested workloads")
+            .isZero();
+      } finally {
+        java.nio.file.Files.deleteIfExists(tempJfr);
+      }
+    }
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"virtual", "platform"})
   @DisplayName("Compare 500 concurrent renders between virtual and platform threads")

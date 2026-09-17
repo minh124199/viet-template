@@ -67,8 +67,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
   private final ContextCollisionPolicy contextCollisionPolicy;
   private final LayoutConfiguration layoutConfiguration;
   private final Map<TemplateId, Class<? extends CompiledTemplate>> aotTemplates;
-  private final ThreadLocal<Set<TemplateId>> compilingTemplates =
-      ThreadLocal.withInitial(java.util.HashSet::new);
+  final ThreadLocal<Set<TemplateId>> compilingTemplates = new ThreadLocal<>();
 
   VtlTemplateEngine(
       TemplateRepository repository,
@@ -402,6 +401,10 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     dependencyGraph.replaceDependencies(id, deps);
 
     Set<TemplateId> compiling = compilingTemplates.get();
+    if (compiling == null) {
+      compiling = new java.util.HashSet<>();
+      compilingTemplates.set(compiling);
+    }
     if (compiling.add(id)) {
       try {
         for (TemplateDependency dep : deps) {
@@ -416,6 +419,9 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
         }
       } finally {
         compiling.remove(id);
+        if (compiling.isEmpty()) {
+          compilingTemplates.remove();
+        }
       }
     }
 
