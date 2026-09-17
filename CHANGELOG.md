@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **GraalVM Native Image & Spring AOT Compatibility (Milestone M17 Phase A)**:
+  - Spring AOT Runtime Hints (`viet-template-spring-boot-autoconfigure`):
+    - Introduced `VietTemplateRuntimeHints` implementing `RuntimeHintsRegistrar` and registered in `META-INF/spring/aot.factories` and `@ImportRuntimeHints` on `VietTemplateAutoConfiguration`.
+    - Automated precompiled template discovery: dynamically parses `META-INF/viet-template/templates.idx` at Spring AOT compilation time and registers all discovered precompiled template classes for reflection (`INVOKE_DECLARED_CONSTRUCTORS`, `INVOKE_PUBLIC_METHODS`).
+    - Resource pattern registration: registers `META-INF/viet-template/templates.idx` and `META-INF/viet-template/*` in native reachability resource metadata.
+    - Core properties reflection: registers `VietTemplateProperties`, `VietTemplateProperties.Security`, and `VtlTemplateEngineProvider` for reflection.
+  - Spring Security AOT Runtime Hints (`viet-template-spring-security`):
+    - Introduced `VietTemplateSecurityRuntimeHints` implementing `RuntimeHintsRegistrar` and registered in `META-INF/spring/aot.factories` and `@ImportRuntimeHints` on `VietTemplateSecurityAutoConfiguration`.
+    - Registered reflection hints for public interfaces (`SecurityView`, `CsrfView`) and package-private implementations (`DefaultSecurityView`, `DefaultCsrfView`) via `TypeReference` without breaking package encapsulation.
+  - Native Image Integration Fixtures & Parity Testing:
+    - Added dedicated black-box native image consumer fixtures for Maven (`integration-tests/native/maven-boot3-native`, `integration-tests/native/maven-boot4-native`) and Gradle (`integration-tests/native/gradle-boot3-native`, `integration-tests/native/gradle-boot4-native`).
+    - Implemented automated native image parity and live execution suite `scripts/verify-native-image-integration.sh` compiling native executables, verifying bytecode release 17 (major version 61), starting native executables on dynamic ports, and asserting live HTTP 200 responses, CSRF token handling, and security authorization invariants under runtime compilation rejection (`viet-template.runtime-compilation-enabled=false`).
+    - Added dedicated GitHub Actions workflow `.github/workflows/native-image.yml` with GraalVM JDK 21 and pinned action SHAs.
+    - Formally documented in [`docs/37-m17-graalvm-native-image.md`](docs/37-m17-graalvm-native-image.md).
 
 ### Changed
 

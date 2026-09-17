@@ -630,8 +630,18 @@ Every optimization must preserve:
 
 ## 17. Spring Boot Advanced & Native Image Integration (Milestone M17)
 
-- [ ] AOT runtime hints for native image reachability metadata.
-- [ ] Native-image smoke test and CI lane.
+### Phase A: GraalVM Native Image & Spring AOT (COMPLETE)
+- [x] Spring AOT runtime hints for precompiled template discovery (`VietTemplateRuntimeHints`).
+- [x] Runtime resource hints for `META-INF/viet-template/templates.idx` and precompiled class discovery.
+- [x] Reflection hints for template engine provider and configuration properties.
+- [x] Spring Security AOT runtime hints (`VietTemplateSecurityRuntimeHints`) with `TypeReference` reflection registration for security views.
+- [x] Dual-build native test fixtures for Maven (`maven-boot3-native`, `maven-boot4-native`) and Gradle (`gradle-boot3-native`, `gradle-boot4-native`).
+- [x] Automated native image integration test runner script (`scripts/verify-native-image-integration.sh`).
+- [x] GitHub Actions native-image CI workflow (`.github/workflows/native-image.yml`).
+- [x] Live HTTP server verification for standalone native executables with runtime compilation disabled (`viet-template.runtime-compilation-enabled=false`).
+- [x] Full architecture documentation in `docs/37-m17-graalvm-native-image.md`.
+
+### Phase B: Spring Boot DevTools & Advanced Lifecycle (NEXT)
 - [ ] Spring Boot DevTools live reload lifecycle hook hardening.
 - [ ] Preview lane for next Spring/Boot generation without making preview APIs public dependencies.
 

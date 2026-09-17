@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.spring.boot.autoconfigure;
 
 import io.github.minh124199.viettemplate.api.TemplateEngine;
+import io.github.minh124199.viettemplate.spring.boot.autoconfigure.aot.VietTemplateRuntimeHints;
 import io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer;
 import io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver;
 import org.apache.commons.logging.Log;
@@ -17,6 +18,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.core.io.Resource;
 import org.springframework.core.log.LogMessage;
 
@@ -25,6 +27,7 @@ import org.springframework.core.log.LogMessage;
 @ConditionalOnClass({TemplateEngine.class, VietTemplateViewResolver.class})
 @EnableConfigurationProperties(VietTemplateProperties.class)
 @ConditionalOnProperty(name = "viet-template.enabled", matchIfMissing = true)
+@ImportRuntimeHints(VietTemplateRuntimeHints.class)
 public class VietTemplateAutoConfiguration implements InitializingBean {
 
   private static final Log logger = LogFactory.getLog(VietTemplateAutoConfiguration.class);
