@@ -214,6 +214,231 @@ com.example.BarSpi STABLE_SPI
         )
         self.assertEqual(res, 0)
 
+    def test_non_sealed_becoming_sealed_detected(self):
+        b1_content = """
+TYPE public class com.example.Extensible
+  MEMBER public void run()
+"""
+        p1 = self.create_file("b1.txt", b1_content)
+        surface = {
+            "com.example.Extensible": {
+                "header": "public sealed class com.example.Extensible permits com.example.ExtensibleSub",
+                "members": ["public void run()"],
+            }
+        }
+        res = compat.check_compatibility(
+            baseline_specs=[("b1", p1)],
+            classification_path=None,
+            surface_override=surface,
+        )
+        self.assertEqual(res, 1)
+
+    def test_sealed_becoming_non_sealed_allowed(self):
+        b1_content = """
+TYPE public sealed class com.example.Sealed permits com.example.Sub
+  MEMBER public void run()
+"""
+        p1 = self.create_file("b1.txt", b1_content)
+        surface = {
+            "com.example.Sealed": {
+                "header": "public non-sealed class com.example.Sealed",
+                "members": ["public void run()"],
+            }
+        }
+        res = compat.check_compatibility(
+            baseline_specs=[("b1", p1)],
+            classification_path=None,
+            surface_override=surface,
+        )
+        self.assertEqual(res, 0)
+
+    def test_permits_list_changes_detected(self):
+        b1_content = """
+TYPE public sealed interface com.example.Expr permits com.example.Add, com.example.Sub
+  MEMBER public abstract int eval()
+"""
+        p1 = self.create_file("b1.txt", b1_content)
+        # Permitted subclass removed
+        surface_removed = {
+            "com.example.Expr": {
+                "header": "public sealed interface com.example.Expr permits com.example.Add",
+                "members": ["public abstract int eval()"],
+            }
+        }
+        self.assertEqual(
+            compat.check_compatibility(
+                baseline_specs=[("b1", p1)],
+                classification_path=None,
+                surface_override=surface_removed,
+            ),
+            1,
+        )
+
+        # Permitted subclass added
+        surface_added = {
+            "com.example.Expr": {
+                "header": "public sealed interface com.example.Expr permits com.example.Add, com.example.Sub, com.example.Mul",
+                "members": ["public abstract int eval()"],
+            }
+        }
+        self.assertEqual(
+            compat.check_compatibility(
+                baseline_specs=[("b1", p1)],
+                classification_path=None,
+                surface_override=surface_added,
+            ),
+            1,
+        )
+
+    def test_record_and_class_conversion_detected(self):
+        b1_content = """
+TYPE public final class com.example.Point
+  MEMBER public int x()
+"""
+        p1 = self.create_file("b1.txt", b1_content)
+        surface_record = {
+            "com.example.Point": {
+                "header": "public record com.example.Point(int x)",
+                "members": ["public int x()"],
+            }
+        }
+        self.assertEqual(
+            compat.check_compatibility(
+                baseline_specs=[("b1", p1)],
+                classification_path=None,
+                surface_override=surface_record,
+            ),
+            1,
+        )
+
+        b2_content = """
+TYPE public record com.example.Data(java.lang.String name)
+  MEMBER public java.lang.String name()
+"""
+        p2 = self.create_file("b2.txt", b2_content)
+        surface_class = {
+            "com.example.Data": {
+                "header": "public final class com.example.Data",
+                "members": ["public java.lang.String name()"],
+            }
+        }
+        self.assertEqual(
+            compat.check_compatibility(
+                baseline_specs=[("b2", p2)],
+                classification_path=None,
+                surface_override=surface_class,
+            ),
+            1,
+        )
+
+    def test_non_final_becoming_final_detected(self):
+        b1_content = """
+TYPE public class com.example.Base
+  MEMBER public void op()
+"""
+        p1 = self.create_file("b1.txt", b1_content)
+        surface_final = {
+            "com.example.Base": {
+                "header": "public final class com.example.Base",
+                "members": ["public void op()"],
+            }
+        }
+        self.assertEqual(
+            compat.check_compatibility(
+                baseline_specs=[("b1", p1)],
+                classification_path=None,
+                surface_override=surface_final,
+            ),
+            1,
+        )
+
+    def test_final_becoming_non_final_allowed(self):
+        b1_content = """
+TYPE public final class com.example.Leaf
+  MEMBER public void op()
+"""
+        p1 = self.create_file("b1.txt", b1_content)
+        surface_non_final = {
+            "com.example.Leaf": {
+                "header": "public class com.example.Leaf",
+                "members": ["public void op()"],
+            }
+        }
+        self.assertEqual(
+            compat.check_compatibility(
+                baseline_specs=[("b1", p1)],
+                classification_path=None,
+                surface_override=surface_non_final,
+            ),
+            0,
+        )
+
+    def test_method_modifier_changes_detected(self):
+        b1_content = """
+TYPE public interface com.example.Service
+  MEMBER public default void execute()
+  MEMBER public static void helper()
+"""
+        p1 = self.create_file("b1.txt", b1_content)
+        # default became abstract
+        surface_abstract = {
+            "com.example.Service": {
+                "header": "public interface com.example.Service",
+                "members": [
+                    "public abstract void execute()",
+                    "public static void helper()",
+                ],
+            }
+        }
+        self.assertEqual(
+            compat.check_compatibility(
+                baseline_specs=[("b1", p1)],
+                classification_path=None,
+                surface_override=surface_abstract,
+            ),
+            1,
+        )
+
+        # static became instance
+        surface_static_change = {
+            "com.example.Service": {
+                "header": "public interface com.example.Service",
+                "members": [
+                    "public default void execute()",
+                    "public default void helper()",
+                ],
+            }
+        }
+        self.assertEqual(
+            compat.check_compatibility(
+                baseline_specs=[("b1", p1)],
+                classification_path=None,
+                surface_override=surface_static_change,
+            ),
+            1,
+        )
+
+    def test_method_becoming_final_in_class_detected(self):
+        b1_content = """
+TYPE public class com.example.Component
+  MEMBER public void action()
+"""
+        p1 = self.create_file("b1.txt", b1_content)
+        surface = {
+            "com.example.Component": {
+                "header": "public class com.example.Component",
+                "members": ["public final void action()"],
+            }
+        }
+        self.assertEqual(
+            compat.check_compatibility(
+                baseline_specs=[("b1", p1)],
+                classification_path=None,
+                surface_override=surface,
+            ),
+            1,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

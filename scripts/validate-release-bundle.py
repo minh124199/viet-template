@@ -162,6 +162,17 @@ def validate_jar_classes(jar_path, module_name, errors):
                 if not name.startswith("io/github/minh124199/viettemplate/"):
                     errors.append(f"Class outside standard namespace in {jar_path.name}: {name}")
 
+            # Verify bytecode version is Java 21 (class major version 65)
+            if name.endswith(".class") and not name.endswith("module-info.class"):
+                class_bytes = z.read(name)
+                if len(class_bytes) >= 8:
+                    magic = int.from_bytes(class_bytes[0:4], "big")
+                    major = int.from_bytes(class_bytes[6:8], "big")
+                    if magic == 0xCAFEBABE and major != 65:
+                        errors.append(
+                            f"Bytecode version mismatch in {jar_path.name} for {name}: expected major version 65 (Java 21), got {major}"
+                        )
+
     print(f"  [PASS] {jar_path.name} contains {len(class_files)} classes in valid namespace with 0 test/Velocity leaks.")
 
 def validate_sources_jar(sources_jar_path, errors):

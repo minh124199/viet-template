@@ -21,6 +21,8 @@ import sys
 import subprocess
 import argparse
 
+import shutil
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 BASELINE_API_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-public-api.txt")
@@ -28,11 +30,19 @@ OUTPUT_FILE = os.path.join(REPO_ROOT, "config/api-baseline/public-surface-classi
 
 JAVAP = os.environ.get("JAVAP_BIN")
 if not JAVAP:
-    candidates = [
-        "/home/lynguyen/opt/usr/lib/jvm/java-17-openjdk/bin/javap",
-        "/usr/lib/jvm/java-17-openjdk/bin/javap",
+    java_home = os.environ.get("JAVA_HOME")
+    candidates = []
+    if java_home:
+        candidates.append(os.path.join(java_home, "bin/javap"))
+    which_javap = shutil.which("javap")
+    if which_javap:
+        candidates.append(which_javap)
+    candidates.extend([
+        "/usr/lib/jvm/java-25-openjdk/bin/javap",
+        "/usr/lib/jvm/java-21-openjdk/bin/javap",
+        "/usr/bin/javap",
         "javap",
-    ]
+    ])
     for c in candidates:
         if os.path.exists(c) or c == "javap":
             JAVAP = c

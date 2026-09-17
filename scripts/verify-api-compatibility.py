@@ -28,6 +28,7 @@ import sys
 import subprocess
 import argparse
 import re
+import shutil
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
@@ -48,11 +49,19 @@ DEFAULT_BASELINES = [
 
 JAVAP = os.environ.get("JAVAP_BIN")
 if not JAVAP:
-    candidates = [
-        "/home/lynguyen/opt/usr/lib/jvm/java-17-openjdk/bin/javap",
-        "/usr/lib/jvm/java-17-openjdk/bin/javap",
+    java_home = os.environ.get("JAVA_HOME")
+    candidates = []
+    if java_home:
+        candidates.append(os.path.join(java_home, "bin/javap"))
+    which_javap = shutil.which("javap")
+    if which_javap:
+        candidates.append(which_javap)
+    candidates.extend([
+        "/usr/lib/jvm/java-25-openjdk/bin/javap",
+        "/usr/lib/jvm/java-21-openjdk/bin/javap",
+        "/usr/bin/javap",
         "javap",
-    ]
+    ])
     for c in candidates:
         if os.path.exists(c) or c == "javap":
             JAVAP = c
@@ -179,7 +188,7 @@ def parse_baseline(baseline_path):
                 parts = current_header.split()
                 for idx, p in enumerate(parts):
                     if p in ("class", "interface", "enum", "record", "@interface") and idx + 1 < len(parts):
-                        current_class = parts[idx + 1].split("<")[0]
+                        current_class = parts[idx + 1].split("<")[0].split("(")[0]
                         break
                 current_members = []
             elif line.startswith("  MEMBER "):
@@ -192,6 +201,94 @@ def parse_baseline(baseline_path):
         }
 
     return baseline
+
+
+def parse_header(header):
+    if not header:
+        return {
+            "raw": "",
+            "kind": "class",
+            "modifiers": set(),
+            "is_sealed": False,
+            "is_non_sealed": False,
+            "is_final": False,
+            "is_record": False,
+            "is_interface": False,
+            "permits": set(),
+        }
+    h = header.strip().rstrip(" {")
+    permits = set()
+    if " permits " in h:
+        prefix, permits_part = h.split(" permits ", 1)
+        h = prefix.strip()
+        permits = {p.strip().rstrip(";") for p in permits_part.split(",") if p.strip().rstrip(";")}
+
+    decl_part = h
+    if " implements " in decl_part:
+        decl_part = decl_part.split(" implements ", 1)[0].strip()
+    if " extends " in decl_part:
+        decl_part = decl_part.split(" extends ", 1)[0].strip()
+
+    before_name = decl_part
+    if "(" in before_name:
+        before_name = before_name.split("(", 1)[0].strip()
+
+    tokens = before_name.split()
+    kind = None
+    kind_idx = -1
+    for idx, t in enumerate(tokens):
+        if t in ("class", "interface", "record", "enum", "@interface"):
+            kind = t
+            kind_idx = idx
+            break
+
+    modifiers = set(tokens[:kind_idx]) if kind_idx != -1 else set()
+
+    is_sealed = "sealed" in modifiers and "non-sealed" not in modifiers
+    is_non_sealed = "non-sealed" in modifiers
+    is_final = "final" in modifiers or kind == "record" or kind == "enum"
+    is_record = (kind == "record")
+    is_interface = (kind == "interface")
+
+    return {
+        "raw": header,
+        "kind": kind or "class",
+        "modifiers": modifiers,
+        "is_sealed": is_sealed,
+        "is_non_sealed": is_non_sealed,
+        "is_final": is_final,
+        "is_record": is_record,
+        "is_interface": is_interface,
+        "permits": permits,
+    }
+
+
+def parse_member(m):
+    clean_m = m.strip().rstrip(";")
+    is_method = "(" in clean_m
+    clean_without_throws = clean_m
+    if " throws " in clean_without_throws:
+        clean_without_throws = clean_without_throws.split(" throws ", 1)[0].strip()
+
+    parts = clean_without_throws.split()
+    mods = []
+    rest_idx = 0
+    standard_mods = {"public", "protected", "private", "static", "final", "abstract", "default", "synchronized", "native"}
+    for idx, p in enumerate(parts):
+        if p in standard_mods:
+            mods.append(p)
+            rest_idx = idx + 1
+        else:
+            break
+
+    modifiers = set(mods)
+    remainder = " ".join(parts[rest_idx:])
+    return {
+        "raw": m,
+        "is_method": is_method,
+        "modifiers": modifiers,
+        "remainder": remainder,
+    }
 
 
 def load_classification(path):
@@ -292,23 +389,63 @@ def check_compatibility(baseline_specs=None, classification_path=CLASSIFICATION_
                 continue
 
             c_info = current_surface[cls_name]
+            b_hdr = parse_header(b_info.get("header", ""))
+            c_hdr = parse_header(c_info.get("header", ""))
+
+            # 1. Kind check (e.g. record vs class, interface vs class)
+            if b_hdr["kind"] != c_hdr["kind"]:
+                errors.append(f"INCOMPATIBLE_TYPE_KIND [{name}]: in '{cls_name}': type kind changed from '{b_hdr['kind']}' to '{c_hdr['kind']}'")
+
+            # 2. Final modifier check (non-final becoming final breaks subclassing)
+            if not b_hdr["is_final"] and c_hdr["is_final"]:
+                errors.append(f"INCOMPATIBLE_TYPE_MODIFIER [{name}]: in '{cls_name}': non-final type became final (breaks subclassing)")
+
+            # 3. Sealed modifier check (non-sealed becoming sealed restricts external implementors)
+            if not b_hdr["is_sealed"] and c_hdr["is_sealed"]:
+                errors.append(f"INCOMPATIBLE_TYPE_MODIFIER [{name}]: in '{cls_name}': non-sealed type became sealed (restricts external implementations)")
+
+            # 4. Permits list check
+            if b_hdr["is_sealed"] and c_hdr["is_sealed"]:
+                if b_hdr["permits"] != c_hdr["permits"]:
+                    removed_permits = b_hdr["permits"] - c_hdr["permits"]
+                    added_permits = c_hdr["permits"] - b_hdr["permits"]
+                    if removed_permits:
+                        errors.append(f"INCOMPATIBLE_PERMITS_LIST [{name}]: in '{cls_name}': permitted subclass(es) removed: {sorted(removed_permits)}")
+                    if added_permits:
+                        errors.append(f"INCOMPATIBLE_PERMITS_LIST [{name}]: in '{cls_name}': permitted subclass(es) added: {sorted(added_permits)}")
 
             # Check members
             b_members = set(b_info["members"])
             c_members = set(c_info["members"])
 
+            b_methods = {parse_member(m)["remainder"]: parse_member(m) for m in b_members if "(" in m}
+            c_methods = {parse_member(m)["remainder"]: parse_member(m) for m in c_members if "(" in m}
+
+            # Check method modifier compatibility for matching method signatures
+            for sig, b_m in b_methods.items():
+                if sig in c_methods:
+                    c_m = c_methods[sig]
+                    # Static modifier changes
+                    if ("static" in b_m["modifiers"]) != ("static" in c_m["modifiers"]):
+                        errors.append(f"INCOMPATIBLE_MEMBER_MODIFIER [{name}]: in '{cls_name}': method static modifier changed: '{b_m['raw']}' -> '{c_m['raw']}'")
+                    # Default becoming abstract
+                    if "default" in b_m["modifiers"] and "abstract" in c_m["modifiers"]:
+                        errors.append(f"INCOMPATIBLE_MEMBER_MODIFIER [{name}]: in '{cls_name}': default method became abstract: '{b_m['raw']}'")
+                    # Concrete becoming abstract
+                    elif "abstract" not in b_m["modifiers"] and "abstract" in c_m["modifiers"]:
+                        errors.append(f"INCOMPATIBLE_MEMBER_MODIFIER [{name}]: in '{cls_name}': concrete method became abstract: '{b_m['raw']}'")
+                    # Non-final method in non-final class becoming final
+                    if not b_hdr["is_final"] and not c_hdr["is_final"] and ("final" not in b_m["modifiers"]) and ("final" in c_m["modifiers"]):
+                        errors.append(f"INCOMPATIBLE_MEMBER_MODIFIER [{name}]: in '{cls_name}': non-final method became final: '{b_m['raw']}'")
+
             # Check for removed members
             removed = b_members - c_members
             for m in sorted(removed):
-                # Check if this is an interface method becoming default or vice versa
-                abstract_form = m.replace("public default ", "public abstract ")
-                default_form = m.replace("public abstract ", "public default ")
-                if abstract_form in c_members or default_form in c_members:
-                    if "public default " in m and abstract_form in c_members:
-                        errors.append(f"INCOMPATIBLE_MEMBER_MODIFIER [{name}]: in '{cls_name}': default method became abstract: '{m}'")
-                    continue
-
                 if "(" in m:
+                    m_parsed = parse_member(m)
+                    if m_parsed["remainder"] in c_methods:
+                        continue
+
                     words = m.split("(")[0].split()
                     is_constructor = len(words) >= 1 and (words[-1] == cls_name.split(".")[-1] or words[-1] == cls_name)
                     if is_constructor:
@@ -319,11 +456,12 @@ def check_compatibility(baseline_specs=None, classification_path=CLASSIFICATION_
                     errors.append(f"REMOVED_FIELD [{name}]: in '{cls_name}': '{m}'")
 
             # Check for added abstract methods in interfaces (source/binary breaking for implementors)
-            if "interface " in b_info["header"]:
+            if b_hdr["is_interface"] or "interface " in b_info["header"]:
                 added = c_members - b_members
                 for m in sorted(added):
                     if "public abstract " in m:
-                        if m.replace("public abstract ", "public default ") not in b_members:
+                        m_parsed = parse_member(m)
+                        if m_parsed["remainder"] not in b_methods:
                             errors.append(f"ADDED_ABSTRACT_INTERFACE_METHOD [{name}]: in '{cls_name}': '{m}' (breaks external SPI implementors without default implementation)")
 
     if errors:
