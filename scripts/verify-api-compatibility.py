@@ -5,17 +5,22 @@ verify-api-compatibility.py
 Verifies binary and source compatibility of Viet Template's public API against
 the recorded public baselines:
 - config/api-baseline/1.0-core-public-api.txt (or 1.0-public-api.txt)
+- config/api-baseline/1.0-aot-public-api.txt
 - config/api-baseline/1.0-spring-public-api.txt
 - config/api-baseline/1.0-spring-security-public-api.txt
 
+Enforces the baseline invariant:
+  union(all baseline types) == set(STABLE_API + STABLE_SPI) in public-surface-classification.txt
+
 Checks:
+- Duplicate baseline type ownership (baselines must be disjoint)
+- Missing stable types (STABLE_API / STABLE_SPI missing from all baselines)
+- Declassified types (baseline types classified as PUBLIC_BUT_INTERNAL_ACCIDENT or EXPERIMENTAL)
 - Removed public/protected types
 - Removed public/protected methods
 - Removed public/protected constructors
 - Removed public/protected fields
-- Changed return or parameter types
-- Interface methods becoming abstract incompatibly
-- Incompatible type header modifications
+- Incompatible interface modifiers (default method becoming abstract, added abstract methods)
 """
 
 import os
@@ -29,11 +34,14 @@ REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 
 BASELINE_CORE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-core-public-api.txt")
 BASELINE_LEGACY = os.path.join(REPO_ROOT, "config/api-baseline/1.0-public-api.txt")
+BASELINE_AOT = os.path.join(REPO_ROOT, "config/api-baseline/1.0-aot-public-api.txt")
 BASELINE_SPRING = os.path.join(REPO_ROOT, "config/api-baseline/1.0-spring-public-api.txt")
 BASELINE_SPRING_SECURITY = os.path.join(REPO_ROOT, "config/api-baseline/1.0-spring-security-public-api.txt")
+CLASSIFICATION_FILE = os.path.join(REPO_ROOT, "config/api-baseline/public-surface-classification.txt")
 
 DEFAULT_BASELINES = [
     ("core", BASELINE_CORE if os.path.exists(BASELINE_CORE) else BASELINE_LEGACY),
+    ("aot", BASELINE_AOT),
     ("spring", BASELINE_SPRING),
     ("spring-security", BASELINE_SPRING_SECURITY),
 ]
@@ -65,6 +73,7 @@ FULL_CP = ":".join([os.path.join(REPO_ROOT, m, "build/classes/java/main") for m 
 STABLE_PACKAGES = [
     "io.github.minh124199.viettemplate.api",
     "io.github.minh124199.viettemplate.runtime",
+    "io.github.minh124199.viettemplate.aot",
     "io.github.minh124199.viettemplate.spring.web.servlet",
     "io.github.minh124199.viettemplate.spring.boot.autoconfigure",
     "io.github.minh124199.viettemplate.spring.security",
@@ -185,35 +194,97 @@ def parse_baseline(baseline_path):
     return baseline
 
 
-def check_compatibility(baseline_specs=None):
+def load_classification(path):
+    if not os.path.exists(path):
+        return None
+    mapping = {}
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split()
+            if len(parts) == 2:
+                mapping[parts[0]] = parts[1]
+    return mapping
+
+
+def check_compatibility(baseline_specs=None, classification_path=CLASSIFICATION_FILE, surface_override=None):
     if baseline_specs is None:
         baseline_specs = DEFAULT_BASELINES
 
     all_baselines = {}
     total_baseline_types = 0
     known_classes = set()
+    errors = []
 
+    # 1. Parse and validate individual baselines
     for name, path in baseline_specs:
         b = parse_baseline(path)
         if b is None:
             return 1
         all_baselines[name] = (path, b)
         total_baseline_types += len(b)
-        known_classes.update(b.keys())
 
-    current_classes = get_class_files(known_classes)
-    current_surface = {}
-    for cls in current_classes:
-        info = inspect_class(cls)
-        if info:
-            current_surface[cls] = info
+    # 2. Check for duplicate baseline ownership (baselines must be disjoint)
+    seen_types = {}
+    for name, (path, b) in all_baselines.items():
+        for cls_name in b:
+            if cls_name in seen_types:
+                errors.append(
+                    f"DUPLICATE_BASELINE_OWNERSHIP: Public type '{cls_name}' is recorded in multiple baselines "
+                    f"('{seen_types[cls_name]}' and '{name}')."
+                )
+            else:
+                seen_types[cls_name] = name
+                known_classes.add(cls_name)
 
-    print(f"Verifying API compatibility against {len(all_baselines)} baseline(s) ({total_baseline_types} baseline types, {len(current_surface)} types in current build)...")
+    # 3. Check classification invariant if classification file is available
+    if classification_path and os.path.exists(classification_path):
+        classification = load_classification(classification_path)
+        if classification:
+            stable_classified = {
+                cls for cls, cat in classification.items()
+                if cat in ("STABLE_API", "STABLE_SPI")
+            }
+            # Missing from baselines
+            missing_from_baselines = stable_classified - known_classes
+            for m in sorted(missing_from_baselines):
+                errors.append(
+                    f"MISSING_BASELINE_COVERAGE: Type '{m}' is classified as {classification[m]} in "
+                    f"{os.path.basename(classification_path)} but is missing from all compatibility baselines."
+                )
+
+            # Declassified types in baselines
+            for cls_name in sorted(known_classes):
+                cat = classification.get(cls_name)
+                if cat and cat not in ("STABLE_API", "STABLE_SPI"):
+                    errors.append(
+                        f"DECLASSIFIED_BASELINE_TYPE: Type '{cls_name}' is recorded in baseline '{seen_types[cls_name]}' "
+                        f"but classified as {cat} in {os.path.basename(classification_path)}."
+                    )
+                elif not cat:
+                    errors.append(
+                        f"UNCLASSIFIED_BASELINE_TYPE: Type '{cls_name}' is recorded in baseline '{seen_types[cls_name]}' "
+                        f"but not listed in {os.path.basename(classification_path)}."
+                    )
+
+    # 4. Extract current surface or use override
+    if surface_override is not None:
+        current_surface = surface_override
+    else:
+        current_classes = get_class_files(known_classes)
+        current_surface = {}
+        for cls in current_classes:
+            info = inspect_class(cls)
+            if info:
+                current_surface[cls] = info
+
+    print(f"Verifying API compatibility against {len(all_baselines)} baseline(s) ({total_baseline_types} baseline types, {len(current_surface)} types in current surface)...")
     for name, (path, b) in all_baselines.items():
         print(f"  - [{name}] {os.path.relpath(path, REPO_ROOT)}: {len(b)} types")
 
-    errors = []
-
+    # 5. Check compatibility against baselines
     for name, (path, baseline) in all_baselines.items():
         for cls_name, b_info in baseline.items():
             if cls_name not in current_surface:
@@ -238,7 +309,9 @@ def check_compatibility(baseline_specs=None):
                     continue
 
                 if "(" in m:
-                    if cls_name.split(".")[-1] in m.split("(")[0]:
+                    words = m.split("(")[0].split()
+                    is_constructor = len(words) >= 1 and (words[-1] == cls_name.split(".")[-1] or words[-1] == cls_name)
+                    if is_constructor:
                         errors.append(f"REMOVED_CONSTRUCTOR [{name}]: in '{cls_name}': '{m}'")
                     else:
                         errors.append(f"REMOVED_METHOD [{name}]: in '{cls_name}': '{m}'")
@@ -262,21 +335,24 @@ def check_compatibility(baseline_specs=None):
         print("\nReview breaking changes before proceeding.", file=sys.stderr)
         return 1
 
-    print("\nAPI COMPATIBILITY CHECK PASSED: 0 breaking changes detected.")
+    print("\nAPI COMPATIBILITY CHECK PASSED: 0 breaking changes detected across all baselines.")
     return 0
 
 
 def main():
     parser = argparse.ArgumentParser(description="Verify public API compatibility")
     parser.add_argument("--baseline", help="Verify against a single specific baseline file")
+    parser.add_argument("--classification", default=CLASSIFICATION_FILE, help="Path to classification file")
     args = parser.parse_args()
 
     if args.baseline:
         baseline_specs = [("custom", args.baseline)]
+        classification_path = None
     else:
         baseline_specs = DEFAULT_BASELINES
+        classification_path = args.classification
 
-    return check_compatibility(baseline_specs)
+    return check_compatibility(baseline_specs, classification_path)
 
 
 if __name__ == "__main__":

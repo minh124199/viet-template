@@ -13,12 +13,12 @@
 #
 # Format: <FULLY_QUALIFIED_CLASS_NAME> <CATEGORY>
 
-io.github.minh124199.viettemplate.aot.TemplateAotArtifact PUBLIC_BUT_INTERNAL_ACCIDENT
-io.github.minh124199.viettemplate.aot.TemplateAotCompiler PUBLIC_BUT_INTERNAL_ACCIDENT
-io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic PUBLIC_BUT_INTERNAL_ACCIDENT
-io.github.minh124199.viettemplate.aot.TemplateAotRequest PUBLIC_BUT_INTERNAL_ACCIDENT
-io.github.minh124199.viettemplate.aot.TemplateAotRequest$Builder PUBLIC_BUT_INTERNAL_ACCIDENT
-io.github.minh124199.viettemplate.aot.TemplateAotResult PUBLIC_BUT_INTERNAL_ACCIDENT
+io.github.minh124199.viettemplate.aot.TemplateAotArtifact STABLE_API
+io.github.minh124199.viettemplate.aot.TemplateAotCompiler STABLE_API
+io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic STABLE_API
+io.github.minh124199.viettemplate.aot.TemplateAotRequest STABLE_API
+io.github.minh124199.viettemplate.aot.TemplateAotRequest$Builder STABLE_API
+io.github.minh124199.viettemplate.aot.TemplateAotResult STABLE_API
 io.github.minh124199.viettemplate.api.ClasspathTemplateRepository STABLE_API
 io.github.minh124199.viettemplate.api.CompiledTemplate STABLE_API
 io.github.minh124199.viettemplate.api.CompositeTemplateRepository STABLE_API
