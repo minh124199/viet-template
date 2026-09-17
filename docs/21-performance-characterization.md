@@ -306,7 +306,7 @@ Using `scripts/perf/jfr-profile.sh` and `scripts/perf/jfr-summary.sh`, execution
 ### 6.1 Contention & Concurrency Profiling (`contention-by-site`)
 
 In multi-threaded concurrency stress testing (`PlatformThreadComparisonHarness` and `ConcurrentCacheBenchmark`):
-- **Carrier Thread Pinning (`pinned-threads`)**: Exactly **0 pinned virtual threads** were detected. All locks in `TemplateCompileCache` and `TemplateDependencyGraph` avoid blocking carrier threads.
+- **Carrier Thread Pinning (`pinned-threads` / `jdk.VirtualThreadPinned`)**: Exactly **0 pinned virtual threads** were detected across 1,000 and 10,000 concurrent virtual thread renders. All locks in `TemplateCompileCache` and `TemplateDependencyGraph` avoid blocking carrier threads. **No pinned virtual threads observed in tested workloads**.
 - **Lock Contention (`contention-by-site`)**:
   ```text
   StackTrace                                                                                   Count    Avg.    Max.

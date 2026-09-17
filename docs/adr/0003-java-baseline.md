@@ -1,7 +1,9 @@
 # ADR-0003 — Java 17 Runtime Baseline, Isolated Modern Compiler Backend
 
-- Status: Accepted with validation requirement
-- Date: 2026-09-05
+- Status: Superseded by ADR-0007
+- Date: 2026-09-05 (Superseded: 2026-09-17)
+
+> **Note:** Superseded by [ADR-0007](0007-java21-minimum-baseline.md) and [ADR-0008](0008-java25-primary-runtime.md). The project has advanced to Java 21 as the minimum baseline (`-release 21`, class file major version 65) with Java 25 as the primary runtime and build toolchain. Java 17 support is retired per [ADR-0010](0010-java17-retirement-and-compatibility.md).
 
 ## Context
 

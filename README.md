@@ -4,7 +4,7 @@ A compile-first, low-allocation JVM template engine featuring Velocity Template 
 
 [![CI](https://github.com/minh124199/viet-template/actions/workflows/ci.yml/badge.svg)](https://github.com/minh124199/viet-template/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.minh124199/viet-template-api)](https://central.sonatype.com/artifact/io.github.minh124199/viet-template-api)
-[![Java 17+](https://img.shields.io/badge/Java-17%2B-blue.svg)](https://adoptium.net/)
+[![Java 21+](https://img.shields.io/badge/Java-21%2B-blue.svg)](https://adoptium.net/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 Viet Template is a clean-room JVM template engine designed for applications that value the concise syntax of Velocity templates but require modern JVM performance, type checking, low object allocation, and strict security isolation.
@@ -17,7 +17,7 @@ Many existing JVM template engines require teams to choose between familiar, fle
 
 - **Clean-Room VTL Surface**: Retains familiar Velocity Template Language (VTL) syntax without carrying legacy runtime architecture or deprecated reflection mechanisms.
 - **Compile-First Architecture**: Parses templates into an immutable AST, lowers them to a control-flow-aware Intermediate Representation (IR), and applies an IR optimization pipeline of 11 distinct optimization pass implementations (13 transformation executions, with static UTF-8 pre-encoding lowering and O160 invariant verification) before rendering.
-- **Multi-Tier Execution**: Supports AST interpretation for rapid development, an optimized IR interpreter, dynamic method handles with Polymorphic Inline Caches (PIC), and direct Java 17 bytecode generation (AOT).
+- **Multi-Tier Execution**: Supports AST interpretation for rapid development, an optimized IR interpreter, dynamic method handles with Polymorphic Inline Caches (PIC), and direct Java 21 bytecode generation (AOT).
 - **Streaming & Low Allocation**: Emits static text as pre-encoded UTF-8 byte chunks, formats primitive numbers without intermediate `String` allocations, and streams output directly to `Writer` or `OutputStream`.
 - **Defense-in-Depth Security**: Denies access to reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), classloaders, processes, threads, and system resources by default. Enforces monotonic execution budgets (`RenderBudget`) across includes, macros, and layouts.
 - **Zero Core Framework Bloat**: The core engine and runtime have zero mandatory dependencies on Spring, servlet containers, logging frameworks, or third-party bytecode manipulators.
@@ -29,10 +29,10 @@ Many existing JVM template engines require teams to choose between familiar, fle
 | Item | Value |
 | :--- | :--- |
 | **Current Published Release** | `0.2.1` (2026-09-17) |
-| **Development Branch** | `0.2.2-SNAPSHOT` | `main` | Under active development (M17 GraalVM native image and DevTools restart hardening complete; M18 TCK release gates next) |
+| **Development Branch** | `0.2.2-SNAPSHOT` | `main` | Under active development (M17 GraalVM native image, Spring 7/Boot 4 modernization, and DevTools restart hardening complete; M18 TCK release gates next) |
 | **Maturity Level** | **Pre-1.0 (`0.2.x`)** |
 | **Maven Group** | `io.github.minh124199` |
-| **Java Baseline** | Java 17 (`--release 17`) |
+| **Java Baseline** | Java 21 (`--release 21`, major version 65), runtime optimized for Java 25 |
 
 > [!NOTE]
 > Viet Template is in active pre-1.0 development. The core public API, runtime, and differential TCK are thoroughly tested and published to Maven Central, but interfaces and internal representations may evolve prior to the 1.0 release. It should not be treated as a finalized, production-frozen library.
@@ -46,7 +46,7 @@ Many existing JVM template engines require teams to choose between familiar, fle
   - 0.2.0 High-performance `ExecutionFrame` backed by compiler-assigned variable slots (`EvaluationValue[] slots`) for IR interpreter and AOT bytecode backends, preserving 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) and dynamic fallback coherence.
   - Indexed compilation cache invalidation (`TemplateId -> Set<CompileCacheKey>` reverse index) with per-template lock striping.
   - Dynamic linker with monomorphic and Polymorphic Inline Caches (PIC, depth 4) backed by classloader-safe weak references.
-  - Architecture Tier 3 direct Java 17 bytecode compiler (`ClassFileWriter`) producing major version 61 classfiles with full `StackMapTable` tracking.
+  - Architecture Tier 3 direct Java 21 bytecode compiler (`ClassFileWriter`) producing major version 65 classfiles with full `StackMapTable` tracking.
   - Bounded, thread-safe template compilation cache with LRU eviction and atomic handle swapping.
   - Pluggable template repository SPI (`Classpath`, `Filesystem`, `Composite`, `InMemory`) with directory traversal protection.
   - Two-stage layout rendering plans (`DefaultLayoutRenderPlan`) and global Velocimacro library caching.
@@ -54,10 +54,10 @@ Many existing JVM template engines require teams to choose between familiar, fle
   - Authoritative Technology Compatibility Kit (`viet-template-tck`) evaluating 301 differential scenarios against Apache Velocity 2.4.1.
   - Dedicated JMH benchmark module (`viet-template-benchmarks`) under Milestone M19.1 with 10 canonical suites and dual Gradle/Maven build parity.
   - Public API & SPI stabilization and surface containment (Milestones M14 and M14.1): 80 core stable baseline contracts (`1.0-public-api.txt`), 91 stable-classified public types (76 `STABLE_API` + 15 `STABLE_SPI`), exact 352-type deterministic public surface classification, signature leak protection, integration boundary architecture enforcement, and hardened concrete output stream lifecycles.
-  - Ahead-Of-Time (AOT) build tooling (`viet-template-maven-plugin` and `viet-template-gradle-plugin`) under Milestone M15: precompiling templates at build time into self-contained Java 17 bytecode with automated ClassLoader discovery (`templates.idx`), incremental SHA-256 caching, and 100% byte-for-byte dual-build parity.
-  - Spring Framework & Spring Boot 3 integration (`viet-template-spring-boot-starter`, `viet-template-spring`, `viet-template-spring-boot-autoconfigure`) under Milestone M16: verified baseline in CI against Spring Framework 6.1.14 and Spring Boot 3.3.5 on Java 17 / Jakarta Servlet 6.0 (intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions are not independently guaranteed), featuring thread-safe `VietTemplateView`, caching `VietTemplateViewResolver` with AOT index discovery fallback, non-closing servlet stream ownership, full configuration properties (`viet-template.*`), and 100% byte-for-byte dual-build parity.
-  - Spring Security integration (`viet-template-spring-security`) under Milestone M16.1: optional, zero-core-dependency module providing read-only facades `SecurityView` and `CsrfView`, factory SPIs `SecurityViewFactory` and `CsrfViewFactory`, and auto-configuration `VietTemplateSecurityAutoConfiguration` (`viet-template.security.enabled=true`). Strictly protects boundaries with zero raw framework objects in template scope, sensitive token redaction in `toString()`, automatic HTML contextual escaping against XSS, and 100% byte-for-byte dual-build AOT parity.
-  - GraalVM Native Image & Spring AOT compatibility (Milestone M17 Phase A): out-of-the-box runtime hints (`VietTemplateRuntimeHints`, `VietTemplateSecurityRuntimeHints`) registering precompiled template bytecode, `templates.idx` resource discovery, and security view reflection for native image executables.
+  - Ahead-Of-Time (AOT) build tooling (`viet-template-maven-plugin` and `viet-template-gradle-plugin`) under Milestone M15: precompiling templates at build time into self-contained Java 21 bytecode with automated ClassLoader discovery (`templates.idx`), incremental SHA-256 caching, and 100% byte-for-byte dual-build parity.
+  - Spring Framework 7 & Spring Boot 4 integration (`viet-template-spring-boot-starter`, `viet-template-spring`, `viet-template-spring-boot-autoconfigure`) under Milestone M16: verified canonical baseline in CI against Spring Framework 7.0.9, Spring Boot 4.1.1, and Spring Security 7.1.1 on Java 21+ / Jakarta Servlet 6.1.0 / Tomcat 11.0.24 with full virtual threads support, featuring thread-safe `VietTemplateView`, caching `VietTemplateViewResolver` with AOT index discovery fallback, non-closing servlet stream ownership, full configuration properties (`viet-template.*`), and 100% byte-for-byte dual-build parity.
+  - Spring Security 7 integration (`viet-template-spring-security`) under Milestone M16.1: optional, zero-core-dependency module providing read-only facades `SecurityView` and `CsrfView`, factory SPIs `SecurityViewFactory` and `CsrfViewFactory`, and auto-configuration `VietTemplateSecurityAutoConfiguration` (`viet-template.security.enabled=true`). Strictly protects boundaries with zero raw framework objects in template scope, sensitive token redaction in `toString()`, automatic HTML contextual escaping against XSS, multi-generation binary compatibility (Spring Security 6.3.x, 6.5.x, 7.0.x, 7.1.x), and 100% byte-for-byte dual-build AOT parity.
+  - GraalVM Native Image & Spring AOT compatibility (Milestone M17 Phase A): out-of-the-box runtime hints (`VietTemplateRuntimeHints`, `VietTemplateSecurityRuntimeHints`) registering precompiled template bytecode, `templates.idx` resource discovery, and security view reflection for GraalVM JDK 21 and JDK 25 native image executables.
   - Spring Boot DevTools restart & ClassLoader lifecycle hardening (Milestone M17 Phase B): robust `close()` lifecycle and thread termination, Mode A dynamic hot reload without restart, Mode B AOT recompile + trigger restart with ClassLoader turnover, stale template deletion handling, zero ClassLoader leaks across multi-generation restarts, and 4 dual-build DevTools fixtures.
   - Maven Central publication metadata hardening: canonical per-module deep links (`/tree/main/<module>`), root SCM inheritance suppression controls (`child.scm.*.inherit.append.path="false"`), and automated CI metadata and effective POM verification.
 - **Experimental**:
@@ -76,7 +76,7 @@ Viet Template artifacts are published to Maven Central under group ID `io.github
 
 - **`viet-template-vtl-interpreter`** *(Recommended)*: The complete template engine for standard applications. Declaring this dependency transitively brings in `viet-template-api`, `viet-template-runtime`, and `viet-template-language-vtl`, providing the full parser, runtime, compiler, cache, and execution backends.
 - **`viet-template-api`**: Core public interfaces and records only. Useful for libraries or modules defining template contracts without pulling in the runtime engine.
-- **`viet-template-spring-boot-starter`**: Spring Boot 3 starter providing auto-configuration for Spring MVC `View` and `ViewResolver`, Ahead-Of-Time precompiled template discovery, and configuration properties.
+- **`viet-template-spring-boot-starter`**: Spring Boot starter providing auto-configuration for Spring MVC `View` and `ViewResolver`, Ahead-Of-Time precompiled template discovery, and configuration properties.
 - **`viet-template-spring-security`**: Optional Spring Security integration providing `$security` (authentication, roles, authorities) and `$csrf` (parameter, header, token) projection facades for templates without exposing raw framework objects.
 - **`viet-template-runtime`**: Streaming output primitives, escapers, and dynamic linker. Only declared directly when developing custom output buffers or standalone escapers without the interpreter.
 - **`viet-template-language-vtl`**: VTL grammar parser, AST model, semantic analyzer, and IR compiler.
@@ -261,7 +261,7 @@ try (TemplateEngine engine = TemplateEngine.builder()
 
 ### 4. Spring Boot Integration (Milestone M16)
 
-Viet Template provides production integration for Spring MVC and Spring Boot via `viet-template-spring-boot-starter`. Verified baseline in CI: **Spring Framework 6.1.14** and **Spring Boot 3.3.5** on Java 17 / Jakarta Servlet 6.0 (intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions, including unverified 6.x/3.x releases and future major lines such as Spring 7 / Boot 4, are not independently guaranteed and are tracked as planned/future targets).
+Viet Template provides production integration for Spring MVC and Spring Boot via `viet-template-spring-boot-starter`. Canonical baseline: **Spring Framework 7.0.9**, **Spring Boot 4.1.1**, and **Spring Security 7.1.1** on Java 21+ / Jakarta Servlet 6.1.0 (Tomcat 11.0.24) with full virtual thread execution support.
 
 #### Dependencies
 
@@ -399,7 +399,7 @@ Viet Template supports Ahead-Of-Time (AOT) compilation to standalone GraalVM Nat
 
 #### Architecture & Reachability
 
-1. **Build-Time Template AOT**: Templates in `src/main/viet-template/` are precompiled to self-contained Java 17 bytecode classes during build (`mvn process-classes` or `gradle compileVietTemplates`), generating `META-INF/viet-template/templates.idx`.
+1. **Build-Time Template AOT**: Templates in `src/main/viet-template/` are precompiled to self-contained Java 21 bytecode classes during build (`mvn process-classes` or `gradle compileVietTemplates`), generating `META-INF/viet-template/templates.idx`.
 2. **Spring AOT Runtime Hints**: `VietTemplateRuntimeHints` automatically scans `templates.idx` during Spring AOT processing, registering discovered precompiled template classes and `META-INF/viet-template/*` resources.
 3. **Spring Security Runtime Hints**: `VietTemplateSecurityRuntimeHints` registers reflection hints for `$security` (`SecurityView`) and `$csrf` (`CsrfView`) models.
 4. **Consumer Model Registration**: Application domain models passed into `Model` attributes (e.g. `Account`, `UserProfile`) must be registered for reflection by consumer applications (e.g. via `@RegisterReflectionForBinding({Account.class, UserProfile.class})` on configuration or controller classes).
@@ -519,7 +519,7 @@ The repository is organized into focused modules:
 | **`viet-template-maven-plugin`** | `viet-template-maven-plugin` | Official Apache Maven plugin for build-time AOT template precompilation and class/resource generation (`viet-template:compile`). | Maven build pipelines. |
 | **`viet-template-gradle-plugin`** | `viet-template-gradle-plugin` | Official Gradle plugin for build-time AOT template precompilation (`compileVietTemplates`, id `io.github.minh124199.viet-template`). | Gradle build pipelines. |
 | **`viet-template-spring`** | `viet-template-spring` | Spring MVC `View` and `ViewResolver` integration, zero-allocation binary streaming, and engine customization SPI. | Spring MVC applications and custom integration authors. |
-| **`viet-template-spring-boot-autoconfigure`** | `viet-template-spring-boot-autoconfigure` | Spring Boot 3 auto-configuration and configuration properties (`viet-template.*`). | Spring Boot applications. |
+| **`viet-template-spring-boot-autoconfigure`** | `viet-template-spring-boot-autoconfigure` | Spring Boot 4 auto-configuration and configuration properties (`viet-template.*`). | Spring Boot applications. |
 | **`viet-template-spring-boot-starter`** | `viet-template-spring-boot-starter` | Production starter aggregator combining view resolution, auto-configuration, and VTL interpreter. | **Spring Boot web applications** (recommended entrypoint). |
 | **`viet-template-tck`** | *(Internal / Not Published)* | Technology Compatibility Kit and differential test suite running side-by-side verification against official Apache Velocity 2.4.1. | Repository contributors and verification tooling. |
 | **`viet-template-benchmarks`** | *(Internal / Not Published)* | Dedicated JMH benchmark and profiling module covering workloads B01–B15 across AST, IR, PIC, and AOT tiers. | Performance engineers, CI regression tracking, and repository contributors. |
@@ -528,18 +528,19 @@ The repository is organized into focused modules:
 
 ## Requirements
 
-Viet Template targets Java 17 bytecode and requires Java 17 or later at runtime. CI currently verifies the project on Java 17, 21, and 25. Repository formatting checks use Google Java Format through Spotless and are run with JDK 21.
+Viet Template targets Java 21 bytecode and requires Java 21 or later at runtime (primary development and performance runtime is Java 25). CI continuously verifies the project on Java 21 and Java 25 across Tier A-E test suites. Repository formatting checks use Google Java Format through Spotless and are run with JDK 25.
 
 ### Runtime Requirements
 
-- **Minimum Java Baseline**: Java 17 (`--release 17`). Bytecode target is major version 61 classfiles.
-- **CI Verification**: Verified on Java 17, 21, and 25 in continuous integration.
+- **Minimum Java Baseline**: Java 21 (`--release 21`). Bytecode target is major version 65 classfiles.
+- **Primary Runtime**: Java 25 with full virtual thread optimizations.
+- **CI Verification**: Verified on Java 21 and 25 across Linux, macOS, and Windows.
 - **Dependencies**: No external runtime dependencies in core production modules.
 
 ### Build & Tooling Requirements
 
-- **Build JDK**: JDK 17 or higher (Gradle 9.7.1 wrapper or Apache Maven 3.9+ via `mvnw`).
-- **Code Formatting**: Code formatting is standardized on Google Java Format 1.30.0 via Spotless. Spotless requires JDK 21 for the complete contributor workflow. In multi-JDK cross-compilation matrix runs on JDK 17 or 25, Spotless may be bypassed using `-Dspotless.check.skip=true`.
+- **Build JDK**: JDK 25 recommended (JDK 21 minimum; Gradle 9.7.1 wrapper or Apache Maven 3.9+ via `mvnw`).
+- **Code Formatting**: Code formatting is standardized on Google Java Format 1.30.0 via Spotless, executed on JDK 25.
 - **Operating Systems**: Continuously tested on Linux, macOS, and Windows.
 
 ---

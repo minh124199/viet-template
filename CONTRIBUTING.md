@@ -29,7 +29,7 @@ Before starting work or proposing architectural changes, please review the relev
 
 4. **Zero Framework Bloat in Core**:
    - Production modules (`api`, `runtime`, `language-vtl`, `vtl-interpreter`) must remain lightweight, fast, and free of external runtime frameworks (no Spring, Quarkus, Micronaut, ASM, or ByteBuddy dependencies in core).
-   - Java baseline is strictly **Java 17** (`options.release.set(17)` / `<release>17</release>`).
+   - Java baseline is strictly **Java 21** (`options.release.set(21)` / `<release>21</release>`), with Java 25 as the primary development and CI toolchain.
 
 ## Development Workflow & Dual-Build Parity
 
@@ -37,7 +37,7 @@ Viet Template maintains **first-class dual-build parity** between Gradle 9.7.1 (
 
 ### 1. Code Formatting
 
-Both builds enforce Google Java Format (v1.30.0) via Spotless. Canonical formatting runs on JDK 21:
+Both builds enforce Google Java Format (v1.30.0) via Spotless. Canonical formatting runs on JDK 25 (or JDK 21+):
 
 - **Gradle**:
   ```bash
@@ -50,7 +50,7 @@ Both builds enforce Google Java Format (v1.30.0) via Spotless. Canonical formatt
   ./mvnw spotless:apply
   ```
 
-In CI or cross-JDK compatibility runs, Spotless may be skipped using `-Dspotless.check.skip=true` while tests and compilation execute. Spotless is strictly enforced in the dedicated JDK 21 formatting CI quality gate.
+In CI or cross-JDK compatibility runs, Spotless may be skipped using `-Dspotless.check.skip=true` while tests and compilation execute. Spotless is strictly enforced in the dedicated JDK 25 formatting CI quality gate.
 
 ### 2. Building and Testing
 
@@ -87,7 +87,7 @@ Before submitting changes, run the build parity verification script:
 This verifies:
 - Module consistency across `settings.gradle.kts` and `pom.xml`.
 - Group, artifact, and version identity alignment.
-- Java 17 release target and compiler flags (`-parameters`, `-Xlint:all`, `-Werror`).
+- Java 21 release target and compiler flags (`-parameters`, `-Xlint:all`, `-Werror`).
 - Dependency version parity between `libs.versions.toml` and `pom.xml`.
 - Binary classfile and resource entry parity across generated JARs.
 

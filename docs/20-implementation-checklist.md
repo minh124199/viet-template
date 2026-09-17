@@ -12,14 +12,14 @@ The checklist is intentionally ordered so that correctness is established before
 ## 0. Repository bootstrap
 
 - [x] Create multi-module build.
-- [x] Configure Java toolchains for 17, 21, and 25.
+- [x] Configure Java toolchains for 21 and 25 (Java 21 compiler baseline, Java 25 primary runtime).
 - [x] Enable reproducible archives and deterministic generated-source paths.
 - [x] Configure formatter, static analysis, license checks, forbidden APIs, and dependency rules.
 - [x] Configure unit-test, integration-test, and TCK foundation.
 - [x] Add `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, release process, and compatibility policy.
 - [x] Add CI jobs for Linux, Windows, and macOS.
-- [x] Add CI matrix for JDK 17/21/25.
-- [-] Add binary/API compatibility checking after the first public release (deferred to 1.0).
+- [x] Add CI matrix for JDK 21/25 across Tier A-E suites.
+- [x] Add binary/API compatibility checking (`verify-api-compatibility.py` and layered baselines).
 
 ### Exit criteria
 
@@ -151,11 +151,11 @@ All phase-1 syntax fixtures parse to golden ASTs and malformed fixtures produce 
 - [x] Provide official Maven wrapper (`mvnw`, `mvnw.cmd`, `.mvn/wrapper/maven-wrapper.properties` pinned to Maven 3.9.9).
 - [x] Create root aggregator/parent `pom.xml` and module POMs for all 4 submodules (`viet-template-api`, `viet-template-runtime`, `viet-template-language-vtl`, `viet-template-tck`).
 - [x] Align Maven dependency versions with `gradle/libs.versions.toml` (JUnit 5.11.4, AssertJ 3.27.2, ArchUnit 1.3.0, google-java-format 1.30.0).
-- [x] Configure Maven plugins matching Gradle setup: `maven-compiler-plugin` (release 17, `-parameters`, `-Xlint:all`, `-Werror`, UTF-8), `maven-surefire-plugin`, `maven-jar-plugin`, `maven-source-plugin`, `maven-javadoc-plugin`, `spotless-maven-plugin`, and `maven-enforcer-plugin`.
-- [x] Verify Java 17 bytecode baseline (classfile 61) and test suite execution across both Java 17 and Java 21 under both `./gradlew clean build` and `./mvnw clean verify`.
+- [x] Configure Maven plugins matching Gradle setup: `maven-compiler-plugin` (release 21, `-parameters`, `-Xlint:all`, `-Werror`, UTF-8), `maven-surefire-plugin`, `maven-jar-plugin`, `maven-source-plugin`, `maven-javadoc-plugin`, `spotless-maven-plugin`, and `maven-enforcer-plugin`.
+- [x] Verify Java 21 bytecode baseline (classfile 65) and test suite execution across both Java 21 and Java 25 under both `./gradlew clean build` and `./mvnw clean verify`.
 - [x] Confirm zero dependency leakage (no Spring, Velocity, or unapproved runtime dependencies).
 - [x] Implement automated build parity verification script (`scripts/verify-build-parity.py` / `scripts/verify-build-parity.sh`).
-- [x] Update GitHub Actions CI matrix (`.github/workflows/ci.yml`) to test both Gradle and Maven across JDK 17, 21, and 25, and run the parity verification job.
+- [x] Update GitHub Actions CI matrix (`.github/workflows/ci.yml`) to test both Gradle and Maven across JDK 21 and 25 (Tier A-E), and run the parity verification job.
 
 ### Exit criteria
 
@@ -166,7 +166,7 @@ All phase-1 syntax fixtures parse to golden ASTs and malformed fixtures produce 
 ## 3.2 Reference Interpreter and Core VTL Runtime Semantics (Milestone M3)
 
 - [x] Create dedicated module `viet-template-vtl-interpreter` depending only on `api`, `runtime`, and `language-vtl`.
-- [x] Configure dual build parity (Gradle Kotlin DSL + Maven `pom.xml`) with Java 17 release baseline and strict compiler flags.
+- [x] Configure dual build parity (Gradle Kotlin DSL + Maven `pom.xml`) with Java 21 release baseline and strict compiler flags.
 - [x] Implement 3-state evaluation model (`EvaluationValue`: `UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`).
 - [x] Implement nested lexical scopes and execution context (`ExecutionContext`) with read-through to immutable `RenderContext`.
 - [x] Implement member resolution policy: JavaBean getters, record components, map keys, fields, and index navigation (`ReferenceAccess` / `DefaultReferenceAccess`).
@@ -207,11 +207,11 @@ All phase-1 syntax fixtures parse to golden ASTs and malformed fixtures produce 
 - [x] Audit and correct Area 7: Alternate-value fallback (`${x|'fallback'}`) evaluation (always performs empty checking via `DuckType.asBoolean(val, true)`, falling back on `0`, `""`, and empty collections regardless of `directive.if.empty_check`).
 - [x] Keep `org.apache.velocity:velocity-engine-core:2.4.1` test-only in `viet-template-tck` (verified by ArchUnit; zero runtime leakage).
 - [x] Implement comprehensive side-by-side differential tests (`SemanticCompatibilityDifferentialTest`) and probe suites (`SemanticCompatibilityProbeTest`, `AdditionalSemanticProbeTest`).
-- [x] Validate 100% build parity across Gradle 9.7.1 and Maven 3.9.9 on both Java 17 and Java 21.
+- [x] Validate 100% build parity across Gradle 9.7.1 and Maven 3.9.9 on both Java 21 and Java 25.
 
 ### Exit criteria
 
-All 7 semantic compatibility areas validated directly against Velocity 2.4.1 runtime probe and differential test suite; `./gradlew clean build` and `./mvnw clean verify` pass cleanly on JDK 17 and JDK 21.
+All 7 semantic compatibility areas validated directly against Velocity 2.4.1 runtime probe and differential test suite; `./gradlew clean build` and `./mvnw clean verify` pass cleanly on JDK 21 and JDK 25.
 
 ---
 
@@ -438,9 +438,9 @@ Every optimization must preserve:
 
 ### JDK strategy
 
-- [x] Runtime remains Java 17-compatible.
-- [ ] `compiler-jdk25` can use `java.lang.classfile` on JDK 25.
-- [x] Prototype the exact class-file target versions produced by that module and test on Java 17/21/25; do not assume cross-target behavior.
+- [x] Runtime baseline is Java 21 (`--release 21`, classfile 65); runtime optimized for Java 25.
+- [x] Evaluated ClassFile API (`java.lang.classfile`) vs zero-dependency `ClassFileWriter`; retained `ClassFileWriter` with zero external dependencies and zero preview flag requirements (ADR-0012).
+- [x] Prototype the exact class-file target versions produced by that module and test on Java 21/25; do not assume cross-target behavior.
 - [x] Keep compiler SPI isolated so another backend (e.g. ASM) can exist if needed.
 
 ---
@@ -618,7 +618,7 @@ Every optimization must preserve:
 - [x] Comprehensive test coverage: unit tests, multithreaded concurrency tests, 3-party tests, Virtual Thread tests, ArchUnit boundary tests, auto-configuration tests, starter isolation tests.
 - [x] Multi-generation dual-build AOT consumer fixtures:
   - Spring Boot 3.3.5 / Spring Security 6.3.4: `maven-security-aot` & `gradle-security-aot`
-  - Spring Boot 4.0.0 / Spring Framework 7.0.1 / Spring Security 7.0.0: `maven-security7-aot` & `gradle-security7-aot`
+  - Spring Boot 4.1.1 / Spring Framework 7.0.9 / Spring Security 7.1.1: `maven-security7-aot` & `gradle-security7-aot`
 - [x] 10-step dual-build parity verification suite (`scripts/verify-spring-security-parity.sh` & `scripts/verify-spring-security7-integration.sh`) verifying 100% byte-for-byte bytecode and index parity and live HTTP execution.
 - [x] Multi-version compatibility verification: single artifact verified against Spring Security 6.3.4, 6.5.11, 7.0.7, 7.1.1 via `scripts/verify-spring-security-compatibility.py`.
 - [x] Layered public API baselines (`1.0-core-public-api.txt` [80 types], `1.0-aot-public-api.txt` [6 types], `1.0-spring-public-api.txt` [8 types], `1.0-spring-security-public-api.txt` [5 types]) protecting 99 types mechanically with full bijection invariant via `scripts/verify-api-compatibility.py`.
@@ -779,7 +779,7 @@ Every PR modifying runtime execution paths, data structures, or caching algorith
 - [ ] 2. **Balanced Allocation & Performance Tradeoff**: Measures allocation rate (`bytes/op`) using `-prof gc`; evaluates throughput, latency, allocation rate, retained memory, and contention together on representative workloads.
 - [ ] 3. **Scalability & Contention**: Validates concurrent scaling under $\ge 8$ threads without lock convoying.
 - [ ] 4. **Memory Footprint**: Analyzes memory footprint per template and per execution context.
-- [ ] 5. **Java 17 Baseline Idioms**: Adheres to Java 17 idiomatic practices, compact flat arrays, and standard collections without third-party dependencies.
+- [ ] 5. **Java 21 Baseline Idioms**: Adheres to Java 21 idiomatic practices, compact flat arrays, pattern matching, and standard collections without third-party dependencies.
 - [ ] 6. **Avoidance of Premature Hacks**: Avoids unsafe tricks, undocumented JVM internals, and unmaintainable micro-optimizations.
 - [ ] 7. **Thread-Safety & Invariants**: Formally proves all concurrency invariants and immutability guarantees.
 - [ ] 8. **Tail Latency & Branch Predictability**: Avoids branch mispredictions and unbounded worst-case latencies.
@@ -822,8 +822,8 @@ Do not advertise ratios before measurement. Internal engineering targets:
 3. Interpreter, optimized dynamic backend, and AOT backend agree on shared semantics.
 4. Typed/AOT rendering is competitive with modern compiled JVM template engines in reproducible benchmarks.
 5. Security-sensitive dynamic features are disabled unless explicitly enabled.
-6. Spring integration verified baseline: Spring Framework 6.1.14 and Spring Boot 3.3.5 tested on Java 17 / Jakarta Servlet 6.0 (intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions are not independently guaranteed; future major lines such as Spring 7 / Boot 4 are planned future targets).
-7. Java 17/21/25 runtime compatibility is CI-verified for modules claiming it.
+6. Spring integration canonical baseline: Spring Framework 7.0.9, Spring Boot 4.1.1, and Spring Security 7.1.1 tested on Java 21+ / Jakarta Servlet 6.1.0 (Tomcat 11.0.24) with full virtual thread execution support (ADR-0009).
+7. Java 21/25 runtime compatibility is CI-verified across Tier A-E suites.
 8. Build-time compilation is incremental and reproducible.
 9. Generated-code/source diagnostics are actionable.
 10. No benchmark or compatibility marketing claim exceeds the evidence produced by the checked-in suites.

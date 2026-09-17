@@ -6,12 +6,12 @@
 - **Status**: **PRODUCTION READY (API FROZEN FOR 1.0)**
 - **Artifact Strategy**:
   - Exactly **one** `viet-template-spring-security` artifact for all supported Spring Security generations.
-  - Java 17 bytecode (`--release 17`, classfile major version 61).
-  - Minimum binary-compatibility baseline: Spring Security 6.3.4 on Spring Framework 6.1.14 / Spring Boot 3.3.5 / Jakarta Servlet 6.0.
-  - Full automated multi-version compatibility verified across:
-    - Spring Security 6.3.x minimum baseline (verified against 6.3.4)
+  - Java 21 bytecode (`--release 21`, classfile major version 65).
+  - Canonical integration baseline: Spring Security 7.1.1 on Spring Framework 7.0.9 / Spring Boot 4.1.1 / Jakarta Servlet 6.1.0 (Tomcat 11.0.24) with full virtual thread support (ADR-0009).
+  - Full automated multi-version binary compatibility verified across:
+    - Spring Security 6.3.x legacy baseline (verified against 6.3.4)
     - Spring Security 6.5.x final 6.x generation (verified against 6.5.11)
-    - Spring Security 7.0.x generation (verified against 7.0.7)
+    - Spring Security 7.0.x canonical generation (verified against 7.0.0 and 7.0.7)
     - Spring Security 7.1.x generation (verified against 7.1.1)
 - **Key Architectural Guarantees**:
   1. **Unidirectional Dependency Rule**: Core engine modules (`viet-template-api`, `viet-template-runtime`, `viet-template-language-vtl`, `viet-template-vtl-interpreter`) never adapt to or depend on Spring Security.
@@ -371,12 +371,12 @@ The integration is verified through a multi-tier automated test suite:
 6. **Dual-Build AOT Parity across Generations (`scripts/verify-spring-security-parity.sh`)**:
    - **Generation 1 (Spring Boot 3.3.5 / Spring Security 6.3.4)**:
      - `integration-tests/spring/maven-security-aot` & `integration-tests/spring/gradle-security-aot`
-   - **Generation 2 (Spring Boot 4.0.0 / Spring Framework 7.0.1 / Spring Security 7.0.0 / 7.0.7 / 7.1.1)**:
+   - **Generation 2 (Spring Boot 4.1.1 / Spring Framework 7.0.9 / Spring Security 7.1.1)**:
      - `integration-tests/spring/maven-security7-aot` & `integration-tests/spring/gradle-security7-aot`
    - Automated 10-step verification suite:
      - Byte-for-byte `templates.idx` identity check (`cmp -s`).
      - Byte-for-byte generated `.class` bytecode identity check (`cmp -s`).
-     - Java 17 bytecode validation (major classfile version 61).
+     - Bytecode validation targeting Java 21 (classfile major version 65) for canonical Generation 2 fixtures.
      - Packaged Spring Boot JAR packaging inspection (ensuring presence of `.idx` and generated classes, and total absence of source `.vtl` files).
      - Real embedded Tomcat HTTP server execution testing:
        - `/public` anonymous access (HTTP 200)
