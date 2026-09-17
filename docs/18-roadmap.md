@@ -207,9 +207,16 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
   - Formally documented in [`docs/36-spring-security-integration.md`](36-spring-security-integration.md).
 - **Pre-1.0 Stable Surface Convergence Gate — COMPLETE**:
   - Reconciled `config/api-baseline/public-surface-classification.txt` with 4 layered baselines (`1.0-core-public-api.txt` [80 types], `1.0-aot-public-api.txt` [6 types], `1.0-spring-public-api.txt` [8 types], `1.0-spring-security-public-api.txt` [5 types]), protecting all 99 stable types mechanically with 0 duplicate ownership and full bijection enforced by `scripts/verify-api-compatibility.py` and `scripts/verify-public-surface-classification.py` on CI.
-- **Milestone M17 (GraalVM Native Image & Advanced Framework Features) — NEXT**:
-  - Native image reachability-metadata verification for Spring Boot AOT / GraalVM Native Image.
-  - Spring Boot DevTools restart/refresh integration hardening and preview lane validation.
+- **Milestone M17 (GraalVM Native Image & Advanced Framework Features)**:
+  - **M17 Phase A (GraalVM Native Image & Spring AOT) — COMPLETE**:
+    - Delivered `VietTemplateRuntimeHints` in `viet-template-spring-boot-autoconfigure` automatically registering precompiled template reflection from `templates.idx`, template resource patterns, and configuration properties.
+    - Delivered `VietTemplateSecurityRuntimeHints` in `viet-template-spring-security` registering reflection hints for `SecurityView`, `DefaultSecurityView`, `CsrfView`, and `DefaultCsrfView` via `TypeReference`.
+    - Automated native image dual-build consumer fixtures (`maven-boot3-native`, `gradle-boot3-native`, `maven-boot4-native`, `gradle-boot4-native`).
+    - Verified full native binary compilation and live HTTP request rendering with runtime compilation disabled via `scripts/verify-native-image-integration.sh` and `.github/workflows/native-image.yml`.
+    - Formally documented in [`docs/37-m17-graalvm-native-image.md`](37-m17-graalvm-native-image.md).
+  - **M17 Phase B (DevTools Restart/Refresh Hardening) — NEXT**:
+    - Spring Boot DevTools live reload lifecycle hook hardening and ClassLoader boundary isolation.
+    - Preview lane for next Spring/Boot generation without making preview APIs public dependencies.
 - **Milestone M18 (TCK & Performance Release Gates)**:
   - Independently executable public TCK verifying 100% of claimed language features.
   - Reproducible benchmark report published with full hardware metadata, raw JMH outputs, and comparative analyses against Velocity, Qute, jte, and Thymeleaf.

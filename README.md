@@ -29,7 +29,7 @@ Many existing JVM template engines require teams to choose between familiar, fle
 | Item | Value |
 | :--- | :--- |
 | **Current Published Release** | `0.2.1` (2026-09-17) |
-| **Development Branch** | `0.2.2-SNAPSHOT` | `main` | Under active development (M17 GraalVM native image) |
+| **Development Branch** | `0.2.2-SNAPSHOT` | `main` | Under active development (M17 GraalVM native image Phase A complete; DevTools restart/refresh hardening next) |
 | **Maturity Level** | **Pre-1.0 (`0.2.x`)** |
 | **Maven Group** | `io.github.minh124199` |
 | **Java Baseline** | Java 17 (`--release 17`) |
@@ -57,12 +57,13 @@ Many existing JVM template engines require teams to choose between familiar, fle
   - Ahead-Of-Time (AOT) build tooling (`viet-template-maven-plugin` and `viet-template-gradle-plugin`) under Milestone M15: precompiling templates at build time into self-contained Java 17 bytecode with automated ClassLoader discovery (`templates.idx`), incremental SHA-256 caching, and 100% byte-for-byte dual-build parity.
   - Spring Framework & Spring Boot 3 integration (`viet-template-spring-boot-starter`, `viet-template-spring`, `viet-template-spring-boot-autoconfigure`) under Milestone M16: verified baseline in CI against Spring Framework 6.1.14 and Spring Boot 3.3.5 on Java 17 / Jakarta Servlet 6.0 (intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions are not independently guaranteed), featuring thread-safe `VietTemplateView`, caching `VietTemplateViewResolver` with AOT index discovery fallback, non-closing servlet stream ownership, full configuration properties (`viet-template.*`), and 100% byte-for-byte dual-build parity.
   - Spring Security integration (`viet-template-spring-security`) under Milestone M16.1: optional, zero-core-dependency module providing read-only facades `SecurityView` and `CsrfView`, factory SPIs `SecurityViewFactory` and `CsrfViewFactory`, and auto-configuration `VietTemplateSecurityAutoConfiguration` (`viet-template.security.enabled=true`). Strictly protects boundaries with zero raw framework objects in template scope, sensitive token redaction in `toString()`, automatic HTML contextual escaping against XSS, and 100% byte-for-byte dual-build AOT parity.
+  - GraalVM Native Image & Spring AOT compatibility (Milestone M17 Phase A): out-of-the-box runtime hints (`VietTemplateRuntimeHints`, `VietTemplateSecurityRuntimeHints`) registering precompiled template bytecode, `templates.idx` resource discovery, and security view reflection for native image executables.
   - Maven Central publication metadata hardening: canonical per-module deep links (`/tree/main/<module>`), root SCM inheritance suppression controls (`child.scm.*.inherit.append.path="false"`), and automated CI metadata and effective POM verification.
 - **Experimental**:
   - Dynamic call-site specialization in AOT bytecode when complete type signatures are absent.
   - File-system hot-reload watcher (`DevelopmentFileWatcher`) using NIO `WatchService`.
 - **Planned (Future Releases)**:
-  - GraalVM Native Image reachability metadata verification.
+  - Spring Boot DevTools restart/refresh hardening (M17 Phase B).
 
 ---
 
@@ -390,6 +391,35 @@ Templates gain access to `$security` and `$csrf` automatically when auto-configu
 ```
 
 For complete architecture details and security boundary guarantees, see [docs/36-spring-security-integration.md](docs/36-spring-security-integration.md).
+
+### 6. GraalVM Native Image & Spring AOT (Milestone M17 Phase A)
+
+Viet Template supports Ahead-Of-Time (AOT) compilation to standalone GraalVM Native Image binaries out of the box with zero manual reflection JSON configuration for template bytecode or security views.
+
+#### Architecture & Reachability
+
+1. **Build-Time Template AOT**: Templates in `src/main/viet-template/` are precompiled to self-contained Java 17 bytecode classes during build (`mvn process-classes` or `gradle compileVietTemplates`), generating `META-INF/viet-template/templates.idx`.
+2. **Spring AOT Runtime Hints**: `VietTemplateRuntimeHints` automatically scans `templates.idx` during Spring AOT processing, registering discovered precompiled template classes and `META-INF/viet-template/*` resources.
+3. **Spring Security Runtime Hints**: `VietTemplateSecurityRuntimeHints` registers reflection hints for `$security` (`SecurityView`) and `$csrf` (`CsrfView`) models.
+4. **Consumer Model Registration**: Application domain models passed into `Model` attributes (e.g. `Account`, `UserProfile`) must be registered for reflection by consumer applications (e.g. via `@RegisterReflectionForBinding({Account.class, UserProfile.class})` on configuration or controller classes).
+
+#### Native Image Build Commands
+
+##### Apache Maven
+```bash
+# Compile Ahead-Of-Time and build GraalVM native binary
+./mvnw -Pnative native:compile
+./target/demo-app
+```
+
+##### Gradle
+```bash
+# Compile Ahead-Of-Time and build GraalVM native binary
+./gradlew nativeCompile
+./build/native/nativeCompile/demo-app
+```
+
+For complete architecture details and verification suites, see [docs/37-m17-graalvm-native-image.md](docs/37-m17-graalvm-native-image.md).
 
 ### Output Stream Lifecycle & Resource Ownership
 

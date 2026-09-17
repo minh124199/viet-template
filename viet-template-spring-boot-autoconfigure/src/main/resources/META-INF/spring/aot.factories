@@ -1,0 +1,2 @@
+org.springframework.aot.hint.RuntimeHintsRegistrar=\
+io.github.minh124199.viettemplate.spring.boot.autoconfigure.aot.VietTemplateRuntimeHints

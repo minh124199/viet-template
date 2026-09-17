@@ -3,6 +3,7 @@ package io.github.minh124199.viettemplate.spring.boot.autoconfigure;
 import io.github.minh124199.viettemplate.spring.security.CsrfViewFactory;
 import io.github.minh124199.viettemplate.spring.security.SecurityViewFactory;
 import io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor;
+import io.github.minh124199.viettemplate.spring.security.aot.VietTemplateSecurityRuntimeHints;
 import io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.security.core.Authentication;
 
 /**
@@ -30,6 +32,7 @@ import org.springframework.security.core.Authentication;
 @ConditionalOnClass({Authentication.class, SpringSecurityRenderContextContributor.class})
 @ConditionalOnProperty(name = "viet-template.security.enabled", matchIfMissing = true)
 @EnableConfigurationProperties(VietTemplateProperties.class)
+@ImportRuntimeHints(VietTemplateSecurityRuntimeHints.class)
 public class VietTemplateSecurityAutoConfiguration {
 
   @Bean

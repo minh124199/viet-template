@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head><title>Secure Dashboard</title></head>
+<body>
+<h1>Dashboard</h1>
+<p id="sec-name">$security.name</p>
+<p id="sec-auth">$security.authenticated</p>
+<p id="sec-admin">$security.hasAuthority('ROLE_ADMIN')</p>
+<p id="csrf-token">$csrf.token</p>
+<p id="csrf-header">$csrf.headerName</p>
+</body>
+</html>

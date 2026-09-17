@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head><title>Public Page</title></head>
+<body>
+<h1>Public Landing</h1>
+<p id="user-name">Welcome, $user.name!</p>
+<p id="account-info">Account: $account.name (Logins: $account.loginCount)</p>
+<p id="profile-name">Profile: $profile.displayName</p>
+<p id="theme-name">Theme: $settings.theme</p>
+<div id="status">
+#if($account.loginCount > 5)
+<span>Status: Veteran</span>
+#else
+<span>Status: Novice</span>
+#end
+</div>
+<ul id="tags">
+#foreach($tag in $tags)
+<li>$tag</li>
+#end
+</ul>
+<div id="escaped">$hostile.script</div>
+</body>
+</html>
