@@ -12,8 +12,11 @@ if [ -z "${GRAALVM_DIR}" ]; then
         GRAALVM_DIR="$(dirname "$(dirname "$(command -v native-image)")")"
     else
         for candidate in \
+            "${HOME:-}/opt"/graalvm-jdk-25* \
             "${HOME:-}/opt"/graalvm* \
+            "/usr/lib/jvm"/graalvm-jdk-25* \
             "/usr/lib/jvm"/graalvm* \
+            "/opt"/graalvm-jdk-25* \
             "/opt"/graalvm*; do
             if [ -d "${candidate}" ] && [ -x "${candidate}/bin/native-image" ]; then
                 GRAALVM_DIR="${candidate}"
