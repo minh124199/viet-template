@@ -641,9 +641,16 @@ Every optimization must preserve:
 - [x] Live HTTP server verification for standalone native executables with runtime compilation disabled (`viet-template.runtime-compilation-enabled=false`).
 - [x] Full architecture documentation in `docs/37-m17-graalvm-native-image.md`.
 
-### Phase B: Spring Boot DevTools & Advanced Lifecycle (NEXT)
-- [ ] Spring Boot DevTools live reload lifecycle hook hardening.
-- [ ] Preview lane for next Spring/Boot generation without making preview APIs public dependencies.
+### Phase B: Spring Boot DevTools & Advanced Lifecycle (COMPLETE)
+- [x] Spring Boot DevTools live reload lifecycle hook hardening and ClassLoader boundary isolation.
+- [x] Hardened engine lifecycle (`destroyMethod = "close"`) terminating `DevelopmentFileWatcher` and executor threads.
+- [x] ClassLoader turnover safety under `URLClassLoader` and `RestartClassLoader` with weak cache eviction.
+- [x] DevTools containment audit ensuring 0 compile/runtime DevTools leaks in all 8 production modules (`DevToolsContainmentTest`).
+- [x] Dual-build DevTools test fixtures (`maven-boot3-devtools`, `gradle-boot3-devtools`, `maven-boot4-devtools`, `gradle-boot4-devtools`).
+- [x] Automated DevTools restart integration verification script (`scripts/verify-devtools-restart-integration.sh`).
+- [x] GitHub Actions DevTools CI workflow (`.github/workflows/devtools-restart.yml`).
+- [x] Live DevTools HTTP verification for Mode A (dynamic hot reload), Mode B (AOT recompile + trigger restart), stale template deletion, and 10x restart stress test with zero ClassLoader leaks (`leakFree = true`).
+- [x] Full architecture documentation in `docs/38-m17-devtools-restart-hardening.md`.
 
 ---
 

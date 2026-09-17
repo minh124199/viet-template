@@ -152,7 +152,7 @@ public final class DevelopmentFileWatcher implements AutoCloseable {
     running = false;
     try {
       watchService.close();
-    } catch (IOException ignored) {
+    } catch (Exception ignored) {
     }
 
     watchThread.interrupt();
@@ -174,5 +174,13 @@ public final class DevelopmentFileWatcher implements AutoCloseable {
 
   public boolean isRunning() {
     return running;
+  }
+
+  Thread watchThread() {
+    return watchThread;
+  }
+
+  ScheduledExecutorService debounceExecutor() {
+    return debounceExecutor;
   }
 }

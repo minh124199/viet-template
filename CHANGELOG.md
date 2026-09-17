@@ -21,7 +21,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added dedicated black-box native image consumer fixtures for Maven (`integration-tests/native/maven-boot3-native`, `integration-tests/native/maven-boot4-native`) and Gradle (`integration-tests/native/gradle-boot3-native`, `integration-tests/native/gradle-boot4-native`).
     - Implemented automated native image parity and live execution suite `scripts/verify-native-image-integration.sh` compiling native executables, verifying bytecode release 17 (major version 61), starting native executables on dynamic ports, and asserting live HTTP 200 responses, CSRF token handling, and security authorization invariants under runtime compilation rejection (`viet-template.runtime-compilation-enabled=false`).
     - Added dedicated GitHub Actions workflow `.github/workflows/native-image.yml` with GraalVM JDK 21 and pinned action SHAs.
-    - Formally documented in [`docs/37-m17-graalvm-native-image.md`](docs/37-m17-graalvm-native-image.md).
+- **Spring Boot DevTools Restart & ClassLoader Lifecycle Hardening (Milestone M17 Phase B)**:
+  - Hardened Engine Lifecycle & Watcher Termination (`viet-template-vtl-interpreter`):
+    - Added `close()` lifecycle method to `VtlTemplateEngine` and `DevelopmentFileWatcher` ensuring clean shutdown of watch service thread and debounced executor thread pool upon Spring `ApplicationContext` closure (`destroyMethod = "close"`).
+    - Hardened idempotency of `close()`, negative and positive compilation cache clearing, and classloader reference releases.
+    - Verified `BoundedWeakClassCache` and `DynamicCallSite` turnover safety under `URLClassLoader` replacement with zero class retention.
+  - DevTools Containment & Classpath Isolation (`viet-template-spring-boot-autoconfigure`):
+    - Added `DevToolsContainmentTest` asserting exact 0 references to `spring-boot-devtools` classes across all 8 production modules and absence of `RestartClassLoader` from runtime production classpath.
+  - Dual-Build DevTools Test Fixtures (`integration-tests/devtools/`):
+    - Added 4 dual-build consumer fixtures: `maven-boot3-devtools`, `gradle-boot3-devtools`, `maven-boot4-devtools`, and `gradle-boot4-devtools`.
+    - Fully isolated compile-time classpath from DevTools classes using reflection for test inspection endpoints (`/__test/restart-generation`, `/__test/classloader-leak-check`).
+  - Automated Parity & Lifecycle Verification (`scripts/verify-devtools-restart-integration.sh`, `.github/workflows/devtools-restart.yml`):
+    - Verified Mode A (Dynamic hot reload without restart), Mode B (AOT recompile + trigger-file restart with `RestartClassLoader` turnover), stale template deletion, Spring Security & CSRF isolation, and 10x restart stress test with zero ClassLoader leaks (`leakFree = true`).
+    - Formally documented in [`docs/38-m17-devtools-restart-hardening.md`](docs/38-m17-devtools-restart-hardening.md).
 
 ### Changed
 

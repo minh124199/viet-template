@@ -365,6 +365,10 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     invalidateAll();
   }
 
+  Optional<DevelopmentFileWatcher> fileWatcher() {
+    return fileWatcher;
+  }
+
   private CompiledTemplateHandle compileTemplate(
       TemplateId id, CompileCacheKey key, SourceText sourceText) {
     VtlParseResult parseResult = VtlParser.parse(sourceText);
