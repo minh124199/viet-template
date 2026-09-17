@@ -5,66 +5,101 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.1] - 2026-09-17
 
 ### Added
-- **Maven Central Publication Metadata Hardening**:
-  - **Project & SCM Inheritance Controls**: Configured `child.project.url.inherit.append.path="false"` on root `<project>` and `child.scm.*.inherit.append.path="false"` on root `<scm>` (supported since Maven 3.6.1), eliminating defective Maven path auto-appending across child module project and SCM URLs.
-  - **HTTPS SCM Read-Only Connection**: Replaced obsolete `scm:git:git://` protocol with secure HTTPS read-only connection `scm:git:https://github.com/minh124199/viet-template.git`.
-  - **Corrected Git Developer Connection**: Updated developer connection to standard `scm:git:ssh://git@github.com/minh124199/viet-template.git` across Maven and Gradle builds.
-  - **Explicit Child Module Homepage URLs**: Added canonical `<url>${github.repository.url}/tree/main/<module></url>` across published production modules, ensuring accurate GitHub source tree deep-links, and enforced verification tooling failure if a published child merely inherits the repository-root URL.
-  - **Non-Published Module Protection**: Verified that internal verification modules (`viet-template-tck`, `viet-template-benchmarks`) strictly omit `<url>` and enforce multi-tier publication skipping (`maven.deploy.skip`, `skipPublishing`, `central.publishing.skip`).
-  - **Gradle & Maven Parity**: Updated Gradle publication metadata in `build.gradle.kts` and `viet-template-gradle-plugin/build.gradle.kts` with matching `/tree/main/${project.name}` URL and HTTPS/SSH SCM settings, verified by `scripts/verify-build-parity.py`.
-  - **Automated Metadata Verification Suite**: Enhanced `scripts/verify-release-metadata.py` with `--check-publication-metadata`, `--check-effective-pom`, and `--check-urls-online` to statically and dynamically guard publication metadata, effective POMs, and release workflow contracts.
-  - **Publication Bundle Validation**: Updated `scripts/validate-release-bundle.py` to dynamically derive reactor published modules, assert POM metadata integrity, clean SCM inheritance, and reject obsolete protocols (`git://`) or malformed appended paths.
-- **Public API & SPI Stabilization (Milestone M14)**:
-  - **Lifecycle Management**: `TemplateEngine` implements `AutoCloseable` with `default void close() {}`, providing graceful resource cleanup in try-with-resources blocks.
-  - **Engine Invalidation Conveniences**: Added `TemplateEngine.invalidate(TemplateId)` and `TemplateEngine.invalidateAll()`.
-  - **Convenience Rendering Methods**: Added `TemplateEngine.render(String/TemplateId, RenderContext)` and `Template.render(RenderContext)` returning rendered strings directly.
-  - **Automated API Compatibility Enforcement**: Added `config/api-baseline/1.0-public-api.txt` and `scripts/verify-api-compatibility.py` integrated into CI to detect binary and source breaking changes.
-  - **Architecture Isolation**: Added ArchUnit rule `api_must_not_depend_on_runtime_or_interpreter` to strictly enforce `viet-template-api` modular independence.
-  - **Dedicated Contract Test Suites**: Added `PublicApiContractTest`, `TemplateOutputSpiContractTest`, `TemplateEngineContractTest`, `TemplateRepositorySpiContractTest`, `SecuritySpiContractTest`, and `ApiConsumerSmokeTest`.
-
-- **Public Surface Containment & Output Lifecycle Finalization (Milestone M14.1)**:
-  - **Safe Visibility Reductions**: Lowered visibility on 4 unneeded public internal classes/members (`CallSiteRegistry.CallSiteKey` to private; `AccessLink.Status`, `AccessLink.status()`, `VtlAstDumper`, and `VtlSemanticDiagnosticCodes` to package-private).
-  - **Public Surface Classification Baseline**: Established `config/api-baseline/public-surface-classification.txt` classifying all 352 public types across production modules into 76 `STABLE_API`, 15 `STABLE_SPI`, 6 `EXPERIMENTAL`, and 255 `PUBLIC_BUT_INTERNAL_ACCIDENT` (0 unclassified types).
-  - **Automated CI Surface & Leak Verification**: Added `scripts/generate-public-surface.py` and `scripts/verify-public-surface-classification.py` integrated into CI to enforce zero unclassified types, zero stale types, baseline parity, and zero internal/experimental signature leaks.
-  - **Output Stream Lifecycle & Resource Ownership Contracts**: Added comprehensive class and method-level Javadoc to `Utf8OutputStreamTemplateOutput`, `WriterTemplateOutput`, `StringTemplateOutput`, and `TemplateEngine` detailing thread confinement, stream ownership on close, double-close idempotency, flush semantics, and the container-managed non-closing stream pattern.
-  - **Dedicated Lifecycle Contract Test Suite**: Added `ConcreteOutputLifecycleContractTest` in `viet-template-runtime` covering 9 comprehensive streaming lifecycle scenarios.
-  - **Integration Boundary ArchUnit Rule**: Added `integration_and_tooling_boundary_must_not_access_internal_packages` in `viet-template-tck`.
 - **Maven & Gradle Ahead-Of-Time (AOT) Tooling (Milestone M15)**:
-  - **Narrow Public AOT Facade**: Introduced `io.github.minh124199.viettemplate.aot` with 5 public types (`TemplateAotCompiler`, `TemplateAotRequest`, `TemplateAotResult`, `TemplateAotDiagnostic`, `TemplateAotArtifact`), fully classified as `STABLE_API` with zero signature leaks.
-  - **Bytecode Self-Containment**: `BytecodeTemplateCompiler` emits JVM `<clinit>` bytecode allocating and populating `UTF8_CHUNKS`, `SITES`, and `TEMPLATE_ID`, making generated `.class` files 100% self-contained and runnable in standalone ClassLoaders without reflection.
-  - **Runtime AOT Discovery**: `VtlTemplateEngine` automatically discovers `META-INF/viet-template/templates.idx` from ClassLoaders at startup, executing precompiled templates with zero runtime compilation (`rejectRuntimeCompilation(true)`).
-  - **Official Maven Plugin**: Introduced `viet-template-maven-plugin` (`VietTemplateCompileMojo`, goal `compile`, phase `process-classes`) supporting incremental compilation, glob scanning, line:column diagnostics, and stale file cleanup.
-  - **Official Gradle Plugin**: Introduced `viet-template-gradle-plugin` (`VietTemplatePlugin`, id `io.github.minh124199.viet-template`) with `@CacheableTask` `VietTemplateCompileTask`, lazy Gradle property wiring, and Configuration Cache compatibility.
-  - **Deterministic Dual-Build Parity**: Verified 100% byte-for-byte identical bytecode and index output across Maven and Gradle builds via `scripts/verify-aot-tooling-parity.sh` and black-box consumer fixtures (`integration-tests/aot/*`).
-  - **Architectural Isolation**: Added ArchUnit rule `aot_public_api_must_not_depend_on_internal_packages` and verified `integration_and_tooling_boundary_must_not_access_internal_packages`.
-- **Spring Framework & Spring Boot 3 Integration (Milestone M16)**:
-  - **Spring MVC View & ViewResolver (`viet-template-spring`)**:
+  - Narrow public AOT facade: Introduced `io.github.minh124199.viettemplate.aot` with 5 public types (`TemplateAotCompiler`, `TemplateAotRequest`, `TemplateAotResult`, `TemplateAotDiagnostic`, `TemplateAotArtifact`), fully classified as `STABLE_API` with zero signature leaks.
+  - Bytecode self-containment: `BytecodeTemplateCompiler` emits JVM `<clinit>` bytecode allocating and populating `UTF8_CHUNKS`, `SITES`, and `TEMPLATE_ID`, making generated `.class` files 100% self-contained and runnable in standalone ClassLoaders without reflection.
+  - Runtime AOT discovery: `VtlTemplateEngine` automatically discovers `META-INF/viet-template/templates.idx` from ClassLoaders at startup, executing precompiled templates with zero runtime compilation (`rejectRuntimeCompilation(true)`).
+  - Official Maven plugin: Introduced `viet-template-maven-plugin` (`VietTemplateCompileMojo`, goal `compile`, phase `process-classes`) supporting incremental compilation, glob scanning, line:column diagnostics, and stale file cleanup.
+  - Official Gradle plugin: Introduced `viet-template-gradle-plugin` (`VietTemplatePlugin`, id `io.github.minh124199.viet-template`) with `@CacheableTask` `VietTemplateCompileTask`, lazy Gradle property wiring, and Configuration Cache compatibility.
+  - Deterministic dual-build parity: Verified 100% byte-for-byte identical bytecode and index output across Maven and Gradle builds via `scripts/verify-aot-tooling-parity.sh` and black-box consumer fixtures (`integration-tests/aot/*`).
+  - Architectural boundary enforcement: Added ArchUnit rule `aot_public_api_must_not_depend_on_internal_packages` and verified `integration_and_tooling_boundary_must_not_access_internal_packages`.
+- **Spring Framework & Spring Boot Integration (Milestone M16)**:
+  - Spring MVC View & ViewResolver (`viet-template-spring`):
     - Introduced `VietTemplateView`: thread-safe, immutable, and request-stateless Spring MVC `View` streaming pre-encoded UTF-8 byte chunks directly to the servlet output stream via `Utf8OutputStreamTemplateOutput`.
     - Non-closing servlet stream ownership: implemented `NonClosingOutputStream` delegating flush on `close()` while preserving servlet response stream lifecycle for container and filter management.
     - Introduced `VietTemplateViewResolver`: caching Spring MVC `ViewResolver` with path traversal defense (`validateViewName`), configurable prefix/suffix, view caching (`ConcurrentHashMap`), and seamless fallback to AOT index discovery (`META-INF/viet-template/templates.idx`) when source files are absent.
     - Introduced `VietTemplateEngineCustomizer`: `@FunctionalInterface` callback allowing ordered customization of `TemplateEngine.Builder` prior to engine initialization.
-  - **Spring Boot 3 Auto-Configuration (`viet-template-spring-boot-autoconfigure`)**:
-    - Introduced `VietTemplateAutoConfiguration`: Spring Boot 3 auto-configuration registering `TemplateEngine` (with `destroyMethod = "close"`) and `VietTemplateViewResolver`, backing off cleanly when custom beans are declared.
+  - Spring Boot 3 auto-configuration (`viet-template-spring-boot-autoconfigure`):
+    - Introduced `VietTemplateAutoConfiguration`: Spring Boot auto-configuration registering `TemplateEngine` (with `destroyMethod = "close"`) and `VietTemplateViewResolver`, backing off cleanly when custom beans are declared.
     - Comprehensive configuration properties: introduced `VietTemplateProperties` mapped under prefix `viet-template.*` supporting prefix, suffix, content type, charset, cache, location check, runtime compilation rejection, negative cache TTL, and hot reload settings.
     - Template location validation with AOT detection: verifies presence of `META-INF/viet-template/templates.idx` before falling back to source classpath checks.
-  - **Production Starter (`viet-template-spring-boot-starter`)**:
+  - Production starter (`viet-template-spring-boot-starter`):
     - Aggregator starter POM/JAR pulling in `viet-template-spring`, `viet-template-spring-boot-autoconfigure`, and `viet-template-vtl-interpreter`.
-  - **Dual-Build AOT Fixtures & Live Server Verification**:
+  - Dual-build AOT fixtures & live server verification:
     - Established black-box consumer test fixtures for Maven (`integration-tests/spring/maven-mvc-aot`) and Gradle (`integration-tests/spring/gradle-mvc-aot`) testing MockMvc and real embedded HTTP server flows.
     - Automated parity verification via `scripts/verify-spring-integration-parity.sh` proving 100% byte-for-byte bytecode and index parity, absence of `.vtl` source files in runtime JARs, and successful HTTP 200 execution in pure AOT mode (`viet-template.runtime-compilation-enabled=false`).
-  - **Architectural Boundary Enforcement**:
+  - Architectural boundary enforcement:
     - Added ArchUnit rule `spring_integration_must_not_access_internal_packages` ensuring `viet-template-spring` depends exclusively on public engine APIs and does not leak into internal compiler or interpreter packages.
+- **Spring Security Integration (Milestone M16.1)**:
+  - Dedicated module `viet-template-spring-security`: Provides seamless, thread-safe, and zero-leak Spring Security and CSRF context variables (`$security` and `$csrf`) in templates.
+  - Facade contracts (`SecurityView`, `CsrfView`): Narrow, read-only interfaces exposing essential security information (username, roles, authentication status, permissions, CSRF parameter and header names, token values) without exposing mutable or internal framework objects.
+  - Auto-configuration (`VietTemplateSecurityAutoConfiguration`): Automatically registers `SpringSecurityRenderContextContributor` as a `RenderContextContributor` bean, wiring request-bound security facades into every render request.
+  - Extensibility SPI (`SecurityViewFactory`, `CsrfViewFactory`): Pluggable factories allowing applications to provide custom security and CSRF view implementations.
+- **Spring Security 6 and 7 / Boot 3 and 4 Multi-Generation Validation**:
+  - Validated compatibility across Spring Boot 3.3.x / Spring Security 6.3.x (baseline) and forward compatibility with Spring Boot 4.0.0-M1 / Spring Security 7.0.0-M1.
+  - Verified via dedicated black-box integration tests in Maven (`integration-tests/spring/maven-security-aot`, `integration-tests/spring/maven-security7-aot`) and Gradle (`integration-tests/spring/gradle-security-aot`, `integration-tests/spring/gradle-security7-aot`) covering both MockMvc and embedded real HTTP servers.
+  - Automated dual-version parity verification via `scripts/verify-spring-security-parity.sh` and `scripts/verify-spring-security7-integration.sh`.
+- **Public API & SPI Stabilization (Milestone M14)**:
+  - Lifecycle management: `TemplateEngine` implements `AutoCloseable` with `default void close() {}`, providing graceful resource cleanup in try-with-resources blocks.
+  - Engine invalidation conveniences: Added `TemplateEngine.invalidate(TemplateId)` and `TemplateEngine.invalidateAll()`.
+  - Convenience rendering methods: Added `TemplateEngine.render(String/TemplateId, RenderContext)` and `Template.render(RenderContext)` returning rendered strings directly.
+  - Architecture isolation: Added ArchUnit rule `api_must_not_depend_on_runtime_or_interpreter` to strictly enforce `viet-template-api` modular independence.
+  - Dedicated contract test suites: Added `PublicApiContractTest`, `TemplateOutputSpiContractTest`, `TemplateEngineContractTest`, `TemplateRepositorySpiContractTest`, `SecuritySpiContractTest`, and `ApiConsumerSmokeTest`.
+- **Public Surface Containment & Output Lifecycle (Milestone M14.1)**:
+  - Safe visibility reductions: Lowered visibility on 4 unneeded public internal classes/members (`CallSiteRegistry.CallSiteKey` to private; `AccessLink.Status`, `AccessLink.status()`, `VtlAstDumper`, and `VtlSemanticDiagnosticCodes` to package-private).
+  - Public surface classification baseline: Established `config/api-baseline/public-surface-classification.txt` classifying all 360 public types across production modules into 80 `STABLE_API`, 19 `STABLE_SPI`, 6 `EXPERIMENTAL`, and 255 `PUBLIC_BUT_INTERNAL_ACCIDENT` (0 unclassified types).
+  - Output stream lifecycle & resource ownership contracts: Added comprehensive class and method-level Javadoc to `Utf8OutputStreamTemplateOutput`, `WriterTemplateOutput`, `StringTemplateOutput`, and `TemplateEngine` detailing thread confinement, stream ownership on close, double-close idempotency, flush semantics, and the container-managed non-closing stream pattern.
+  - Dedicated lifecycle contract test suite: Added `ConcreteOutputLifecycleContractTest` in `viet-template-runtime` covering 9 comprehensive streaming lifecycle scenarios.
+  - Integration boundary ArchUnit rule: Added `integration_and_tooling_boundary_must_not_access_internal_packages` in `viet-template-tck`.
+- **API Compatibility & Baseline Protection**:
+  - Layered baseline definitions: Four modular baselines (`1.0-core-public-api.txt`, `1.0-aot-public-api.txt`, `1.0-spring-public-api.txt`, `1.0-spring-security-public-api.txt`) protecting all 99 stable types (80 `STABLE_API` + 19 `STABLE_SPI`).
+  - Automated CI surface & leak verification: Added `scripts/generate-public-surface.py`, `scripts/verify-public-surface-classification.py`, and `scripts/verify-api-compatibility.py` integrated into CI to enforce zero unclassified types, zero stale types, baseline parity, binary compatibility, and zero internal/experimental signature leaks.
 
-### Changed
+### Fixed
+- **JVM StackMapTable & AOT Verifier Correctness**:
+  - Resolved `java.lang.VerifyError: Expecting a stackmap frame at branch target` in generated bytecode for complex branching templates.
+  - Corrected frame calculation in `BytecodeTemplateCompiler` to emit compliant `StackMapTable` attributes across forward conditional jumps, loop back-edges, and nested control flow, passing strict JVM bytecode verification without `-noverify`.
+  - Added dedicated regression and fuzzing coverage in `AotStackMapRegressionTest` and `AstIrAotDifferentialFuzzTest`.
+- **AOT Logical Short-Circuit Semantics (`&&` and `||`)**:
+  - Corrected short-circuit evaluation in `BytecodeTemplateCompiler` for binary logical expressions: right-hand operands are now strictly skipped when the left-hand operand satisfies short-circuit criteria (`false` for `&&`, `true` for `||`).
+  - Preserved identical evaluation semantics and side-effect guarantees between IR interpreter and AOT compiled bytecode.
+- **Maven Central Publication Metadata and SCM URLs**:
+  - Project & SCM inheritance controls: Configured `child.project.url.inherit.append.path="false"` on root `<project>` and `child.scm.*.inherit.append.path="false"` on root `<scm>`, eliminating defective Maven path auto-appending across child module project and SCM URLs.
+  - HTTPS SCM read-only connection: Replaced obsolete `scm:git:git://` protocol with secure HTTPS read-only connection `scm:git:https://github.com/minh124199/viet-template.git`.
+  - Corrected Git developer connection: Updated developer connection to standard `scm:git:ssh://git@github.com/minh124199/viet-template.git` across Maven and Gradle builds.
+  - Explicit child module homepage URLs: Added canonical `<url>${github.repository.url}/tree/main/<module></url>` across published production modules, ensuring accurate GitHub source tree deep-links.
+  - Non-published module protection: Verified that internal verification modules (`viet-template-tck`, `viet-template-benchmarks`) strictly omit `<url>` and enforce multi-tier publication skipping (`maven.deploy.skip`, `skipPublishing`, `central.publishing.skip`).
 - **Contract & Null Semantics Hardening**:
   - `RenderContext.of`, `RenderContext.Builder`, and `MapBackedRenderContext` now preserve null variable values (`DEFINED_NULL`) without throwing `NullPointerException` or collapsing into `UNDEFINED`.
   - `DefaultMutableRenderContext` preserves `null` values via internal sentinel instead of removing the variable from the context.
   - `MemberAccessPolicy` no longer extends `java.io.Serializable`.
   - Fail-closed security enforced in `MemberAccessPolicyVtlAdapter` and `MemberAccessPolicyLinkerAdapter` against dangerous types (`Class`, `ClassLoader`, `Runtime`, `ProcessBuilder`, `Thread`, reflection).
   - Documented thread-confinement of `TemplateOutput` and thread-safety of `TemplateEngine`, `Template`, `RenderContext`, `Escaper`, and `MemberAccessPolicy`.
+
+### Security
+- **Spring Security Facade Isolation**:
+  - Templates only receive immutable, unmodifiable `SecurityView` and `CsrfView` facade instances; raw Spring Security framework objects (`SecurityContext`, `Authentication`, `CsrfToken`, `HttpServletRequest`) are never exposed into the rendering context.
+  - Cross-session authentication and CSRF token isolation verified under heavy concurrent virtual-thread load in `SpringSecurityCrossSessionCsrfAndAuthIsolationTest` and `SpringSecurityConcurrencyStressTest`.
+- **CSRF Facade Token Masking in `toString()`**:
+  - Implemented secure `toString()` on `DefaultCsrfView` masking sensitive CSRF token values (`CsrfView[parameterName=..., headerName=..., token=***]`), preventing accidental token leakage into logs, diagnostic dumps, or error reports.
+- **`VTL_SAFE` Sandbox Compatibility**:
+  - All public methods and properties on `SecurityView` and `CsrfView` are compatible with `MemberAccessPolicy.SANDBOX` and `VTL_SAFE` execution profiles, allowing safe interrogation of authentication and CSRF attributes in restricted environments.
+- **Security Boundary Enforcement**:
+  - Added ArchUnit rules `spring_security_must_not_access_internal_packages` and `spring_integration_must_not_access_internal_packages` enforcing that Spring integrations interact strictly through public engine APIs.
+  - Validated that internal sensitive types (`ApplicationContext`, `BeanFactory`, `SecurityContextHolder`) remain completely inaccessible to template code.
+
+### Build / Release
+- **Resumable Central Publication Workflow**:
+  - Hardened release automation in `.github/workflows/release.yml` with decoupled staging, deployment, and verification stages supporting idempotent re-runs, staging repository reuse, and safe failure recovery.
+- **Immutable-Coordinate Guard**:
+  - Integrated `scripts/verify-central-release.py` and pre-flight publication guards preventing accidental coordinate overwrite or re-publication of existing released versions to Maven Central.
+- **Public Artifact Verification**:
+  - Comprehensive verification suite in `scripts/validate-release-bundle.py` verifying parent POM and all 10 published modules for main, sources, and Javadoc JARs, bytecode clean-room hygiene (zero test/TCK/Velocity classes, zero credentials/secrets), and valid package hierarchies.
+- **Maven/Gradle Dual-Build Parity**:
+  - Automated parity verification via `scripts/verify-build-parity.py` ensuring Maven and Gradle builds produce matching artifact coordinates, dependencies, compiler configurations, publication metadata, and AOT bytecode output.
 
 ## [0.2.0] - 2026-09-12
 

@@ -12,7 +12,7 @@
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>4.0.0</spring-boot.version>
-        <viet-template.version>0.2.1-SNAPSHOT</viet-template.version>
+        <viet-template.version>0.2.1</viet-template.version>
     </properties>
 
     <dependencyManagement>
