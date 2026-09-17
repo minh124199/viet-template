@@ -28,8 +28,8 @@ Many existing JVM template engines require teams to choose between familiar, fle
 
 | Item | Value |
 | :--- | :--- |
-| **Current Published Release** | `0.2.0` (2026-09-12) |
-| **Development Branch** | `0.2.1` (release preparation in progress) |
+| **Current Published Release** | `0.2.1` (2026-09-17) |
+| **Development Branch** | `0.2.2-SNAPSHOT` | `main` | Under active development (M17 GraalVM native image) |
 | **Maturity Level** | **Pre-1.0 (`0.2.x`)** |
 | **Maven Group** | `io.github.minh124199` |
 | **Java Baseline** | Java 17 (`--release 17`) |

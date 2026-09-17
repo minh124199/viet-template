@@ -5,7 +5,7 @@ plugins {
 
 allprojects {
     group = "io.github.minh124199"
-    version = "0.2.1"
+    version = "0.2.2-SNAPSHOT"
 }
 
 subprojects {

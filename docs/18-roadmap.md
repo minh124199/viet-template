@@ -178,7 +178,7 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
   - Added ArchUnit rule `integration_and_tooling_boundary_must_not_access_internal_packages` in `viet-template-tck`.
   - Audited M15 AOT readiness; mandated a narrow build-time compiler facade (`TemplateAotCompiler`) in M15 to decouple build tooling from internal compiler machinery.
   - Formally documented in [`docs/33-m14-1-public-surface-containment.md`](33-m14-1-public-surface-containment.md).
-- **Milestone M15 (Maven & Gradle AOT Tooling) — COMPLETE (Implemented & Tested, Unreleased)**:
+- **Milestone M15 (Maven & Gradle AOT Tooling) — COMPLETE / RELEASED (v0.2.1)**:
   - Implemented narrow public build-time compiler facade `TemplateAotCompiler` in `io.github.minh124199.viettemplate.aot`, adding 6 `STABLE_API` types (expanding classification to 347 types; 72 `STABLE_API`).
   - Implemented self-contained `<clinit>` bytecode generation for constant arrays and dynamic call sites, enabling isolated classloading without runtime reflection.
   - Built `VtlTemplateEngine` ClassLoader discovery of precompiled templates via `META-INF/viet-template/templates.idx` (`rejectRuntimeCompilation(true)`).
@@ -186,14 +186,14 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
   - Delivered `viet-template-gradle-plugin` with `@CacheableTask` `VietTemplateCompileTask` and configuration cache compatibility.
   - Established automated 100% byte-for-byte dual-build parity verification via `scripts/verify-aot-tooling-parity.sh` and black-box consumer test fixtures.
   - Formally documented in [`docs/34-m15-aot-build-tooling.md`](34-m15-aot-build-tooling.md).
-- **Milestone M16 (Spring Framework & Spring Boot Integration) — COMPLETE (Implemented & Tested, Unreleased)**:
+- **Milestone M16 (Spring Framework & Spring Boot Integration) — COMPLETE / RELEASED (v0.2.1)**:
   - Delivered `viet-template-spring` providing thread-safe, immutable `VietTemplateView`, caching `VietTemplateViewResolver` with AOT fallback, non-closing servlet stream ownership (`NonClosingOutputStream`), zero-allocation binary streaming via `Utf8OutputStreamTemplateOutput`, strict path traversal rejection, and `VietTemplateEngineCustomizer` SPI (adding 1 `STABLE_SPI` and 2 `STABLE_API` types).
   - Delivered `viet-template-spring-boot-autoconfigure` providing `VietTemplateAutoConfiguration`, comprehensive configuration properties (`viet-template.*`), template location verification with AOT index discovery (`templates.idx`), and Spring lifecycle management (`destroyMethod = "close"`), adding 2 `STABLE_API` types (expanding total classification to 352 types; 76 `STABLE_API`, 15 `STABLE_SPI`).
   - Delivered `viet-template-spring-boot-starter` aggregator starter combining view resolution, auto-configuration, and VTL interpreter.
   - Established dual-build AOT consumer test fixtures (`integration-tests/spring/maven-mvc-aot` and `integration-tests/spring/gradle-mvc-aot`) testing MockMvc and real embedded HTTP server execution.
   - Verified 100% byte-for-byte bytecode and index dual-build parity and pure AOT execution via `scripts/verify-spring-integration-parity.sh`.
   - Formally documented in [`docs/35-m16-spring-integration.md`](35-m16-spring-integration.md).
-- **Milestone M16.1 (Spring Security Integration) — COMPLETE (Implemented & Tested, Unreleased)**:
+- **Milestone M16.1 (Spring Security Integration) — COMPLETE / RELEASED (v0.2.1)**:
   - Delivered optional `viet-template-spring-security` module providing read-only facades `SecurityView` and `CsrfView` with minimized JavaBean accessors (`getName()`, `isAuthenticated()`, `isAnonymous()`, `getAuthorities()`, `hasAuthority()`, `hasAnyAuthority()`, `getToken()`, `getParameterName()`, `getHeaderName()`), factory SPIs `SecurityViewFactory` and `CsrfViewFactory`, and `SpringSecurityRenderContextContributor`.
   - Added generic request metadata attribute bridge `SpringRenderAttributes` (`SERVLET_REQUEST`) in `viet-template-spring`.
   - Added Spring Boot auto-configuration `VietTemplateSecurityAutoConfiguration` under `viet-template.security.enabled` (default `true`) in `viet-template-spring-boot-autoconfigure`.
