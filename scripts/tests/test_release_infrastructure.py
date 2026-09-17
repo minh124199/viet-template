@@ -424,14 +424,15 @@ class PublicationMetadataTests(unittest.TestCase):
 
     def test_publication_bundle_pom_metadata_validation(self):
         errors = []
-        bundle.validate_parent_pom(ROOT, "0.2.1-SNAPSHOT", errors)
+        curr_version = bundle.get_project_version()
+        bundle.validate_parent_pom(ROOT, curr_version, errors)
         self.assertEqual([], errors)
 
         for mod in bundle.ALL_PUBLISHED_MODULES:
             bundle.validate_pom_metadata(
                 ROOT / mod / "pom.xml",
                 mod,
-                "0.2.1-SNAPSHOT",
+                curr_version,
                 errors,
                 enforce_production_dependencies=(mod in bundle.PRODUCTION_MODULES),
             )
@@ -440,18 +441,18 @@ class PublicationMetadataTests(unittest.TestCase):
         # Test failure on corrupted POM
         with tempfile.TemporaryDirectory() as directory:
             fake_pom = Path(directory) / "bad-pom.xml"
-            fake_pom.write_text("""<?xml version="1.0" encoding="UTF-8"?>
+            fake_pom.write_text(f"""<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0">
   <groupId>io.github.minh124199</groupId>
   <artifactId>viet-template-api</artifactId>
-  <version>0.2.1-SNAPSHOT</version>
+  <version>{curr_version}</version>
   <url>https://github.com/minh124199/viet-template/viet-template-api</url>
   <scm>
     <connection>scm:git:https://github.com/minh124199/viet-template.git/viet-template-api</connection>
   </scm>
 </project>""")
             bad_errors = []
-            bundle.validate_pom_metadata(fake_pom, "viet-template-api", "0.2.1-SNAPSHOT", bad_errors)
+            bundle.validate_pom_metadata(fake_pom, "viet-template-api", curr_version, bad_errors)
             self.assertTrue(any("Malformed appended url" in e for e in bad_errors))
             self.assertTrue(any("Malformed appended scm connection" in e for e in bad_errors))
 

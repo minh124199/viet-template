@@ -29,7 +29,7 @@ Many existing JVM template engines require teams to choose between familiar, fle
 | Item | Value |
 | :--- | :--- |
 | **Current Published Release** | `0.2.0` (2026-09-12) |
-| **Development Branch** | `0.2.1-SNAPSHOT` (next intended publication: `0.2.1`) |
+| **Development Branch** | `0.2.1` (release preparation in progress) |
 | **Maturity Level** | **Pre-1.0 (`0.2.x`)** |
 | **Maven Group** | `io.github.minh124199` |
 | **Java Baseline** | Java 17 (`--release 17`) |
@@ -268,18 +268,18 @@ Viet Template provides production integration for Spring MVC and Spring Boot via
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-boot-starter</artifactId>
-    <version>0.2.1-SNAPSHOT</version>
+    <version>0.2.1</version>
 </dependency>
 ```
 
 ##### Gradle (Kotlin DSL)
 ```kotlin
-implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.1-SNAPSHOT")
+implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.1")
 ```
 
 ##### Gradle (Groovy DSL)
 ```groovy
-implementation 'io.github.minh124199:viet-template-spring-boot-starter:0.2.1-SNAPSHOT'
+implementation 'io.github.minh124199:viet-template-spring-boot-starter:0.2.1'
 ```
 
 #### Application Properties
@@ -360,13 +360,13 @@ Applications using Spring Security can add the optional `viet-template-spring-se
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-security</artifactId>
-    <version>0.2.1-SNAPSHOT</version>
+    <version>0.2.1</version>
 </dependency>
 ```
 
 ##### Gradle (Kotlin DSL)
 ```kotlin
-implementation("io.github.minh124199:viet-template-spring-security:0.2.1-SNAPSHOT")
+implementation("io.github.minh124199:viet-template-spring-security:0.2.1")
 ```
 
 #### Template Usage
@@ -654,7 +654,7 @@ Please also review our [Code of Conduct](CODE_OF_CONDUCT.md) and [Security Polic
 Viet Template follows an evidence-driven, benchmark-verified phased roadmap:
 
 - **Phase 0.1.x**: Baseline stabilization, adversarial security fuzzing, and Milestone M19.1 JMH benchmark infrastructure.
-- **Phase 0.2.x (Current)**: High-performance runtime architecture with compiler-assigned variable slot execution frames (`EvaluationValue[] slots`) and indexed compilation cache invalidation. Active development version is `0.2.1-SNAPSHOT` on `main`, targeting publication of `0.2.1` (M15 AOT build plugins and M16 Spring integration).
+- **Phase 0.2.x (Current)**: High-performance runtime architecture with compiler-assigned variable slot execution frames (`EvaluationValue[] slots`) and indexed compilation cache invalidation. Active version is `0.2.1`, finalizing publication of `0.2.1` (M15 AOT build plugins and M16 Spring integration).
 - **Phase 0.3.x+**: Subsequent roadmap milestone introducing evidence-driven optimizations guided by profiling (cache contention reduction, zero-copy token slices).
 - **Phase 1.0**: GraalVM Native Image verification (M17), independently runnable public TCK and reproducible benchmark report (M18), comprehensive migration guide, stable API freeze, and formal publication.
 
