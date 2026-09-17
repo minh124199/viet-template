@@ -29,7 +29,7 @@ As formally decided in ADR-0007, ADR-0008, and ADR-0009:
 - **Primary Toolchain and Runtime**: Java 25.
 - **Canonical Frameworks**: Spring Framework 7.0.9, Spring Boot 4.1.1, Spring Security 7.1.1.
 - **Servlet Specification**: Jakarta Servlet 6.1.0 (Tomcat 11.0.24).
-- **Concurrency & Threads**: Virtual Threads (Project Loom) first-class support with zero carrier thread pinning and thread-confined render activations.
+- **Concurrency & Threads**: Virtual Threads (Project Loom) first-class support; no pinned virtual threads were observed in tested steady-state rendering workloads. Cold concurrent runtime compilation can encounter JVM class-loader monitor pinning; AOT/precompiled execution avoids this path.
 - **Configuration Property Prefix**: Canonical prefix is **`viet-template`** (kebab-case, e.g. `viet-template.prefix`, `viet-template.suffix`, `viet-template.enabled`).
 
 ## 3. Modules
