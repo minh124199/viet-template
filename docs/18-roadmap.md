@@ -172,7 +172,7 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
   - Formally documented in [`docs/32-m14-public-api-spi-stabilization.md`](32-m14-public-api-spi-stabilization.md).
 - **Milestone M14.1 (Public Surface Containment + Lifecycle Finalization) — COMPLETE**:
   - Reduced visibility on 4 unneeded public internal types/members to private or package-private.
-  - Established `config/api-baseline/public-surface-classification.txt` with full 4-category classification (initially 341 types at M14.1; subsequently expanded to 360 types with 93 stable types [74 `STABLE_API`, 19 `STABLE_SPI`] following M15, M16, and M16.1 additions).
+  - Established `config/api-baseline/public-surface-classification.txt` with full 4-category classification (initially 341 types at M14.1; subsequently expanded to 360 types with 99 stable types [80 `STABLE_API`, 19 `STABLE_SPI`] following M15, M16, and M16.1 additions).
   - Automated CI verification (`scripts/verify-public-surface-classification.py`) enforcing 0 unclassified types, 0 stale types, baseline parity, and 0 signature leaks.
   - Hardened concrete output stream lifecycles (`Utf8OutputStreamTemplateOutput`, `WriterTemplateOutput`, `StringTemplateOutput`, `TemplateEngine`), verified by `ConcreteOutputLifecycleContractTest`.
   - Added ArchUnit rule `integration_and_tooling_boundary_must_not_access_internal_packages` in `viet-template-tck`.
@@ -198,15 +198,15 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
   - Added generic request metadata attribute bridge `SpringRenderAttributes` (`SERVLET_REQUEST`) in `viet-template-spring`.
   - Added Spring Boot auto-configuration `VietTemplateSecurityAutoConfiguration` under `viet-template.security.enabled` (default `true`) in `viet-template-spring-boot-autoconfigure`.
   - Verified strict isolation: raw framework objects never exposed to templates, sensitive tokens redacted in `toString()`, full compatibility with `VTL_SAFE` sandbox profile, and standard HTML auto-escaping applied to principal names and authorities.
-  - Expanded public surface classification baseline to 360 types (74 `STABLE_API`, 19 `STABLE_SPI`).
+  - Expanded public surface classification baseline to 360 types (80 `STABLE_API`, 19 `STABLE_SPI`, 6 `EXPERIMENTAL`, 255 `PUBLIC_BUT_INTERNAL_ACCIDENT`).
   - Verified single-artifact binary compatibility across Spring Security 6.3.4, 6.5.11, 7.0.7, and 7.1.1 via `scripts/verify-spring-security-compatibility.py`.
   - Delivered dual-generation, dual-build AOT consumer fixtures:
     - Generation 1: `integration-tests/spring/maven-security-aot` & `integration-tests/spring/gradle-security-aot` (Spring Boot 3.3.5 / Spring Security 6.3.4)
-    - Generation 2: `integration-tests/spring/maven-security7-aot` & `integration-tests/spring/gradle-security7-aot` (Spring Boot 4.0.0-RC1 / Spring Framework 7.0.0-RC2 / Spring Security 7.0.0-RC1 / 7.0.7 / 7.1.1)
+    - Generation 2: `integration-tests/spring/maven-security7-aot` & `integration-tests/spring/gradle-security7-aot` (Spring Boot 4.0.0 / Spring Framework 7.0.1 / Spring Security 7.0.0 / 7.0.7 / 7.1.1)
   - Automated 10-step dual-build parity and live HTTP server verification via `scripts/verify-spring-security-parity.sh` and `scripts/verify-spring-security7-integration.sh`.
   - Formally documented in [`docs/36-spring-security-integration.md`](36-spring-security-integration.md).
 - **Pre-1.0 Stable Surface Convergence Gate — COMPLETE**:
-  - Reconciled `config/api-baseline/public-surface-classification.txt` with layered baselines (`1.0-core-public-api.txt`, `1.0-spring-public-api.txt`, `1.0-spring-security-public-api.txt`), protecting all 93 stable types mechanically by `scripts/verify-api-compatibility.py` on CI.
+  - Reconciled `config/api-baseline/public-surface-classification.txt` with 4 layered baselines (`1.0-core-public-api.txt` [80 types], `1.0-aot-public-api.txt` [6 types], `1.0-spring-public-api.txt` [8 types], `1.0-spring-security-public-api.txt` [5 types]), protecting all 99 stable types mechanically with 0 duplicate ownership and full bijection enforced by `scripts/verify-api-compatibility.py` and `scripts/verify-public-surface-classification.py` on CI.
 - **Milestone M17 (GraalVM Native Image & Advanced Framework Features) — NEXT**:
   - Native image reachability-metadata verification for Spring Boot AOT / GraalVM Native Image.
   - Spring Boot DevTools restart/refresh integration hardening and preview lane validation.

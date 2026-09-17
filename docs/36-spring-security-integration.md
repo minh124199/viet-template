@@ -361,15 +361,17 @@ The integration is verified through a multi-tier automated test suite:
 
 5. **Layered API Compatibility Verification (`scripts/verify-api-compatibility.py`)**:
    - `config/api-baseline/1.0-core-public-api.txt` (80 types)
+   - `config/api-baseline/1.0-aot-public-api.txt` (6 types)
    - `config/api-baseline/1.0-spring-public-api.txt` (8 types)
    - `config/api-baseline/1.0-spring-security-public-api.txt` (5 types)
-   - Protects 93 public types against binary and source breaking changes across core, spring, and security modules.
+   - Protects 99 public types against binary and source breaking changes across core, AOT, spring, and security modules.
+   - Enforces machine-checked bijection invariant: `union(all 1.0 compatibility baseline types) == all STABLE_API + STABLE_SPI types`.
    - Guarded by negative verification tests catching method removals, parameter alterations, and abstract interface additions.
 
 6. **Dual-Build AOT Parity across Generations (`scripts/verify-spring-security-parity.sh`)**:
    - **Generation 1 (Spring Boot 3.3.5 / Spring Security 6.3.4)**:
      - `integration-tests/spring/maven-security-aot` & `integration-tests/spring/gradle-security-aot`
-   - **Generation 2 (Spring Boot 4.0.0-RC1 / Spring Framework 7.0.0-RC2 / Spring Security 7.0.0-RC1 / 7.0.7 / 7.1.1)**:
+   - **Generation 2 (Spring Boot 4.0.0 / Spring Framework 7.0.1 / Spring Security 7.0.0 / 7.0.7 / 7.1.1)**:
      - `integration-tests/spring/maven-security7-aot` & `integration-tests/spring/gradle-security7-aot`
    - Automated 10-step verification suite:
      - Byte-for-byte `templates.idx` identity check (`cmp -s`).

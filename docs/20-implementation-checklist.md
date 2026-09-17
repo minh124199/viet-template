@@ -618,11 +618,11 @@ Every optimization must preserve:
 - [x] Comprehensive test coverage: unit tests, multithreaded concurrency tests, 3-party tests, Virtual Thread tests, ArchUnit boundary tests, auto-configuration tests, starter isolation tests.
 - [x] Multi-generation dual-build AOT consumer fixtures:
   - Spring Boot 3.3.5 / Spring Security 6.3.4: `maven-security-aot` & `gradle-security-aot`
-  - Spring Boot 4.0.0-RC1 / Spring Framework 7 / Spring Security 7: `maven-security7-aot` & `gradle-security7-aot`
+  - Spring Boot 4.0.0 / Spring Framework 7.0.1 / Spring Security 7.0.0: `maven-security7-aot` & `gradle-security7-aot`
 - [x] 10-step dual-build parity verification suite (`scripts/verify-spring-security-parity.sh` & `scripts/verify-spring-security7-integration.sh`) verifying 100% byte-for-byte bytecode and index parity and live HTTP execution.
 - [x] Multi-version compatibility verification: single artifact verified against Spring Security 6.3.4, 6.5.11, 7.0.7, 7.1.1 via `scripts/verify-spring-security-compatibility.py`.
-- [x] Layered public API baselines (`1.0-core-public-api.txt`, `1.0-spring-public-api.txt`, `1.0-spring-security-public-api.txt`) protecting 93 types mechanically via `scripts/verify-api-compatibility.py`.
-- [x] Formally classified in public surface baseline (`config/api-baseline/public-surface-classification.txt`).
+- [x] Layered public API baselines (`1.0-core-public-api.txt` [80 types], `1.0-aot-public-api.txt` [6 types], `1.0-spring-public-api.txt` [8 types], `1.0-spring-security-public-api.txt` [5 types]) protecting 99 types mechanically with full bijection invariant via `scripts/verify-api-compatibility.py`.
+- [x] Formally classified in public surface baseline (`config/api-baseline/public-surface-classification.txt`) with 99 stable types (80 `STABLE_API`, 19 `STABLE_SPI`).
 - [x] Formally documented in [`docs/36-spring-security-integration.md`](36-spring-security-integration.md).
 
 ---
@@ -809,4 +809,4 @@ Do not advertise ratios before measurement. Internal engineering targets:
 8. Build-time compilation is incremental and reproducible.
 9. Generated-code/source diagnostics are actionable.
 10. No benchmark or compatibility marketing claim exceeds the evidence produced by the checked-in suites.
-11. Stable public surface convergence: reconcile `config/api-baseline/public-surface-classification.txt` with `config/api-baseline/1.0-public-api.txt` so every public type classified as `STABLE_API` or `STABLE_SPI` is mechanically verified and protected by automated compatibility verification before 1.0 freeze.
+11. Stable public surface convergence: reconcile `config/api-baseline/public-surface-classification.txt` with layered baselines (`1.0-core-public-api.txt` [80 types], `1.0-aot-public-api.txt` [6 types], `1.0-spring-public-api.txt` [8 types], `1.0-spring-security-public-api.txt` [5 types]) so every public type classified as `STABLE_API` or `STABLE_SPI` (99 total types) is mechanically verified and protected by automated compatibility verification with full bijection invariant before 1.0 freeze.
