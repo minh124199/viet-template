@@ -4,7 +4,39 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-echo "=== Viet Template Spring Boot DevTools Restart & ClassLoader Lifecycle Hardening Integration Verification ==="
+MAVEN_REPO_LOCAL="${MAVEN_REPO_LOCAL:-${VT_DEVTOOLS_M2_REPO:-/tmp/viet-template-devtools-m2}}"
+
+echo "[BOOTSTRAP] Preparing Viet Template 0.2.2-SNAPSHOT reactor artifacts in ${MAVEN_REPO_LOCAL}..."
+"${ROOT_DIR}/gradlew" publishToMavenLocal --no-daemon -x test -Dmaven.repo.local="${MAVEN_REPO_LOCAL}" -q
+"${ROOT_DIR}/mvnw" install -DskipTests -Dspotless.check.skip=true -B -Dmaven.repo.local="${MAVEN_REPO_LOCAL}" -q
+
+# Pre-flight assertions verifying snapshot artifacts exist in ${MAVEN_REPO_LOCAL}
+REQUIRED_MODULES=(
+    "viet-template-parent"
+    "viet-template-api"
+    "viet-template-runtime"
+    "viet-template-language-vtl"
+    "viet-template-vtl-interpreter"
+    "viet-template-spring"
+    "viet-template-spring-security"
+    "viet-template-spring-boot-autoconfigure"
+    "viet-template-spring-boot-starter"
+    "viet-template-maven-plugin"
+    "viet-template-gradle-plugin"
+)
+
+for mod in "${REQUIRED_MODULES[@]}"; do
+    if [ "${mod}" = "viet-template-parent" ]; then
+        artifact_path="${MAVEN_REPO_LOCAL}/io/github/minh124199/${mod}/0.2.2-SNAPSHOT/${mod}-0.2.2-SNAPSHOT.pom"
+    else
+        artifact_path="${MAVEN_REPO_LOCAL}/io/github/minh124199/${mod}/0.2.2-SNAPSHOT/${mod}-0.2.2-SNAPSHOT.jar"
+    fi
+    if [ ! -f "${artifact_path}" ]; then
+        echo "[FAIL] Pre-flight assertion failed: missing ${artifact_path}"
+        exit 1
+    fi
+done
+echo "[PASS] All 11 required 0.2.2-SNAPSHOT reactor artifacts verified in ${MAVEN_REPO_LOCAL}."
 
 APP_PID=""
 CURRENT_FIXTURE_DIR=""
@@ -140,9 +172,9 @@ verify_fixture() {
     # Step 1: Run fixture tests
     echo "[STEP 1] Running fixture unit & MockMvc test suite..."
     if [ "${build_tool}" = "maven" ]; then
-        "${ROOT_DIR}/mvnw" test -f "${fixture_dir}/pom.xml" -B
+        "${ROOT_DIR}/mvnw" test -f "${fixture_dir}/pom.xml" -B -Dmaven.repo.local="${MAVEN_REPO_LOCAL}"
     else
-        "${ROOT_DIR}/gradlew" test --project-dir "${fixture_dir}" --no-daemon
+        "${ROOT_DIR}/gradlew" test --project-dir "${fixture_dir}" --no-daemon -Dmaven.repo.local="${MAVEN_REPO_LOCAL}"
     fi
     echo "[PASS] Fixture test suite passed."
 
@@ -152,12 +184,12 @@ verify_fixture() {
     rm -f "${log_file}"
 
     if [ "${build_tool}" = "maven" ]; then
-        "${ROOT_DIR}/mvnw" compile process-classes -f "${fixture_dir}/pom.xml" -B -q
-        "${ROOT_DIR}/mvnw" spring-boot:run -f "${fixture_dir}/pom.xml" -Dspring-boot.run.arguments="--server.port=${port}" > "${log_file}" 2>&1 &
+        "${ROOT_DIR}/mvnw" compile process-classes -f "${fixture_dir}/pom.xml" -B -q -Dmaven.repo.local="${MAVEN_REPO_LOCAL}"
+        "${ROOT_DIR}/mvnw" spring-boot:run -f "${fixture_dir}/pom.xml" -Dmaven.repo.local="${MAVEN_REPO_LOCAL}" -Dspring-boot.run.arguments="--server.port=${port}" > "${log_file}" 2>&1 &
         APP_PID=$!
     else
-        "${ROOT_DIR}/gradlew" classes --project-dir "${fixture_dir}" --no-daemon -q
-        "${ROOT_DIR}/gradlew" bootRun --project-dir "${fixture_dir}" --args="--server.port=${port}" --no-daemon > "${log_file}" 2>&1 &
+        "${ROOT_DIR}/gradlew" classes --project-dir "${fixture_dir}" --no-daemon -q -Dmaven.repo.local="${MAVEN_REPO_LOCAL}"
+        "${ROOT_DIR}/gradlew" bootRun --project-dir "${fixture_dir}" --args="--server.port=${port}" --no-daemon -Dmaven.repo.local="${MAVEN_REPO_LOCAL}" > "${log_file}" 2>&1 &
         APP_PID=$!
     fi
 
@@ -226,10 +258,10 @@ verify_fixture() {
     echo "<!-- mode-b-recompile -->" >> "${fixture_dir}/src/main/viet-template/public.vtl"
 
     if [ "${build_tool}" = "maven" ]; then
-        "${ROOT_DIR}/mvnw" process-classes -f "${fixture_dir}/pom.xml" -B -q
+        "${ROOT_DIR}/mvnw" process-classes -f "${fixture_dir}/pom.xml" -B -q -Dmaven.repo.local="${MAVEN_REPO_LOCAL}"
         touch "${fixture_dir}/target/classes/.restart-trigger"
     else
-        "${ROOT_DIR}/gradlew" classes --project-dir "${fixture_dir}" --no-daemon -q
+        "${ROOT_DIR}/gradlew" classes --project-dir "${fixture_dir}" --no-daemon -q -Dmaven.repo.local="${MAVEN_REPO_LOCAL}"
         touch "${fixture_dir}/build/classes/java/main/.restart-trigger"
     fi
 
@@ -255,9 +287,9 @@ verify_fixture() {
     # Restore public.vtl
     sed -i '/<!-- mode-b-recompile -->/d' "${fixture_dir}/src/main/viet-template/public.vtl"
     if [ "${build_tool}" = "maven" ]; then
-        "${ROOT_DIR}/mvnw" process-classes -f "${fixture_dir}/pom.xml" -B -q
+        "${ROOT_DIR}/mvnw" process-classes -f "${fixture_dir}/pom.xml" -B -q -Dmaven.repo.local="${MAVEN_REPO_LOCAL}"
     else
-        "${ROOT_DIR}/gradlew" classes --project-dir "${fixture_dir}" --no-daemon -q
+        "${ROOT_DIR}/gradlew" classes --project-dir "${fixture_dir}" --no-daemon -q -Dmaven.repo.local="${MAVEN_REPO_LOCAL}"
     fi
 
     # Step 6: Stale template deletion
@@ -271,10 +303,10 @@ verify_fixture() {
 
     mv "${fixture_dir}/src/main/viet-template/stale.vtl" "${fixture_dir}/src/main/viet-template/stale.vtl.bak"
     if [ "${build_tool}" = "maven" ]; then
-        "${ROOT_DIR}/mvnw" process-classes -f "${fixture_dir}/pom.xml" -B -q
+        "${ROOT_DIR}/mvnw" process-classes -f "${fixture_dir}/pom.xml" -B -q -Dmaven.repo.local="${MAVEN_REPO_LOCAL}"
         touch "${fixture_dir}/target/classes/.restart-trigger"
     else
-        "${ROOT_DIR}/gradlew" classes --project-dir "${fixture_dir}" --no-daemon -q
+        "${ROOT_DIR}/gradlew" classes --project-dir "${fixture_dir}" --no-daemon -q -Dmaven.repo.local="${MAVEN_REPO_LOCAL}"
         touch "${fixture_dir}/build/classes/java/main/.restart-trigger"
     fi
 
@@ -290,10 +322,10 @@ verify_fixture() {
     # Restore stale.vtl
     mv "${fixture_dir}/src/main/viet-template/stale.vtl.bak" "${fixture_dir}/src/main/viet-template/stale.vtl"
     if [ "${build_tool}" = "maven" ]; then
-        "${ROOT_DIR}/mvnw" process-classes -f "${fixture_dir}/pom.xml" -B -q
+        "${ROOT_DIR}/mvnw" process-classes -f "${fixture_dir}/pom.xml" -B -q -Dmaven.repo.local="${MAVEN_REPO_LOCAL}"
         touch "${fixture_dir}/target/classes/.restart-trigger"
     else
-        "${ROOT_DIR}/gradlew" classes --project-dir "${fixture_dir}" --no-daemon -q
+        "${ROOT_DIR}/gradlew" classes --project-dir "${fixture_dir}" --no-daemon -q -Dmaven.repo.local="${MAVEN_REPO_LOCAL}"
         touch "${fixture_dir}/build/classes/java/main/.restart-trigger"
     fi
     cur_cl=$(wait_for_restart "${port}" "${cur_cl}")
