@@ -1,0 +1,45 @@
+# Viet Template 1.0 Spring Security Integration Public API and SPI Baseline
+# Machine-readable public signatures for source and binary compatibility enforcement
+# Format: TYPE <class-header>
+#         MEMBER <member-signature>
+
+TYPE public interface io.github.minh124199.viettemplate.spring.security.CsrfView
+  MEMBER public abstract java.lang.String getHeaderName()
+  MEMBER public abstract java.lang.String getParameterName()
+  MEMBER public abstract java.lang.String getToken()
+  MEMBER public static io.github.minh124199.viettemplate.spring.security.CsrfView of(java.lang.String, java.lang.String, java.lang.String)
+
+TYPE public interface io.github.minh124199.viettemplate.spring.security.CsrfViewFactory
+  MEMBER public abstract io.github.minh124199.viettemplate.spring.security.CsrfView create(jakarta.servlet.http.HttpServletRequest)
+  MEMBER public static io.github.minh124199.viettemplate.spring.security.CsrfViewFactory defaultFactory()
+
+TYPE public interface io.github.minh124199.viettemplate.spring.security.SecurityView
+  MEMBER public abstract boolean hasAnyAuthority(java.lang.String...)
+  MEMBER public abstract boolean hasAuthority(java.lang.String)
+  MEMBER public abstract boolean isAnonymous()
+  MEMBER public abstract boolean isAuthenticated()
+  MEMBER public abstract java.lang.String getName()
+  MEMBER public abstract java.util.Set<java.lang.String> getAuthorities()
+  MEMBER public default boolean hasAnyAuthority(java.lang.String, java.lang.String)
+  MEMBER public default boolean hasAnyAuthority(java.lang.String, java.lang.String, java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.spring.security.SecurityView anonymousView()
+
+TYPE public interface io.github.minh124199.viettemplate.spring.security.SecurityViewFactory
+  MEMBER public abstract io.github.minh124199.viettemplate.spring.security.SecurityView create(org.springframework.security.core.Authentication, jakarta.servlet.http.HttpServletRequest)
+  MEMBER public static io.github.minh124199.viettemplate.spring.security.SecurityViewFactory defaultFactory()
+  MEMBER public static io.github.minh124199.viettemplate.spring.security.SecurityViewFactory defaultFactory(org.springframework.security.authentication.AuthenticationTrustResolver)
+
+TYPE public final class io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor implements io.github.minh124199.viettemplate.api.RenderContextContributor
+  MEMBER public io.github.minh124199.viettemplate.spring.security.CsrfViewFactory getCsrfViewFactory()
+  MEMBER public io.github.minh124199.viettemplate.spring.security.SecurityViewFactory getSecurityViewFactory()
+  MEMBER public io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor()
+  MEMBER public io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor(io.github.minh124199.viettemplate.spring.security.SecurityViewFactory, io.github.minh124199.viettemplate.spring.security.CsrfViewFactory)
+  MEMBER public io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor(io.github.minh124199.viettemplate.spring.security.SecurityViewFactory, io.github.minh124199.viettemplate.spring.security.CsrfViewFactory, org.springframework.security.authentication.AuthenticationTrustResolver)
+  MEMBER public io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor(io.github.minh124199.viettemplate.spring.security.SecurityViewFactory, io.github.minh124199.viettemplate.spring.security.CsrfViewFactory, org.springframework.security.core.context.SecurityContextHolderStrategy, java.lang.String, java.lang.String)
+  MEMBER public java.lang.String getCsrfVariableName()
+  MEMBER public java.lang.String getSecurityVariableName()
+  MEMBER public static final java.lang.String AUTHENTICATION_ATTRIBUTE
+  MEMBER public static final java.lang.String DEFAULT_CSRF_VARIABLE_NAME
+  MEMBER public static final java.lang.String DEFAULT_SECURITY_VARIABLE_NAME
+  MEMBER public static final java.lang.String SECURITY_CONTEXT_ATTRIBUTE
+  MEMBER public void contribute(io.github.minh124199.viettemplate.api.ContributorContext, io.github.minh124199.viettemplate.api.RenderRequest)

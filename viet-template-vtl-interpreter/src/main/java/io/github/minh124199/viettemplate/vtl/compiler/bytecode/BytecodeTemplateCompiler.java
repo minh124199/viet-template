@@ -27,6 +27,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrTruthiness
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrUnaryOp;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan;
+import io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBreak;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBudgetCheck;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallMacro;
@@ -73,7 +74,26 @@ import java.util.Set;
  */
 public final class BytecodeTemplateCompiler implements TemplateBackend {
 
+  /**
+   * Slot offset separating method invocation arguments (slots 0..3) from compiler-managed semantic
+   * user locals and temporary registers.
+   *
+   * <p>Slot layout partitioning:
+   *
+   * <ul>
+   *   <li>Slots 0..2: {@code this}, {@code RenderContext context}, {@code TemplateOutput out}
+   *   <li>Slot 3: Unused in {@code render()}, {@code Object[] args} in chunk helper methods
+   *   <li>Slots 4 .. {@code baseTempSlot - 1}: Semantic template locals and parameters ({@code slot
+   *       + SLOT_OFFSET})
+   *   <li>Slots {@code baseTempSlot} .. {@code scratchSlot - 1}: Depth-scoped loop iteration and
+   *       counter registers
+   *   <li>Slot {@code scratchSlot}: Dedicated scratch register for short-circuit and null-guard
+   *       expressions
+   *   <li>{@code totalLocals}: Upper bound {@code scratchSlot + 1}
+   * </ul>
+   */
   private static final int SLOT_OFFSET = 4;
+
   private static final BackendId ID = BackendId.AOT_BYTECODE;
   private static final BackendCapabilities CAPABILITIES = BackendCapabilities.AOT_DEFAULT;
 
@@ -142,8 +162,31 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     String internalName = fqcn.replace('.', '/');
 
     // 5. Code generation context
+    int totalLocals = calculateTotalLocals(optimized);
+    IrSlotLayout.SlotLayout layout = IrSlotLayout.layout(optimized);
+    int maxSemanticSlot = -1;
+    for (IrParameter p : optimized.parameters()) {
+      maxSemanticSlot = Math.max(maxSemanticSlot, p.slot());
+    }
+    maxSemanticSlot = Math.max(maxSemanticSlot, scanMaxSlot(optimized.root()));
+    int maxLoopDepth = calculateMaxLoopDepth(optimized.root());
+    for (IrFunction f : optimized.functions()) {
+      maxSemanticSlot = Math.max(maxSemanticSlot, scanMaxSlot(f.body()));
+      for (IrParameter p : f.parameters()) {
+        maxSemanticSlot = Math.max(maxSemanticSlot, p.slot());
+      }
+      for (IrLocal l : f.locals()) {
+        maxSemanticSlot = Math.max(maxSemanticSlot, l.slot());
+      }
+      maxLoopDepth = Math.max(maxLoopDepth, calculateMaxLoopDepth(f.body()));
+    }
+    int baseTempSlot =
+        Math.max(SLOT_OFFSET, Math.max(layout.frameSize(), maxSemanticSlot + 1) + SLOT_OFFSET);
+    int scratchSlot = baseTempSlot + (2 * maxLoopDepth);
+
     CompilerContext context =
-        new CompilerContext(optimized, options, internalName, fqcn, fingerprint);
+        new CompilerContext(
+            optimized, options, internalName, fqcn, fingerprint, baseTempSlot, scratchSlot);
 
     // 6. Build bytecode
     ClassFileWriter cf = new ClassFileWriter(internalName, "java/lang/Object");
@@ -192,11 +235,10 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
             "(Lio/github/minh124199/viettemplate/api/RenderContext;Lio/github/minh124199/viettemplate/api/TemplateOutput;)V");
 
     // Initialize local slots and parameters in render method
-    int maxLocals = calculateMaxLocals(optimized);
-    render.setMaxLocals(maxLocals + 16);
+    render.setMaxLocals(totalLocals);
     render.setMaxStack(16);
 
-    for (int i = 3; i <= maxLocals + SLOT_OFFSET + 4; i++) {
+    for (int i = 3; i < totalLocals; i++) {
       render.aconst_null();
       render.astore(i);
     }
@@ -214,7 +256,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     }
 
     // Compile root block statements
-    compileBlock(optimized.root(), render, context);
+    compileBlock(optimized.root(), render, context, 0);
     if (!blockAlwaysTerminates(optimized.root())) {
       render.returnOp();
     }
@@ -236,10 +278,10 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
               ClassFileWriter.ACC_PUBLIC,
               methodName,
               "(Lio/github/minh124199/viettemplate/api/RenderContext;Lio/github/minh124199/viettemplate/api/TemplateOutput;[Ljava/lang/Object;)V");
-      funcMw.setMaxLocals(maxLocals + 16);
+      funcMw.setMaxLocals(totalLocals);
       funcMw.setMaxStack(16);
 
-      for (int i = 4; i <= maxLocals + SLOT_OFFSET + 4; i++) {
+      for (int i = 4; i < totalLocals; i++) {
         funcMw.aconst_null();
         funcMw.astore(i);
       }
@@ -252,7 +294,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         funcMw.astore(param.slot() + SLOT_OFFSET);
       }
 
-      compileBlock(function.body(), funcMw, context);
+      compileBlock(function.body(), funcMw, context, 0);
       if (!blockAlwaysTerminates(function.body())) {
         funcMw.returnOp();
       }
@@ -376,26 +418,67 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     }
   }
 
-  private static int calculateMaxLocals(IrTemplate template) {
-    int max = 0;
-    for (IrParameter p : template.parameters()) {
-      max = Math.max(max, p.slot());
+  private static int calculateMaxLoopDepth(IrBlock block) {
+    if (block == null) {
+      return 0;
     }
-    max = Math.max(max, scanMaxSlot(template.root()));
+    int max = 0;
+    for (IrStatement stmt : block.statements()) {
+      if (stmt instanceof IrLoop loop) {
+        int inner =
+            1
+                + Math.max(
+                    calculateMaxLoopDepth(loop.body()),
+                    loop.elseBody().map(BytecodeTemplateCompiler::calculateMaxLoopDepth).orElse(0));
+        max = Math.max(max, inner);
+      } else if (stmt instanceof IrIf ifStmt) {
+        int inner =
+            Math.max(
+                calculateMaxLoopDepth(ifStmt.thenBlock()),
+                ifStmt.elseBlock().map(BytecodeTemplateCompiler::calculateMaxLoopDepth).orElse(0));
+        max = Math.max(max, inner);
+      }
+    }
+    return max;
+  }
+
+  private static int calculateTotalLocals(IrTemplate template) {
+    int maxSemanticSlot = -1;
+    for (IrParameter p : template.parameters()) {
+      maxSemanticSlot = Math.max(maxSemanticSlot, p.slot());
+    }
+    maxSemanticSlot = Math.max(maxSemanticSlot, scanMaxSlot(template.root()));
+    int maxLoopDepth = calculateMaxLoopDepth(template.root());
+
     for (IrFunction f : template.functions()) {
-      max = Math.max(max, scanMaxSlot(f.body()));
+      maxSemanticSlot = Math.max(maxSemanticSlot, scanMaxSlot(f.body()));
       for (IrParameter p : f.parameters()) {
-        max = Math.max(max, p.slot());
+        maxSemanticSlot = Math.max(maxSemanticSlot, p.slot());
       }
       for (IrLocal l : f.locals()) {
-        max = Math.max(max, l.slot());
+        maxSemanticSlot = Math.max(maxSemanticSlot, l.slot());
       }
+      maxLoopDepth = Math.max(maxLoopDepth, calculateMaxLoopDepth(f.body()));
     }
-    return max + SLOT_OFFSET + 4;
+
+    // Invariant: Compiler temporary locals represented by this allocator are Object/reference
+    // slots for their entire lifetime. They are pre-initialized with aconst_null/astore in the
+    // method
+    // prologue and strictly manipulated via aload/astore to maintain complete compatibility
+    // with ClassFileWriter's full_frame StackMapTable generator.
+    IrSlotLayout.SlotLayout layout = IrSlotLayout.layout(template);
+    int baseTempSlot =
+        Math.max(SLOT_OFFSET, Math.max(layout.frameSize(), maxSemanticSlot + 1) + SLOT_OFFSET);
+    int scratchSlot = baseTempSlot + (2 * maxLoopDepth);
+    int totalLocals = scratchSlot + 1;
+    if (scratchSlot >= totalLocals) {
+      throw new IllegalStateException("totalLocals must be strictly greater than scratchSlot");
+    }
+    return totalLocals;
   }
 
   private static int scanMaxSlot(IrBlock block) {
-    int max = 0;
+    int max = -1;
     for (IrStatement stmt : block.statements()) {
       if (stmt instanceof IrStoreLocal sl) {
         max = Math.max(max, sl.local().slot());
@@ -405,6 +488,9 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
           max = Math.max(max, loop.loopStateLocal().get().slot());
         }
         max = Math.max(max, scanMaxSlot(loop.body()));
+        if (loop.elseBody().isPresent()) {
+          max = Math.max(max, scanMaxSlot(loop.elseBody().get()));
+        }
       } else if (stmt instanceof IrIf ifStmt) {
         max = Math.max(max, scanMaxSlot(ifStmt.thenBlock()));
         if (ifStmt.elseBlock().isPresent()) {
@@ -416,9 +502,9 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   }
 
   private static void compileBlock(
-      IrBlock block, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+      IrBlock block, ClassFileWriter.MethodWriter mw, CompilerContext context, int loopDepth) {
     for (IrStatement stmt : block.statements()) {
-      compileStatement(stmt, mw, context);
+      compileStatement(stmt, mw, context, loopDepth);
       if (stmt instanceof IrStop
           || stmt instanceof IrReturn
           || (stmt instanceof IrBreak && context.currentLoopExit() == null)) {
@@ -428,7 +514,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   }
 
   private static void compileStatement(
-      IrStatement stmt, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+      IrStatement stmt, ClassFileWriter.MethodWriter mw, CompilerContext context, int loopDepth) {
     SourceSpan span = stmt.span();
     if (span != null && span.isKnown()) {
       mw.addLineNumber(span.startLine());
@@ -442,9 +528,9 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     } else if (stmt instanceof IrStoreLocal sl) {
       compileStoreLocal(sl, mw, context);
     } else if (stmt instanceof IrIf ifStmt) {
-      compileIf(ifStmt, mw, context);
+      compileIf(ifStmt, mw, context, loopDepth);
     } else if (stmt instanceof IrLoop loop) {
-      compileLoop(loop, mw, context);
+      compileLoop(loop, mw, context, loopDepth);
     } else if (stmt instanceof IrBreak) {
       ClassFileWriter.Label exitLabel = context.currentLoopExit();
       if (exitLabel != null) {
@@ -536,7 +622,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   }
 
   private static void compileIf(
-      IrIf ifStmt, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+      IrIf ifStmt, ClassFileWriter.MethodWriter mw, CompilerContext context, int loopDepth) {
     ClassFileWriter.Label elseLabel = mw.newLabel();
     ClassFileWriter.Label endLabel = mw.newLabel();
 
@@ -548,14 +634,14 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         "(Ljava/lang/Object;Z)Z");
     mw.ifeq(elseLabel);
 
-    compileBlock(ifStmt.thenBlock(), mw, context);
+    compileBlock(ifStmt.thenBlock(), mw, context, loopDepth);
     if (!blockAlwaysTerminates(ifStmt.thenBlock())) {
       mw.gotoOp(endLabel);
     }
 
     mw.bindLabel(elseLabel);
     if (ifStmt.elseBlock().isPresent()) {
-      compileBlock(ifStmt.elseBlock().get(), mw, context);
+      compileBlock(ifStmt.elseBlock().get(), mw, context, loopDepth);
     }
     mw.bindLabel(endLabel);
   }
@@ -573,11 +659,19 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   }
 
   private static void compileLoop(
-      IrLoop loop, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+      IrLoop loop, ClassFileWriter.MethodWriter mw, CompilerContext context, int loopDepth) {
     ClassFileWriter.Label loopHeader = mw.newLabel();
     ClassFileWriter.Label loopExit = mw.newLabel();
 
-    int iterSlot = context.nextTempSlot();
+    int iterSlot = context.baseTempSlot + (2 * loopDepth);
+    int counterSlot = context.baseTempSlot + (2 * loopDepth) + 1;
+    if (counterSlot >= context.scratchSlot) {
+      throw new IllegalStateException(
+          String.format(
+              "Loop slot allocation overflow: loopDepth=%d, counterSlot=%d exceeds scratchSlot=%d"
+                  + " (baseTempSlot=%d)",
+              loopDepth, counterSlot, context.scratchSlot, context.baseTempSlot));
+    }
     int itemSlot = loop.elementLocal().slot() + SLOT_OFFSET;
 
     compileExpression(loop.iterable(), mw, context);
@@ -597,12 +691,10 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         "(Ljava/lang/Object;Lio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;Ljava/lang/String;IIII)Ljava/util/Iterator;");
     mw.astore(iterSlot);
 
-    int counterSlot = -1;
     Integer parentMetaSlot = context.currentForeachMetaSlot();
     int metaSlot = -1;
     if (loop.loopStateLocal().isPresent()) {
       metaSlot = loop.loopStateLocal().get().slot() + SLOT_OFFSET;
-      counterSlot = context.nextTempSlot();
       mw.invokestatic(
           "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
           "createLoopState",
@@ -631,7 +723,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
             ? context.layout.loopLocals().getOrDefault(loop, List.of())
             : List.of();
 
-    if (counterSlot != -1) {
+    if (loop.loopStateLocal().isPresent()) {
       mw.aload(counterSlot);
       mw.aload(iterSlot);
       mw.invokeinterface("java/util/Iterator", "hasNext", "()Z", 1);
@@ -653,7 +745,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     }
 
     context.pushLoop(loopExit);
-    compileBlock(loop.body(), mw, context);
+    compileBlock(loop.body(), mw, context, loopDepth + 1);
     context.popLoop();
     if (loop.loopStateLocal().isPresent()) {
       context.popForeachMetaSlot();
@@ -677,7 +769,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       IrStoreLocal sl, ClassFileWriter.MethodWriter mw, CompilerContext context) {
     compileExpression(sl.value(), mw, context);
     if (!context.options.setNullAllowed()) {
-      int tempValSlot = context.nextTempSlot();
+      int tempValSlot = context.scratchSlot;
       mw.astore(tempValSlot);
       mw.aload(tempValSlot);
       ClassFileWriter.Label skipStore = mw.newLabel();
@@ -1056,6 +1148,74 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       return;
     }
 
+    if (bin.op() == BinaryOpKind.AND) {
+      int scratchSlot = context.scratchSlot;
+      ClassFileWriter.Label falseLabel = mw.newLabel();
+      ClassFileWriter.Label endLabel = mw.newLabel();
+
+      compileExpression(bin.left(), mw, context);
+      mw.iconst(1); // emptyCheck = true
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "isTruthy",
+          "(Ljava/lang/Object;Z)Z");
+      mw.ifeq(falseLabel);
+
+      compileExpression(bin.right(), mw, context);
+      mw.iconst(1); // emptyCheck = true
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "isTruthy",
+          "(Ljava/lang/Object;Z)Z");
+      mw.ifeq(falseLabel);
+
+      mw.getstatic("java/lang/Boolean", "TRUE", "Ljava/lang/Boolean;");
+      mw.astore(scratchSlot);
+      mw.gotoOp(endLabel);
+
+      mw.bindLabel(falseLabel);
+      mw.getstatic("java/lang/Boolean", "FALSE", "Ljava/lang/Boolean;");
+      mw.astore(scratchSlot);
+
+      mw.bindLabel(endLabel);
+      mw.aload(scratchSlot);
+      return;
+    }
+
+    if (bin.op() == BinaryOpKind.OR) {
+      int scratchSlot = context.scratchSlot;
+      ClassFileWriter.Label trueLabel = mw.newLabel();
+      ClassFileWriter.Label endLabel = mw.newLabel();
+
+      compileExpression(bin.left(), mw, context);
+      mw.iconst(1); // emptyCheck = true
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "isTruthy",
+          "(Ljava/lang/Object;Z)Z");
+      mw.ifne(trueLabel);
+
+      compileExpression(bin.right(), mw, context);
+      mw.iconst(1); // emptyCheck = true
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "isTruthy",
+          "(Ljava/lang/Object;Z)Z");
+      mw.ifne(trueLabel);
+
+      mw.getstatic("java/lang/Boolean", "FALSE", "Ljava/lang/Boolean;");
+      mw.astore(scratchSlot);
+      mw.gotoOp(endLabel);
+
+      mw.bindLabel(trueLabel);
+      mw.getstatic("java/lang/Boolean", "TRUE", "Ljava/lang/Boolean;");
+      mw.astore(scratchSlot);
+
+      mw.bindLabel(endLabel);
+      mw.aload(scratchSlot);
+      return;
+    }
+
     compileExpression(bin.left(), mw, context);
     compileExpression(bin.right(), mw, context);
     mw.iconst(bin.op().ordinal());
@@ -1095,19 +1255,22 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
   private static void compileIsNull(
       IrIsNull isNull, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+    int scratchSlot = context.scratchSlot;
     ClassFileWriter.Label isNullLabel = mw.newLabel();
     ClassFileWriter.Label endLabel = mw.newLabel();
 
     compileExpression(isNull.expression(), mw, context);
     mw.ifnull(isNullLabel);
-    mw.iconst(0);
+    mw.getstatic("java/lang/Boolean", "FALSE", "Ljava/lang/Boolean;");
+    mw.astore(scratchSlot);
     mw.gotoOp(endLabel);
 
     mw.bindLabel(isNullLabel);
-    mw.iconst(1);
+    mw.getstatic("java/lang/Boolean", "TRUE", "Ljava/lang/Boolean;");
+    mw.astore(scratchSlot);
 
     mw.bindLabel(endLabel);
-    mw.invokestatic("java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;");
+    mw.aload(scratchSlot);
   }
 
   private static String extractRootName(IrExpression expr) {
@@ -1141,21 +1304,33 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     final Deque<ClassFileWriter.Label> loopStack = new ArrayDeque<>();
     final Deque<Integer> foreachMetaSlotStack = new ArrayDeque<>();
     final IrSlotLayout.SlotLayout layout;
-    int tempSlotOffset;
+    final int baseTempSlot;
+    final int scratchSlot;
 
     CompilerContext(
         IrTemplate template,
         BackendOptions options,
         String internalName,
         String fqcn,
-        String fingerprint) {
+        String fingerprint,
+        int baseTempSlot,
+        int scratchSlot) {
       this.template = template;
       this.options = options;
       this.internalName = internalName;
       this.fqcn = fqcn;
       this.fingerprint = fingerprint;
       this.layout = IrSlotLayout.layout(template);
-      this.tempSlotOffset = calculateMaxLocals(template) + 4;
+      if (baseTempSlot < SLOT_OFFSET) {
+        throw new IllegalStateException(
+            "baseTempSlot " + baseTempSlot + " must be >= " + SLOT_OFFSET);
+      }
+      if (scratchSlot < baseTempSlot) {
+        throw new IllegalStateException(
+            "scratchSlot " + scratchSlot + " must be >= baseTempSlot " + baseTempSlot);
+      }
+      this.baseTempSlot = baseTempSlot;
+      this.scratchSlot = scratchSlot;
     }
 
     int registerDynamicSite(String memberName, MemberOperation operation, int arity) {
@@ -1172,10 +1347,6 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
     void recordSourceMapping(int bytecodeOffset, int line, SourceSpan span) {
       sourceMappings.add(new TemplateSidecarIndex.SourceMapping(bytecodeOffset, line, span));
-    }
-
-    int nextTempSlot() {
-      return tempSlotOffset++;
     }
 
     void pushLoop(ClassFileWriter.Label exitLabel) {

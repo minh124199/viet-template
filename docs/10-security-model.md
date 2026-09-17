@@ -324,5 +324,24 @@ Security protections are verified to be strictly identical across all execution 
 - **Resource Limits**: Wall-clock execution limits are defensive safe-points, not hard operating-system level preemptive CPU isolation.
 - **In-Process Defense-in-Depth**: In-JVM sandboxing provides defense-in-depth within a shared JVM; it does not replace process or container isolation in adversarial, untrusted multi-tenant cloud environments.
 
+---
 
+## 17. Spring Security Integration & Presentation Boundaries
 
+The optional `viet-template-spring-security` module integrates with Spring Security while enforcing strict architectural and threat boundary guarantees. For complete details, see [`docs/36-spring-security-integration.md`](36-spring-security-integration.md).
+
+> [!WARNING]
+> ### PRESENTATION-ONLY UI AUTHORIZATION WARNING
+> **Template authorization helpers (`$security.hasAuthority(...)`, `$security.authenticated`) control visual presentation only.**
+> They conditionally show or hide UI elements in rendered HTML markup. They **do not** establish backend security boundaries or replace server-side access controls (`@PreAuthorize`, `SecurityFilterChain.authorizeHttpRequests`, method security, or database filters). All sensitive operations and HTTP endpoints must be protected by authoritative Spring Security server-side authorization.
+
+### 17.1 Threat Boundary and State Isolation
+- **No Raw Framework Objects**: Raw `Authentication`, `SecurityContext`, `HttpServletRequest`, `HttpServletResponse`, HTTP sessions, and credential tokens are strictly forbidden from template scope.
+- **Read-Only Facades**: Templates interact exclusively with immutable, read-only DTO facades (`SecurityView`, `CsrfView`). These facades expose only projection methods (`name()`, `authorities()`, `hasAuthority()`, `authenticated()`, `anonymous()`, `token()`, `parameterName()`, `headerName()`).
+- **Context Injection**: Bridged via the public `RenderContextContributor` SPI (`SpringSecurityRenderContextContributor`), populated per request without state leakage across requests or threads.
+
+### 17.2 Contextual Auto-Escaping (XSS Defense)
+All string-yielding methods on security facades (such as `$security.name` or `$security.authorities`) return standard Java `java.lang.String` and never implement `SafeHtml` or `SafeContent`. When interpolated in HTML contexts, untrusted principal names and authority values are strictly auto-escaped according to the active output context (`HTML_TEXT`, `HTML_ATTRIBUTE_QUOTED`), preventing stored XSS injection attacks via malicious usernames or OpenID/OAuth2 claims.
+
+### 17.3 Sensitive Token Redaction
+To prevent accidental exposure of CSRF secrets in debug outputs, logging statements, or error diagnostics, `CsrfView.toString()` strictly redacts the token value (`token=***`) while retaining parameter and header identifiers.

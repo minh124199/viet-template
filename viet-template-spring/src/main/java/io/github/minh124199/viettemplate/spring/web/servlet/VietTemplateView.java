@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.spring.web.servlet;
 
 import io.github.minh124199.viettemplate.api.RenderContext;
+import io.github.minh124199.viettemplate.api.RenderRequest;
 import io.github.minh124199.viettemplate.api.TemplateEngine;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.runtime.Utf8OutputStreamTemplateOutput;
@@ -9,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -75,12 +77,21 @@ public final class VietTemplateView implements View {
       response.setCharacterEncoding(this.charset.name());
     }
 
-    RenderContext context = toRenderContext(model);
+    Map<String, Object> attributes = createIntegrationAttributes(request);
+    RenderRequest renderRequest =
+        RenderRequest.of(this.templateId, toRenderContext(model), attributes);
     OutputStream responseStream = response.getOutputStream();
     try (Utf8OutputStreamTemplateOutput output =
         new Utf8OutputStreamTemplateOutput(new NonClosingOutputStream(responseStream))) {
-      this.engine.render(this.templateId, context, output);
+      this.engine.render(renderRequest, output);
     }
+  }
+
+  private static Map<String, Object> createIntegrationAttributes(HttpServletRequest request) {
+    if (request == null) {
+      return Collections.emptyMap();
+    }
+    return Collections.singletonMap(SpringRenderAttributes.SERVLET_REQUEST, request);
   }
 
   private static RenderContext toRenderContext(Map<String, ?> model) {

@@ -1,0 +1,105 @@
+# Viet Template 1.0 Spring Integration Public API and SPI Baseline
+# Machine-readable public signatures for source and binary compatibility enforcement
+# Format: TYPE <class-header>
+#         MEMBER <member-signature>
+
+TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration implements org.springframework.beans.factory.InitializingBean
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine vietTemplateEngine(io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties, org.springframework.beans.factory.ObjectProvider<io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer>)
+  MEMBER public io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration(io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties, org.springframework.context.ApplicationContext)
+  MEMBER public void afterPropertiesSet()
+  MEMBER public void checkTemplateLocationExists()
+
+TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties
+  MEMBER public boolean isCache()
+  MEMBER public boolean isCheckTemplateLocation()
+  MEMBER public boolean isEnabled()
+  MEMBER public boolean isHotReload()
+  MEMBER public boolean isRuntimeCompilationEnabled()
+  MEMBER public int getMaxCacheEntries()
+  MEMBER public int getOrder()
+  MEMBER public io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties$Security getSecurity()
+  MEMBER public io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties()
+  MEMBER public java.lang.String getContentType()
+  MEMBER public java.lang.String getPrefix()
+  MEMBER public java.lang.String getSuffix()
+  MEMBER public java.nio.charset.Charset getCharset()
+  MEMBER public long getNegativeCacheTtlMillis()
+  MEMBER public long getWatchDebounceMillis()
+  MEMBER public static final java.lang.String DEFAULT_CONTENT_TYPE
+  MEMBER public static final java.lang.String DEFAULT_PREFIX
+  MEMBER public static final java.lang.String DEFAULT_SUFFIX
+  MEMBER public static final java.nio.charset.Charset DEFAULT_CHARSET
+  MEMBER public void setCache(boolean)
+  MEMBER public void setCharset(java.nio.charset.Charset)
+  MEMBER public void setCheckTemplateLocation(boolean)
+  MEMBER public void setContentType(java.lang.String)
+  MEMBER public void setEnabled(boolean)
+  MEMBER public void setHotReload(boolean)
+  MEMBER public void setMaxCacheEntries(int)
+  MEMBER public void setNegativeCacheTtlMillis(long)
+  MEMBER public void setOrder(int)
+  MEMBER public void setPrefix(java.lang.String)
+  MEMBER public void setRuntimeCompilationEnabled(boolean)
+  MEMBER public void setSuffix(java.lang.String)
+  MEMBER public void setWatchDebounceMillis(long)
+
+TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties$Security
+  MEMBER public boolean isEnabled()
+  MEMBER public io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties$Security()
+  MEMBER public void setEnabled(boolean)
+
+TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateSecurityAutoConfiguration
+  MEMBER public io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateSecurityAutoConfiguration()
+  MEMBER public io.github.minh124199.viettemplate.spring.security.CsrfViewFactory csrfViewFactory()
+  MEMBER public io.github.minh124199.viettemplate.spring.security.SecurityViewFactory securityViewFactory()
+  MEMBER public io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor springSecurityRenderContextContributor(io.github.minh124199.viettemplate.spring.security.SecurityViewFactory, io.github.minh124199.viettemplate.spring.security.CsrfViewFactory)
+  MEMBER public io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer vietTemplateSpringSecurityEngineCustomizer(io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor)
+
+TYPE public final class io.github.minh124199.viettemplate.spring.web.servlet.SpringRenderAttributes
+  MEMBER public static final java.lang.String SERVLET_REQUEST
+
+TYPE public interface io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer
+  MEMBER public abstract void customize(io.github.minh124199.viettemplate.api.TemplateEngine$Builder)
+
+TYPE public final class io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView implements org.springframework.web.servlet.View
+  MEMBER public boolean equals(java.lang.Object)
+  MEMBER public int hashCode()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine getEngine()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId getTemplateId()
+  MEMBER public io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView(io.github.minh124199.viettemplate.api.TemplateEngine, io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView(io.github.minh124199.viettemplate.api.TemplateEngine, io.github.minh124199.viettemplate.api.TemplateId, java.lang.String, java.nio.charset.Charset)
+  MEMBER public java.lang.String getContentType()
+  MEMBER public java.lang.String toString()
+  MEMBER public java.nio.charset.Charset getCharset()
+  MEMBER public static final java.lang.String DEFAULT_CONTENT_TYPE
+  MEMBER public static final java.nio.charset.Charset DEFAULT_CHARSET
+  MEMBER public void render(java.util.Map<java.lang.String, ?>, jakarta.servlet.http.HttpServletRequest, jakarta.servlet.http.HttpServletResponse) throws java.lang.Exception
+
+TYPE public class io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver implements org.springframework.web.servlet.ViewResolver,org.springframework.core.Ordered,org.springframework.beans.factory.InitializingBean,org.springframework.context.ApplicationContextAware
+  MEMBER protected boolean templateExists(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER protected org.springframework.web.servlet.View buildView(io.github.minh124199.viettemplate.api.TemplateId) throws java.lang.Exception
+  MEMBER public boolean isCache()
+  MEMBER public boolean isCheckTemplateLocation()
+  MEMBER public boolean removeFromCache(java.lang.String)
+  MEMBER public boolean removeFromCache(java.lang.String, java.util.Locale)
+  MEMBER public int getOrder()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine getEngine()
+  MEMBER public io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver()
+  MEMBER public io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver(io.github.minh124199.viettemplate.api.TemplateEngine)
+  MEMBER public java.lang.String getContentType()
+  MEMBER public java.lang.String getPrefix()
+  MEMBER public java.lang.String getSuffix()
+  MEMBER public java.nio.charset.Charset getCharset()
+  MEMBER public org.springframework.web.servlet.View resolveViewName(java.lang.String, java.util.Locale) throws java.lang.Exception
+  MEMBER public void afterPropertiesSet() throws java.lang.Exception
+  MEMBER public void clearCache()
+  MEMBER public void setApplicationContext(org.springframework.context.ApplicationContext)
+  MEMBER public void setCache(boolean)
+  MEMBER public void setCharset(java.lang.String)
+  MEMBER public void setCharset(java.nio.charset.Charset)
+  MEMBER public void setCheckTemplateLocation(boolean)
+  MEMBER public void setContentType(java.lang.String)
+  MEMBER public void setEngine(io.github.minh124199.viettemplate.api.TemplateEngine)
+  MEMBER public void setOrder(int)
+  MEMBER public void setPrefix(java.lang.String)
+  MEMBER public void setSuffix(java.lang.String)

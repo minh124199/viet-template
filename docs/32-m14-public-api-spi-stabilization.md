@@ -302,7 +302,7 @@ With Milestone M14 complete, the public API and SPI surfaces of Viet Template ar
 1. **M14 (Public API & SPI Stabilization)**: **COMPLETE**
 2. **M15 (Maven & Gradle AOT Tooling)**: **NEXT / UNBLOCKED**
    - Development of `viet-template-maven-plugin` and `viet-template-gradle-plugin` can now proceed against stable, finalized public compiler and repository interfaces.
-3. **M16 & M17 (Spring Framework 7 & Spring Boot 4 Integration)**: **UNBLOCKED**
+3. **M16 & M17 (Spring Framework 6 & Spring Boot 3 Integration)**: **UNBLOCKED**
    - Spring integration modules can safely implement `View` and `ViewResolver` against `TemplateEngine`, `Template`, and `RenderContext`.
 4. **M18 (Independent Public TCK & Benchmark Release Gates)**: **PLANNED**
 

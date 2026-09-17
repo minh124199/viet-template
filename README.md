@@ -16,7 +16,7 @@ Viet Template is a clean-room JVM template engine designed for applications that
 Many existing JVM template engines require teams to choose between familiar, flexible syntax and modern runtime efficiency:
 
 - **Clean-Room VTL Surface**: Retains familiar Velocity Template Language (VTL) syntax without carrying legacy runtime architecture or deprecated reflection mechanisms.
-- **Compile-First Architecture**: Parses templates into an immutable AST, lowers them to a control-flow-aware Intermediate Representation (IR), and applies 12 compiler optimization passes before rendering.
+- **Compile-First Architecture**: Parses templates into an immutable AST, lowers them to a control-flow-aware Intermediate Representation (IR), and applies an IR optimization pipeline of 11 distinct optimization pass implementations (13 transformation executions, with static UTF-8 pre-encoding lowering and O160 invariant verification) before rendering.
 - **Multi-Tier Execution**: Supports AST interpretation for rapid development, an optimized IR interpreter, dynamic method handles with Polymorphic Inline Caches (PIC), and direct Java 17 bytecode generation (AOT).
 - **Streaming & Low Allocation**: Emits static text as pre-encoded UTF-8 byte chunks, formats primitive numbers without intermediate `String` allocations, and streams output directly to `Writer` or `OutputStream`.
 - **Defense-in-Depth Security**: Denies access to reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), classloaders, processes, threads, and system resources by default. Enforces monotonic execution budgets (`RenderBudget`) across includes, macros, and layouts.
@@ -29,7 +29,7 @@ Many existing JVM template engines require teams to choose between familiar, fle
 | Item | Value |
 | :--- | :--- |
 | **Current Published Release** | `0.2.0` (2026-09-12) |
-| **Development Branch** | `0.2.1-SNAPSHOT` |
+| **Development Branch** | `0.2.1-SNAPSHOT` (next intended publication: `0.2.1`) |
 | **Maturity Level** | **Pre-1.0 (`0.2.x`)** |
 | **Maven Group** | `io.github.minh124199` |
 | **Java Baseline** | Java 17 (`--release 17`) |
@@ -42,7 +42,7 @@ Many existing JVM template engines require teams to choose between familiar, fle
 - **Implemented**:
   - Clean-room lexer and Pratt expression parser with compiler-grade source span diagnostics.
   - AST interpreter and lower-level IR interpreter.
-  - 13-pass IR compiler optimization pipeline (dead code elimination, constant folding, loop specialization, text chunk merging, escape hoisting, and O45 variable slot assignment).
+  - 11-pass IR compiler optimization pipeline (13 transformation executions including repeated dead-code elimination and text-chunk merging, constant folding, loop specialization, and escape specialization), supplemented by mandatory O45 variable slot assignment, a static UTF-8 pre-encoding lowering stage, and an unconditional O160 invariant verification gate.
   - 0.2.0 High-performance `ExecutionFrame` backed by compiler-assigned variable slots (`EvaluationValue[] slots`) for IR interpreter and AOT bytecode backends, preserving 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`) and dynamic fallback coherence.
   - Indexed compilation cache invalidation (`TemplateId -> Set<CompileCacheKey>` reverse index) with per-template lock striping.
   - Dynamic linker with monomorphic and Polymorphic Inline Caches (PIC, depth 4) backed by classloader-safe weak references.
@@ -53,9 +53,11 @@ Many existing JVM template engines require teams to choose between familiar, fle
   - Pluggable member access policies (`MemberAccessPolicy`, `SensitiveObjectClassifier`) and monotonic render budgets (`RenderBudget`).
   - Authoritative Technology Compatibility Kit (`viet-template-tck`) evaluating 301 differential scenarios against Apache Velocity 2.4.1.
   - Dedicated JMH benchmark module (`viet-template-benchmarks`) under Milestone M19.1 with 10 canonical suites and dual Gradle/Maven build parity.
-  - Public API & SPI stabilization and surface containment (Milestones M14 and M14.1): 80 stable baseline contracts (`1.0-public-api.txt`), exact 341-type deterministic public surface classification, signature leak protection, integration boundary architecture enforcement, and hardened concrete output stream lifecycles.
+  - Public API & SPI stabilization and surface containment (Milestones M14 and M14.1): 80 core stable baseline contracts (`1.0-public-api.txt`), 91 stable-classified public types (76 `STABLE_API` + 15 `STABLE_SPI`), exact 352-type deterministic public surface classification, signature leak protection, integration boundary architecture enforcement, and hardened concrete output stream lifecycles.
   - Ahead-Of-Time (AOT) build tooling (`viet-template-maven-plugin` and `viet-template-gradle-plugin`) under Milestone M15: precompiling templates at build time into self-contained Java 17 bytecode with automated ClassLoader discovery (`templates.idx`), incremental SHA-256 caching, and 100% byte-for-byte dual-build parity.
-  - Spring Framework & Spring Boot 3 integration (`viet-template-spring-boot-starter`, `viet-template-spring`, `viet-template-spring-boot-autoconfigure`) under Milestone M16: thread-safe `VietTemplateView`, caching `VietTemplateViewResolver` with AOT index discovery fallback, non-closing servlet stream ownership, full configuration properties (`viet-template.*`), and 100% byte-for-byte dual-build parity.
+  - Spring Framework & Spring Boot 3 integration (`viet-template-spring-boot-starter`, `viet-template-spring`, `viet-template-spring-boot-autoconfigure`) under Milestone M16: verified baseline in CI against Spring Framework 6.1.14 and Spring Boot 3.3.5 on Java 17 / Jakarta Servlet 6.0 (intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions are not independently guaranteed), featuring thread-safe `VietTemplateView`, caching `VietTemplateViewResolver` with AOT index discovery fallback, non-closing servlet stream ownership, full configuration properties (`viet-template.*`), and 100% byte-for-byte dual-build parity.
+  - Spring Security integration (`viet-template-spring-security`) under Milestone M16.1: optional, zero-core-dependency module providing read-only facades `SecurityView` and `CsrfView`, factory SPIs `SecurityViewFactory` and `CsrfViewFactory`, and auto-configuration `VietTemplateSecurityAutoConfiguration` (`viet-template.security.enabled=true`). Strictly protects boundaries with zero raw framework objects in template scope, sensitive token redaction in `toString()`, automatic HTML contextual escaping against XSS, and 100% byte-for-byte dual-build AOT parity.
+  - Maven Central publication metadata hardening: canonical per-module deep links (`/tree/main/<module>`), root SCM inheritance suppression controls (`child.scm.*.inherit.append.path="false"`), and automated CI metadata and effective POM verification.
 - **Experimental**:
   - Dynamic call-site specialization in AOT bytecode when complete type signatures are absent.
   - File-system hot-reload watcher (`DevelopmentFileWatcher`) using NIO `WatchService`.
@@ -73,6 +75,7 @@ Viet Template artifacts are published to Maven Central under group ID `io.github
 - **`viet-template-vtl-interpreter`** *(Recommended)*: The complete template engine for standard applications. Declaring this dependency transitively brings in `viet-template-api`, `viet-template-runtime`, and `viet-template-language-vtl`, providing the full parser, runtime, compiler, cache, and execution backends.
 - **`viet-template-api`**: Core public interfaces and records only. Useful for libraries or modules defining template contracts without pulling in the runtime engine.
 - **`viet-template-spring-boot-starter`**: Spring Boot 3 starter providing auto-configuration for Spring MVC `View` and `ViewResolver`, Ahead-Of-Time precompiled template discovery, and configuration properties.
+- **`viet-template-spring-security`**: Optional Spring Security integration providing `$security` (authentication, roles, authorities) and `$csrf` (parameter, header, token) projection facades for templates without exposing raw framework objects.
 - **`viet-template-runtime`**: Streaming output primitives, escapers, and dynamic linker. Only declared directly when developing custom output buffers or standalone escapers without the interpreter.
 - **`viet-template-language-vtl`**: VTL grammar parser, AST model, semantic analyzer, and IR compiler.
 
@@ -256,7 +259,7 @@ try (TemplateEngine engine = TemplateEngine.builder()
 
 ### 4. Spring Boot Integration (Milestone M16)
 
-Viet Template integrates seamlessly with Spring Boot 3 (3.3+) and Spring Framework 6 (6.1+) via `viet-template-spring-boot-starter`.
+Viet Template provides production integration for Spring MVC and Spring Boot via `viet-template-spring-boot-starter`. Verified baseline in CI: **Spring Framework 6.1.14** and **Spring Boot 3.3.5** on Java 17 / Jakarta Servlet 6.0 (intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions, including unverified 6.x/3.x releases and future major lines such as Spring 7 / Boot 4, are not independently guaranteed and are tracked as planned/future targets).
 
 #### Dependencies
 
@@ -340,6 +343,53 @@ public class HelloController {
 ```
 
 For complete architecture details, streaming invariants, and configuration properties, see [docs/35-m16-spring-integration.md](docs/35-m16-spring-integration.md).
+
+### 5. Spring Security Integration (Milestone M16.1)
+
+Applications using Spring Security can add the optional `viet-template-spring-security` module alongside `spring-boot-starter-security`.
+
+> [!WARNING]
+> ### PRESENTATION-ONLY UI AUTHORIZATION WARNING
+> **Template authorization helpers (`$security.hasAuthority(...)`, `$security.authenticated`) control visual presentation only.**
+> They conditionally show or hide UI elements in rendered HTML. They **do not** replace server-side access controls (`@PreAuthorize`, `SecurityFilterChain.authorizeHttpRequests`). All sensitive endpoints and mutations must be protected by server-side authorization.
+
+#### Dependency Configuration
+
+##### Apache Maven
+```xml
+<dependency>
+    <groupId>io.github.minh124199</groupId>
+    <artifactId>viet-template-spring-security</artifactId>
+    <version>0.2.1-SNAPSHOT</version>
+</dependency>
+```
+
+##### Gradle (Kotlin DSL)
+```kotlin
+implementation("io.github.minh124199:viet-template-spring-security:0.2.1-SNAPSHOT")
+```
+
+#### Template Usage
+
+Templates gain access to `$security` and `$csrf` automatically when auto-configuration is enabled:
+
+```velocity
+#if($security.authenticated)
+  <p>Welcome back, $security.name!</p>
+  #if($security.hasAuthority('ROLE_ADMIN'))
+    <a href="/admin">Admin Console</a>
+  #end
+  <form action="/logout" method="POST">
+    <input type="hidden" name="$csrf.parameterName" value="$csrf.token"/>
+    <button type="submit">Sign Out</button>
+  </form>
+#else
+  <p>Browsing as guest.</p>
+  <a href="/login">Sign In</a>
+#end
+```
+
+For complete architecture details and security boundary guarantees, see [docs/36-spring-security-integration.md](docs/36-spring-security-integration.md).
 
 ### Output Stream Lifecycle & Resource Ownership
 
@@ -433,7 +483,7 @@ The repository is organized into focused modules:
 | :--- | :--- | :--- | :--- |
 | **`viet-template-api`** | `viet-template-api` | Stable public contracts: `TemplateEngine`, `Template`, `RenderContext`, `TemplateOutput`, `TemplateRepository`, security policies, and diagnostics. | Library authors, embedding applications, compile-only dependencies. |
 | **`viet-template-runtime`** | `viet-template-runtime` | Low-allocation streaming output buffers (`StringTemplateOutput`, `WriterTemplateOutput`, `Utf8OutputStreamTemplateOutput`), contextual escaping (`HTML`, `XML`, `JAVASCRIPT`), `SafeHtml`, and dynamic linker call sites. | Direct streaming consumers and custom escaper developers. |
-| **`viet-template-language-vtl`** | `viet-template-language-vtl` | Clean-room VTL lexer, Pratt parser, AST model, semantic analyzer, IR, and 12-pass optimization pipeline. | Compiler tooling, template analyzers, and AST inspectors. |
+| **`viet-template-language-vtl`** | `viet-template-language-vtl` | Clean-room VTL lexer, Pratt parser, AST model, semantic analyzer, IR, and 11-pass (13 transformation executions) optimization pipeline. | Compiler tooling, template analyzers, and AST inspectors. |
 | **`viet-template-vtl-interpreter`** | `viet-template-vtl-interpreter` | Canonical template engine implementation (`VtlTemplateEngine`), reference AST and IR interpreters, AOT bytecode compiler, narrow public AOT facade (`io.github.minh124199.viettemplate.aot`), compile cache, layout rendering, and global macro manager. | **Normal application developers** (main runtime dependency). |
 | **`viet-template-maven-plugin`** | `viet-template-maven-plugin` | Official Apache Maven plugin for build-time AOT template precompilation and class/resource generation (`viet-template:compile`). | Maven build pipelines. |
 | **`viet-template-gradle-plugin`** | `viet-template-gradle-plugin` | Official Gradle plugin for build-time AOT template precompilation (`compileVietTemplates`, id `io.github.minh124199.viet-template`). | Gradle build pipelines. |
@@ -469,7 +519,7 @@ Viet Template is engineered around low-allocation streaming and direct JVM execu
 
 1. **Pre-Encoded Chunks**: Static template text is pre-encoded to UTF-8 byte arrays during compilation, allowing zero-copy streaming to output streams.
 2. **Non-Allocating Numeric Formatting**: Primitive numeric types (`int`, `long`, `double`, `boolean`) are formatted directly into destination buffers without intermediate `String` object creation.
-3. **Compiler Optimization Pipeline**: 12 IR passes eliminate dead branches, fold constants, specialize loop iterators, and hoist static escaping.
+3. **Compiler Optimization Pipeline**: 11 distinct pass implementations (13 transformation executions) eliminate dead branches, fold constants, specialize loop iterators, and hoist static escaping.
 4. **Direct Bytecode & Inline Caches**: Known typed properties compile to direct getters; dynamic properties dispatch through monomorphic or small polymorphic inline caches (`AccessLink[]` array scan for depth $\le 4$).
 
 ### Benchmark Infrastructure (Milestone M19.1)
@@ -572,7 +622,7 @@ Comprehensive architecture, design, and specification documents are maintained i
 - [VTL Compatibility Specification (`docs/02-vtl-compatibility-spec.md`)](docs/02-vtl-compatibility-spec.md) — Detailed syntax and behavior compatibility contract.
 - [Security Model (`docs/10-security-model.md`)](docs/10-security-model.md) — Threat model, capability policies, and sandbox architecture.
 - [Security Policy (`SECURITY.md`)](SECURITY.md) — Supported versions, boundaries, and vulnerability reporting.
-- [IR Optimization Pipeline (`docs/06-optimization-pipeline.md`)](docs/06-optimization-pipeline.md) — Specification of the 12 compiler optimization passes.
+- [IR Optimization Pipeline (`docs/06-optimization-pipeline.md`)](docs/06-optimization-pipeline.md) — Specification of the IR compiler optimization pipeline (11 distinct pass implementations, 13 transformation executions).
 - [Execution Backends (`docs/07-execution-backends.md`)](docs/07-execution-backends.md) — AST, IR, dynamic, and AOT execution tier designs.
 - [Output Runtime & Escaping (`docs/08-runtime-output.md`)](docs/08-runtime-output.md) — Streaming architecture and contextual escaping rules.
 - [Dynamic Resolution (`docs/09-dynamic-resolution.md`)](docs/09-dynamic-resolution.md) — MethodHandle and polymorphic inline cache (PIC) design.
@@ -604,9 +654,9 @@ Please also review our [Code of Conduct](CODE_OF_CONDUCT.md) and [Security Polic
 Viet Template follows an evidence-driven, benchmark-verified phased roadmap:
 
 - **Phase 0.1.x**: Baseline stabilization, adversarial security fuzzing, and Milestone M19.1 JMH benchmark infrastructure.
-- **Phase 0.2.0 (Current)**: High-performance runtime architecture with compiler-assigned variable slot execution frames (`EvaluationValue[] slots`) and indexed compilation cache invalidation.
-- **Phase 0.3.x+**: Evidence-driven optimizations guided by profiling (cache contention reduction, zero-copy token slices).
-- **Phase 1.0**: Stable public API freeze (M14/M14.1), Maven and Gradle AOT build plugins (M15), Spring Framework 6.1+ MVC & Spring Boot 3.3+ starter (M16), GraalVM Native Image verification, and formal publication.
+- **Phase 0.2.x (Current)**: High-performance runtime architecture with compiler-assigned variable slot execution frames (`EvaluationValue[] slots`) and indexed compilation cache invalidation. Active development version is `0.2.1-SNAPSHOT` on `main`, targeting publication of `0.2.1` (M15 AOT build plugins and M16 Spring integration).
+- **Phase 0.3.x+**: Subsequent roadmap milestone introducing evidence-driven optimizations guided by profiling (cache contention reduction, zero-copy token slices).
+- **Phase 1.0**: GraalVM Native Image verification (M17), independently runnable public TCK and reproducible benchmark report (M18), comprehensive migration guide, stable API freeze, and formal publication.
 
 For complete details on upcoming milestones, see [docs/18-roadmap.md](docs/18-roadmap.md).
 

@@ -44,3 +44,12 @@ jobs:
 
       - name: Run Deep Fuzzing via Maven
         run: ./mvnw test -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} -B
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb99baed6f # v4.5.0
+        with:
+          name: fuzz-test-reports
+          path: |
+            **/build/reports/tests/
+            **/target/surefire-reports/

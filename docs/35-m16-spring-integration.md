@@ -7,8 +7,9 @@
 - **Decision**: **`A. M16 COMPLETE — SPRING FRAMEWORK & SPRING BOOT 3 INTEGRATION PRODUCTION READY`**
 - **Technical Baseline**:
   - Java 17 bytecode (`--release 17`, classfile major version 61)
-  - Spring Framework 6.1.14+
-  - Spring Boot 3.3.5+
+  - Verified baseline: Spring Framework 6.1.14 and Spring Boot 3.3.5 on Java 17 / Jakarta Servlet 6.0 (compiled and verified in CI)
+  - Intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x
+  - Policy: Untested versions (including unverified 6.x/3.x releases) are not independently guaranteed; future major lines (Spring Framework 7 / Spring Boot 4) are planned future targets
   - Jakarta Servlet 6.0.0 (Jakarta EE 10 baseline)
 - **Primary Deliverables**:
   1. **Spring MVC View & ViewResolver Module (`viet-template-spring`)**: Thread-safe, request-stateless `VietTemplateView`, caching `VietTemplateViewResolver`, non-closing servlet stream ownership (`NonClosingOutputStream`), and customization callback SPI (`VietTemplateEngineCustomizer`).
@@ -350,4 +351,4 @@ Running `scripts/verify-spring-integration-parity.sh` yields:
 
 **`A. M16 COMPLETE — SPRING FRAMEWORK & SPRING BOOT 3 INTEGRATION PRODUCTION READY`**
 
-Milestone M16 is fully satisfied. The Spring Framework 6.1+ MVC integration, Spring Boot 3.3+ auto-configuration starter, AOT-first deployment workflow, and dual-build verification parity are production-hardened, zero-allocation compliant, and verified across both Maven and Gradle toolchains.
+Milestone M16 is fully satisfied. The Spring Framework 6.1.x MVC integration, Spring Boot 3.3.x auto-configuration starter, AOT-first deployment workflow, and dual-build verification parity are production-hardened, zero-allocation compliant, and verified across both Maven and Gradle toolchains.

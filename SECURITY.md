@@ -6,7 +6,8 @@ Only the latest active development line is supported with security updates.
 
 | Version | Supported | Notes |
 | :--- | :--- | :--- |
-| `0.1.x` | :white_check_mark: | Current active development line |
+| `0.2.x` | :white_check_mark: | Current active development line |
+| `0.1.x` | :x: | Superseded by 0.2.x; upgrade recommended |
 | `< 0.1.0` | :x: | Pre-release snapshots / unsupported |
 
 ## Security Model and Boundaries

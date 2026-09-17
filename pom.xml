@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         child.project.url.inherit.append.path="false">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.minh124199</groupId>
@@ -29,9 +30,11 @@
         </developer>
     </developers>
 
-    <scm>
-        <connection>scm:git:git://github.com/minh124199/viet-template.git</connection>
-        <developerConnection>scm:git:ssh://github.com:minh124199/viet-template.git</developerConnection>
+    <scm child.scm.connection.inherit.append.path="false"
+         child.scm.developerConnection.inherit.append.path="false"
+         child.scm.url.inherit.append.path="false">
+        <connection>scm:git:https://github.com/minh124199/viet-template.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/minh124199/viet-template.git</developerConnection>
         <url>https://github.com/minh124199/viet-template</url>
     </scm>
 
@@ -41,6 +44,7 @@
         <module>viet-template-language-vtl</module>
         <module>viet-template-vtl-interpreter</module>
         <module>viet-template-spring</module>
+        <module>viet-template-spring-security</module>
         <module>viet-template-spring-boot-autoconfigure</module>
         <module>viet-template-spring-boot-starter</module>
         <module>viet-template-tck</module>
@@ -51,6 +55,8 @@
 
 
     <properties>
+        <github.repository.url>https://github.com/minh124199/viet-template</github.repository.url>
+
         <!-- Java Baseline & Encoding -->
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -67,6 +73,7 @@
         <google-java-format.version>1.30.0</google-java-format.version>
         <spring-boot.version>3.3.5</spring-boot.version>
         <spring-framework.version>6.1.14</spring-framework.version>
+        <spring-security.version>6.3.4</spring-security.version>
         <jakarta-servlet.version>6.0.0</jakarta-servlet.version>
 
         <!-- Pinned Maven Plugin Versions -->
@@ -107,6 +114,11 @@
             <dependency>
                 <groupId>io.github.minh124199</groupId>
                 <artifactId>viet-template-spring</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.minh124199</groupId>
+                <artifactId>viet-template-spring-security</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -183,6 +195,32 @@
                 <artifactId>spring-boot-configuration-processor</artifactId>
                 <version>${spring-boot.version}</version>
                 <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-security</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-core</artifactId>
+                <version>${spring-security.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-web</artifactId>
+                <version>${spring-security.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-config</artifactId>
+                <version>${spring-security.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-test</artifactId>
+                <version>${spring-security.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>jakarta.servlet</groupId>

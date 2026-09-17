@@ -41,12 +41,83 @@ PRODUCTION_MODULES = [
     "viet-template-vtl-interpreter",
 ]
 
+ALL_PUBLISHED_MODULES = [
+    "viet-template-api",
+    "viet-template-runtime",
+    "viet-template-language-vtl",
+    "viet-template-vtl-interpreter",
+    "viet-template-spring",
+    "viet-template-spring-security",
+    "viet-template-spring-boot-autoconfigure",
+    "viet-template-spring-boot-starter",
+    "viet-template-maven-plugin",
+    "viet-template-gradle-plugin",
+]
+
 EXCLUDED_MODULES = [
     "viet-template-tck",
     "viet-template-benchmarks",
 ]
 
 PARENT_MODULE = "viet-template-parent"
+
+RE_INVALID_URL = re.compile(r"^https://github\.com/minh124199/viet-template/viet-template-.*")
+RE_INVALID_SCM = re.compile(r"(/viet-template-)|(viet-template\.git/viet-template-.*)|(^scm:git:git://github\.com/)")
+
+
+def derive_published_modules(root_dir=ROOT_DIR):
+    """Derives published production modules and non-published modules dynamically from root pom.xml."""
+    pom_file = root_dir / "pom.xml"
+    if not pom_file.exists():
+        return list(PRODUCTION_MODULES), list(ALL_PUBLISHED_MODULES), list(EXCLUDED_MODULES)
+    try:
+        pom_tree = ET.parse(pom_file)
+        pom_root = pom_tree.getroot()
+        ns = {"m": pom_root.tag.split("}")[0].strip("{")} if "}" in pom_root.tag else {}
+        prefix = "m:" if ns else ""
+        modules_elem = pom_root.find(f"./{prefix}modules", ns)
+        if modules_elem is None:
+            return list(PRODUCTION_MODULES), list(ALL_PUBLISHED_MODULES), list(EXCLUDED_MODULES)
+
+        all_published = []
+        excluded = []
+        for mod_elem in modules_elem.findall(f"./{prefix}module", ns):
+            mod_name = mod_elem.text.strip() if mod_elem.text else ""
+            if not mod_name:
+                continue
+            child_pom = root_dir / mod_name / "pom.xml"
+            if not child_pom.exists():
+                continue
+            child_tree = ET.parse(child_pom)
+            child_root = child_tree.getroot()
+            c_ns = {"m": child_root.tag.split("}")[0].strip("{")} if "}" in child_root.tag else {}
+            c_prefix = "m:" if c_ns else ""
+            props = child_root.find(f"./{c_prefix}properties", c_ns)
+            skip = False
+            if props is not None:
+                for skip_prop in ("maven.deploy.skip", "skipPublishing", "central.publishing.skip"):
+                    val = props.findtext(f"./{c_prefix}{skip_prop}", namespaces=c_ns)
+                    if val and val.strip() == "true":
+                        skip = True
+                        break
+            if skip:
+                excluded.append(mod_name)
+            else:
+                all_published.append(mod_name)
+
+        prod = [
+            m for m in all_published
+            if (root_dir / m / "src" / "main" / "java").exists()
+            and not m.endswith("-plugin")
+            and not m.endswith("-starter")
+            and not m.endswith("-security")  # security is verified under all_published
+            and m in PRODUCTION_MODULES  # baseline production modules with full verification
+        ]
+        if not prod:
+            prod = [m for m in all_published if m in PRODUCTION_MODULES]
+        return prod, all_published, excluded
+    except Exception:
+        return list(PRODUCTION_MODULES), list(ALL_PUBLISHED_MODULES), list(EXCLUDED_MODULES)
 
 def get_project_version():
     pom_tree = ET.parse(ROOT_DIR / "pom.xml")
@@ -168,8 +239,107 @@ def validate_pom_metadata(pom_path, module_name, expected_version, errors, enfor
     if version != expected_version:
         errors.append(f"Invalid version '{version}' in {pom_path} (expected '{expected_version}')")
 
+    # URL check
+    url_elem = pom_root.find(f"./{prefix}url", ns)
+    if url_elem is None or not url_elem.text:
+        errors.append(f"Missing <url> in {pom_path}")
+    else:
+        url_str = url_elem.text.strip()
+        if module_name == PARENT_MODULE:
+            if url_str != "https://github.com/minh124199/viet-template":
+                errors.append(
+                    f"Invalid url '{url_str}' in {pom_path} (expected 'https://github.com/minh124199/viet-template')"
+                )
+            proj_url_inherit = pom_root.attrib.get("child.project.url.inherit.append.path")
+            if proj_url_inherit != "false":
+                errors.append(
+                    f"Missing or invalid child.project.url.inherit.append.path on <project> in {pom_path} (expected 'false', found '{proj_url_inherit}')"
+                )
+        else:
+            expected_1 = f"https://github.com/minh124199/viet-template/tree/main/{module_name}"
+            expected_2 = f"${{github.repository.url}}/tree/main/{module_name}"
+            if url_str == "https://github.com/minh124199/viet-template":
+                errors.append(
+                    f"Module {module_name} in {pom_path} merely inherited repository-root url; must explicitly declare '{expected_1}' or '{expected_2}'"
+                )
+            elif url_str not in (expected_1, expected_2):
+                errors.append(f"Invalid url '{url_str}' in {pom_path} (expected '{expected_1}' or '{expected_2}')")
+        if RE_INVALID_URL.match(url_str):
+            errors.append(f"Malformed appended url '{url_str}' in {pom_path}")
+
+    # SCM check
+    scm_elem = pom_root.find(f"./{prefix}scm", ns)
+    if scm_elem is not None:
+        if module_name == PARENT_MODULE:
+            for attr in (
+                "child.scm.connection.inherit.append.path",
+                "child.scm.developerConnection.inherit.append.path",
+                "child.scm.url.inherit.append.path",
+            ):
+                val = scm_elem.attrib.get(attr)
+                if val != "false":
+                    errors.append(
+                        f"Missing or invalid {attr} on <scm> in {pom_path} (expected 'false', found '{val}')"
+                    )
+
+        conn_elem = scm_elem.find(f"./{prefix}connection", ns)
+        conn = conn_elem.text.strip() if conn_elem is not None and conn_elem.text else ""
+        if conn and conn.startswith("scm:git:git://github.com/"):
+            errors.append(f"Obsolete git:// protocol rejected for scm connection in {pom_path}: '{conn}'")
+        elif conn and conn != "scm:git:https://github.com/minh124199/viet-template.git":
+            errors.append(f"Invalid scm connection '{conn}' in {pom_path} (expected 'scm:git:https://github.com/minh124199/viet-template.git')")
+        if conn and RE_INVALID_SCM.search(conn):
+            errors.append(f"Malformed appended scm connection or rejected protocol '{conn}' in {pom_path}")
+
+        dev_elem = scm_elem.find(f"./{prefix}developerConnection", ns)
+        dev = dev_elem.text.strip() if dev_elem is not None and dev_elem.text else ""
+        if dev and dev != "scm:git:ssh://git@github.com/minh124199/viet-template.git":
+            errors.append(f"Invalid scm developerConnection '{dev}' in {pom_path}")
+        if dev and RE_INVALID_SCM.search(dev):
+            errors.append(f"Malformed appended scm developerConnection '{dev}' in {pom_path}")
+
+        url_s_elem = scm_elem.find(f"./{prefix}url", ns)
+        s_url = url_s_elem.text.strip() if url_s_elem is not None and url_s_elem.text else ""
+        if s_url and s_url != "https://github.com/minh124199/viet-template":
+            errors.append(f"Invalid scm url '{s_url}' in {pom_path}")
+        if s_url and (RE_INVALID_SCM.search(s_url) or RE_INVALID_URL.match(s_url)):
+            errors.append(f"Malformed appended scm url '{s_url}' in {pom_path}")
+    elif module_name == PARENT_MODULE:
+        errors.append(f"Missing <scm> in parent POM {pom_path}")
+    else:
+        # Child POM in Maven inherits from parent
+        parent_pom = (
+            pom_path.parent.parent / "pom.xml"
+            if pom_path.parent.name != "target"
+            else pom_path.parent.parent.parent / "pom.xml"
+        )
+        if not parent_pom.exists():
+            parent_pom = ROOT_DIR / "pom.xml"
+        if parent_pom.exists():
+            p_tree = ET.parse(parent_pom)
+            p_root = p_tree.getroot()
+            p_ns = {"m": p_root.tag.split("}")[0].strip("{")} if "}" in p_root.tag else {}
+            p_prefix = "m:" if p_ns else ""
+            p_scm = p_root.find(f"./{p_prefix}scm", p_ns)
+            if p_scm is None:
+                errors.append(f"Child module {module_name} lacks <scm> and parent lacks <scm>")
+            else:
+                for attr in (
+                    "child.scm.connection.inherit.append.path",
+                    "child.scm.developerConnection.inherit.append.path",
+                    "child.scm.url.inherit.append.path",
+                ):
+                    val = p_scm.attrib.get(attr)
+                    if val != "false":
+                        errors.append(f"Parent <scm> for {module_name} must declare {attr}='false'")
+
     # Dependencies check: ensure strict clean-room isolation and zero test/Velocity leakage
-    for dep in pom_root.findall(f".//{prefix}dependency", ns) if enforce_production_dependencies else []:
+    dep_list = (
+        pom_root.findall(f"./{prefix}dependencies/{prefix}dependency", ns)
+        if module_name != PARENT_MODULE
+        else []
+    )
+    for dep in dep_list:
         dep_group = dep.find(f"./{prefix}groupId", ns)
         dep_art = dep.find(f"./{prefix}artifactId", ns)
         dep_scope = dep.find(f"./{prefix}scope", ns)
@@ -195,11 +365,12 @@ def validate_pom_metadata(pom_path, module_name, expected_version, errors, enfor
                     )
 
             # Check 4: Non-test dependencies in Viet Template production modules must only be sibling production modules
-            if group_str != "io.github.minh124199" or art_str not in PRODUCTION_MODULES:
-                errors.append(
-                    f"CRITICAL: Unexpected external production dependency in {pom_path}: "
-                    f"{group_str}:{art_str} (scope: {scope_str}). Viet Template production modules must have zero external dependencies."
-                )
+            if enforce_production_dependencies:
+                if group_str != "io.github.minh124199" or art_str not in PRODUCTION_MODULES:
+                    errors.append(
+                        f"CRITICAL: Unexpected external production dependency in {pom_path}: "
+                        f"{group_str}:{art_str} (scope: {scope_str}). Viet Template production modules must have zero external dependencies."
+                    )
 
     print(f"  [PASS] POM metadata for {module_name} conforms to Maven Central standards.")
 
@@ -279,9 +450,13 @@ def main():
             print("\n[ACTION] Assembling Gradle artifacts...")
             subprocess.run(["./gradlew", "assemble", "--no-daemon"], cwd=target_dir, check=True)
 
+    prod_modules, all_published_modules, excluded_modules = derive_published_modules(target_dir)
+    print(f"[INFO] Authoritative published modules ({len(all_published_modules)}): {all_published_modules}")
+    print(f"[INFO] Non-published internal verification modules ({len(excluded_modules)}): {excluded_modules}")
+
     for tool in tools:
         print(f"\n--- Validating {tool.upper()} Release Bundle ---")
-        for mod in PRODUCTION_MODULES:
+        for mod in prod_modules:
             print(f"\nEvaluating module '{mod}':")
             if tool == "maven":
                 mod_dir = target_dir / mod / "target"
@@ -300,7 +475,23 @@ def main():
             validate_jar_classes(main_jar, mod, errors)
             validate_sources_jar(sources_jar, errors)
             validate_javadoc_jar(javadoc_jar, errors)
-            validate_pom_metadata(pom_path, mod, version, errors)
+            validate_pom_metadata(pom_path, mod, version, errors, enforce_production_dependencies=True)
+
+        for mod in all_published_modules:
+            if mod in prod_modules:
+                continue
+            print(f"\nEvaluating publication POM for module '{mod}':")
+            if tool == "maven":
+                pom_path = target_dir / mod / "pom.xml"
+            else: # gradle
+                if mod == "viet-template-gradle-plugin":
+                    pub_pom = target_dir / mod / "build" / "publications" / "pluginMaven" / "pom-default.xml"
+                else:
+                    pub_pom = target_dir / mod / "build" / "publications" / "mavenJava" / "pom-default.xml"
+                if not pub_pom.exists():
+                    pub_pom = target_dir / mod / "build" / "publications" / "pluginMaven" / "pom-default.xml"
+                pom_path = pub_pom if pub_pom.exists() else (target_dir / mod / "pom.xml")
+            validate_pom_metadata(pom_path, mod, version, errors, enforce_production_dependencies=False)
 
     validate_tck_defense_in_depth(target_dir, errors)
 
@@ -310,7 +501,7 @@ def main():
             print(f"  - {err}")
         sys.exit(1)
     else:
-        print("\n[SUCCESS] Release publication bundle validation PASSED! Parent POM and all 4 production modules are release-ready.")
+        print("\n[SUCCESS] Release publication bundle validation PASSED! Parent POM and all published coordinates are release-ready.")
         sys.exit(0)
 
 if __name__ == "__main__":

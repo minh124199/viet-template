@@ -15,6 +15,7 @@
 
     <name>viet-template-vtl-interpreter</name>
     <description>Viet Template VTL Reference Interpreter and Runtime Semantics</description>
+    <url>${github.repository.url}/tree/main/viet-template-vtl-interpreter</url>
 
     <dependencies>
         <!-- Module Dependencies -->

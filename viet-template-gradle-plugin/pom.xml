@@ -16,6 +16,7 @@
 
     <name>viet-template-gradle-plugin</name>
     <description>Official build-time AOT template compiler Gradle plugin for Viet Template</description>
+    <url>${github.repository.url}/tree/main/viet-template-gradle-plugin</url>
 
     <dependencies>
         <dependency>

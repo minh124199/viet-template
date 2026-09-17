@@ -1,0 +1,6 @@
+<h1>Public Page</h1>
+#if($security.anonymous)
+<p id="auth-status">Browsing anonymously</p>
+#else
+<p id="auth-status">Browsing as $security.name</p>
+#end

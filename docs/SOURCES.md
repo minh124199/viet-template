@@ -49,6 +49,9 @@ Integration baselines:
 
 At the time this design pack was written (September 2026), target the current stable Spring Framework 7.0.x and Spring Boot 4.1.x lines, while treating later preview lines as CI-only compatibility targets until stable.
 
+> [!NOTE]
+> **Production Implementation Baseline**: Milestone M16 established the production integration with verified baseline **Spring Framework 6.1.14** and **Spring Boot 3.3.5** on Java 17 / Jakarta Servlet 6.0 (intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions are not independently guaranteed; see [`docs/35-m16-spring-integration.md`](35-m16-spring-integration.md)). Spring Framework 7 / Spring Boot 4 are planned future targets, not current guarantees.
+
 ## Java/JVM
 
 - Java SE 25 Class-File API (`java.lang.classfile`): <https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/classfile/package-summary.html>

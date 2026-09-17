@@ -1,0 +1,17 @@
+#if($security.authenticated)
+<h1>Welcome, $security.name!</h1>
+#if($security.hasAuthority('ROLE_ADMIN'))
+<p id="admin-panel">Admin Access Granted</p>
+#end
+#if($security.hasAuthority('ROLE_USER'))
+<p id="user-panel">User Access Granted</p>
+#end
+#if($csrf)
+<form method="post" action="/logout">
+  <input type="hidden" name="$csrf.parameterName" value="$csrf.token" />
+</form>
+#end
+#else
+<h1>Welcome, Guest!</h1>
+<p id="anon-notice">Please log in.</p>
+#end

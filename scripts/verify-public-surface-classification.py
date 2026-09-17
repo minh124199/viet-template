@@ -5,9 +5,12 @@ verify-public-surface-classification.py
 Automated CI verification script enforcing public surface containment and stability:
 - Check 1: 0 unclassified public types (every compiled public/protected type in production modules must be classified).
 - Check 2: No stale classified types (every type in classification file must exist and be public/protected).
-- Check 3: Baseline parity with config/api-baseline/1.0-public-api.txt (all 80 baseline types must be STABLE_API or STABLE_SPI).
-- Check 4: Signature leak check: STABLE_API and STABLE_SPI in viet-template-api and viet-template-runtime
-           must not leak any PUBLIC_BUT_INTERNAL_ACCIDENT or EXPERIMENTAL types into public signatures.
+- Check 3: Compatibility baseline parity and bijection:
+           - Every type in any 1.0 baseline (core, aot, spring, spring-security) must be STABLE_API or STABLE_SPI.
+           - Every type classified as STABLE_API or STABLE_SPI must be covered by a baseline.
+           - Baselines must be strictly disjoint (0 duplicate ownership).
+- Check 4: Signature leak check: STABLE_API and STABLE_SPI in viet-template-api, viet-template-runtime,
+           viet-template-aot, and viet-template-spring must not leak any PUBLIC_BUT_INTERNAL_ACCIDENT or EXPERIMENTAL types into public signatures.
 """
 
 import os
@@ -18,8 +21,20 @@ import re
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-BASELINE_API_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-public-api.txt")
+
+BASELINE_CORE_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-core-public-api.txt")
+BASELINE_LEGACY_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-public-api.txt")
+BASELINE_AOT_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-aot-public-api.txt")
+BASELINE_SPRING_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-spring-public-api.txt")
+BASELINE_SECURITY_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-spring-security-public-api.txt")
 CLASSIFICATION_FILE = os.path.join(REPO_ROOT, "config/api-baseline/public-surface-classification.txt")
+
+DEFAULT_BASELINES = [
+    ("core", BASELINE_CORE_FILE if os.path.exists(BASELINE_CORE_FILE) else BASELINE_LEGACY_FILE),
+    ("aot", BASELINE_AOT_FILE),
+    ("spring", BASELINE_SPRING_FILE),
+    ("spring-security", BASELINE_SECURITY_FILE),
+]
 
 JAVAP = os.environ.get("JAVAP_BIN")
 if not JAVAP:
@@ -40,6 +55,7 @@ MODULES = [
     "viet-template-vtl-interpreter",
     "viet-template-spring",
     "viet-template-spring-boot-autoconfigure",
+    "viet-template-spring-security",
 ]
 
 FULL_CP = ":".join([os.path.join(REPO_ROOT, m, "build/classes/java/main") for m in MODULES])
@@ -63,7 +79,7 @@ def load_classification(path):
 
 def load_baseline_api_types(path):
     if not os.path.exists(path):
-        print(f"Error: 1.0-public-api.txt baseline not found: {path}", file=sys.stderr)
+        print(f"Error: Baseline file not found: {path}", file=sys.stderr)
         return None
     types = set()
     with open(path, "r", encoding="utf-8") as f:
@@ -122,7 +138,6 @@ def get_compiled_public_types():
 
 def check_signature_leaks(api_types, internal_and_exp_types):
     leaks = []
-    # Build fast regex or word search
     targets = sorted(list(internal_and_exp_types), key=len, reverse=True)
     pattern = re.compile(r"\b(" + "|".join(re.escape(t) for t in targets) + r")\b")
 
@@ -138,7 +153,6 @@ def check_signature_leaks(api_types, internal_and_exp_types):
             matches = pattern.findall(l)
             if matches:
                 for m in set(matches):
-                    # Exclude the class itself if somehow matched
                     if m != cls:
                         leaks.append((cls, l, m))
     return leaks
@@ -147,7 +161,6 @@ def check_signature_leaks(api_types, internal_and_exp_types):
 def main():
     parser = argparse.ArgumentParser(description="Verify public surface classification.")
     parser.add_argument("--classification", default=CLASSIFICATION_FILE, help="Path to classification file")
-    parser.add_argument("--baseline", default=BASELINE_API_FILE, help="Path to 1.0-public-api.txt")
     args = parser.parse_args()
 
     print("================================================================================")
@@ -158,9 +171,21 @@ def main():
     if classification is None:
         sys.exit(1)
 
-    baseline_api = load_baseline_api_types(args.baseline)
-    if baseline_api is None:
-        sys.exit(1)
+    all_baseline_types = {}
+    total_baseline_types = set()
+    duplicate_errors = []
+
+    for name, path in DEFAULT_BASELINES:
+        if os.path.exists(path):
+            types = load_baseline_api_types(path)
+            if types is None:
+                sys.exit(1)
+            for t in types:
+                if t in all_baseline_types:
+                    duplicate_errors.append((t, all_baseline_types[t], name))
+                else:
+                    all_baseline_types[t] = name
+                    total_baseline_types.add(t)
 
     compiled_public_types = get_compiled_public_types()
     classified_types = set(classification.keys())
@@ -192,21 +217,37 @@ def main():
         print(f"[PASS] Check 2: No stale classified types ({len(classified_types)} classified types exist).")
 
     # --------------------------------------------------------------------------
-    # Check 3: Baseline parity with config/api-baseline/1.0-public-api.txt
+    # Check 3: Baseline parity and bijection
     # --------------------------------------------------------------------------
     parity_errors = []
-    for t in baseline_api:
+    if duplicate_errors:
+        for t, orig, dup in duplicate_errors:
+            parity_errors.append(f"Duplicate baseline ownership: '{t}' in both '{orig}' and '{dup}'")
+
+    stable_classified = {
+        cls for cls, cat in classification.items()
+        if cat in ("STABLE_API", "STABLE_SPI")
+    }
+
+    # Baseline types must be STABLE_API or STABLE_SPI
+    for t in sorted(total_baseline_types):
         cat = classification.get(t)
         if cat not in ("STABLE_API", "STABLE_SPI"):
-            parity_errors.append((t, cat))
+            parity_errors.append(f"Baseline type '{t}' in '{all_baseline_types[t]}' is classified as {cat}")
+
+    # STABLE_API and STABLE_SPI must be in baselines
+    missing_baselines = stable_classified - total_baseline_types
+    for t in sorted(missing_baselines):
+        parity_errors.append(f"Classified stable type '{t}' ({classification[t]}) is missing from all baselines")
 
     if parity_errors:
-        print(f"\n[FAIL] Check 3: Baseline parity check failed for {len(parity_errors)} types:")
-        for t, cat in parity_errors:
-            print(f"  - {t}: expected STABLE_API or STABLE_SPI, got {cat}")
+        print(f"\n[FAIL] Check 3: Baseline parity check failed with {len(parity_errors)} issue(s):")
+        for err in parity_errors:
+            print(f"  - {err}")
         errors += 1
     else:
-        print(f"[PASS] Check 3: Baseline parity verified. All {len(baseline_api)} types in 1.0-public-api.txt are STABLE_API or STABLE_SPI.")
+        print(f"[PASS] Check 3: Baseline parity & bijection verified across {len(DEFAULT_BASELINES)} baselines "
+              f"({len(total_baseline_types)} baseline types == {len(stable_classified)} STABLE_API/STABLE_SPI types).")
 
     # --------------------------------------------------------------------------
     # Check 4: Signature leak check

@@ -30,3 +30,32 @@ dependencies {
 tasks.processResources {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
+
+publishing {
+    publications.withType<MavenPublication>().configureEach {
+        pom {
+            name.set(project.name)
+            description.set(provider { project.description })
+            url.set("https://github.com/minh124199/viet-template/tree/main/${project.name}")
+            licenses {
+                license {
+                    name.set("Apache License, Version 2.0")
+                    url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                    distribution.set("repo")
+                }
+            }
+            developers {
+                developer {
+                    id.set("minh124199")
+                    name.set("Minh Nguyen")
+                    url.set("https://github.com/minh124199")
+                }
+            }
+            scm {
+                connection.set("scm:git:https://github.com/minh124199/viet-template.git")
+                developerConnection.set("scm:git:ssh://git@github.com/minh124199/viet-template.git")
+                url.set("https://github.com/minh124199/viet-template")
+            }
+        }
+    }
+}

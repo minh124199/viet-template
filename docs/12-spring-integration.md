@@ -1,7 +1,7 @@
 # 12 — Spring Framework / Spring Boot Integration Design
 
 > [!IMPORTANT]
-> **Production Implementation Notice**: This document outlines the early conceptual design for Spring integration. For the authoritative, production-implemented architecture, components, configuration properties reference (`viet-template.*`), Ahead-Of-Time (AOT) workflow, and dual-build parity guarantees delivered in Milestone M16 (Spring Framework 6.1+ / Spring Boot 3.3+), please refer to:
+> **Production Implementation Notice**: This document outlines the early conceptual design for Spring integration. For the authoritative, production-implemented architecture, components, configuration properties reference (`viet-template.*`), Ahead-Of-Time (AOT) workflow, and dual-build parity guarantees delivered in Milestone M16 (verified baseline: Spring Framework 6.1.14 / Spring Boot 3.3.5 on Java 17 / Jakarta Servlet 6.0; intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions not independently guaranteed), please refer to:
 >
 > 👉 **[`docs/35-m16-spring-integration.md`](35-m16-spring-integration.md)**
 
@@ -24,6 +24,9 @@ with `src/main/resources/templates/home.vm` and no manual engine wiring.
 
 ## 2. Baseline as of 2026-09-05
 
+> [!WARNING]
+> **Superseded Target Baseline & Property Prefix**: This section reflects the early conceptual design targeting Spring Framework 7 / Spring Boot 4. Milestone M16 implemented production support with verified baseline **Spring Framework 6.1.14** and **Spring Boot 3.3.5** on Java 17 / Jakarta Servlet 6.0 (intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions are not independently guaranteed; Spring 7 / Boot 4 are planned future targets). Additionally, the canonical configuration property prefix is **`viet-template`** (kebab-case, e.g. `viet-template.prefix`, `viet-template.suffix`, `viet-template.enabled`), rather than `viet.template`. Refer to [`docs/35-m16-spring-integration.md`](35-m16-spring-integration.md) for the authoritative specification.
+
 - Spring Framework 7.0.9 stable.
 - Spring Framework 7.1 preview, scheduled for November 2026.
 - Spring Boot 4.1.1 stable.
@@ -36,6 +39,7 @@ Target Framework 7.0.x/Boot 4.1.x first. Test 7.1/Boot 4.2 previews separately w
 viet-template-spring
 viet-template-spring-boot-autoconfigure
 viet-template-spring-boot-starter
+viet-template-spring-security (optional integration; see docs/36-spring-security-integration.md)
 ```
 
 ## 4. MVC view
@@ -102,7 +106,10 @@ Define collisions: `MODEL_WINS`, `REQUEST_WINS`, `ERROR_ON_COLLISION` (mapped to
 
 ## 8. Boot namespace
 
-The canonical Spring Boot property prefix is `viet.template`. YAML uses the equivalent nested `viet.template` structure:
+> [!NOTE]
+> In production (Milestone M16), the official configuration prefix is **`viet-template`** (`@ConfigurationProperties(prefix = "viet-template")`). Properties use kebab-case: `viet-template.enabled`, `viet-template.prefix`, `viet-template.suffix`, `viet-template.cache`, etc.
+
+The conceptual draft used `viet.template`. The production property prefix is `viet-template`:
 
 ```yaml
 viet:

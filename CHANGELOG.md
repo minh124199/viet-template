@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Maven Central Publication Metadata Hardening**:
+  - **Project & SCM Inheritance Controls**: Configured `child.project.url.inherit.append.path="false"` on root `<project>` and `child.scm.*.inherit.append.path="false"` on root `<scm>` (supported since Maven 3.6.1), eliminating defective Maven path auto-appending across child module project and SCM URLs.
+  - **HTTPS SCM Read-Only Connection**: Replaced obsolete `scm:git:git://` protocol with secure HTTPS read-only connection `scm:git:https://github.com/minh124199/viet-template.git`.
+  - **Corrected Git Developer Connection**: Updated developer connection to standard `scm:git:ssh://git@github.com/minh124199/viet-template.git` across Maven and Gradle builds.
+  - **Explicit Child Module Homepage URLs**: Added canonical `<url>${github.repository.url}/tree/main/<module></url>` across published production modules, ensuring accurate GitHub source tree deep-links, and enforced verification tooling failure if a published child merely inherits the repository-root URL.
+  - **Non-Published Module Protection**: Verified that internal verification modules (`viet-template-tck`, `viet-template-benchmarks`) strictly omit `<url>` and enforce multi-tier publication skipping (`maven.deploy.skip`, `skipPublishing`, `central.publishing.skip`).
+  - **Gradle & Maven Parity**: Updated Gradle publication metadata in `build.gradle.kts` and `viet-template-gradle-plugin/build.gradle.kts` with matching `/tree/main/${project.name}` URL and HTTPS/SSH SCM settings, verified by `scripts/verify-build-parity.py`.
+  - **Automated Metadata Verification Suite**: Enhanced `scripts/verify-release-metadata.py` with `--check-publication-metadata`, `--check-effective-pom`, and `--check-urls-online` to statically and dynamically guard publication metadata, effective POMs, and release workflow contracts.
+  - **Publication Bundle Validation**: Updated `scripts/validate-release-bundle.py` to dynamically derive reactor published modules, assert POM metadata integrity, clean SCM inheritance, and reject obsolete protocols (`git://`) or malformed appended paths.
 - **Public API & SPI Stabilization (Milestone M14)**:
   - **Lifecycle Management**: `TemplateEngine` implements `AutoCloseable` with `default void close() {}`, providing graceful resource cleanup in try-with-resources blocks.
   - **Engine Invalidation Conveniences**: Added `TemplateEngine.invalidate(TemplateId)` and `TemplateEngine.invalidateAll()`.
@@ -18,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Public Surface Containment & Output Lifecycle Finalization (Milestone M14.1)**:
   - **Safe Visibility Reductions**: Lowered visibility on 4 unneeded public internal classes/members (`CallSiteRegistry.CallSiteKey` to private; `AccessLink.Status`, `AccessLink.status()`, `VtlAstDumper`, and `VtlSemanticDiagnosticCodes` to package-private).
-  - **Public Surface Classification Baseline**: Established `config/api-baseline/public-surface-classification.txt` classifying all 341 public types across production modules into 66 `STABLE_API`, 14 `STABLE_SPI`, 6 `EXPERIMENTAL`, and 255 `PUBLIC_BUT_INTERNAL_ACCIDENT` (0 unclassified types).
+  - **Public Surface Classification Baseline**: Established `config/api-baseline/public-surface-classification.txt` classifying all 352 public types across production modules into 76 `STABLE_API`, 15 `STABLE_SPI`, 6 `EXPERIMENTAL`, and 255 `PUBLIC_BUT_INTERNAL_ACCIDENT` (0 unclassified types).
   - **Automated CI Surface & Leak Verification**: Added `scripts/generate-public-surface.py` and `scripts/verify-public-surface-classification.py` integrated into CI to enforce zero unclassified types, zero stale types, baseline parity, and zero internal/experimental signature leaks.
   - **Output Stream Lifecycle & Resource Ownership Contracts**: Added comprehensive class and method-level Javadoc to `Utf8OutputStreamTemplateOutput`, `WriterTemplateOutput`, `StringTemplateOutput`, and `TemplateEngine` detailing thread confinement, stream ownership on close, double-close idempotency, flush semantics, and the container-managed non-closing stream pattern.
   - **Dedicated Lifecycle Contract Test Suite**: Added `ConcreteOutputLifecycleContractTest` in `viet-template-runtime` covering 9 comprehensive streaming lifecycle scenarios.
@@ -123,7 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Architecture Tier 2/3 optimizer pipeline (`io.github.minh124199.viettemplate.language.vtl.ir.optimization`) operating directly on compiler-internal `IrTemplate`.
   - Configurable optimization levels (`OptimizationLevel`: `O0`, `O1`, `O2`, `O3`) with granular per-pass toggles (`IrOptimizationOptions`).
   - Thread-safe optimization metrics collector (`OptimizationStatistics`) capturing counts for all 12 optimization categories.
-  - Complete implementation of all 12 canonical optimization passes:
+  - Implementation of the IR optimization pipeline (11 distinct optimization pass classes and static UTF-8 pre-encoding lowering, executing 13 transformation passes with repeated passes):
     - Dead code elimination (`DeadCodeEliminationPass`): removes unreachable blocks after terminal statements (`IrReturn`, `IrStop`, `IrBreak`), statically determines dead branches, and strips redundant `IrNoOp` statements.
     - Constant folding (`ConstantFoldingPass`): folds compile-time constants for binary arithmetic, comparisons, string concatenation, logical operations, unary negation/not, and truthiness checks while strictly preserving runtime range iteration semantics.
     - Boolean simplification (`BooleanSimplificationPass`): applies boolean algebra reductions (`true && x -> x`, `false || x -> x`, `!(!x) -> x`), eliminates redundant truthiness conversions on booleans, and inverts negated conditionals with both branches.

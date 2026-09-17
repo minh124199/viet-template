@@ -18,17 +18,46 @@ import org.junit.jupiter.api.Test;
 
 class VelocityDifferentialFuzzTest {
 
-  private static final long SEED = 0x7E10C177L;
+  private static final long DEFAULT_SEED = 0x7E10C177L;
 
   private static boolean isDeepMode() {
     return "deep".equalsIgnoreCase(System.getProperty("vietTemplate.fuzz.mode"))
         || "deep".equalsIgnoreCase(System.getenv("VIET_FUZZ_MODE"));
   }
 
+  static long parseSeed(String text, long defaultSeed) {
+    if (text == null || text.isBlank()) {
+      return defaultSeed;
+    }
+    String prop = text.trim();
+    if (prop.startsWith("0x") || prop.startsWith("0X")) {
+      return Long.parseUnsignedLong(prop.substring(2), 16);
+    }
+    return Long.parseLong(prop);
+  }
+
+  static long resolveSeed(String prop, String env, long defaultSeed) {
+    if (prop != null && !prop.isBlank()) {
+      return parseSeed(prop, defaultSeed);
+    }
+    if (env != null && !env.isBlank()) {
+      return parseSeed(env, defaultSeed);
+    }
+    return defaultSeed;
+  }
+
+  private static long resolveSeed() {
+    return resolveSeed(
+        System.getProperty("vietTemplate.fuzz.seed"),
+        System.getenv("VIET_FUZZ_SEED"),
+        DEFAULT_SEED);
+  }
+
   @Test
   @DisplayName("P3: Supported compatibility templates match Apache Velocity 2.4.1")
   void testVelocityDifferentialFuzzing() {
-    SplittableRandom rng = new SplittableRandom(SEED);
+    long seed = resolveSeed();
+    SplittableRandom rng = new SplittableRandom(seed);
     Velocity241EngineAdapter velocityEngine = new Velocity241EngineAdapter();
     VietReferenceEngineAdapter vietEngine = new VietReferenceEngineAdapter();
 
@@ -93,10 +122,21 @@ class VelocityDifferentialFuzzTest {
             String.format(
                 "Velocity 2.4.1 differential mismatch!%n"
                     + "Iteration: %d, Seed: 0x%X%n"
+                    + "Mode: %s%n"
+                    + "Reproduction command:%n"
+                    + "  ./mvnw test -pl viet-template-tck -Dtest=VelocityDifferentialFuzzTest"
+                    + " -DvietTemplate.fuzz.mode=%s -DvietTemplate.fuzz.seed=0x%X -B%n"
                     + "Template:%n%s%n"
                     + "Velocity output: [%s]%n"
                     + "Viet output:     [%s]",
-                i, SEED, template, velRes.output(), vietRes.output()));
+                i,
+                seed,
+                isDeepMode() ? "deep" : "standard",
+                isDeepMode() ? "deep" : "standard",
+                seed,
+                template,
+                velRes.output(),
+                vietRes.output()));
       }
     }
   }

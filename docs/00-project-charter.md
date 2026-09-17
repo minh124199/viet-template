@@ -66,6 +66,11 @@ Need strict capability allowlists, no reflection by default, resource-root confi
 
 ### `0.1` language/interpreter MVP
 
+> [!NOTE]
+> Status as of 0.2.1-SNAPSHOT: The `0.1` and `0.2` criteria below are fully met and exceeded.
+> The `0.3` and `0.4` criteria are substantially addressed by Milestones M12.5, M13, M14, M15,
+> and M16. See [docs/18-roadmap.md](18-roadmap.md) for current milestone status.
+
 - lexer/parser with precise spans;
 - interpreter;
 - `$ref`, `${ref}`, `$!ref`;

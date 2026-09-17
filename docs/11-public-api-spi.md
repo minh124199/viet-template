@@ -6,6 +6,9 @@ Stable public API stays small. Parser AST, IR, bytecode generator, cache impleme
 
 ## 2. Engine builder
 
+> [!NOTE]
+> **Conceptual API Design**: The builder example below reflects the original conceptual API design. The stabilized public contract is formalized in `TemplateEngine.Builder` (see [`docs/32-m14-public-api-spi-stabilization.md`](32-m14-public-api-spi-stabilization.md)), configuring repository resolution, cache constraints, macro libraries, context contributors, collision policies, and member access policies.
+
 ```java
 TemplateEngine engine = TemplateEngine.builder()
     .repository(ClasspathTemplateRepository.of("templates"))
@@ -104,3 +107,24 @@ runtimeAbiVersion
 ```
 
 At 1.0, `viet-template-api` follows semver. Generated artifact compatibility is explicit and invalidated when runtime ABI requires it.
+
+## 12. Public Surface Classification & Layered Compatibility Baselines
+
+Viet Template maintains structured, machine-readable baselines to govern API stability:
+
+1. **Layered Public API Baselines (`config/api-baseline/`)**:
+   - **Core Public API Baseline (`1.0-core-public-api.txt` / `1.0-public-api.txt`)**: Covers **80 core types** established in Milestone M14 across `viet-template-api`, `viet-template-runtime`, and canonical engine entrypoints.
+   - **AOT Facade Public API Baseline (`1.0-aot-public-api.txt`)**: Covers **6 stable AOT compiler facade types** (`TemplateAotArtifact`, `TemplateAotCompiler`, `TemplateAotDiagnostic`, `TemplateAotRequest`, `TemplateAotRequest$Builder`, `TemplateAotResult`) in `io.github.minh124199.viettemplate.aot`.
+   - **Spring Public API Baseline (`1.0-spring-public-api.txt`)**: Covers **8 Spring integration types** (`VietTemplateAutoConfiguration`, `VietTemplateProperties`, `VietTemplateProperties$Security`, `VietTemplateSecurityAutoConfiguration`, `SpringRenderAttributes`, `VietTemplateEngineCustomizer`, `VietTemplateView`, `VietTemplateViewResolver`).
+   - **Spring Security Public API Baseline (`1.0-spring-security-public-api.txt`)**: Covers **5 Spring Security integration types** (`CsrfView`, `CsrfViewFactory`, `SecurityView`, `SecurityViewFactory`, `SpringSecurityRenderContextContributor`).
+   - Verified by `scripts/verify-api-compatibility.py` on CI to enforce 100% binary and source backward compatibility across all **99 stable types** (checking for removed types, methods, fields, incompatible modifiers, and signature mutations).
+
+2. **Repository-Wide Public Surface Classification (`config/api-baseline/public-surface-classification.txt`)**:
+   - Classifies all compiled `public` and `protected` types across all production modules (currently **360 total types**).
+   - Contains **99 stable-classified types** (80 `STABLE_API` + 19 `STABLE_SPI`), 6 `EXPERIMENTAL` types, and 255 `PUBLIC_BUT_INTERNAL_ACCIDENT` types.
+   - Enforces the machine-checked invariant: `union(all 1.0 compatibility baseline types) == all STABLE_API + STABLE_SPI types`.
+   - Verified by `scripts/verify-public-surface-classification.py` to ensure 0 unclassified types, 0 stale entries, baseline parity & bijection, and zero internal signature leaks.
+
+### Pre-1.0 Convergence Guarantee
+
+The pre-1.0 convergence requirement is fully satisfied through the layered baseline architecture: 100% of stable public types (`STABLE_API` and `STABLE_SPI`) across core, AOT, spring, and spring security modules are formally registered and mechanically verified against breaking changes on every CI build.

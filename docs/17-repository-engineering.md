@@ -32,6 +32,9 @@ Velocity-specific names are confined to compatibility/frontend packages. Core co
 
 ## 2. Repository shape
 
+> [!NOTE]
+> **Conceptual Layout vs. Flat Structure**: The nested directory hierarchy below represents the early conceptual repository layout. The codebase is organized as a flat multi-module structure at the repository root containing 11 physical modules (`viet-template-api`, `viet-template-runtime`, `viet-template-language-vtl`, `viet-template-vtl-interpreter`, `viet-template-spring`, `viet-template-spring-boot-autoconfigure`, `viet-template-spring-boot-starter`, `viet-template-tck`, `viet-template-benchmarks`, `viet-template-maven-plugin`, and `viet-template-gradle-plugin`), along with `docs/`, `scripts/`, `config/`, and `integration-tests/`.
+
 ```text
 /
 ├── README.md
@@ -57,6 +60,9 @@ Velocity-specific names are confined to compatibility/frontend packages. Core co
 ## 3. Build system
 
 Choose one primary root build. Maven is straightforward for Maven Central libraries; Gradle is attractive for incremental plugin development. Do not maintain two equivalent top-level builds.
+
+> [!NOTE]
+> **Dual-Build Parity Maintained**: While the early design suggested avoiding two top-level builds, the project actively maintains full dual-build parity across both Gradle (`build.gradle.kts`, `./gradlew`) and Maven (`pom.xml`, `./mvnw`). Bytecode compilation, quality gates, unit tests, TCK suites, and packaging are verified across both build systems in CI.
 
 ## 4. Toolchains
 

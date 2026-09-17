@@ -15,6 +15,7 @@
 
     <name>viet-template-api</name>
     <description>Viet Template Public API and Core Contracts</description>
+    <url>${github.repository.url}/tree/main/viet-template-api</url>
 
     <dependencies>
         <!-- Test Dependencies -->
