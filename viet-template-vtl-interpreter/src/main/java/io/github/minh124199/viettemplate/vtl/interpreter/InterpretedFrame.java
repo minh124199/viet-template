@@ -2,12 +2,10 @@ package io.github.minh124199.viettemplate.vtl.interpreter;
 
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
-import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout;
 import io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -22,7 +20,7 @@ final class InterpretedFrame {
   final ExecutionContext context;
   final TemplateOutput output;
   final IrConstantPool constantPool;
-  final Map<String, IrFunction> functions;
+  final PreparedFunctionRegistry functions;
   final TemplateId templateId;
   final SourceText source;
   final VtlInterpreterOptions options;
@@ -38,7 +36,7 @@ final class InterpretedFrame {
       ExecutionContext context,
       TemplateOutput output,
       IrConstantPool constantPool,
-      Map<String, IrFunction> functions,
+      PreparedFunctionRegistry functions,
       VtlInterpreterOptions options,
       ReferenceAccess referenceAccess,
       int macroDepth,
@@ -67,7 +65,7 @@ final class InterpretedFrame {
       ExecutionContext context,
       TemplateOutput output,
       IrConstantPool constantPool,
-      Map<String, IrFunction> functions,
+      PreparedFunctionRegistry functions,
       VtlInterpreterOptions options,
       ReferenceAccess referenceAccess,
       int macroDepth,
@@ -95,7 +93,7 @@ final class InterpretedFrame {
       ExecutionContext context,
       TemplateOutput output,
       IrConstantPool constantPool,
-      Map<String, IrFunction> functions,
+      PreparedFunctionRegistry functions,
       TemplateId templateId,
       SourceText source,
       VtlInterpreterOptions options,
@@ -124,7 +122,7 @@ final class InterpretedFrame {
       ExecutionContext context,
       TemplateOutput output,
       IrConstantPool constantPool,
-      Map<String, IrFunction> functions,
+      PreparedFunctionRegistry functions,
       TemplateId templateId,
       SourceText source,
       VtlInterpreterOptions options,

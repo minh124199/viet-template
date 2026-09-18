@@ -445,7 +445,8 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
             (ct.getClass().getClassLoader() instanceof TemplateClassLoader tcl) ? tcl : null;
         return CompiledTemplateHandle.ofBytecode(id, gen, key, ct, optimizedIr, cl);
       } else if (result.status() == CompilationStatus.INTERPRETER_REQUIRED_EVALUATE) {
-        return CompiledTemplateHandle.ofIr(id, gen, key, optimizedIr);
+        IrTemplate finalIr = IrOptimizer.optimize(optimizedIr, optimizationOptions);
+        return preparedIrHandle(id, gen, key, sourceText, finalIr);
       } else {
         cache.recordNegative(id, "Compilation failure: " + result.diagnostics());
         throw new TemplateCompilationException(
@@ -456,7 +457,27 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
       }
     }
 
-    return CompiledTemplateHandle.ofIr(id, gen, key, optimizedIr);
+    // Global composition changes the final function set after the preliminary local-template
+    // optimization. Finalize and verify that immutable generation before preparing IR execution.
+    IrTemplate finalIr = IrOptimizer.optimize(optimizedIr, optimizationOptions);
+    return preparedIrHandle(id, gen, key, sourceText, finalIr);
+  }
+
+  private CompiledTemplateHandle preparedIrHandle(
+      TemplateId id,
+      long generation,
+      CompileCacheKey key,
+      SourceText sourceText,
+      IrTemplate optimizedIr) {
+    CompiledTemplate preparedTemplate = interpreter.prepareIr(optimizedIr, sourceText);
+    return new CompiledTemplateHandle(
+        id,
+        generation,
+        key,
+        Optional.of(preparedTemplate),
+        Optional.of(optimizedIr),
+        Optional.empty(),
+        System.currentTimeMillis());
   }
 
   private static Map<TemplateId, Class<? extends CompiledTemplate>> discoverAotTemplates(

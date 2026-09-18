@@ -1,7 +1,9 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
+import io.github.minh124199.viettemplate.api.CompiledTemplate;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.api.TemplateDescriptor;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
@@ -58,6 +60,32 @@ public final class VtlInterpreter {
 
   public VtlInterpreterOptions options() {
     return options;
+  }
+
+  /**
+   * Prepares a final optimized IR template for repeated immutable execution.
+   *
+   * <p>This is used by the engine compilation boundary. Raw-IR render methods retain their existing
+   * prepare-on-call behavior for compatibility.
+   */
+  public CompiledTemplate prepareIr(IrTemplate template, SourceText source) {
+    Objects.requireNonNull(template, "template must not be null");
+    Objects.requireNonNull(source, "source must not be null");
+    PreparedIrTemplate prepared = PreparedIrTemplate.prepare(template);
+    TemplateDescriptor descriptor = TemplateDescriptor.of(template.id(), ExecutionTier.IR.name());
+    return new CompiledTemplate() {
+      @Override
+      public TemplateDescriptor descriptor() {
+        return descriptor;
+      }
+
+      @Override
+      public void render(RenderContext context, TemplateOutput output) throws IOException {
+        Objects.requireNonNull(context, "context must not be null");
+        IrInterpreter.renderPrepared(
+            prepared, source, new ExecutionContext(context), output, options, referenceAccess);
+      }
+    };
   }
 
   public void render(

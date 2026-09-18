@@ -123,18 +123,26 @@ public final class IrInterpreter {
     Objects.requireNonNull(options, "options must not be null");
     Objects.requireNonNull(referenceAccess, "referenceAccess must not be null");
 
+    renderPrepared(
+        PreparedIrTemplate.prepare(template), source, context, output, options, referenceAccess);
+  }
+
+  static void renderPrepared(
+      PreparedIrTemplate prepared,
+      SourceText source,
+      ExecutionContext context,
+      TemplateOutput output,
+      VtlInterpreterOptions options,
+      ReferenceAccess referenceAccess)
+      throws IOException {
+    IrTemplate template = prepared.template();
     CountingTemplateOutput countingOutput =
         (output instanceof CountingTemplateOutput cto)
             ? cto
             : new CountingTemplateOutput(
                 output, options.limits().createRenderBudget(), template.id());
-
-    Map<String, IrFunction> functionMap = new HashMap<>();
-    for (IrFunction function : template.functions()) {
-      functionMap.put(function.name(), function);
-    }
-
-    IrSlotLayout.SlotLayout layout = IrSlotLayout.layout(template);
+    PreparedFunctionRegistry functions = new PreparedFunctionRegistry(prepared.functions());
+    IrSlotLayout.SlotLayout layout = prepared.rootLayout();
     InterpretedFrame frame =
         new InterpretedFrame(
             template.id(),
@@ -142,7 +150,7 @@ public final class IrInterpreter {
             context,
             countingOutput,
             template.constants(),
-            functionMap,
+            functions,
             options,
             referenceAccess,
             0,
@@ -569,8 +577,8 @@ public final class IrInterpreter {
           InterpreterDiagnosticCodes.LIMIT_EXCEEDED);
     }
 
-    IrFunction function = frame.functions.get(callM.macroName());
-    if (function == null) {
+    PreparedIrTemplate.PreparedFunction preparedFunction = frame.functions.get(callM.macroName());
+    if (preparedFunction == null) {
       if (frame.options.strictReferences()) {
         throw new TemplateRenderException(
             "Unknown macro or directive: #" + callM.macroName(),
@@ -580,13 +588,14 @@ public final class IrInterpreter {
       }
       return;
     }
+    IrFunction function = preparedFunction.function();
 
     List<Object> argValues = new ArrayList<>();
     for (IrExpression argExpr : callM.arguments()) {
       argValues.add(evaluateExpression(argExpr, frame));
     }
 
-    IrSlotLayout.SlotLayout fnLayout = IrSlotLayout.layout(function);
+    IrSlotLayout.SlotLayout fnLayout = preparedFunction.layout();
     ExecutionFrame macroVariables = new ExecutionFrame(fnLayout.frameSize());
     Map<String, EvaluationValue> bindings = new HashMap<>();
     List<IrParameter> params = function.parameters();
@@ -684,7 +693,7 @@ public final class IrInterpreter {
     subIr = IrOptimizer.optimize(subIr, frame.options.optimizationOptions());
 
     for (IrFunction function : subIr.functions()) {
-      frame.functions.put(function.name(), function);
+      frame.functions.add(function);
     }
 
     IrSlotLayout.SlotLayout subLayout = IrSlotLayout.layout(subIr);
@@ -760,7 +769,7 @@ public final class IrInterpreter {
     subIr = IrOptimizer.optimize(subIr, frame.options.optimizationOptions());
 
     for (IrFunction function : subIr.functions()) {
-      frame.functions.put(function.name(), function);
+      frame.functions.add(function);
     }
 
     IrSlotLayout.SlotLayout evalLayout = IrSlotLayout.layout(subIr);
