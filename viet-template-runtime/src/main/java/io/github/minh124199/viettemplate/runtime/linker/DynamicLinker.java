@@ -22,6 +22,14 @@ public final class DynamicLinker {
 
   private final LinkerAccessPolicy defaultPolicy;
 
+  private final ClassValue<ClassLinkTable> classLinkTables =
+      new ClassValue<>() {
+        @Override
+        protected ClassLinkTable computeValue(Class<?> type) {
+          return new ClassLinkTable(type);
+        }
+      };
+
   public DynamicLinker() {
     this(LinkerAccessPolicy.standard());
   }
@@ -64,6 +72,11 @@ public final class DynamicLinker {
           "class " + receiverClass.getName() + " is denied by policy");
     }
 
+    return classLinkTables.get(receiverClass).getOrCompute(memberKey, policy, this);
+  }
+
+  AccessLink computeDirectLink(
+      Class<?> receiverClass, MemberKey memberKey, LinkerAccessPolicy policy) {
     return switch (memberKey.operation()) {
       case PROPERTY_GET -> linkPropertyGet(receiverClass, memberKey.name(), policy);
       case PROPERTY_SET -> linkPropertySet(receiverClass, memberKey.name(), policy);
@@ -72,6 +85,34 @@ public final class DynamicLinker {
       case INDEX_GET -> linkIndexGet(receiverClass, policy);
       case INDEX_SET -> linkIndexSet(receiverClass, policy);
     };
+  }
+
+  private static final class ClassLinkTable {
+    private final Class<?> receiverClass;
+    private final java.util.concurrent.ConcurrentHashMap<LinkKey, AccessLink> links =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    ClassLinkTable(Class<?> receiverClass) {
+      this.receiverClass = receiverClass;
+    }
+
+    AccessLink getOrCompute(MemberKey memberKey, LinkerAccessPolicy policy, DynamicLinker linker) {
+      LinkKey key = new LinkKey(memberKey, policy.policyId());
+      AccessLink existing = links.get(key);
+      if (existing != null) {
+        return existing;
+      }
+      AccessLink computed = linker.computeDirectLink(receiverClass, memberKey, policy);
+      AccessLink prior = links.putIfAbsent(key, computed);
+      return prior != null ? prior : computed;
+    }
+  }
+
+  private record LinkKey(MemberKey memberKey, String policyId) {
+    LinkKey {
+      Objects.requireNonNull(memberKey, "memberKey must not be null");
+      Objects.requireNonNull(policyId, "policyId must not be null");
+    }
   }
 
   private AccessLink linkPropertyGet(

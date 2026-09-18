@@ -95,11 +95,33 @@ public final class IrInterpreter {
       TemplateOutput output,
       VtlInterpreterOptions options)
       throws IOException {
+    render(
+        template,
+        source,
+        context,
+        output,
+        options,
+        new LinkedReferenceAccess(options.securityPolicy()));
+  }
+
+  /**
+   * Renders the given {@link IrTemplate} using the reference IR interpreter with shared {@link
+   * ReferenceAccess}.
+   */
+  public static void render(
+      IrTemplate template,
+      SourceText source,
+      ExecutionContext context,
+      TemplateOutput output,
+      VtlInterpreterOptions options,
+      ReferenceAccess referenceAccess)
+      throws IOException {
     Objects.requireNonNull(template, "template must not be null");
     Objects.requireNonNull(source, "source must not be null");
     Objects.requireNonNull(context, "context must not be null");
     Objects.requireNonNull(output, "output must not be null");
     Objects.requireNonNull(options, "options must not be null");
+    Objects.requireNonNull(referenceAccess, "referenceAccess must not be null");
 
     CountingTemplateOutput countingOutput =
         (output instanceof CountingTemplateOutput cto)
@@ -122,7 +144,7 @@ public final class IrInterpreter {
             template.constants(),
             functionMap,
             options,
-            new LinkedReferenceAccess(options.securityPolicy()),
+            referenceAccess,
             0,
             0,
             0,

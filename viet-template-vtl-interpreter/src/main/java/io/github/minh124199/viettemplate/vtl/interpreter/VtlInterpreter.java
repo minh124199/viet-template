@@ -42,9 +42,18 @@ public final class VtlInterpreter {
     this(VtlInterpreterOptions.DEFAULT);
   }
 
-  public VtlInterpreter(VtlInterpreterOptions options) {
+  public VtlInterpreter(VtlInterpreterOptions options, ReferenceAccess referenceAccess) {
     this.options = Objects.requireNonNull(options, "options must not be null");
-    this.referenceAccess = new LinkedReferenceAccess(options.securityPolicy());
+    this.referenceAccess =
+        Objects.requireNonNull(referenceAccess, "referenceAccess must not be null");
+  }
+
+  public VtlInterpreter(VtlInterpreterOptions options) {
+    this(options, new LinkedReferenceAccess(options.securityPolicy()));
+  }
+
+  ReferenceAccess referenceAccess() {
+    return referenceAccess;
   }
 
   public VtlInterpreterOptions options() {
@@ -113,7 +122,8 @@ public final class VtlInterpreter {
                 e);
           }
         } else if (result.status() == CompilationStatus.INTERPRETER_REQUIRED_EVALUATE) {
-          IrInterpreter.render(optimizedTemplate, source, context, output, options);
+          IrInterpreter.render(
+              optimizedTemplate, source, context, output, options, this.referenceAccess);
           return;
         } else {
           throw new TemplateRenderException(
@@ -124,7 +134,8 @@ public final class VtlInterpreter {
         }
       }
 
-      IrInterpreter.render(optimizedTemplate, source, context, output, options);
+      IrInterpreter.render(
+          optimizedTemplate, source, context, output, options, this.referenceAccess);
       return;
     }
 
@@ -203,7 +214,8 @@ public final class VtlInterpreter {
               e);
         }
       } else if (result.status() == CompilationStatus.INTERPRETER_REQUIRED_EVALUATE) {
-        IrInterpreter.render(optimizedTemplate, source, context, output, options);
+        IrInterpreter.render(
+            optimizedTemplate, source, context, output, options, this.referenceAccess);
         return;
       } else {
         throw new TemplateRenderException(
@@ -213,7 +225,7 @@ public final class VtlInterpreter {
             InterpreterDiagnosticCodes.SYNTAX_ERROR);
       }
     }
-    IrInterpreter.render(optimizedTemplate, source, context, output, options);
+    IrInterpreter.render(optimizedTemplate, source, context, output, options, this.referenceAccess);
   }
 
   public void render(
