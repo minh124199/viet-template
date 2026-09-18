@@ -106,26 +106,22 @@ attribution:
 
 Viet Template explicitly differentiates the roles of supported JDK releases:
 
-- **Java 17 (Authoritative Production Baseline)**:
-  - The minimal compiler and runtime bytecode target (`options.release.set(17)`).
-  - All published production artifacts (`viet-template-api`, `viet-template-runtime`, `viet-template-language-vtl`, `viet-template-vtl-interpreter`) are compiled to Java 17 classfiles without preview features or Java 21+ API dependencies.
-  - Ensures seamless adoption across enterprise Java 17 LTS deployments without bytecode incompatibility.
-- **Java 21 (LTS Runtime Target & Virtual Threads Platform)**:
-  - Supported runtime execution environment for deployment under modern LTS JVMs.
+- **Java 17 (Historical Benchmark Baseline)**:
+  - Retained in historical M19.1 reports and the 0.1.x maintenance context only.
+  - Not part of the active 0.2.x+ optimization acceptance matrix.
+- **Java 21 (Minimum Compile and Runtime Baseline)**:
+  - The minimum compiler, classfile, and runtime target (`--release 21`).
   - Validates full compatibility with Virtual Threads (JEP 444) and Generational ZGC (JEP 439).
   - High-concurrency stress suites verify that shared engine instances, thread-local contexts, and cache locks execute under high concurrency with no pinning-related correctness or deadlock failure observed in the tested workload.
-- **Java 25 (Advanced Runtime & Experimentation Platform)**:
-  - Forward-looking performance exploration target.
+- **Java 25 (Primary Development and Performance Runtime)**:
+  - The primary current CI, profiling, and optimization qualification runtime.
   - Evaluates memory footprint optimizations via Compact Object Headers (JEP 519).
   - Measures process-level startup and class-loading acceleration via JVM AOT Cache (JEP 483 / JEP 514 / JEP 515).
   - Powers diagnostic profiling via Java Flight Recorder (JFR, including JEP 520) and `jfr view` CLI analysis.
 
 #### Production Baseline Decision Gate
 
-The Java 17 production baseline remains strictly frozen for the entire 0.x release series. Any future proposal to raise the production baseline to Java 21 or 25 requires:
-1. An approved Architecture Decision Record (ADR).
-2. Broad community consensus and documented enterprise LTS adoption metrics.
-3. Quantifiable, statistically significant empirical performance justification satisfying all 7 parts of the DSA Acceptance Rule.
+The active baseline is Java 21 under ADR-0007 and ADR-0010. Java 25 is the primary performance runtime. Future baseline changes require an approved architecture decision and repository-wide compatibility validation.
 
 ---
 

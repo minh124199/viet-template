@@ -1,6 +1,6 @@
 {
   "$schema": "./benchmark-runtime-profiles.schema.json",
-  "defaultProfile": "J17-G1",
+  "defaultProfile": "J25-G1",
   "profiles": {
     "J17-G1": {
       "description": "Historical canonical baseline: OpenJDK 17 with G1 GC",

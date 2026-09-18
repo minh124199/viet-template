@@ -16,6 +16,11 @@ However, traditional template engines present hazards that compromise virtual th
 
 Enforce the following **strict architectural invariants** across the entire Viet Template codebase to guarantee safe, optimal execution on Virtual Threads:
 
+0. **Supported Host Model, Not an Execution Backend**:
+   - Virtual threads are a supported caller/application execution model, not a Viet Template execution tier.
+   - Rendering remains synchronous, caller-thread-bound, deterministic, and orthogonal to the IR or AOT backend.
+   - Viet Template does not create virtual threads or internal executors for CPU-bound rendering, expressions, macros, loops, includes, escaping, compilation, or AOT execution.
+   - Engine-owned virtual threads may be considered only for a separately identified blocking-I/O subsystem with independent profiling evidence and simple lifecycle, cancellation, and error semantics; caller/framework ownership remains preferred.
 1. **Zero Thread-Pinning in I/O Paths**:
    - `synchronized` blocks are strictly forbidden around any I/O operation, stream flush, or blocking call site.
    - Concurrency controls use lock-free data structures (`ConcurrentHashMap`, atomic primitives) or explicit `ReentrantLock` instances where locking is strictly necessary.

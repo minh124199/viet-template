@@ -196,5 +196,5 @@ Every new optimization pass, algorithmic change, or custom data structure must s
 3. Practical JVM runtime execution characteristics favor the approach over simpler alternatives.
 4. Balanced performance tradeoff: evaluate throughput, latency, allocation rate, retained memory, contention, and implementation complexity together on representative workloads.
 5. Maintainable design with well-defined invariants and concurrent stress tests.
-6. Verified with JMH benchmarks demonstrating $\ge 15\%$ throughput improvement or $\ge 20\%$ allocation reduction across JDK 17, 21, and 25.
+6. Verified with JMH benchmarks demonstrating $\ge 15\%$ throughput improvement or $\ge 20\%$ allocation reduction across the current qualification matrix: Java 21 minimum and Java 25 primary runtime. Java 17 results remain historical evidence only.
 7. Immediate fallback to simple standard JDK collections if gains are marginal ($< 5\text{--}10\%$).

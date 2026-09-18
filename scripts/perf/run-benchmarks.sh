@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-PROFILE="J17-G1"
+PROFILE="J25-G1"
 BENCHMARK_PATTERN=".*"
 FORKS=""
 THREADS=""
@@ -75,7 +75,7 @@ while [[ $# -gt 0 ]]; do
     -h|--help)
       echo "Usage: $0 [OPTIONS]"
       echo "Options:"
-      echo "  --profile <ID>            Runtime profile (default: J17-G1)"
+      echo "  --profile <ID>            Runtime profile (default: J25-G1)"
       echo "  --benchmark <PATTERN>     Benchmark regex or class (default: .*)"
       echo "  --forks <N>               Number of forks (-f)"
       echo "  --threads <N>             Worker threads (-t)"

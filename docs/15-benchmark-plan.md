@@ -7,7 +7,7 @@ Viet Template adopts a strict, maintainability-first, benchmark-driven performan
 1. **Maintainability and Correctness First**: Readability, simplicity, and architectural invariants take precedence over speculative micro-optimizations. Code must never sacrifice safety, security sandboxing, or Velocity semantic parity for unverified performance claims.
 2. **Benchmark Evidence vs. Architectural Policy**: Architectural policy defines stable principles: measure before optimizing, preserve correctness, security sandboxing, and Velocity semantics, prefer maintainable Java/JDK solutions, use simple arrays and direct indexing, and avoid custom sophisticated structures without empirical evidence. Benchmark results are changeable empirical facts: throughput numbers, allocation counts, latency profiles, competitor comparisons, percentage gains, and profiler hotspots. Benchmark results live in benchmark reports and measurement records, not as permanent architectural truths.
 3. **Complexity vs. JVM Execution Cost**: Algorithmic complexity ($O(1)$ vs. $O(N)$) must be evaluated against physical JVM runtime realities: memory locality, pointer indirection, object header overhead, GC pressure, write barriers, and JIT compiler inlining heuristics.
-4. **Java 17 Baseline**: Design idiomatically for the modern JVM (Java 17 baseline), utilizing contiguous memory arrays, compact representations, records, sealed interfaces, and standard JDK collections before considering custom or complex alternatives.
+4. **Current Runtime Policy**: Design idiomatically for the Java 21 minimum baseline and qualify performance primarily on Java 25, utilizing contiguous memory arrays, compact representations, records, sealed interfaces, and standard JDK collections before considering custom or complex alternatives. Java 17 measurements are retained as historical reports, not an active acceptance gate.
 
 ---
 
@@ -20,12 +20,12 @@ No custom data structure, non-standard algorithm, or complex caching mechanism m
 3. **Theoretical vs. Practical JVM Cost**: The proposal must demonstrate why JVM runtime execution characteristics (e.g., contiguous flat array traversal, low constant factors) do not already favor the simpler structure. An $O(N)$ array scan with low constant factors, zero hashing or node overhead, and good memory locality is preferred over an $O(1)$ hash table that introduces pointer chasing, heap allocation, and hash calculation overhead for small bounded $N$.
 4. **Balanced Tradeoff Evaluation**: Evaluate throughput, latency, allocation rate, retained memory, contention, and implementation complexity together. A regression in one dimension may be acceptable when it enables a materially greater improvement in another dimension, provided the tradeoff is measured on representative workloads and documented. A small allocation increase may be acceptable for substantial throughput gain; a microbenchmark win does not justify architectural complexity if end-to-end rendering barely improves.
 5. **Maintenance and Complexity Budget**: The implementation must have well-defined, provable invariants, be under 300 lines of code where possible, introduce no unsafe or internal JVM hacks, and include exhaustive concurrent stress tests.
-6. **Benchmark Verification**: A reproducible JMH benchmark across JDK 17, 21, and 25 must demonstrate a statistically significant improvement ($\ge 15\%$ throughput improvement or $\ge 20\%$ allocation reduction) with overlapping confidence intervals excluded.
+6. **Benchmark Verification**: A reproducible JMH benchmark across Java 21 and Java 25 must demonstrate a statistically significant improvement ($\ge 15\%$ throughput improvement or $\ge 20\%$ allocation reduction) with overlapping confidence intervals excluded. Preserve Java 17 data only for historical comparison.
 7. **Fallback and Simplicity Clause**: If profiling or benchmark results indicate parity, marginal gains ($< 5\text{--}10\%$), or degradation under specific JVM configurations, the code must immediately revert to standard JDK collections (`ArrayDeque`, `ArrayList`, `HashMap`, `ConcurrentHashMap`) or simple arrays.
 
 ---
 
-## 3. Four-Tier Implementation Preference Hierarchy (Java 17 Baseline)
+## 3. Four-Tier Implementation Preference Hierarchy (Java 21 Baseline)
 
 Viet Template enforces a four-tier implementation preference hierarchy:
 
@@ -476,7 +476,7 @@ Every pull request introducing optimizations, changing data structures, or alter
 - [ ] **2. Balanced Allocation & Performance Tradeoff**: Has the allocation rate (`bytes/op`) been measured using `-prof gc`? Are throughput, latency, allocation rate, and memory tradeoffs evaluated together on representative workloads?
 - [ ] **3. Scalability & Contention**: Has the change been verified under multi-threaded concurrency (threads $\ge 8$) to ensure no new lock contention, CAS spinning, or false sharing?
 - [ ] **4. Memory Footprint**: Does the change maintain or reduce long-term memory footprint per template and per render context?
-- [ ] **5. Java 17 Baseline Idioms**: Does the code adhere to Java 17 idiomatic practices, utilizing compact flat arrays, records, and standard collections without third-party dependencies?
+- [ ] **5. Java 21 Baseline Idioms**: Does the code adhere to Java 21 idiomatic practices, utilizing compact flat arrays, records, and standard collections without third-party dependencies?
 - [ ] **6. Avoidance of Premature Hacks**: Does the code avoid unsafe tricks, undocumented JVM intrinsics, reflection tampering, or premature micro-optimizations that harm maintainability?
 - [ ] **7. Thread-Safety & Invariants**: Are all concurrency invariants, thread-safety guarantees, and immutability constraints rigorously preserved and verified with stress tests?
 - [ ] **8. Tail Latency & Branch Predictability**: Are branches structured predictably for CPU branch predictors? Are expensive operations kept out of the inner loop?

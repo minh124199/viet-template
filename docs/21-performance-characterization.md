@@ -94,9 +94,9 @@ Per repository guidelines, pairwise performance differences are classified stric
 
 ---
 
-## 3. Post-0.2.0 Production Baseline: Java 17 (`J17-G1`)
+## 3. Historical Post-0.2.0 Benchmark Baseline: Java 17 (`J17-G1`)
 
-Profile `J17-G1` represents the authoritative production baseline (`options.release.set(17)`). All ten canonical benchmark classes were executed.
+Profile `J17-G1` was the authoritative production baseline when this historical measurement was captured. All ten canonical benchmark classes were executed. Current minimum: Java 21. Primary current performance runtime: Java 25.
 
 ### 3.1 Variable Resolution & Assignment Benchmarks
 
@@ -384,8 +384,8 @@ Per `docs/18-roadmap.md`, candidate optimizations for Milestone M19.3 are strict
 
 ## 8. Conclusions & Next Steps
 
-1. **Production Baseline Remains Java 17**:
-   All benchmark evidence confirms that the Java 17 production baseline (`options.release.set(17)`) remains highly performant and stable. The 0.2.0 slot architecture provides exceptional execution speeds across both interpreted IR and compiled bytecode tiers.
+1. **Historical Baseline and Current Runtime Policy**:
+   The measurements in this report preserve the historical Java 17 baseline. Active 0.2.x+ development has a Java 21 minimum, with Java 25 as the primary current performance runtime. The slot architecture remains applicable across the current runtime matrix.
 2. **Milestone M19.3 Scope Approved for Planning**:
    Milestone M19.3 must remain strictly bounded to the two empirically qualified candidate areas:
    - **M19.3a**: `TemplateCompileCache` concurrent read-path eviction decoupling.
