@@ -77,13 +77,17 @@ class SharedEngineVirtualThreadStressTest {
   @DisplayName(
       "Audit virtual threads with JFR to verify zero pinned events under 1,000 and 10,000 renders")
   void testVirtualThreadJfrPinningAuditUnder1000And10000Renders() throws Exception {
-    // Prewarm template compilation so steady-state rendering is isolated from classloader
-    // initialization
-    engine.render(
-        RenderRequest.of(
-            TemplateId.of("item.vm"),
-            RenderContext.builder().put("item", new Item("ITM-0", "Warmup", 0.0)).build()),
-        new StringTemplateOutput());
+    // Prewarm template compilation, virtual thread executor, and test harness lambdas so
+    // steady-state rendering is isolated from classloader initialization, StringConcatFactory
+    // invokedynamic linking, and MethodHandle CountingWrapper JIT tiering
+    runItemRendersStress(50, VirtualThreadSupport.createVirtualThreadExecutor());
+    for (int i = 0; i < 150; i++) {
+      engine.render(
+          RenderRequest.of(
+              TemplateId.of("item.vm"),
+              RenderContext.builder().put("item", new Item("ITM-0", "Warmup", 0.0)).build()),
+          new StringTemplateOutput());
+    }
 
     long initialLinks = callSiteRegistry(engine).statistics().links();
     assertThat(initialLinks).as("Prewarming must link dynamic call sites").isGreaterThan(0L);
@@ -124,6 +128,32 @@ class SharedEngineVirtualThreadStressTest {
               "=== DIAGNOSTIC: KNOWN JVM-INTERNAL METHODTYPE MAINTENANCE EVENTS ("
                   + classifiedJvmInternalEvents.size()
                   + ") ===");
+          for (jdk.jfr.consumer.RecordedEvent e : classifiedJvmInternalEvents) {
+            java.time.Duration d = e.getDuration();
+            long nanos = d != null ? d.toNanos() : 0L;
+            double millis = nanos / 1_000_000.0;
+            System.out.printf(
+                "  Event duration: %d ns / %.3f ms | reason: carrier thread pin%n", nanos, millis);
+            jdk.jfr.consumer.RecordedStackTrace stack = e.getStackTrace();
+            if (stack != null && !stack.getFrames().isEmpty()) {
+              List<jdk.jfr.consumer.RecordedFrame> frames = stack.getFrames();
+              var top = frames.get(0).getMethod();
+              System.out.println(
+                  "  blocking operation: " + top.getType().getName() + "." + top.getName());
+              System.out.println("  top frames:");
+              frames.stream()
+                  .limit(5)
+                  .forEach(
+                      f ->
+                          System.out.println(
+                              "    at "
+                                  + f.getMethod().getType().getName()
+                                  + "."
+                                  + f.getMethod().getName()
+                                  + ":"
+                                  + f.getLineNumber()));
+            }
+          }
         }
 
         if (!unexpectedPinnedEvents.isEmpty()) {
