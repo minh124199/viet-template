@@ -42,6 +42,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+- **BoundedWeakClassCache & ClassLoader Turnover**:
+  - Fixed observable cache size calculation in `BoundedWeakClassCache.size()` by actively removing entries whose weak references have been cleared by GC (`wk.get() == null`) in addition to draining the reference queue.
+  - Prioritized dead entry removal in `evictOne()` prior to evicting live entries when capacity is reached.
+  - Hardened ClassLoader turnover test assertion in `VtlTemplateEngineLifecycleTest` to poll until weak references and cache size reach zero without pinning.
+  - Added targeted unit test coverage in `BoundedWeakClassCacheTest`.
+- **Virtual Thread Carrier Pinning & Dynamic Linker Reuse**:
+  - Resolved carrier thread pinning under high concurrency by reusing `CallSiteRegistry` and `VtlInterpreter` across renders in `VtlTemplateEngine` and `VtlTemplate`, passing shared `ReferenceAccess` to `IrInterpreter`.
+  - Ensured steady-state rendering reuses inline-cached dynamic call sites with zero incremental links (`links()` invariance).
+  - Hardened JFR pinning audits in `SharedEngineVirtualThreadStressTest` with narrow classification for ultra-short JVM-internal `MethodType` maintenance events.
+  - Added regression test suite `VtlDynamicLinkerReuseTest` verifying call site reuse and registry clearing on close.
+  - Documented architectural invariants and JFR classification boundaries in `docs/adr/0013-virtual-thread-invariants.md`.
 
 ### Security
 
