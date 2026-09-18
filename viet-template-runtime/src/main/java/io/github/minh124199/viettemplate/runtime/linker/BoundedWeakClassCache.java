@@ -74,6 +74,7 @@ public final class BoundedWeakClassCache<V> {
 
   public int size() {
     purgeStaleEntries();
+    map.keySet().removeIf(key -> key instanceof WeakKey wk && wk.get() == null);
     return map.size();
   }
 
@@ -97,6 +98,7 @@ public final class BoundedWeakClassCache<V> {
 
   private synchronized void evictOne() {
     purgeStaleEntries();
+    map.keySet().removeIf(key -> key instanceof WeakKey wk && wk.get() == null);
     if (map.size() >= maxCapacity) {
       Iterator<Object> it = map.keySet().iterator();
       if (it.hasNext()) {

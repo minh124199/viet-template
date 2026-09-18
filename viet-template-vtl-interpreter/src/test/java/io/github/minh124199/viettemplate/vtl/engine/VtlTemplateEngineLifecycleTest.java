@@ -205,7 +205,7 @@ class VtlTemplateEngineLifecycleTest {
       System.gc();
       boolean anyClAlive = classLoaderRefs.stream().anyMatch(ref -> ref.get() != null);
       boolean anyClassAlive = classRefs.stream().anyMatch(ref -> ref.get() != null);
-      if (!anyClAlive && !anyClassAlive) {
+      if (!anyClAlive && !anyClassAlive && weakCache.size() == 0) {
         allCollected = true;
         break;
       }
