@@ -1,6 +1,8 @@
 package io.github.minh124199.viettemplate.runtime.linker;
 
-import java.util.Arrays;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -26,9 +28,14 @@ public final class DynamicCallSite {
   private final LinkerStatistics stats;
 
   private volatile State state = State.UNLINKED;
-  private volatile AccessLink monomorphicLink;
-  private volatile AccessLink[] polymorphicLinks = new AccessLink[0];
-  private volatile BoundedWeakClassCache<AccessLink> megamorphicCache;
+  private volatile WeakReference<AccessLink> monomorphicLinkRef;
+  private volatile WeakReference<AccessLink>[] polymorphicLinks = emptyLinkArray();
+  private volatile BoundedWeakClassCache<WeakReference<AccessLink>> megamorphicCache;
+
+  @SuppressWarnings("unchecked")
+  private static WeakReference<AccessLink>[] emptyLinkArray() {
+    return (WeakReference<AccessLink>[]) new WeakReference<?>[0];
+  }
 
   public DynamicCallSite(
       int siteId,
@@ -118,7 +125,8 @@ public final class DynamicCallSite {
   public AccessLink resolveLink(Class<?> targetClass) {
     // 1. Fast Path: Monomorphic
     if (state == State.MONOMORPHIC) {
-      AccessLink mono = monomorphicLink;
+      WeakReference<AccessLink> ref = monomorphicLinkRef;
+      AccessLink mono = ref != null ? ref.get() : null;
       if (mono != null && mono.matches(targetClass)) {
         stats.recordPicHit();
         return mono;
@@ -127,10 +135,11 @@ public final class DynamicCallSite {
 
     // 2. Fast Path: Polymorphic
     if (state == State.POLYMORPHIC) {
-      AccessLink[] links = polymorphicLinks;
+      WeakReference<AccessLink>[] links = polymorphicLinks;
       for (int i = 0; i < links.length; i++) {
-        AccessLink l = links[i];
-        if (l.matches(targetClass)) {
+        WeakReference<AccessLink> ref = links[i];
+        AccessLink l = ref != null ? ref.get() : null;
+        if (l != null && l.matches(targetClass)) {
           stats.recordPicHit();
           return l;
         }
@@ -139,15 +148,20 @@ public final class DynamicCallSite {
 
     // 3. Fast Path: Megamorphic
     if (state == State.MEGAMORPHIC) {
-      BoundedWeakClassCache<AccessLink> cache = megamorphicCache;
-      AccessLink cached = cache.get(targetClass);
-      if (cached != null) {
-        stats.recordMegamorphicHit();
-        return cached;
+      BoundedWeakClassCache<WeakReference<AccessLink>> cache = megamorphicCache;
+      if (cache != null) {
+        WeakReference<AccessLink> ref = cache.get(targetClass);
+        AccessLink cached = ref != null ? ref.get() : null;
+        if (cached != null) {
+          stats.recordMegamorphicHit();
+          return cached;
+        }
       }
       stats.recordMegamorphicMiss();
       AccessLink link = linkAndRecord(targetClass);
-      cache.put(targetClass, link);
+      if (cache != null) {
+        cache.put(targetClass, new WeakReference<>(link));
+      }
       return link;
     }
 
@@ -157,28 +171,37 @@ public final class DynamicCallSite {
 
   private synchronized AccessLink handleCacheMiss(Class<?> targetClass) {
     // Re-check state under lock to prevent race conditions
-    if (state == State.MONOMORPHIC
-        && monomorphicLink != null
-        && monomorphicLink.matches(targetClass)) {
-      stats.recordPicHit();
-      return monomorphicLink;
+    if (state == State.MONOMORPHIC) {
+      WeakReference<AccessLink> ref = monomorphicLinkRef;
+      AccessLink mono = ref != null ? ref.get() : null;
+      if (mono != null && mono.matches(targetClass)) {
+        stats.recordPicHit();
+        return mono;
+      }
     }
     if (state == State.POLYMORPHIC) {
-      for (AccessLink l : polymorphicLinks) {
-        if (l.matches(targetClass)) {
+      for (WeakReference<AccessLink> ref : polymorphicLinks) {
+        AccessLink l = ref != null ? ref.get() : null;
+        if (l != null && l.matches(targetClass)) {
           stats.recordPicHit();
           return l;
         }
       }
     }
     if (state == State.MEGAMORPHIC) {
-      AccessLink cached = megamorphicCache.get(targetClass);
-      if (cached != null) {
-        stats.recordMegamorphicHit();
-        return cached;
+      BoundedWeakClassCache<WeakReference<AccessLink>> cache = megamorphicCache;
+      if (cache != null) {
+        WeakReference<AccessLink> ref = cache.get(targetClass);
+        AccessLink cached = ref != null ? ref.get() : null;
+        if (cached != null) {
+          stats.recordMegamorphicHit();
+          return cached;
+        }
       }
       AccessLink link = linkAndRecord(targetClass);
-      megamorphicCache.put(targetClass, link);
+      if (cache != null) {
+        cache.put(targetClass, new WeakReference<>(link));
+      }
       return link;
     }
 
@@ -186,36 +209,57 @@ public final class DynamicCallSite {
     AccessLink newLink = linkAndRecord(targetClass);
 
     if (state == State.UNLINKED) {
-      monomorphicLink = newLink;
+      monomorphicLinkRef = new WeakReference<>(newLink);
       state = State.MONOMORPHIC;
       return newLink;
     }
 
     if (state == State.MONOMORPHIC) {
-      AccessLink[] newArray = new AccessLink[] {monomorphicLink, newLink};
+      WeakReference<AccessLink> existingRef = monomorphicLinkRef;
+      AccessLink existing = existingRef != null ? existingRef.get() : null;
+      if (existing == null || existing.receiverClass() == null) {
+        monomorphicLinkRef = new WeakReference<>(newLink);
+        return newLink;
+      }
+      @SuppressWarnings("unchecked")
+      WeakReference<AccessLink>[] newArray =
+          (WeakReference<AccessLink>[])
+              new WeakReference<?>[] {existingRef, new WeakReference<>(newLink)};
       polymorphicLinks = newArray;
       state = State.POLYMORPHIC;
       return newLink;
     }
 
     if (state == State.POLYMORPHIC) {
-      if (polymorphicLinks.length < MAX_PIC_DEPTH) {
-        AccessLink[] newArray = Arrays.copyOf(polymorphicLinks, polymorphicLinks.length + 1);
-        newArray[polymorphicLinks.length] = newLink;
+      List<WeakReference<AccessLink>> live = new ArrayList<>();
+      for (WeakReference<AccessLink> ref : polymorphicLinks) {
+        AccessLink l = ref != null ? ref.get() : null;
+        if (l != null && l.receiverClass() != null) {
+          live.add(ref);
+        }
+      }
+      if (live.size() < MAX_PIC_DEPTH) {
+        live.add(new WeakReference<>(newLink));
+        @SuppressWarnings("unchecked")
+        WeakReference<AccessLink>[] newArray =
+            (WeakReference<AccessLink>[]) live.toArray(new WeakReference<?>[0]);
         polymorphicLinks = newArray;
         return newLink;
       }
 
       // Transition to Megamorphic
-      BoundedWeakClassCache<AccessLink> cache =
+      BoundedWeakClassCache<WeakReference<AccessLink>> cache =
           new BoundedWeakClassCache<>(DEFAULT_MEGAMORPHIC_BOUND);
-      for (AccessLink l : polymorphicLinks) {
-        Class<?> clazz = l.receiverClass();
-        if (clazz != null) {
-          cache.put(clazz, l);
+      for (WeakReference<AccessLink> ref : live) {
+        AccessLink l = ref.get();
+        if (l != null) {
+          Class<?> clazz = l.receiverClass();
+          if (clazz != null) {
+            cache.put(clazz, ref);
+          }
         }
       }
-      cache.put(targetClass, newLink);
+      cache.put(targetClass, new WeakReference<>(newLink));
       megamorphicCache = cache;
       state = State.MEGAMORPHIC;
       return newLink;
