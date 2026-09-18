@@ -202,7 +202,7 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
   - Verified single-artifact binary compatibility across Spring Security 6.3.4, 6.5.11, 7.0.7, and 7.1.1 via `scripts/verify-spring-security-compatibility.py`.
   - Delivered dual-generation, dual-build AOT consumer fixtures:
     - Generation 1: `integration-tests/spring/maven-security-aot` & `integration-tests/spring/gradle-security-aot` (Spring Boot 3.3.5 / Spring Security 6.3.4)
-    - Generation 2: `integration-tests/spring/maven-security7-aot` & `integration-tests/spring/gradle-security7-aot` (Spring Boot 4.0.0 / Spring Framework 7.0.1 / Spring Security 7.0.0 / 7.0.7 / 7.1.1)
+    - Generation 2: `integration-tests/spring/maven-security7-aot` & `integration-tests/spring/gradle-security7-aot` (Spring Boot 4.1.1 / Spring Framework 7.0.9 / Spring Security 7.1.1)
   - Automated 10-step dual-build parity and live HTTP server verification via `scripts/verify-spring-security-parity.sh` and `scripts/verify-spring-security7-integration.sh`.
   - Formally documented in [`docs/36-spring-security-integration.md`](36-spring-security-integration.md).
 - **Pre-1.0 Stable Surface Convergence Gate — COMPLETE**:
@@ -220,6 +220,14 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
     - Added 4 dual-build DevTools integration fixtures (`maven-boot3-devtools`, `gradle-boot3-devtools`, `maven-boot4-devtools`, `gradle-boot4-devtools`).
     - Verified Mode A (dynamic hot reload without restart), Mode B (AOT recompile + trigger restart with ClassLoader turnover), stale template deletion, and 10x restart stress test with zero ClassLoader leaks via `scripts/verify-devtools-restart-integration.sh` and `.github/workflows/devtools-restart.yml`.
     - Formally documented in [`docs/38-m17-devtools-restart-hardening.md`](38-m17-devtools-restart-hardening.md).
+  - **M17 Phase C (Java 21/25 Baseline & Spring 7/Boot 4/Security 7 Modernization) — COMPLETE**:
+    - Raised repository compiler baseline from Java 17 to Java 21 (`--release 21`, bytecode major version 65) via ADR-0007.
+    - Designated Java 25 as primary build toolchain, CI execution environment, and performance deployment runtime via ADR-0008.
+    - Promoted Spring Framework 7.0, Spring Boot 4.0, Spring Security 7.0, and Jakarta Servlet 6.1 (Tomcat 11) to canonical integration baseline via ADR-0009.
+    - Formally retired Java 17 for 0.2.x+ active development while designating 0.1.x as maintenance line via ADR-0010.
+    - Enforced architectural invariants: single-version bytecode without MRJARs (ADR-0011), ClassFile API evaluation retaining zero-dependency `ClassFileWriter` (ADR-0012), virtual thread non-pinning and thread-confinement invariants (ADR-0013), zero preview features in published APIs (ADR-0014), and legacy Spring 6 / Boot 3 compatibility policy (ADR-0015).
+    - Verified Spring 7 and Spring Security 7 virtual thread execution on Tomcat 11 with `Thread.currentThread().isVirtual()` assertions across Maven and Gradle AOT consumer fixtures.
+    - Modernized CI workflows (`ci.yml`, `native-image.yml`, `performance.yml`, `fuzz.yml`, `release.yml`, `devtools-restart.yml`) across Tier A-E suites.
 - **Milestone M18 (TCK & Performance Release Gates) — NEXT**:
     - Independently executable public TCK verifying 100% of claimed language features.
     - Reproducible benchmark report published with full hardware metadata, raw JMH outputs, and comparative analyses against Velocity, Qute, jte, and Thymeleaf.

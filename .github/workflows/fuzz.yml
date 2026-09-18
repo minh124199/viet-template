@@ -23,17 +23,21 @@ defaults:
 
 jobs:
   deep-fuzz:
-    name: Deep Fuzzing (JDK 21 on ubuntu-latest)
+    name: Deep Fuzzing (JDK ${{ matrix.java }} on ubuntu-latest)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ '25', '21' ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Set up Java 21
+      - name: Set up Java ${{ matrix.java }}
         uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: ${{ matrix.java }}
           cache: 'maven'
 
       - name: Setup Gradle
@@ -49,7 +53,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb99baed6f # v4.5.0
         with:
-          name: fuzz-test-reports
+          name: fuzz-test-reports-jdk${{ matrix.java }}
           path: |
             **/build/reports/tests/
             **/target/surefire-reports/

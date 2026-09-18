@@ -61,6 +61,23 @@ public final class DevelopmentFileWatcher implements AutoCloseable {
         TimeUnit.MILLISECONDS);
   }
 
+  private static final WatchEvent.Modifier[] SENSITIVITY_MODIFIERS = resolveSensitivityModifiers();
+
+  private static WatchEvent.Modifier[] resolveSensitivityModifiers() {
+    try {
+      Class<?> clazz = Class.forName("com.sun.nio.file.SensitivityWatchEventModifier");
+      for (Object constant : clazz.getEnumConstants()) {
+        if ("HIGH".equals(constant.toString())
+            && constant instanceof WatchEvent.Modifier modifier) {
+          return new WatchEvent.Modifier[] {modifier};
+        }
+      }
+    } catch (Throwable ignored) {
+      // SensitivityWatchEventModifier not available on all platforms/runtimes
+    }
+    return new WatchEvent.Modifier[0];
+  }
+
   private void registerRecursive(Path start) throws IOException {
     if (!Files.exists(start)) {
       return;
@@ -71,7 +88,13 @@ public final class DevelopmentFileWatcher implements AutoCloseable {
           @Override
           public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
               throws IOException {
-            WatchKey key = dir.register(watchService, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+            WatchKey key =
+                SENSITIVITY_MODIFIERS.length > 0
+                    ? dir.register(
+                        watchService,
+                        new WatchEvent.Kind<?>[] {ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY},
+                        SENSITIVITY_MODIFIERS)
+                    : dir.register(watchService, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
             watchKeys.put(key, dir);
             return FileVisitResult.CONTINUE;
           }

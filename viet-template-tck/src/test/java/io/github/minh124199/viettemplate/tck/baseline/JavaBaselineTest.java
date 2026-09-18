@@ -13,14 +13,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class JavaBaselineTest {
 
-  private static final int JAVA_17_CLASS_FILE_MAJOR_VERSION = 61;
+  private static final int JAVA_21_CLASS_FILE_MAJOR_VERSION = 65;
 
   @Test
   void verifiesRuntimeJvmMeetsBaseline() {
     int featureVersion = Runtime.version().feature();
     assertThat(featureVersion)
-        .as("Runtime JVM must be at least Java 17")
-        .isGreaterThanOrEqualTo(17);
+        .as("Runtime JVM must be at least Java 21")
+        .isGreaterThanOrEqualTo(21);
   }
 
   @ParameterizedTest
@@ -31,7 +31,7 @@ class JavaBaselineTest {
         VtlProfile.class,
         io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter.class
       })
-  void verifiesProductionBytecodeTargetIsJava17(Class<?> clazz) throws Exception {
+  void verifiesProductionBytecodeTargetIsJava21(Class<?> clazz) throws Exception {
     String classResource = "/" + clazz.getName().replace('.', '/') + ".class";
     try (InputStream in = clazz.getResourceAsStream(classResource)) {
       assertThat(in).as("Class resource %s should be readable", classResource).isNotNull();
@@ -43,9 +43,9 @@ class JavaBaselineTest {
 
         assertThat(major)
             .as(
-                "Class file major version for %s must target Java 17 (class version 61)",
+                "Class file major version for %s must target Java 21 (class version 65)",
                 clazz.getSimpleName())
-            .isEqualTo(JAVA_17_CLASS_FILE_MAJOR_VERSION);
+            .isEqualTo(JAVA_21_CLASS_FILE_MAJOR_VERSION);
       }
     }
   }

@@ -6,8 +6,27 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 echo "=== Viet Template GraalVM Native Image & Spring AOT Verification ==="
 
-GRAALVM_DIR="${GRAALVM_HOME:-/home/lynguyen/opt/graalvm-community-openjdk-21.0.2+13.1}"
-if [ -d "${GRAALVM_DIR}" ]; then
+GRAALVM_DIR="${GRAALVM_HOME:-}"
+if [ -z "${GRAALVM_DIR}" ]; then
+    if command -v native-image >/dev/null 2>&1; then
+        GRAALVM_DIR="$(dirname "$(dirname "$(command -v native-image)")")"
+    else
+        for candidate in \
+            "${HOME:-}/opt"/graalvm-jdk-25* \
+            "${HOME:-}/opt"/graalvm* \
+            "/usr/lib/jvm"/graalvm-jdk-25* \
+            "/usr/lib/jvm"/graalvm* \
+            "/opt"/graalvm-jdk-25* \
+            "/opt"/graalvm*; do
+            if [ -d "${candidate}" ] && [ -x "${candidate}/bin/native-image" ]; then
+                GRAALVM_DIR="${candidate}"
+                break
+            fi
+        done
+    fi
+fi
+if [ -n "${GRAALVM_DIR}" ] && [ -d "${GRAALVM_DIR}" ]; then
+    export GRAALVM_HOME="${GRAALVM_DIR}"
     export JAVA_HOME="${GRAALVM_DIR}"
     export PATH="${JAVA_HOME}/bin:${PATH}"
 fi
@@ -16,6 +35,14 @@ echo "[ENV] Java version:"
 java -version
 echo "[ENV] Native Image version:"
 native-image --version
+
+BOOT_GEN="${1:-boot4}"
+EXPECTED_MAJOR=65
+
+MAVEN_DIR="${ROOT_DIR}/integration-tests/native/maven-${BOOT_GEN}-native"
+GRADLE_DIR="${ROOT_DIR}/integration-tests/native/gradle-${BOOT_GEN}-native"
+
+echo "[CONFIG] Target generation: ${BOOT_GEN} (expected bytecode major version: ${EXPECTED_MAJOR})"
 
 APP_PID=""
 cleanup() {
@@ -50,19 +77,19 @@ echo "[STEP 1] Building and publishing reactor artifacts to local repository..."
 echo "[PASS] Reactor artifacts published locally."
 
 # Step 2: Test Spring AOT & Viet Template AOT compilation for Maven fixture
-echo "[STEP 2] Compiling Viet Template and Spring AOT for maven-boot3-native..."
-"${ROOT_DIR}/mvnw" clean test-compile spring-boot:process-aot -f "${ROOT_DIR}/integration-tests/native/maven-boot3-native/pom.xml" -B
-echo "[PASS] Spring AOT processing succeeded for maven-boot3-native."
+echo "[STEP 2] Compiling Viet Template and Spring AOT for maven-${BOOT_GEN}-native..."
+"${ROOT_DIR}/mvnw" clean test-compile spring-boot:process-aot -f "${MAVEN_DIR}/pom.xml" -B
+echo "[PASS] Spring AOT processing succeeded for maven-${BOOT_GEN}-native."
 
 # Step 3: Test Spring AOT & Viet Template AOT compilation for Gradle fixture
-echo "[STEP 3] Compiling Viet Template and Spring AOT for gradle-boot3-native..."
-"${ROOT_DIR}/gradlew" clean processAot --project-dir "${ROOT_DIR}/integration-tests/native/gradle-boot3-native" --no-daemon
-echo "[PASS] Spring AOT processing succeeded for gradle-boot3-native."
+echo "[STEP 3] Compiling Viet Template and Spring AOT for gradle-${BOOT_GEN}-native..."
+"${ROOT_DIR}/gradlew" clean processAot --project-dir "${GRADLE_DIR}" --no-daemon
+echo "[PASS] Spring AOT processing succeeded for gradle-${BOOT_GEN}-native."
 
 # Step 4: Compare templates.idx and generated .class files byte-for-byte parity
 echo "[STEP 4] Comparing templates.idx and bytecode parity..."
-MAVEN_IDX="${ROOT_DIR}/integration-tests/native/maven-boot3-native/target/classes/META-INF/viet-template/templates.idx"
-GRADLE_IDX="${ROOT_DIR}/integration-tests/native/gradle-boot3-native/build/generated/viet-template/resources/META-INF/viet-template/templates.idx"
+MAVEN_IDX="${MAVEN_DIR}/target/classes/META-INF/viet-template/templates.idx"
+GRADLE_IDX="${GRADLE_DIR}/build/generated/viet-template/resources/META-INF/viet-template/templates.idx"
 
 if ! cmp -s "${MAVEN_IDX}" "${GRADLE_IDX}"; then
     echo "[FAIL] templates.idx differs between Maven and Gradle!"
@@ -71,8 +98,8 @@ if ! cmp -s "${MAVEN_IDX}" "${GRADLE_IDX}"; then
 fi
 echo "[PASS] templates.idx byte-for-byte identical."
 
-MAVEN_CLASSES="${ROOT_DIR}/integration-tests/native/maven-boot3-native/target/classes/io/github/minh124199/viettemplate/generated"
-GRADLE_CLASSES="${ROOT_DIR}/integration-tests/native/gradle-boot3-native/build/generated/viet-template/classes/io/github/minh124199/viettemplate/generated"
+MAVEN_CLASSES="${MAVEN_DIR}/target/classes/io/github/minh124199/viettemplate/generated"
+GRADLE_CLASSES="${GRADLE_DIR}/build/generated/viet-template/classes/io/github/minh124199/viettemplate/generated"
 
 for maven_class in "${MAVEN_CLASSES}"/*.class; do
     class_name="$(basename "${maven_class}")"
@@ -88,8 +115,8 @@ for maven_class in "${MAVEN_CLASSES}"/*.class; do
     echo "[PASS] Bytecode identical for ${class_name}"
 done
 
-# Step 5: Verify classfile version 61 (Java 17)
-echo "[STEP 5] Verifying classfile version 61 (Java 17)..."
+# Step 5: Verify classfile version
+echo "[STEP 5] Verifying classfile version ${EXPECTED_MAJOR}..."
 for class_file in "${MAVEN_CLASSES}"/*.class; do
     python3 -c "
 import sys
@@ -99,22 +126,22 @@ with open('${class_file}', 'rb') as f:
         sys.exit(1)
     minor = int.from_bytes(f.read(2), 'big')
     major = int.from_bytes(f.read(2), 'big')
-    if major != 61:
+    if major != ${EXPECTED_MAJOR}:
         sys.exit(2)
 "
     STATUS=$?
     if [ ${STATUS} -ne 0 ]; then
-        echo "[FAIL] Class ${class_file} is not a valid Java 17 classfile (version 61)!"
+        echo "[FAIL] Class ${class_file} is not a valid classfile version ${EXPECTED_MAJOR}!"
         exit 1
     fi
 done
-echo "[PASS] All generated bytecode files are valid classfile version 61 (Java 17)."
+echo "[PASS] All generated bytecode files are valid classfile version ${EXPECTED_MAJOR}."
 
 # Step 6: Build Native Image executable with Maven
 echo "[STEP 6] Building Maven GraalVM Native Image executable..."
-"${ROOT_DIR}/mvnw" -Pnative native:compile -DskipTests -f "${ROOT_DIR}/integration-tests/native/maven-boot3-native/pom.xml" -B
+"${ROOT_DIR}/mvnw" -Pnative native:compile -DskipTests -f "${MAVEN_DIR}/pom.xml" -B
 
-MAVEN_NATIVE_BIN="${ROOT_DIR}/integration-tests/native/maven-boot3-native/target/spring-maven-boot3-native"
+MAVEN_NATIVE_BIN="${MAVEN_DIR}/target/spring-maven-${BOOT_GEN}-native"
 if [ ! -f "${MAVEN_NATIVE_BIN}" ] || [ ! -x "${MAVEN_NATIVE_BIN}" ]; then
     echo "[FAIL] Native binary not found at ${MAVEN_NATIVE_BIN}!"
     exit 1
@@ -178,9 +205,9 @@ echo "[PASS] Maven Native executable tests completed successfully."
 
 # Step 9: Build Native Image executable with Gradle
 echo "[STEP 9] Building Gradle GraalVM Native Image executable..."
-"${ROOT_DIR}/gradlew" nativeCompile --project-dir "${ROOT_DIR}/integration-tests/native/gradle-boot3-native" --no-daemon
+"${ROOT_DIR}/gradlew" nativeCompile --project-dir "${GRADLE_DIR}" --no-daemon
 
-GRADLE_NATIVE_BIN="${ROOT_DIR}/integration-tests/native/gradle-boot3-native/build/native/nativeCompile/spring-gradle-boot3-native"
+GRADLE_NATIVE_BIN="${GRADLE_DIR}/build/native/nativeCompile/spring-gradle-${BOOT_GEN}-native"
 if [ ! -f "${GRADLE_NATIVE_BIN}" ] || [ ! -x "${GRADLE_NATIVE_BIN}" ]; then
     echo "[FAIL] Native binary not found at ${GRADLE_NATIVE_BIN}!"
     exit 1

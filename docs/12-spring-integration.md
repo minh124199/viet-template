@@ -1,7 +1,7 @@
 # 12 — Spring Framework / Spring Boot Integration Design
 
 > [!IMPORTANT]
-> **Production Implementation Notice**: This document outlines the early conceptual design for Spring integration. For the authoritative, production-implemented architecture, components, configuration properties reference (`viet-template.*`), Ahead-Of-Time (AOT) workflow, and dual-build parity guarantees delivered in Milestone M16 (verified baseline: Spring Framework 6.1.14 / Spring Boot 3.3.5 on Java 17 / Jakarta Servlet 6.0; intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions not independently guaranteed), please refer to:
+> **Canonical Baseline Notice**: As established in ADR-0007, ADR-0008, and ADR-0009, Viet Template's canonical integration baseline is **Spring Framework 7.0.9**, **Spring Boot 4.1.1**, and **Spring Security 7.1.1** on **Java 21+**, **Jakarta Servlet 6.1.0**, and **Tomcat 11.0.24** with full Virtual Thread execution support. For the authoritative architecture, configuration properties reference (`viet-template.*`), Ahead-Of-Time (AOT) workflow, and dual-build parity guarantees, refer to:
 >
 > 👉 **[`docs/35-m16-spring-integration.md`](35-m16-spring-integration.md)**
 
@@ -22,16 +22,15 @@ class HomeController {
 
 with `src/main/resources/templates/home.vm` and no manual engine wiring.
 
-## 2. Baseline as of 2026-09-05
+## 2. Baseline Architecture
 
-> [!WARNING]
-> **Superseded Target Baseline & Property Prefix**: This section reflects the early conceptual design targeting Spring Framework 7 / Spring Boot 4. Milestone M16 implemented production support with verified baseline **Spring Framework 6.1.14** and **Spring Boot 3.3.5** on Java 17 / Jakarta Servlet 6.0 (intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions are not independently guaranteed; Spring 7 / Boot 4 are planned future targets). Additionally, the canonical configuration property prefix is **`viet-template`** (kebab-case, e.g. `viet-template.prefix`, `viet-template.suffix`, `viet-template.enabled`), rather than `viet.template`. Refer to [`docs/35-m16-spring-integration.md`](35-m16-spring-integration.md) for the authoritative specification.
-
-- Spring Framework 7.0.9 stable.
-- Spring Framework 7.1 preview, scheduled for November 2026.
-- Spring Boot 4.1.1 stable.
-
-Target Framework 7.0.x/Boot 4.1.x first. Test 7.1/Boot 4.2 previews separately without declaring stable support prematurely.
+As formally decided in ADR-0007, ADR-0008, and ADR-0009:
+- **Minimum Compiler Baseline**: Java 21 (`--release 21`, major version 65).
+- **Primary Toolchain and Runtime**: Java 25.
+- **Canonical Frameworks**: Spring Framework 7.0.9, Spring Boot 4.1.1, Spring Security 7.1.1.
+- **Servlet Specification**: Jakarta Servlet 6.1.0 (Tomcat 11.0.24).
+- **Concurrency & Threads**: Virtual Threads (Project Loom) first-class support; no pinned virtual threads were observed in tested steady-state rendering workloads. Cold concurrent runtime compilation can encounter JVM class-loader monitor pinning; AOT/precompiled execution avoids this path.
+- **Configuration Property Prefix**: Canonical prefix is **`viet-template`** (kebab-case, e.g. `viet-template.prefix`, `viet-template.suffix`, `viet-template.enabled`).
 
 ## 3. Modules
 

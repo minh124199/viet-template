@@ -13,10 +13,12 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Lightweight, zero-dependency pure Java classfile generator producing JVM Specification SE 17
- * binary classfiles (major 61, minor 0).
+ * Lightweight, zero-dependency pure Java classfile generator producing JVM Specification SE 21
+ * binary classfiles (major 65, minor 0).
  */
 public final class ClassFileWriter {
+
+  public static final int MAJOR_VERSION_JAVA_21 = 65;
 
   public static final int ACC_PUBLIC = 0x0001;
   public static final int ACC_PRIVATE = 0x0002;
@@ -80,9 +82,9 @@ public final class ClassFileWriter {
 
       // 1. Magic
       out.writeInt(0xCAFEBABE);
-      // 2. Minor, Major (Java 17 = 61)
+      // 2. Minor, Major (Java 21 = 65)
       out.writeShort(0);
-      out.writeShort(61);
+      out.writeShort(MAJOR_VERSION_JAVA_21);
 
       // 3. Constant Pool (now completely finalized!)
       cp.write(out);

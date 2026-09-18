@@ -129,7 +129,7 @@ public final class PreHardeningDeferredRecencyCache implements CompileCacheInter
     Objects.requireNonNull(key, "key must not be null");
     CompiledTemplateHandle handle = entries.get(key);
     if (handle != null) {
-      int stripe = (int) (Thread.currentThread().getId() & RECENCY_STRIPE_MASK);
+      int stripe = (int) (Thread.currentThread().threadId() & RECENCY_STRIPE_MASK);
       boolean shouldDrain = recencyBuffers[stripe].record(key);
       if (shouldDrain) {
         tryDrainMaintenance();

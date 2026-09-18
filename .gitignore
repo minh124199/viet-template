@@ -44,6 +44,7 @@ replay_pid*
 benchmark-results/
 benchmark-env*.json
 jfr-reports/
+viet-template-benchmarks/results/
 
 # Python
 __pycache__/

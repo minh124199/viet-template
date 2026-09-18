@@ -42,8 +42,8 @@ class DevelopmentFileWatcherTest {
         Thread.sleep(8L);
       }
 
-      // Wait for debounce window to fire
-      boolean fired = latch.await(2, TimeUnit.SECONDS);
+      // Wait for debounce window to fire (generous timeout for polling watch services on macOS/CI)
+      boolean fired = latch.await(10, TimeUnit.SECONDS);
       assertThat(fired).isTrue();
 
       // Small extra pause to verify no trailing duplicate triggers

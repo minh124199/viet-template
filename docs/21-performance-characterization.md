@@ -38,7 +38,7 @@ Following the official release of `0.2.0` and the integration of the `M19.2c` pe
      - **Two-Stage Layouts (`b12`)**: $43.5\text{ k ops/s}$ (IR) $\to$ **$218.3\text{ k ops/s}$ (AOT)** ($5.02\times$)
 
 3. **Multi-JDK Evolution & Profiler Insights**:
-   - **Java 21 LTS (`J21-G1`)**: Delivers broad steady improvements over Java 17 ($+10\%\text{--}+20\%$ in rendering throughput) while fully supporting virtual threads with zero carrier thread pinning observed.
+   - **Java 21 LTS (`J21-G1`)**: Delivers broad steady improvements over Java 17 ($+10\%\text{--}+20\%$ in rendering throughput) while fully supporting virtual threads with no pinned virtual threads observed in tested steady-state rendering workloads.
    - **Java 25 (`J25-G1`)**: Shows aggressive C2 JIT optimizations, boosting static slot assignment throughput by $+15\%$ ($516\text{M ops/s}$) and deep property chain AOT rendering to $785\text{k ops/s}$ ($+24\%$).
    - **Generational ZGC (`J21-ZGC`)**: Demonstrates excellent concurrency scalability, matching G1 within $1\text{--}5\%$ throughput on allocation-intensive workloads.
    - **Compact Object Headers (`J25-G1-COH`, JEP 519)**: Reduces header footprint by $50\%$ ($16\text{ bytes} \to 8\text{ bytes}$) with neutral to slightly positive rendering throughput ($+2\%\text{--}+5\%$).
@@ -306,7 +306,7 @@ Using `scripts/perf/jfr-profile.sh` and `scripts/perf/jfr-summary.sh`, execution
 ### 6.1 Contention & Concurrency Profiling (`contention-by-site`)
 
 In multi-threaded concurrency stress testing (`PlatformThreadComparisonHarness` and `ConcurrentCacheBenchmark`):
-- **Carrier Thread Pinning (`pinned-threads`)**: Exactly **0 pinned virtual threads** were detected. All locks in `TemplateCompileCache` and `TemplateDependencyGraph` avoid blocking carrier threads.
+- **Carrier Thread Pinning (`pinned-threads` / `jdk.VirtualThreadPinned`)**: Exactly **0 pinned virtual threads** were detected across 1,000 and 10,000 concurrent virtual thread renders. All locks in `TemplateCompileCache` and `TemplateDependencyGraph` avoid blocking carrier threads. **No pinned virtual threads observed in tested workloads**.
 - **Lock Contention (`contention-by-site`)**:
   ```text
   StackTrace                                                                                   Count    Avg.    Max.

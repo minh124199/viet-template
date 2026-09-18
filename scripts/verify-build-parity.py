@@ -99,11 +99,11 @@ def check_java_baseline_and_flags(errors):
     build_gradle = (ROOT_DIR / "build.gradle.kts").read_text(encoding="utf-8")
     pom_text = (ROOT_DIR / "pom.xml").read_text(encoding="utf-8")
 
-    # Release 17
-    if 'options.release.set(17)' not in build_gradle:
-        errors.append("build.gradle.kts missing 'options.release.set(17)'")
-    if '<release>17</release>' not in pom_text:
-        errors.append("pom.xml missing '<release>17</release>'")
+    # Release 21
+    if 'options.release.set(21)' not in build_gradle:
+        errors.append("build.gradle.kts missing 'options.release.set(21)'")
+    if '<release>21</release>' not in pom_text:
+        errors.append("pom.xml missing '<release>21</release>'")
 
     # Required compiler flags
     for flag in ["-parameters", "-Xlint:all", "-Werror"]:
@@ -112,7 +112,7 @@ def check_java_baseline_and_flags(errors):
         if flag not in pom_text:
             errors.append(f"pom.xml missing compiler flag '{flag}'")
 
-    print("[PASS] Java 17 release target and strict compiler flags (-parameters, -Xlint:all, -Werror) match in both builds.")
+    print("[PASS] Java 21 release target and strict compiler flags (-parameters, -Xlint:all, -Werror) match in both builds.")
 
 def check_dependency_versions(errors):
     libs_toml = (ROOT_DIR / "gradle" / "libs.versions.toml").read_text(encoding="utf-8")

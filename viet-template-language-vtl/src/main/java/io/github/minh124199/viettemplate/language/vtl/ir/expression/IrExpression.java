@@ -4,12 +4,25 @@ import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 
 /**
- * Base interface for all value-producing expressions in Template IR.
+ * Base sealed interface for all value-producing expressions in Template IR.
  *
  * <p>Separates value computation from output side effects. Retains both static {@link #type()} and
  * source mapping via {@link #span()}.
  */
-public interface IrExpression {
+public sealed interface IrExpression
+    permits IrAlternateValue,
+        IrBinaryOp,
+        IrConst,
+        IrConvert,
+        IrDynamicDispatch,
+        IrGetProperty,
+        IrIndexGet,
+        IrInvokeAllowedMethod,
+        IrIsNull,
+        IrLoadLocal,
+        IrLoadParam,
+        IrTruthiness,
+        IrUnaryOp {
 
   /** Static type of this expression computed during semantic analysis. */
   VType type();

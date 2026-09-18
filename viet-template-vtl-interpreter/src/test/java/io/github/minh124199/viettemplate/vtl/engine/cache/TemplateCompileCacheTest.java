@@ -395,7 +395,7 @@ class TemplateCompileCacheTest {
                   done.countDown();
                 }
               });
-      if ((candidate.getId() & 15) == targetStripe) {
+      if ((candidate.threadId() & 15) == targetStripe) {
         workers.add(candidate);
       }
     }

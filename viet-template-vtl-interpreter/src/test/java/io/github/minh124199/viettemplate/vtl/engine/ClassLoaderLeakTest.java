@@ -33,7 +33,6 @@ class ClassLoaderLeakTest {
     boolean collected = false;
     for (int i = 0; i < 50; i++) {
       System.gc();
-      System.runFinalization();
       if (clWeakRef.get() == null) {
         collected = true;
         break;
