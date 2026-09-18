@@ -25,17 +25,29 @@ public final class VtlTemplate implements Template {
   private final CompiledTemplateHandle handle;
   private final SourceText sourceText;
   private final VtlInterpreterOptions interpreterOptions;
+  private final VtlInterpreter interpreter;
+
+  VtlTemplate(
+      TemplateDescriptor descriptor,
+      CompiledTemplateHandle handle,
+      SourceText sourceText,
+      VtlInterpreterOptions interpreterOptions,
+      VtlInterpreter interpreter) {
+    this.descriptor = Objects.requireNonNull(descriptor, "descriptor must not be null");
+    this.handle = Objects.requireNonNull(handle, "handle must not be null");
+    this.sourceText = Objects.requireNonNull(sourceText, "sourceText must not be null");
+    this.interpreterOptions =
+        Objects.requireNonNull(interpreterOptions, "interpreterOptions must not be null");
+    this.interpreter = Objects.requireNonNull(interpreter, "interpreter must not be null");
+  }
 
   public VtlTemplate(
       TemplateDescriptor descriptor,
       CompiledTemplateHandle handle,
       SourceText sourceText,
       VtlInterpreterOptions interpreterOptions) {
-    this.descriptor = Objects.requireNonNull(descriptor, "descriptor must not be null");
-    this.handle = Objects.requireNonNull(handle, "handle must not be null");
-    this.sourceText = Objects.requireNonNull(sourceText, "sourceText must not be null");
-    this.interpreterOptions =
-        Objects.requireNonNull(interpreterOptions, "interpreterOptions must not be null");
+    this(
+        descriptor, handle, sourceText, interpreterOptions, new VtlInterpreter(interpreterOptions));
   }
 
   @Override
@@ -58,11 +70,9 @@ public final class VtlTemplate implements Template {
       handle.compiledTemplate().get().render(context, wrappedOutput);
     } else if (interpreterOptions.executionTier() == ExecutionTier.AST) {
       VtlParseResult parseResult = VtlParser.parse(sourceText);
-      new VtlInterpreter(interpreterOptions)
-          .render(sourceText, parseResult.template(), context, wrappedOutput);
+      interpreter.render(sourceText, parseResult.template(), context, wrappedOutput);
     } else if (handle.irTemplate().isPresent()) {
-      new VtlInterpreter(interpreterOptions)
-          .render(handle.irTemplate().get(), sourceText, context, wrappedOutput);
+      interpreter.render(handle.irTemplate().get(), sourceText, context, wrappedOutput);
     } else {
       throw new IllegalStateException("Compiled template handle contains no executable target");
     }

@@ -12,6 +12,7 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysis
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import io.github.minh124199.viettemplate.runtime.linker.CallSiteRegistry;
 import io.github.minh124199.viettemplate.vtl.compiler.*;
 import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeTemplateCompiler;
 import io.github.minh124199.viettemplate.vtl.engine.cache.CompileCacheKey;
@@ -24,9 +25,12 @@ import io.github.minh124199.viettemplate.vtl.engine.layout.DefaultLayoutRenderPl
 import io.github.minh124199.viettemplate.vtl.engine.macro.GlobalMacroManager;
 import io.github.minh124199.viettemplate.vtl.engine.watcher.DevelopmentFileWatcher;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
+import io.github.minh124199.viettemplate.vtl.interpreter.LinkedReferenceAccess;
+import io.github.minh124199.viettemplate.vtl.interpreter.ReferenceAccess;
 import io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler;
 import io.github.minh124199.viettemplate.vtl.interpreter.TemplateResource;
 import io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver;
+import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -59,6 +63,9 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
   private final IrOptimizationOptions optimizationOptions;
   private final VtlSemanticOptions semanticOptions;
   private final VtlInterpreterOptions interpreterOptions;
+  private final CallSiteRegistry callSiteRegistry;
+  private final ReferenceAccess referenceAccess;
+  private final VtlInterpreter interpreter;
   private final Optional<DevelopmentFileWatcher> fileWatcher;
 
   private final TemplateDependencyGraph dependencyGraph;
@@ -124,6 +131,11 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     this.interpreterOptions =
         (interpreterOptions != null ? interpreterOptions : VtlInterpreterOptions.DEFAULT)
             .toBuilder().executionTier(executionTier).resourceResolver(engineResolver).build();
+
+    this.callSiteRegistry = new CallSiteRegistry();
+    this.referenceAccess =
+        new LinkedReferenceAccess(this.interpreterOptions.securityPolicy(), this.callSiteRegistry);
+    this.interpreter = new VtlInterpreter(this.interpreterOptions, this.referenceAccess);
 
     this.dependencyGraph =
         dependencyGraph != null ? dependencyGraph : new DefaultTemplateDependencyGraph();
@@ -202,7 +214,8 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
             TemplateDescriptor.of(id, ExecutionTier.AOT_BYTECODE.name()),
             handle,
             SourceText.of(id, ""),
-            interpreterOptions);
+            interpreterOptions,
+            interpreter);
       } catch (Exception e) {
         throw new IllegalStateException(
             "Failed to instantiate AOT compiled template: " + id.value(), e);
@@ -259,7 +272,8 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
           TemplateDescriptor.of(id, executionTier.name()),
           cachedHandle.get(),
           sourceText,
-          interpreterOptions);
+          interpreterOptions,
+          interpreter);
     }
 
     // 5. Hardened production check: reject runtime compilation
@@ -279,7 +293,8 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
         TemplateDescriptor.of(id, executionTier.name()),
         compiledHandle,
         sourceText,
-        interpreterOptions);
+        interpreterOptions,
+        interpreter);
   }
 
   @Override
@@ -362,6 +377,11 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
   public void close() {
     fileWatcher.ifPresent(DevelopmentFileWatcher::close);
     invalidateAll();
+    callSiteRegistry.clear();
+  }
+
+  CallSiteRegistry callSiteRegistry() {
+    return callSiteRegistry;
   }
 
   Optional<DevelopmentFileWatcher> fileWatcher() {
