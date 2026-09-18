@@ -50,7 +50,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Virtual Thread Carrier Pinning & Dynamic Linker Reuse**:
   - Resolved carrier thread pinning under high concurrency by reusing `CallSiteRegistry` and `VtlInterpreter` across renders in `VtlTemplateEngine` and `VtlTemplate`, passing shared `ReferenceAccess` to `IrInterpreter`.
   - Ensured steady-state rendering reuses inline-cached dynamic call sites with zero incremental links (`links()` invariance).
-  - Hardened JFR pinning audits in `SharedEngineVirtualThreadStressTest` with narrow classification for ultra-short JVM-internal `MethodType` maintenance events.
+  - Ensured long-lived engine instances do not retain transient application ClassLoaders or classes by converting call site links to `WeakReference<AccessLink>` and caching dynamic linkages in JVM `ClassValue<ClassLinkTable>` on receiver classes.
+  - Hardened concurrency safety: audited `VtlInterpreter` and `IrInterpreter` for zero mutable execution state, verified complete execution isolation across 10,000 concurrent virtual threads in `SharedInterpreterConcurrencyTest`.
+  - Enforced engine and security policy isolation via `policyId` partitioning in `CallSiteRegistry` and `DynamicLinker`, verified in `EngineAndPolicyIsolationTest`.
+  - Hardened JFR pinning audits in `SharedEngineVirtualThreadStressTest` with narrow classification and detailed diagnostic logging for ultra-short JVM-internal `MethodType` maintenance events.
   - Added regression test suite `VtlDynamicLinkerReuseTest` verifying call site reuse and registry clearing on close.
   - Documented architectural invariants and JFR classification boundaries in `docs/adr/0013-virtual-thread-invariants.md`.
 

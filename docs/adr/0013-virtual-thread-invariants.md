@@ -33,6 +33,9 @@ Enforce the following **strict architectural invariants** across the entire Viet
 6. **Dynamic Linker and Call Site Registry Reuse**:
    - `CallSiteRegistry` and `VtlInterpreter` instances are created once per `VtlTemplateEngine` and shared across all template renders.
    - Dynamic call sites (`DynamicCallSite`) with monomorphic and polymorphic inline caches (PIC) are reused across renders, eliminating redundant method handle linking and `MethodType` intern table churn during steady-state execution.
+   - Dynamic call sites store weak references to access links (`WeakReference<AccessLink>`), while dynamic linkage tables are anchored to receiver classes via JVM `ClassValue<ClassLinkTable>`. Transient application ClassLoaders and classes are collected freely by GC while the engine remains active, without requiring `engine.close()`.
+   - Reused `VtlInterpreter` and `IrInterpreter` maintain zero mutable render state. All execution contexts, local variables, macro frames, and output buffers are allocated per invocation, ensuring strict isolation across 10,000+ concurrent virtual threads.
+   - Call sites and dynamic links are partitioned by `policyId`, guaranteeing engine and security-policy isolation with bounded cache capacity.
    - Engine lifecycle termination via `engine.close()` clears the shared `CallSiteRegistry` to release all call site references.
 
 ## Consequences
@@ -41,6 +44,8 @@ Enforce the following **strict architectural invariants** across the entire Viet
 
 - Linear scalability when serving hundreds of thousands of concurrent template rendering requests on Tomcat 11 under virtual threads.
 - Zero application-level carrier thread pinning detected by JVM flight recorder (`jdk.VirtualThreadPinned` events) under high-concurrency stress testing across 1,000 and 10,000 template renders. Steady-state rendering reuses inline-cached call sites with zero incremental links (`links()` count remains strictly invariant).
+- Proven ClassLoader turnover safety: transient application ClassLoaders and classes are collected before `engine.close()`, preventing classloader leaks in long-lived engine deployments.
+- Strict concurrency safety and zero cross-render leakage verified under 10,000 concurrent virtual thread renders with distinct inputs.
 - Clear architectural distinction between application-originated carrier pinning (prohibited) and ultra-short (<1ms) JVM-internal `MethodType` reference maintenance events that occur only during initial warm-up linkage when OpenJDK polls internal weak reference queues.
 - Memory-safe context isolation with zero risk of cross-request contamination.
 
