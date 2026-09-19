@@ -162,3 +162,15 @@ viet.template.dynamic.denied
 ## 14. Benchmark matrix
 
 Reflection, cached `Method`, MethodHandle, monomorphic cache, PIC, megamorphic cache and optional `invokedynamic`; test monomorphic, 2/4-type polymorphic, 20-type megamorphic, map and method-call sites.
+
+## 15. Interaction with Prepared Execution & Request Scopes
+
+1. **Static Slots vs. Dynamic Call Sites**:
+   - Compiler-known local variables bypass dynamic resolution entirely and map to dense integer slots in `ExecutionFrame`.
+   - Property accesses on unknown receiver types flow through `DynamicCallSite` PICs (depth 4) backed by `AccessLink[]` array scans.
+2. **Dynamic Context Fallback**:
+   - Unanalyzed variable references fall back to `ExecutionContext.lookup(name)` across stacked lexical scopes, template-local variables, and root `RenderContext`.
+   - Single-probe lookup in `templateVariables` relies on non-null `EvaluationValue` guarantees, while root `RenderContext` preserves `contains` plus `get` to distinguish defined-null from undefined.
+3. **Virtual-Thread Concurrency Invariant**:
+   - Dynamic linkages are cached in JVM `ClassValue<ClassLinkTable>` on receiver classes and engine-scoped registries.
+   - Dynamic call site evaluation uses lock-free volatile reads without `synchronized` monitor acquisition, guaranteeing zero carrier pinning under high-concurrency virtual-thread workloads.

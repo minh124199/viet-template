@@ -36,6 +36,13 @@ Every pass can be disabled for debugging and A/B benchmarking.
 > 2. **11 Optimization Pass Implementations (13 Transformation Executions)**: Configurable mutating transformations that optimize control flow, constants, accessors, loops, and inlining. The pipeline includes 11 distinct optimization pass implementations (`DeadCodeEliminationPass`, `MergeTextConstantsPass`, `ConstantFoldingPass`, `RedundantConversionPass`, `BooleanSimplificationPass`, `DirectAccessorBindingPass`, `LoopSpecializationPass`, `PrimitiveSpecializationPass`, `MacroInliningPass`, `EscapeSpecializationPass`, and `MethodSizePlanningPass`), executing 13 transformation passes in sequence because `DeadCodeEliminationPass` runs at O10 and O50, and `MergeTextConstantsPass` runs at O20 and post-escape hoisting.
 > 3. **Lowering / Pre-Encoding Stage**: `PreEncodeUtf8Pass` (computes UTF-8 byte arrays for static text constants into constant pool for zero-allocation streaming).
 > 4. **Invariant Verification Gate**: `O160 Verify` (`IrVerifier.verify`: unconditional non-mutating validation gate asserting IR integrity, slot bounds, and typing rules).
+>
+> **Compilation Generation Lifecycle & Prepared Execution Boundary (M19.3c.2)**:
+> - **Preliminary Optimization**: Local template IR is optimized upon initial lowering.
+> - **Global Macro Composition**: Global macro libraries are composed into the compilation unit, resolving shadowing and function precedence.
+> - **Final Optimization & Verification**: `IrOptimizer.optimize` and `IrVerifier.verify` run once on the final composed IR.
+> - **One-Time Preparation**: `PreparedIrTemplate.prepare` executes once per compilation generation, deriving root slot layout, function layouts, and immutable function dispatch registries.
+> - **Zero Render-Time Structural Work**: Neither `IrOptimizer`, `IrVerifier`, `IrSlotLayout`, nor function-map construction ever executes during warmed rendering. Warmed renders execute purely against immutable prepared metadata with request-local mutable state.
 
 ## 3. Normalize (O00)
 
@@ -91,9 +98,25 @@ Replace generic object truthiness with primitive, string, or collection-specific
 
 Replace dynamic get with direct getter, record component, map lookup, or index operation whenever semantic analysis has sufficient type information.
 
-## 11. Loop specialization (O80)
+## 11. Loop specialization (O80) and Foreach Observability
 
-Do not blindly compile all `List` to index loops: a `LinkedList` could become $O(n^2)$. Use indexed loops only when random access is statically known or guarded. Arrays are indexed; general `Iterable/List` can use iterator until profiling justifies polymorphic specialization.
+Introduced and hardened across Milestones M19.3c.3 and M19.3c.5:
+
+### 11.1 LoopPlan-Driven Iteration Specialization (M19.3c.3)
+AST-to-IR lowering analyzes loop targets and assigns an explicit, conservative `LoopPlan`:
+- **`ARRAY`**: Direct array iteration via constant-state reflective `ArrayIterator` without temporary `ArrayList` copying.
+- **`RANGE`**: Direct constant-state `IntRangeIterator` evaluating start and end boundaries with overflow safety, eliminating $O(N)$ boxed `Integer` list materialization.
+- **`ITERATOR`**: Direct streaming of caller-provided `Iterator` instances; stops immediately on `#break` without eager draining.
+- **`ITERABLE` / `Map`**: Uses standard JDK `Iterable.iterator()` and `map.values().iterator()`.
+- **`LIST_INDEXED`**: Assigned only when the collection is statically proven to implement both `List` and `RandomAccess`.
+- **`DYNAMIC`**: Runtime shape classification for unproven dynamic targets.
+
+*Decision Note*: RandomAccess indexed loop compilation was evaluated experimentally and **REJECTED**: raw microbenchmark gains ($0.23\text{ µs}$ vs $0.45\text{ µs}$) had zero impact on realistic rendering ($70\text{--}95\text{ µs}$) where iterator instances are scalar-replaced by the JVM.
+
+### 11.2 Foreach Metadata Observability and Elision (M19.3c.5)
+The compiler performs a conservative, linear traversal of each loop body (`ForeachMetadataObservability`):
+- **Unobservable Loops**: When `$foreach` is unreferenced and no dynamic hazards exist, `IrLoop.loopStateLocal` is omitted (`Optional.empty()`). Warmed execution completely skips parent lookup, metadata object allocation, wrapper allocation, slot writes, and "foreach" scope synchronization.
+- **Observable Loops & Dynamic Hazards**: Loops containing direct `$foreach` references, `#evaluate`, `#parse`, macro calls, or enclosing inner loops that observe parent metadata retain `loopStateLocal`. Execution constructs immutable `ForeachMetadata` snapshots, strictly preserving snapshot semantics across loop iterations and outer assignments.
 
 ## 12. Write lowering (O90)
 
