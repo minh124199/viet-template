@@ -39,6 +39,7 @@ public class NestedScopeBenchmark {
   private EvaluationValue loopValue;
   private EvaluationValue macroArgValue;
   private ForeachMetadata rootForeachMetadata;
+  private Map<String, EvaluationValue> prebuiltMacroBindings;
 
   @Setup(Level.Trial)
   public void setUp() {
@@ -53,6 +54,7 @@ public class NestedScopeBenchmark {
     loopValue = EvaluationValue.of("loopItem");
     macroArgValue = EvaluationValue.of("macroArg");
     rootForeachMetadata = new ForeachMetadata(0, 1, true, false, true, null);
+    prebuiltMacroBindings = Map.of("arg1", macroArgValue, "arg2", loopValue);
   }
 
   @TearDown(Level.Trial)
@@ -78,6 +80,18 @@ public class NestedScopeBenchmark {
     bindings.put("arg2", loopValue);
 
     context.pushScope(bindings, false);
+    EvaluationValue arg1 = context.lookup("arg1");
+    EvaluationValue root = context.lookup("rootVar");
+    context.popScope();
+
+    bh.consume(arg1);
+    bh.consume(root);
+  }
+
+  /** Isolates the public scope-copy path from caller-side binding-map construction. */
+  @Benchmark
+  public void pushPopPrebuiltMacroScope(Blackhole bh) {
+    context.pushScope(prebuiltMacroBindings, false);
     EvaluationValue arg1 = context.lookup("arg1");
     EvaluationValue root = context.lookup("rootVar");
     context.popScope();

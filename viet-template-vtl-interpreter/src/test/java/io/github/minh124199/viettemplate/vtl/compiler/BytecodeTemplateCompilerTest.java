@@ -310,8 +310,8 @@ class BytecodeTemplateCompilerTest {
       assertThat(javapOutput).contains("stack = []");
       // Verify that no frame contains top for local variables
       assertThat(javapOutput).doesNotContain(", top", "[ top", " top,");
-      // Verify max locals and max stack
-      assertThat(javapOutput).contains("locals=13").contains("stack=16");
+      // Metadata-free loops no longer reserve a generated local for $foreach state.
+      assertThat(javapOutput).contains("locals=12").contains("stack=16");
     } finally {
       java.nio.file.Files.deleteIfExists(tempClass);
     }

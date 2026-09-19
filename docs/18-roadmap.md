@@ -106,26 +106,22 @@ attribution:
 
 Viet Template explicitly differentiates the roles of supported JDK releases:
 
-- **Java 17 (Authoritative Production Baseline)**:
-  - The minimal compiler and runtime bytecode target (`options.release.set(17)`).
-  - All published production artifacts (`viet-template-api`, `viet-template-runtime`, `viet-template-language-vtl`, `viet-template-vtl-interpreter`) are compiled to Java 17 classfiles without preview features or Java 21+ API dependencies.
-  - Ensures seamless adoption across enterprise Java 17 LTS deployments without bytecode incompatibility.
-- **Java 21 (LTS Runtime Target & Virtual Threads Platform)**:
-  - Supported runtime execution environment for deployment under modern LTS JVMs.
+- **Java 17 (Historical Benchmark Baseline)**:
+  - Retained in historical M19.1 reports and the 0.1.x maintenance context only.
+  - Not part of the active 0.2.x+ optimization acceptance matrix.
+- **Java 21 (Minimum Compile and Runtime Baseline)**:
+  - The minimum compiler, classfile, and runtime target (`--release 21`).
   - Validates full compatibility with Virtual Threads (JEP 444) and Generational ZGC (JEP 439).
   - High-concurrency stress suites verify that shared engine instances, thread-local contexts, and cache locks execute under high concurrency with no pinning-related correctness or deadlock failure observed in the tested workload.
-- **Java 25 (Advanced Runtime & Experimentation Platform)**:
-  - Forward-looking performance exploration target.
+- **Java 25 (Primary Development and Performance Runtime)**:
+  - The primary current CI, profiling, and optimization qualification runtime.
   - Evaluates memory footprint optimizations via Compact Object Headers (JEP 519).
   - Measures process-level startup and class-loading acceleration via JVM AOT Cache (JEP 483 / JEP 514 / JEP 515).
   - Powers diagnostic profiling via Java Flight Recorder (JFR, including JEP 520) and `jfr view` CLI analysis.
 
 #### Production Baseline Decision Gate
 
-The Java 17 production baseline remains strictly frozen for the entire 0.x release series. Any future proposal to raise the production baseline to Java 21 or 25 requires:
-1. An approved Architecture Decision Record (ADR).
-2. Broad community consensus and documented enterprise LTS adoption metrics.
-3. Quantifiable, statistically significant empirical performance justification satisfying all 7 parts of the DSA Acceptance Rule.
+The active baseline is Java 21 under ADR-0007 and ADR-0010. Java 25 is the primary performance runtime. Future baseline changes require an approved architecture decision and repository-wide compatibility validation.
 
 ---
 
@@ -145,13 +141,22 @@ Guided strictly by JMH profiling, JFR allocation/contention analysis, and virtua
 2. **Rank 2 (Promoted) — Streaming Output Buffer & Primitive Byte Formatting**:
    - **Evidence**: JFR `allocation-by-class` during rendering proved `byte[]` represents $33.11\%$ of steady-state allocation volume. Exhaustive qualification study ([`docs/26-m19.3b-output-allocation-qualification.md`](26-m19.3b-output-allocation-qualification.md)) across 14 workloads and 5 output targets attributed streaming allocations: 99.6% of `byte[]` in unpooled streaming stems from 8KB buffer setup and ByteArrayOutputStream growth. Isolated temporary array leak in `NumberFormatting` (saving 32 B/int and 40 B/long, +72.3% throughput gain) and substring leak in `HtmlTextEscaper` (67.6% allocation drop).
    - **Status**: **M19.3b COMPLETE & FROZEN ([`docs/26-m19.3b-output-allocation-qualification.md`](26-m19.3b-output-allocation-qualification.md), [`docs/27-m19.3b1-direct-number-formatting.md`](27-m19.3b1-direct-number-formatting.md), [`docs/28-m19.3b2-zero-allocation-html-escaping.md`](28-m19.3b2-zero-allocation-html-escaping.md), [`docs/29-m19.3b2-1-range-write-spi-hardening.md`](29-m19.3b2-1-range-write-spi-hardening.md), [`docs/30-m19.3b3-bounded-utf8-buffer-reuse.md`](30-m19.3b3-bounded-utf8-buffer-reuse.md), [`docs/31-m19.3b3-1-post-merge-validation.md`](31-m19.3b3-1-post-merge-validation.md))**. Candidate 1 (Zero-Allocation Direct Primitive Number Formatting) productionized in `NumberFormatting`, eliminating 100% of temporary formatting arrays (32 B/int -> 0 B/op, 40 B/long -> 0 B/op). Candidate 2 (Zero-Allocation HTML Escaping) productionized via range streaming in `TemplateOutput` and `HtmlTextEscaper`, eliminating 100% of substring/subSequence allocations (184-880 B/op -> 0.000 B/op), delivering up to +53.4% (J17) / +66.0% (J21) / +58.0% (J25) throughput speedups on escaping workloads. Milestone M19.3b.2.1 hardened the `TemplateOutput.write(CharSequence, int, int)` public SPI contract and eliminated non-String range write heap churn in `WriterTemplateOutput` via lazy instance-buffer batching ($0.000\text{ B/op}$, up to $+16.7\%$ speedup on small slices) while avoiding per-character monitor synchronization bottlenecks. Milestone M19.3b.3 productionized Candidate 3 (Bounded UTF-8 Stream-Buffer Reuse) via `Utf8BufferPool` (capacity 16, 128 KiB retained payload, lock-free `AtomicReferenceArray`), eliminating 8,208 B/op per streaming render and delivering up to +142.6% authoritative speedup on tiny templates and +21.1% on medium templates with 0 contention events. Milestone M19.3b.3.1 completed post-merge validation (3 forks, 5 warmups, 10 measurements, concurrency scaling across 1–32 threads, 10,000 virtual-thread tasks, and lifecycle audits), proving zero regressions and freezing the streaming output subsystem. Entire M19.3b optimization line is COMPLETE & FROZEN.
-3. **Disqualified / Deferred — Lexer & Parser Token Allocation Reductions**:
+3. **Rank 3 (Promoted) — Steady-State Execution Preparation & DSA Specialization**:
+   - **Evidence**: JFR profiling of warmed rendering identified generation-invariant work on the render path (repeated IR optimization/verification, root/function layouts, and reflection on precompiled templates), $O(N)$ collection materialization in loops (arrays to `ArrayList`, ranges to boxed lists, eager iterator draining), request-scope map churn (`HashMap` allocation and duplicate slot/scope writes), and unnecessary `$foreach` metadata construction when metadata is unobservable.
+   - **Status**: **M19.3c COMPLETE & FROZEN ([`docs/39-m19.3c-steady-state-dsa.md`](39-m19.3c-steady-state-dsa.md))**. Comprises five evidence-backed phases:
+     - **M19.3c.1 (Engine-Scoped Precompiled AOT Reuse — COMPLETE & FROZEN)**: Generated template instances are prepared once per engine generation and reused concurrently without static caching or request-state leakage.
+     - **M19.3c.2 (Prepared IR Execution — COMPLETE & FROZEN)**: Moved IR optimization, verification, and root/function layout preparation out of warmed rendering into generation-scoped immutable prepared executables.
+     - **M19.3c.3 (LoopPlan-Driven Iteration Specialization — COMPLETE & FROZEN)**: Direct traversal of arrays and ranges via constant-state iterators; direct caller iterator consumption without eager draining; immediate stop on `#break`. (RandomAccess indexing REJECTED as insignificant end-to-end).
+     - **M19.3c.4 (Request-Scope Representation Cleanup — COMPLETE & FROZEN)**: Deleted redundant temporary foreach/macro maps and duplicate slot/scope writes; single-probe template-variable lookup; preserved public scope copy guarantees and 3-state null/undefined semantics. (SmallLocalScope REJECTED as standard `HashMap` churn dropped to $\approx 0.15\%$).
+     - **M19.3c.5 (Foreach Metadata Observability & Elision — COMPLETE & FROZEN)**: Conservative compile-time analysis elides metadata objects, wrappers, slot writes, and scope synchronization when unobservable (~60% IR allocation drop for $N=100$, ~5.65 KB/op eliminated, neutral on J25 AOT), while strictly preserving immutable snapshots when observed or dynamic hazards exist. (Raw/tagged `ExecutionFrame` REJECTED).
+   - **Stop Rule**: Fresh post-M19.3c.5 profiling did not identify another production optimization with a favorable performance-to-complexity ratio. No M19.3c.6 was selected; M19.3c is complete and frozen. Any future performance work requires a fresh baseline and new profiling justification.
+4. **Disqualified / Deferred — Lexer & Parser Token Allocation Reductions**:
    - **Evidence**: Token objects represent $<0.1\%$ of allocations. Cold template compilation is a one-time startup cost ($78\text{--}90\text{ ms}$) bypassed once templates are cached.
    - **Status**: **DISQUALIFIED / DEFERRED**. Fails $\ge 5\%$ steady-state hotspot threshold.
-4. **Disqualified / Deferred — Dependency Graph Concurrency Refinements**:
+5. **Disqualified / Deferred — Dependency Graph Concurrency Refinements**:
    - **Evidence**: JFR recorded zero contention events on `TemplateDependencyGraph`. Read-write locks operate with negligible overhead for typical hierarchy depths.
    - **Status**: **DISQUALIFIED / DEFERRED**. Fails empirical contention threshold.
-5. **Disqualified / Deferred — MethodHandle `invokedynamic` Prototype**:
+6. **Disqualified / Deferred — MethodHandle `invokedynamic` Prototype**:
    - **Evidence**: Contiguous `AccessLink[]` PIC array scans achieve $51\text{--}85\text{ million ops/s}$. Property dispatch accounts for $<1.5\%$ of rendering CPU time. Transitioning to `invokedynamic` introduces risks of classloader leakage and native-image penalties for negligible gain.
    - **Status**: **DISQUALIFIED / DEFERRED**. Fails $\ge 5\%$ runtime threshold.
 

@@ -35,6 +35,7 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,9 +53,13 @@ class AstToIrLowererTest {
   }
 
   private IrTemplate parseAndLower(String sourceStr, ModelSchema schema) {
+    return parseAndLower(sourceStr, schema, VtlProfile.VTL_CORE);
+  }
+
+  private IrTemplate parseAndLower(String sourceStr, ModelSchema schema, VtlProfile profile) {
     SourceText source = SourceText.of("test.vtl", sourceStr);
     VtlParseResult parsed = VtlParser.parse(source);
-    VtlSemanticOptions options = VtlSemanticOptions.of(VtlProfile.VTL_CORE, schema);
+    VtlSemanticOptions options = VtlSemanticOptions.of(profile, schema);
     SemanticAnalysisResult analysis = VtlSemanticAnalyzer.analyze(parsed.template(), options);
     return AstToIrLowerer.lower(parsed.template(), source, analysis, options);
   }
@@ -171,11 +176,84 @@ class AstToIrLowererTest {
     assertThat(ir.root().statements().get(0)).isInstanceOf(IrLoop.class);
     IrLoop loop = (IrLoop) ir.root().statements().get(0);
 
-    assertThat(loop.plan()).isEqualTo(LoopPlan.LIST_INDEXED);
+    assertThat(loop.plan()).isEqualTo(LoopPlan.ITERABLE);
     assertThat(loop.elementLocal().name()).isEqualTo("item");
-    assertThat(loop.loopStateLocal()).isPresent();
-    assertThat(loop.loopStateLocal().get().name()).isEqualTo("foreach");
+    assertThat(loop.loopStateLocal()).isEmpty();
     assertThat(loop.elseBody()).isPresent();
+  }
+
+  @Test
+  @DisplayName("retains foreach metadata only when the loop body can observe it")
+  void retainsObservableForeachMetadata() {
+    IrTemplate direct =
+        parseAndLower("#foreach($item in $items)$foreach.index#end", ModelSchema.empty());
+    IrLoop directLoop = (IrLoop) direct.root().statements().get(0);
+    assertThat(directLoop.loopStateLocal()).isPresent();
+    assertThat(directLoop.loopStateLocal().orElseThrow().name()).isEqualTo("foreach");
+
+    IrTemplate nested =
+        parseAndLower(
+            "#foreach($outer in $outers)#foreach($inner in $inners)"
+                + "$foreach.parent.index#end#end",
+            ModelSchema.empty());
+    IrLoop outer = (IrLoop) nested.root().statements().get(0);
+    IrLoop inner = (IrLoop) outer.body().statements().get(0);
+    assertThat(inner.loopStateLocal()).isPresent();
+    assertThat(outer.loopStateLocal()).isPresent();
+
+    IrTemplate metadataFreeNested =
+        parseAndLower(
+            "#foreach($outer in $outers)#foreach($inner in $inners)$outer:$inner#end#end",
+            ModelSchema.empty());
+    IrLoop freeOuter = (IrLoop) metadataFreeNested.root().statements().get(0);
+    IrLoop freeInner = (IrLoop) freeOuter.body().statements().get(0);
+    assertThat(freeInner.loopStateLocal()).isEmpty();
+    assertThat(freeOuter.loopStateLocal()).isEmpty();
+
+    IrTemplate parse =
+        parseAndLower("#foreach($item in $items)#parse('row.vtl')#end", ModelSchema.empty());
+    assertThat(((IrLoop) parse.root().statements().get(0)).loopStateLocal()).isPresent();
+
+    IrTemplate macro =
+        parseAndLower(
+            "#macro(render)$foreach.index#end#foreach($item in $items)#render()#end",
+            ModelSchema.empty());
+    IrLoop macroCaller =
+        (IrLoop)
+            macro.root().statements().stream()
+                .filter(IrLoop.class::isInstance)
+                .findFirst()
+                .orElseThrow();
+    assertThat(macroCaller.loopStateLocal()).isPresent();
+
+    IrTemplate evaluate =
+        parseAndLower(
+            "#foreach($item in $items)#evaluate('$foreach.index')#end",
+            ModelSchema.empty(),
+            VtlProfile.VTL_DYNAMIC);
+    assertThat(((IrLoop) evaluate.root().statements().get(0)).loopStateLocal()).isPresent();
+  }
+
+  @Test
+  @DisplayName("uses LIST_INDEXED only when the static list type proves RandomAccess")
+  void lowersRandomAccessListWithIndexedPlan() {
+    ModelSchema schema =
+        ModelSchema.builder()
+            .add("items", VTypes.fromJavaClass(ArrayList.class, Nullability.NON_NULL))
+            .build();
+
+    IrTemplate ir = parseAndLower("#foreach($item in $items)$item#end", schema);
+    IrLoop loop = (IrLoop) ir.root().statements().get(0);
+    assertThat(loop.plan()).isEqualTo(LoopPlan.LIST_INDEXED);
+  }
+
+  @Test
+  @DisplayName("preserves an explicit RANGE plan instead of treating the lowered value as an array")
+  void lowersRangeForeachWithRangePlan() {
+    IrTemplate ir = parseAndLower("#foreach($item in [3..1])$item#end", ModelSchema.empty());
+
+    IrLoop loop = (IrLoop) ir.root().statements().get(0);
+    assertThat(loop.plan()).isEqualTo(LoopPlan.RANGE);
   }
 
   @Test

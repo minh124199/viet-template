@@ -253,6 +253,24 @@ Optional time/cancellation checks should occur at coarse safe points, not every 
 
 If a getter throws, wrap with template id/span/operation/template stack while preserving cause for server diagnostics.
 
-## 14. Thread safety
+## 14. Thread safety & Concurrency
 
-Templates and registry are immutable/thread-safe. Context/output/render frame are per invocation and need not be thread-safe.
+Templates, precompiled AOT executables, prepared IR templates, and call-site registries are immutable and thread-safe per engine generation. Rendering is strictly synchronous and caller-thread-bound. Context, output, scopes, budgets, and execution frames are per invocation, thread-confined, and need not be thread-safe. Virtual threads are a supported caller execution model and concurrency stress target, not an internal rendering tier; zero carrier pinning occurs.
+
+## 15. Request-State Isolation & Variable Resolution Architecture
+
+Following Milestones M19.3c.1 through M19.3c.5, the runtime maintains a clear separation between immutable generation state and render-local request state:
+
+1. **Strict Request Isolation**:
+   - Every render invocation receives its own fresh, thread-confined `ExecutionContext`, `ExecutionFrame`, and `RenderBudget`.
+   - No mutable request state is ever stored on `Template`, `CompiledTemplate`, `VtlTemplateEngine`, or in static/global/ThreadLocal caches.
+2. **Static Variable Slots as Primary Storage**:
+   - Compiler-assigned integer slot IDs in `ExecutionFrame` (`EvaluationValue[] slots`) serve as the primary storage tier for compiler-known locals.
+   - Variable reads and writes compile to direct array indexing (`ALOAD`/`ASTORE` or `slots[slotIndex]`), completely bypassing hash computations and map allocations.
+3. **Dynamic `ExecutionContext` as Semantic Fallback & Boundary**:
+   - Lexical `LocalScope` maps and render-local `templateVariables` serve as the semantic fallback for dynamic constructs: `#evaluate`, `#parse`, macro dynamic bindings, and unanalyzed variable lookups.
+   - Single-probe lookup in `templateVariables` relies on the invariant that stored values are always non-null `EvaluationValue` instances.
+4. **Three-State Evaluation Distinction**:
+   - The runtime strictly preserves the distinction between `UNDEFINED` (reference not bound), `DEFINED_NULL` (explicitly assigned null), and `DEFINED_VALUE` (concrete value).
+   - `EvaluationValue.undefined()` and `EvaluationValue.definedNull()` are immutable singletons; Java `null` is never exposed or conflated with `DEFINED_NULL`.
+   - In strict mode, accessing an undefined variable throws `TemplateRenderException` with `InterpreterDiagnosticCodes.VARIABLE_UNDEFINED`.

@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-PROFILE="J17-G1"
+PROFILE="J25-G1"
 ITERATIONS=""
 MODE="smoke"
 TIER="IR"
@@ -45,7 +45,7 @@ while [[ $# -gt 0 ]]; do
     -h|--help)
       echo "Usage: $0 [OPTIONS]"
       echo "Options:"
-      echo "  --profile <ID>          Runtime profile (default: J17-G1)"
+      echo "  --profile <ID>          Runtime profile (default: J25-G1)"
       echo "  --mode <smoke|measurement> Smoke: 2-3 runs; measurement: >=20 runs"
       echo "  --iterations <N>        Override launches (defaults: smoke=3, measurement=30)"
       echo "  --tier <IR|AOT_BYTECODE> Execution tier (default: IR)"

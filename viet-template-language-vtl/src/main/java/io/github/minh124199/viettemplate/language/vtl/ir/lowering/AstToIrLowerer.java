@@ -99,6 +99,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.RandomAccess;
 
 /**
  * Lowers a parsed AST ({@link VtlTemplate}) and its completed {@link SemanticAnalysisResult} into
@@ -440,12 +441,15 @@ public final class AstToIrLowerer {
     LoopPlan plan;
     VType elemType;
 
-    if (iterType instanceof VType.ArrayType at) {
+    if (foreach.iterable() instanceof VtlRangeExpression) {
+      plan = LoopPlan.RANGE;
+      elemType = VTypes.INT;
+    } else if (iterType instanceof VType.ArrayType at) {
       plan = LoopPlan.ARRAY;
       elemType = at.componentType();
     } else if (iterType instanceof VType.ClassType ct && ct.javaClass().isPresent()) {
       Class<?> c = ct.javaClass().get();
-      if (List.class.isAssignableFrom(c)) {
+      if (List.class.isAssignableFrom(c) && RandomAccess.class.isAssignableFrom(c)) {
         plan = LoopPlan.LIST_INDEXED;
         elemType = ct.typeArguments().isEmpty() ? VTypes.DYNAMIC : ct.typeArguments().get(0);
       } else if (Iterator.class.isAssignableFrom(c)) {
@@ -458,9 +462,6 @@ public final class AstToIrLowerer {
         plan = LoopPlan.DYNAMIC;
         elemType = VTypes.DYNAMIC;
       }
-    } else if (foreach.iterable() instanceof VtlRangeExpression) {
-      plan = LoopPlan.RANGE;
-      elemType = VTypes.INT;
     } else {
       plan = LoopPlan.DYNAMIC;
       elemType = VTypes.DYNAMIC;
@@ -472,6 +473,10 @@ public final class AstToIrLowerer {
     IrLocal loopStateLocal = loopScope.defineLocal("foreach", VTypes.DYNAMIC, foreach.span());
 
     IrBlock body = lowerBlock(foreach.body(), loopScope, foreach.span());
+    Optional<IrLocal> observableLoopState =
+        ForeachMetadataObservability.isRequired(body, loopStateLocal.slot())
+            ? Optional.of(loopStateLocal)
+            : Optional.empty();
 
     Optional<IrBlock> elseBody = Optional.empty();
     if (foreach.elseBody().isPresent()) {
@@ -479,8 +484,7 @@ public final class AstToIrLowerer {
     }
 
     IrLoop loop =
-        new IrLoop(
-            plan, iterable, elemLocal, Optional.of(loopStateLocal), body, elseBody, foreach.span());
+        new IrLoop(plan, iterable, elemLocal, observableLoopState, body, elseBody, foreach.span());
 
     List<IrLocal> ownedLocals = new ArrayList<>();
     for (IrLocal loc : loopScope.allDescendantLocals()) {

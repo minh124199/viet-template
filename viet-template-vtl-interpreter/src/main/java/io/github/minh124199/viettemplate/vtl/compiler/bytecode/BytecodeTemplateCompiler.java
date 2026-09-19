@@ -28,6 +28,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrUnaryOp;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind;
+import io.github.minh124199.viettemplate.language.vtl.ir.plan.LoopPlan;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBreak;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBudgetCheck;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallMacro;
@@ -674,21 +675,28 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     }
     int itemSlot = loop.elementLocal().slot() + SLOT_OFFSET;
 
-    compileExpression(loop.iterable(), mw, context);
-    mw.getstatic(
-        context.internalName,
-        "SECURITY_POLICY",
-        "Lio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;");
-    mw.ldc(context.template.id().value());
     SourceSpan loopSpan = loop.span();
-    mw.iconst(loopSpan != null ? loopSpan.startLine() : 1);
-    mw.iconst(loopSpan != null ? loopSpan.startColumn() : 1);
-    mw.iconst(loopSpan != null ? loopSpan.endLine() : 1);
-    mw.iconst(loopSpan != null ? loopSpan.endColumn() : 1);
-    mw.invokestatic(
-        "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
-        "toIterator",
-        "(Ljava/lang/Object;Lio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;Ljava/lang/String;IIII)Ljava/util/Iterator;");
+    if (loop.plan() == LoopPlan.RANGE && loop.iterable() instanceof IrBinaryOp range) {
+      compileExpression(range.left(), mw, context);
+      compileExpression(range.right(), mw, context);
+      mw.iconst(10000); // maxRangeSize
+      emitLoopLocation(mw, context, loopSpan);
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "rangeIterator",
+          "(Ljava/lang/Object;Ljava/lang/Object;ILjava/lang/String;IIII)Ljava/util/Iterator;");
+    } else {
+      compileExpression(loop.iterable(), mw, context);
+      mw.getstatic(
+          context.internalName,
+          "SECURITY_POLICY",
+          "Lio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;");
+      emitLoopLocation(mw, context, loopSpan);
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          loop.plan() == LoopPlan.ARRAY ? "arrayIterator" : "toIterator",
+          "(Ljava/lang/Object;Lio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;Ljava/lang/String;IIII)Ljava/util/Iterator;");
+    }
     mw.astore(iterSlot);
 
     Integer parentMetaSlot = context.currentForeachMetaSlot();
@@ -763,6 +771,15 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       mw.aconst_null();
       mw.astore(slot + SLOT_OFFSET);
     }
+  }
+
+  private static void emitLoopLocation(
+      ClassFileWriter.MethodWriter mw, CompilerContext context, SourceSpan span) {
+    mw.ldc(context.template.id().value());
+    mw.iconst(span != null ? span.startLine() : 1);
+    mw.iconst(span != null ? span.startColumn() : 1);
+    mw.iconst(span != null ? span.endLine() : 1);
+    mw.iconst(span != null ? span.endColumn() : 1);
   }
 
   private static void compileStoreLocal(

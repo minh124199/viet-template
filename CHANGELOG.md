@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Steady-State Execution Preparation & DSA Specialization (Milestone M19.3c)**:
+  - **Faster Warmed AOT Lookup (M19.3c.1)**: Precompiled generated template instances are constructed once per engine generation and reused concurrently, eliminating repetitive reflection, wrapper overhead, and key reconstruction during warmed lookups while preserving engine isolation and classloader collectability.
+  - **Prepared IR Execution (M19.3c.2)**: Structural IR preparation (final optimization, invariant verification, root layout, and function dispatch maps) executes once per compilation generation. Warmed IR renders execute directly through immutable prepared metadata with request-only mutable state, completely eliminating render-time optimizer, verifier, and layout overhead.
+  - **Lower Loop Materialization and Allocation (M19.3c.3)**: Loop execution consumes compiler-assigned `LoopPlan`s (`ARRAY`, `RANGE`, `ITERATOR`, `ITERABLE`, `DYNAMIC`), executing array iterations via constant-state reflective traversal without temporary `ArrayList` copying, streaming ranges without boxed `Integer` list materialization, and streaming caller iterators directly with immediate `#break` termination.
+  - **Reduced Request-Scope Churn (M19.3c.4)**: Eliminated temporary `HashMap` allocations and duplicate slot/scope writes during foreach and macro invocations. Introduced single-probe template-variable lookups while preserving Velocity-compatible defined-null vs. undefined 3-state semantics and public scope copy guarantees.
+  - **Compiler-Elided Unused Foreach Metadata (M19.3c.5)**: Implemented conservative compile-time analysis (`ForeachMetadataObservability`) to omit metadata object construction, wrapper allocation, slot writes, and scope synchronization when `$foreach` is provably unobservable, while strictly retaining immutable snapshot semantics when observed or when dynamic hazards (`#evaluate`, `#parse`, macros) are present.
+  - **Java 21/25 Runtime Policy Clarification**: Established Java 21 as the minimum supported compile and runtime baseline (`--release 21`), designating Java 25 as the primary development, CI, profiling, and performance runtime.
+  - **Virtual-Thread-Safe Caller Execution Model**: Hardened synchronous, caller-thread-bound rendering invariants. Proved zero carrier pinning under high concurrency and strict request isolation without internal executors, thread pools, or ThreadLocal state.
 - **GraalVM Native Image & Spring AOT Compatibility (Milestone M17 Phase A)**:
   - Spring AOT Runtime Hints (`viet-template-spring-boot-autoconfigure`):
     - Introduced `VietTemplateRuntimeHints` implementing `RuntimeHintsRegistrar` and registered in `META-INF/spring/aot.factories` and `@ImportRuntimeHints` on `VietTemplateAutoConfiguration`.

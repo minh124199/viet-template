@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 
 /** Canonical reference implementation of {@link TemplateEngine}. */
 public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
@@ -73,7 +74,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
   private final List<RenderContextContributor> contextContributors;
   private final ContextCollisionPolicy contextCollisionPolicy;
   private final LayoutConfiguration layoutConfiguration;
-  private final Map<TemplateId, Class<? extends CompiledTemplate>> aotTemplates;
+  private volatile Map<TemplateId, PreparedAotTemplate> aotTemplates;
   final ThreadLocal<Set<TemplateId>> compilingTemplates = new ThreadLocal<>();
 
   VtlTemplateEngine(
@@ -175,7 +176,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     } else {
       this.fileWatcher = Optional.empty();
     }
-    this.aotTemplates = discoverAotTemplates(repository);
+    this.aotTemplates = prepareAotRegistry(discoverAotTemplates(repository));
   }
 
   public static VtlTemplateEngineBuilder builder() {
@@ -187,39 +188,19 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     Objects.requireNonNull(id, "id must not be null");
 
     // 0. AOT precompiled template registry check
-    Class<? extends CompiledTemplate> aotClass = aotTemplates.get(id);
-    if (aotClass == null) {
+    Map<TemplateId, PreparedAotTemplate> currentAotTemplates = aotTemplates;
+    PreparedAotTemplate aotTemplate = currentAotTemplates.get(id);
+    boolean canonicalLookup = aotTemplate != null;
+    if (!canonicalLookup) {
       try {
-        aotClass = aotTemplates.get(TemplateId.normalize(id.value()));
+        aotTemplate = currentAotTemplates.get(TemplateId.normalize(id.value()));
       } catch (Exception ignored) {
       }
     }
-    if (aotClass != null) {
-      try {
-        CompiledTemplate ct = aotClass.getDeclaredConstructor().newInstance();
-        CompileCacheKey key =
-            CompileCacheKey.of(
-                id,
-                "aot",
-                COMPILER_VERSION,
-                optimizationLevel,
-                ExecutionTier.AOT_BYTECODE,
-                interpreterOptions.securityPolicy().policyFingerprint(),
-                semanticOptions.modelSchema().parameters().toString(),
-                interpreterOptions.profile().name() + ":" + semanticOptions.profile().name(),
-                "");
-        CompiledTemplateHandle handle =
-            CompiledTemplateHandle.ofBytecode(id, 0L, key, ct, null, null);
-        return new VtlTemplate(
-            TemplateDescriptor.of(id, ExecutionTier.AOT_BYTECODE.name()),
-            handle,
-            SourceText.of(id, ""),
-            interpreterOptions,
-            interpreter);
-      } catch (Exception e) {
-        throw new IllegalStateException(
-            "Failed to instantiate AOT compiled template: " + id.value(), e);
-      }
+    if (aotTemplate != null) {
+      return canonicalLookup
+          ? aotTemplate.getOrPrepare(this)
+          : createAotTemplate(id, aotTemplate.compiledClass());
     }
 
     // 1. Negative cache check
@@ -378,6 +359,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     fileWatcher.ifPresent(DevelopmentFileWatcher::close);
     invalidateAll();
     callSiteRegistry.clear();
+    aotTemplates = Map.of();
   }
 
   CallSiteRegistry callSiteRegistry() {
@@ -463,7 +445,8 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
             (ct.getClass().getClassLoader() instanceof TemplateClassLoader tcl) ? tcl : null;
         return CompiledTemplateHandle.ofBytecode(id, gen, key, ct, optimizedIr, cl);
       } else if (result.status() == CompilationStatus.INTERPRETER_REQUIRED_EVALUATE) {
-        return CompiledTemplateHandle.ofIr(id, gen, key, optimizedIr);
+        IrTemplate finalIr = IrOptimizer.optimize(optimizedIr, optimizationOptions);
+        return preparedIrHandle(id, gen, key, sourceText, finalIr);
       } else {
         cache.recordNegative(id, "Compilation failure: " + result.diagnostics());
         throw new TemplateCompilationException(
@@ -474,7 +457,27 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
       }
     }
 
-    return CompiledTemplateHandle.ofIr(id, gen, key, optimizedIr);
+    // Global composition changes the final function set after the preliminary local-template
+    // optimization. Finalize and verify that immutable generation before preparing IR execution.
+    IrTemplate finalIr = IrOptimizer.optimize(optimizedIr, optimizationOptions);
+    return preparedIrHandle(id, gen, key, sourceText, finalIr);
+  }
+
+  private CompiledTemplateHandle preparedIrHandle(
+      TemplateId id,
+      long generation,
+      CompileCacheKey key,
+      SourceText sourceText,
+      IrTemplate optimizedIr) {
+    CompiledTemplate preparedTemplate = interpreter.prepareIr(optimizedIr, sourceText);
+    return new CompiledTemplateHandle(
+        id,
+        generation,
+        key,
+        Optional.of(preparedTemplate),
+        Optional.of(optimizedIr),
+        Optional.empty(),
+        System.currentTimeMillis());
   }
 
   private static Map<TemplateId, Class<? extends CompiledTemplate>> discoverAotTemplates(
@@ -514,6 +517,89 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     }
 
     return Collections.unmodifiableMap(registry);
+  }
+
+  private static Map<TemplateId, PreparedAotTemplate> prepareAotRegistry(
+      Map<TemplateId, Class<? extends CompiledTemplate>> discoveredTemplates) {
+    if (discoveredTemplates.isEmpty()) {
+      return Map.of();
+    }
+
+    Map<TemplateId, PreparedAotTemplate> preparedTemplates =
+        new HashMap<>(discoveredTemplates.size());
+    for (Map.Entry<TemplateId, Class<? extends CompiledTemplate>> entry :
+        discoveredTemplates.entrySet()) {
+      preparedTemplates.put(
+          entry.getKey(), new PreparedAotTemplate(entry.getKey(), entry.getValue()));
+    }
+    return Collections.unmodifiableMap(preparedTemplates);
+  }
+
+  private Template createAotTemplate(
+      TemplateId id, Class<? extends CompiledTemplate> compiledClass) {
+    try {
+      String accessPolicyId = interpreterOptions.securityPolicy().policyFingerprint();
+      String modelSignature = semanticOptions.modelSchema().parameters().toString();
+      String backendHash =
+          interpreterOptions.profile().name() + ":" + semanticOptions.profile().name();
+      CompiledTemplate compiledTemplate = compiledClass.getDeclaredConstructor().newInstance();
+      CompileCacheKey key =
+          CompileCacheKey.of(
+              id,
+              "aot",
+              COMPILER_VERSION,
+              optimizationLevel,
+              ExecutionTier.AOT_BYTECODE,
+              accessPolicyId,
+              modelSignature,
+              backendHash,
+              "");
+      CompiledTemplateHandle handle =
+          CompiledTemplateHandle.ofBytecode(id, 0L, key, compiledTemplate, null, null);
+      return new VtlTemplate(
+          TemplateDescriptor.of(id, ExecutionTier.AOT_BYTECODE.name()),
+          handle,
+          SourceText.of(id, ""),
+          interpreterOptions,
+          interpreter);
+    } catch (Exception e) {
+      throw new IllegalStateException(
+          "Failed to instantiate AOT compiled template: " + id.value(), e);
+    }
+  }
+
+  private static final class PreparedAotTemplate {
+    private final TemplateId id;
+    private final Class<? extends CompiledTemplate> compiledClass;
+    private final ReentrantLock preparationLock = new ReentrantLock();
+    private volatile Template prepared;
+
+    private PreparedAotTemplate(TemplateId id, Class<? extends CompiledTemplate> compiledClass) {
+      this.id = id;
+      this.compiledClass = compiledClass;
+    }
+
+    private Class<? extends CompiledTemplate> compiledClass() {
+      return compiledClass;
+    }
+
+    private Template getOrPrepare(VtlTemplateEngine engine) {
+      Template current = prepared;
+      if (current != null) {
+        return current;
+      }
+      preparationLock.lock();
+      try {
+        current = prepared;
+        if (current == null) {
+          current = engine.createAotTemplate(id, compiledClass);
+          prepared = current;
+        }
+        return current;
+      } finally {
+        preparationLock.unlock();
+      }
+    }
   }
 
   private static void loadTemplateIndex(

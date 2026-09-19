@@ -33,6 +33,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.lowering.AstToIrLowerer
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind;
+import io.github.minh124199.viettemplate.language.vtl.ir.plan.LoopPlan;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullAccessMode;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBreak;
@@ -62,8 +63,8 @@ import io.github.minh124199.viettemplate.runtime.EscapeMode;
 import io.github.minh124199.viettemplate.runtime.SafeHtml;
 import io.github.minh124199.viettemplate.runtime.SafeUrl;
 import io.github.minh124199.viettemplate.runtime.StandardEscapers;
+import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -123,18 +124,26 @@ public final class IrInterpreter {
     Objects.requireNonNull(options, "options must not be null");
     Objects.requireNonNull(referenceAccess, "referenceAccess must not be null");
 
+    renderPrepared(
+        PreparedIrTemplate.prepare(template), source, context, output, options, referenceAccess);
+  }
+
+  static void renderPrepared(
+      PreparedIrTemplate prepared,
+      SourceText source,
+      ExecutionContext context,
+      TemplateOutput output,
+      VtlInterpreterOptions options,
+      ReferenceAccess referenceAccess)
+      throws IOException {
+    IrTemplate template = prepared.template();
     CountingTemplateOutput countingOutput =
         (output instanceof CountingTemplateOutput cto)
             ? cto
             : new CountingTemplateOutput(
                 output, options.limits().createRenderBudget(), template.id());
-
-    Map<String, IrFunction> functionMap = new HashMap<>();
-    for (IrFunction function : template.functions()) {
-      functionMap.put(function.name(), function);
-    }
-
-    IrSlotLayout.SlotLayout layout = IrSlotLayout.layout(template);
+    PreparedFunctionRegistry functions = new PreparedFunctionRegistry(prepared.functions());
+    IrSlotLayout.SlotLayout layout = prepared.rootLayout();
     InterpretedFrame frame =
         new InterpretedFrame(
             template.id(),
@@ -142,7 +151,7 @@ public final class IrInterpreter {
             context,
             countingOutput,
             template.constants(),
-            functionMap,
+            functions,
             options,
             referenceAccess,
             0,
@@ -468,17 +477,13 @@ public final class IrInterpreter {
   }
 
   private static void executeLoop(IrLoop loop, InterpretedFrame frame) throws IOException {
-    Object iterObj = evaluateExpression(loop.iterable(), frame);
-    Iterable<?> iterable = toIterable(iterObj, frame, loop.span());
-
-    if (iterable == null) {
+    Iterator<?> iterator = iteratorForLoop(loop, frame);
+    if (iterator == null) {
       if (loop.elseBody().isPresent()) {
         executeBlock(loop.elseBody().get(), frame);
       }
       return;
     }
-
-    Iterator<?> iterator = iterable.iterator();
     if (!iterator.hasNext()) {
       if (loop.elseBody().isPresent()) {
         executeBlock(loop.elseBody().get(), frame);
@@ -490,10 +495,13 @@ public final class IrInterpreter {
     int index = 0;
     int limit = frame.options.limits().maxLoopIterations();
 
+    boolean needsMetadata = loop.loopStateLocal().isPresent();
     ForeachMetadata parentMeta = null;
-    EvaluationValue existingMeta = frame.context.lookup("foreach");
-    if (existingMeta.isNonNull() && existingMeta.value() instanceof ForeachMetadata fm) {
-      parentMeta = fm;
+    if (needsMetadata) {
+      EvaluationValue existingMeta = frame.context.lookup("foreach");
+      if (existingMeta.isNonNull() && existingMeta.value() instanceof ForeachMetadata fm) {
+        parentMeta = fm;
+      }
     }
 
     List<Integer> loopOwnedSlots =
@@ -501,7 +509,11 @@ public final class IrInterpreter {
             ? frame.layout.loopLocals().getOrDefault(loop, List.of())
             : List.of();
 
-    frame.context.pushForeachScope(loopVar, EvaluationValue.undefined(), parentMeta);
+    if (needsMetadata) {
+      frame.context.pushForeachScope(loopVar, EvaluationValue.undefined(), parentMeta);
+    } else {
+      frame.context.pushForeachScopeWithoutMetadata(loopVar, EvaluationValue.undefined());
+    }
 
     try {
       while (iterator.hasNext()) {
@@ -518,11 +530,6 @@ public final class IrInterpreter {
 
         Object item = iterator.next();
         boolean hasNext = iterator.hasNext();
-        boolean first = (index == 0);
-        boolean last = !hasNext;
-        int count = index + 1;
-
-        ForeachMetadata meta = new ForeachMetadata(index, count, first, last, hasNext, parentMeta);
 
         for (int slot : loopOwnedSlots) {
           IrSlotLayout.SlotMetadata slotMeta =
@@ -533,11 +540,14 @@ public final class IrInterpreter {
           frame.variables.reset(slot);
         }
 
-        frame.setLocal(loop.elementLocal().slot(), loopVar, item);
-        if (loop.loopStateLocal().isPresent()) {
-          frame.setLocal(loop.loopStateLocal().get().slot(), "foreach", meta);
+        EvaluationValue itemValue = EvaluationValue.of(item);
+        frame.setLocalValue(loop.elementLocal().slot(), loopVar, itemValue);
+        if (needsMetadata) {
+          ForeachMetadata meta =
+              new ForeachMetadata(index, index + 1, index == 0, !hasNext, hasNext, parentMeta);
+          EvaluationValue metadataValue = EvaluationValue.of(meta);
+          frame.setLocalValue(loop.loopStateLocal().get().slot(), "foreach", metadataValue);
         }
-        frame.context.updateLoopVariable(loopVar, EvaluationValue.of(item), meta);
 
         try {
           executeBlock(loop.body(), frame);
@@ -559,6 +569,27 @@ public final class IrInterpreter {
     }
   }
 
+  private static Iterator<?> iteratorForLoop(IrLoop loop, InterpretedFrame frame) {
+    SourceSpan span = loop.span();
+    if (loop.plan() == LoopPlan.RANGE && loop.iterable() instanceof IrBinaryOp range) {
+      Object left = unwrap(evaluateExpression(range.left(), frame));
+      Object right = unwrap(evaluateExpression(range.right(), frame));
+      return BytecodeRuntimeBridge.rangeIterator(
+          left,
+          right,
+          frame.options.limits().maxRangeSize(),
+          frame.templateId.value(),
+          span.startLine(),
+          span.startColumn(),
+          span.endLine(),
+          span.endColumn());
+    }
+
+    Object value = evaluateExpression(loop.iterable(), frame);
+    Iterable<?> iterable = toIterable(value, frame, span);
+    return iterable != null ? iterable.iterator() : null;
+  }
+
   private static void executeCallMacro(IrCallMacro callM, InterpretedFrame frame)
       throws IOException {
     if (frame.macroDepth >= frame.options.limits().maxMacroDepth()) {
@@ -569,8 +600,8 @@ public final class IrInterpreter {
           InterpreterDiagnosticCodes.LIMIT_EXCEEDED);
     }
 
-    IrFunction function = frame.functions.get(callM.macroName());
-    if (function == null) {
+    PreparedIrTemplate.PreparedFunction preparedFunction = frame.functions.get(callM.macroName());
+    if (preparedFunction == null) {
       if (frame.options.strictReferences()) {
         throw new TemplateRenderException(
             "Unknown macro or directive: #" + callM.macroName(),
@@ -580,16 +611,18 @@ public final class IrInterpreter {
       }
       return;
     }
+    IrFunction function = preparedFunction.function();
 
     List<Object> argValues = new ArrayList<>();
     for (IrExpression argExpr : callM.arguments()) {
       argValues.add(evaluateExpression(argExpr, frame));
     }
 
-    IrSlotLayout.SlotLayout fnLayout = IrSlotLayout.layout(function);
+    IrSlotLayout.SlotLayout fnLayout = preparedFunction.layout();
     ExecutionFrame macroVariables = new ExecutionFrame(fnLayout.frameSize());
-    Map<String, EvaluationValue> bindings = new HashMap<>();
     List<IrParameter> params = function.parameters();
+    Map<String, EvaluationValue> bindings =
+        HashMap.newHashMap(params.size() + (callM.bodyContent().isPresent() ? 1 : 0));
 
     for (int i = 0; i < params.size(); i++) {
       IrParameter p = params.get(i);
@@ -617,7 +650,7 @@ public final class IrInterpreter {
       }
     }
 
-    frame.context.pushScope(bindings, false);
+    frame.context.pushOwnedScope(bindings, false);
     try {
       InterpretedFrame macroFrame =
           frame.withMacroDepth(frame.macroDepth + 1, macroVariables, fnLayout);
@@ -684,7 +717,7 @@ public final class IrInterpreter {
     subIr = IrOptimizer.optimize(subIr, frame.options.optimizationOptions());
 
     for (IrFunction function : subIr.functions()) {
-      frame.functions.put(function.name(), function);
+      frame.functions.add(function);
     }
 
     IrSlotLayout.SlotLayout subLayout = IrSlotLayout.layout(subIr);
@@ -760,7 +793,7 @@ public final class IrInterpreter {
     subIr = IrOptimizer.optimize(subIr, frame.options.optimizationOptions());
 
     for (IrFunction function : subIr.functions()) {
-      frame.functions.put(function.name(), function);
+      frame.functions.add(function);
     }
 
     IrSlotLayout.SlotLayout evalLayout = IrSlotLayout.layout(subIr);
@@ -1009,7 +1042,7 @@ public final class IrInterpreter {
     }
     int start = startNum.intValue();
     int end = endNum.intValue();
-    int size = Math.abs(end - start) + 1;
+    long size = Math.abs((long) end - start) + 1L;
     if (size > frame.options.limits().maxRangeSize()) {
       throw new TemplateLimitException(
           "Range size exceeds maximum limit ("
@@ -1021,14 +1054,20 @@ public final class IrInterpreter {
           span,
           InterpreterDiagnosticCodes.LIMIT_EXCEEDED);
     }
-    List<Integer> list = new ArrayList<>(size);
+    List<Integer> list = new ArrayList<>((int) size);
     if (start <= end) {
-      for (int i = start; i <= end; i++) {
+      for (int i = start; ; i++) {
         list.add(i);
+        if (i == end) {
+          break;
+        }
       }
     } else {
-      for (int i = start; i >= end; i--) {
+      for (int i = start; ; i--) {
         list.add(i);
+        if (i == end) {
+          break;
+        }
       }
     }
     return list;
@@ -1113,20 +1152,22 @@ public final class IrInterpreter {
       return map.values();
     }
     if (val.getClass().isArray()) {
-      int len = Array.getLength(val);
-      List<Object> list = new ArrayList<>(len);
-      for (int i = 0; i < len; i++) {
-        list.add(Array.get(val, i));
-      }
-      return list;
+      return singleIteratorIterable(
+          BytecodeRuntimeBridge.arrayIterator(val, null, null, 1, 1, 1, 1));
     }
     if (val instanceof Iterator<?> it) {
-      List<Object> list = new ArrayList<>();
-      while (it.hasNext()) {
-        list.add(it.next());
-      }
-      return list;
+      return singleIteratorIterable(it);
     }
     return null;
+  }
+
+  private static Iterable<?> singleIteratorIterable(Iterator<?> iterator) {
+    return new Iterable<Object>() {
+      @Override
+      @SuppressWarnings("unchecked")
+      public Iterator<Object> iterator() {
+        return (Iterator<Object>) iterator;
+      }
+    };
   }
 }
