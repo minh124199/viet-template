@@ -35,6 +35,7 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -171,11 +172,33 @@ class AstToIrLowererTest {
     assertThat(ir.root().statements().get(0)).isInstanceOf(IrLoop.class);
     IrLoop loop = (IrLoop) ir.root().statements().get(0);
 
-    assertThat(loop.plan()).isEqualTo(LoopPlan.LIST_INDEXED);
+    assertThat(loop.plan()).isEqualTo(LoopPlan.ITERABLE);
     assertThat(loop.elementLocal().name()).isEqualTo("item");
     assertThat(loop.loopStateLocal()).isPresent();
     assertThat(loop.loopStateLocal().get().name()).isEqualTo("foreach");
     assertThat(loop.elseBody()).isPresent();
+  }
+
+  @Test
+  @DisplayName("uses LIST_INDEXED only when the static list type proves RandomAccess")
+  void lowersRandomAccessListWithIndexedPlan() {
+    ModelSchema schema =
+        ModelSchema.builder()
+            .add("items", VTypes.fromJavaClass(ArrayList.class, Nullability.NON_NULL))
+            .build();
+
+    IrTemplate ir = parseAndLower("#foreach($item in $items)$item#end", schema);
+    IrLoop loop = (IrLoop) ir.root().statements().get(0);
+    assertThat(loop.plan()).isEqualTo(LoopPlan.LIST_INDEXED);
+  }
+
+  @Test
+  @DisplayName("preserves an explicit RANGE plan instead of treating the lowered value as an array")
+  void lowersRangeForeachWithRangePlan() {
+    IrTemplate ir = parseAndLower("#foreach($item in [3..1])$item#end", ModelSchema.empty());
+
+    IrLoop loop = (IrLoop) ir.root().statements().get(0);
+    assertThat(loop.plan()).isEqualTo(LoopPlan.RANGE);
   }
 
   @Test
