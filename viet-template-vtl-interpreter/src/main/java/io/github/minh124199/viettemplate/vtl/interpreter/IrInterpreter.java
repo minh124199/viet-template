@@ -495,10 +495,13 @@ public final class IrInterpreter {
     int index = 0;
     int limit = frame.options.limits().maxLoopIterations();
 
+    boolean needsMetadata = loop.loopStateLocal().isPresent();
     ForeachMetadata parentMeta = null;
-    EvaluationValue existingMeta = frame.context.lookup("foreach");
-    if (existingMeta.isNonNull() && existingMeta.value() instanceof ForeachMetadata fm) {
-      parentMeta = fm;
+    if (needsMetadata) {
+      EvaluationValue existingMeta = frame.context.lookup("foreach");
+      if (existingMeta.isNonNull() && existingMeta.value() instanceof ForeachMetadata fm) {
+        parentMeta = fm;
+      }
     }
 
     List<Integer> loopOwnedSlots =
@@ -506,7 +509,11 @@ public final class IrInterpreter {
             ? frame.layout.loopLocals().getOrDefault(loop, List.of())
             : List.of();
 
-    frame.context.pushForeachScope(loopVar, EvaluationValue.undefined(), parentMeta);
+    if (needsMetadata) {
+      frame.context.pushForeachScope(loopVar, EvaluationValue.undefined(), parentMeta);
+    } else {
+      frame.context.pushForeachScopeWithoutMetadata(loopVar, EvaluationValue.undefined());
+    }
 
     try {
       while (iterator.hasNext()) {
@@ -523,11 +530,6 @@ public final class IrInterpreter {
 
         Object item = iterator.next();
         boolean hasNext = iterator.hasNext();
-        boolean first = (index == 0);
-        boolean last = !hasNext;
-        int count = index + 1;
-
-        ForeachMetadata meta = new ForeachMetadata(index, count, first, last, hasNext, parentMeta);
 
         for (int slot : loopOwnedSlots) {
           IrSlotLayout.SlotMetadata slotMeta =
@@ -540,11 +542,11 @@ public final class IrInterpreter {
 
         EvaluationValue itemValue = EvaluationValue.of(item);
         frame.setLocalValue(loop.elementLocal().slot(), loopVar, itemValue);
-        EvaluationValue metadataValue = EvaluationValue.of(meta);
-        if (loop.loopStateLocal().isPresent()) {
+        if (needsMetadata) {
+          ForeachMetadata meta =
+              new ForeachMetadata(index, index + 1, index == 0, !hasNext, hasNext, parentMeta);
+          EvaluationValue metadataValue = EvaluationValue.of(meta);
           frame.setLocalValue(loop.loopStateLocal().get().slot(), "foreach", metadataValue);
-        } else {
-          frame.context.setLocalScope("foreach", metadataValue);
         }
 
         try {

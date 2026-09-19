@@ -473,6 +473,10 @@ public final class AstToIrLowerer {
     IrLocal loopStateLocal = loopScope.defineLocal("foreach", VTypes.DYNAMIC, foreach.span());
 
     IrBlock body = lowerBlock(foreach.body(), loopScope, foreach.span());
+    Optional<IrLocal> observableLoopState =
+        ForeachMetadataObservability.isRequired(body, loopStateLocal.slot())
+            ? Optional.of(loopStateLocal)
+            : Optional.empty();
 
     Optional<IrBlock> elseBody = Optional.empty();
     if (foreach.elseBody().isPresent()) {
@@ -480,8 +484,7 @@ public final class AstToIrLowerer {
     }
 
     IrLoop loop =
-        new IrLoop(
-            plan, iterable, elemLocal, Optional.of(loopStateLocal), body, elseBody, foreach.span());
+        new IrLoop(plan, iterable, elemLocal, observableLoopState, body, elseBody, foreach.span());
 
     List<IrLocal> ownedLocals = new ArrayList<>();
     for (IrLocal loc : loopScope.allDescendantLocals()) {

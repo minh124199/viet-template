@@ -78,6 +78,10 @@ public final class ExecutionContext {
     scopeStack.push(LocalScope.foreach(loopVar, loopVal, metadata));
   }
 
+  void pushForeachScopeWithoutMetadata(String loopVar, EvaluationValue loopVal) {
+    scopeStack.push(LocalScope.foreachWithoutMetadata(loopVar, loopVal));
+  }
+
   public void updateLoopVariable(
       String loopVar, EvaluationValue loopVal, ForeachMetadata metadata) {
     if (!scopeStack.isEmpty()) {
@@ -139,6 +143,12 @@ public final class ExecutionContext {
       Map<String, EvaluationValue> variables = HashMap.newHashMap(2);
       variables.put(Objects.requireNonNull(loopVar), Objects.requireNonNull(loopVal));
       variables.put("foreach", EvaluationValue.of(metadata));
+      return new LocalScope(variables, false);
+    }
+
+    static LocalScope foreachWithoutMetadata(String loopVar, EvaluationValue loopVal) {
+      Map<String, EvaluationValue> variables = HashMap.newHashMap(1);
+      variables.put(Objects.requireNonNull(loopVar), Objects.requireNonNull(loopVal));
       return new LocalScope(variables, false);
     }
 
