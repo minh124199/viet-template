@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * Shared runtime bridge supporting generated template bytecode execution.
@@ -386,7 +387,7 @@ public final class BytecodeRuntimeBridge {
     }
     int start = startNum.intValue();
     int end = endNum.intValue();
-    int size = Math.abs(end - start) + 1;
+    long size = Math.abs((long) end - start) + 1L;
     if (size > maxRangeSize) {
       throw new TemplateLimitException(
           "Range size exceeds maximum limit (" + size + " > " + maxRangeSize + ")",
@@ -394,14 +395,20 @@ public final class BytecodeRuntimeBridge {
           span,
           InterpreterDiagnosticCodes.LIMIT_EXCEEDED);
     }
-    List<Integer> list = new ArrayList<>(size);
+    List<Integer> list = new ArrayList<>((int) size);
     if (start <= end) {
-      for (int i = start; i <= end; i++) {
+      for (int i = start; ; i++) {
         list.add(i);
+        if (i == end) {
+          break;
+        }
       }
     } else {
-      for (int i = start; i >= end; i--) {
+      for (int i = start; ; i--) {
         list.add(i);
+        if (i == end) {
+          break;
+        }
       }
     }
     return list;
@@ -456,14 +463,143 @@ public final class BytecodeRuntimeBridge {
       return map.values().iterator();
     }
     if (collection.getClass().isArray()) {
-      int len = Array.getLength(collection);
-      List<Object> list = new ArrayList<>(len);
-      for (int i = 0; i < len; i++) {
-        list.add(Array.get(collection, i));
-      }
-      return list.iterator();
+      return new ArrayIterator(collection);
     }
     return Collections.singleton(collection).iterator();
+  }
+
+  /** Traverses an array directly without first copying it into an intermediate collection. */
+  public static Iterator<?> arrayIterator(
+      Object array,
+      LinkerAccessPolicy securityPolicy,
+      String templateIdStr,
+      int startLine,
+      int startCol,
+      int endLine,
+      int endCol) {
+    if (array instanceof EvaluationValue ev) {
+      array = ev.isNull() || ev.isUndefined() ? null : ev.value();
+    }
+    if (array == null || !array.getClass().isArray()) {
+      return toIterator(array, securityPolicy, templateIdStr, startLine, startCol, endLine, endCol);
+    }
+    verifyLoopSourcePermitted(
+        array, securityPolicy, templateIdStr, startLine, startCol, endLine, endCol);
+    return new ArrayIterator(array);
+  }
+
+  /** Evaluates and traverses an integer range without materializing boxed range elements. */
+  public static Iterator<?> rangeIterator(
+      Object left,
+      Object right,
+      int maxRangeSize,
+      String templateIdStr,
+      int startLine,
+      int startCol,
+      int endLine,
+      int endCol) {
+    TemplateId templateId = TemplateId.of(templateIdStr);
+    SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
+    Object unwrappedLeft = (left instanceof EvaluationValue ev) ? ev.value() : left;
+    Object unwrappedRight = (right instanceof EvaluationValue ev) ? ev.value() : right;
+    if (!(unwrappedLeft instanceof Number startNum) || !(unwrappedRight instanceof Number endNum)) {
+      throw new TemplateRenderException(
+          "Expected integer in range endpoint, but was: [" + left + ".." + right + "]",
+          templateId,
+          span,
+          InterpreterDiagnosticCodes.SYNTAX_ERROR);
+    }
+    int start = startNum.intValue();
+    int end = endNum.intValue();
+    long size = Math.abs((long) end - start) + 1L;
+    if (size > maxRangeSize) {
+      throw new TemplateLimitException(
+          "Range size exceeds maximum limit (" + size + " > " + maxRangeSize + ")",
+          templateId,
+          span,
+          InterpreterDiagnosticCodes.LIMIT_EXCEEDED);
+    }
+    return new IntRangeIterator(start, end);
+  }
+
+  private static void verifyLoopSourcePermitted(
+      Object collection,
+      LinkerAccessPolicy securityPolicy,
+      String templateIdStr,
+      int startLine,
+      int startCol,
+      int endLine,
+      int endCol) {
+    if (securityPolicy != null
+        && securityPolicy.isSafeProfile()
+        && !securityPolicy.isClassPermitted(collection.getClass())) {
+      TemplateId templateId =
+          templateIdStr != null ? TemplateId.of(templateIdStr) : TemplateId.of("<generated>");
+      SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
+      throw new TemplateSecurityException(
+          "Access to class "
+              + collection.getClass().getName()
+              + " in loop is denied by security policy",
+          templateId,
+          span,
+          InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+    }
+  }
+
+  private static final class ArrayIterator implements Iterator<Object> {
+    private final Object array;
+    private final int length;
+    private int index;
+
+    private ArrayIterator(Object array) {
+      this.array = array;
+      this.length = Array.getLength(array);
+    }
+
+    @Override
+    public boolean hasNext() {
+      return index < length;
+    }
+
+    @Override
+    public Object next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      return Array.get(array, index++);
+    }
+  }
+
+  private static final class IntRangeIterator implements Iterator<Integer> {
+    private final int end;
+    private final int step;
+    private int current;
+    private boolean available = true;
+
+    private IntRangeIterator(int start, int end) {
+      this.current = start;
+      this.end = end;
+      this.step = start <= end ? 1 : -1;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return available;
+    }
+
+    @Override
+    public Integer next() {
+      if (!available) {
+        throw new NoSuchElementException();
+      }
+      int value = current;
+      if (current == end) {
+        available = false;
+      } else {
+        current += step;
+      }
+      return value;
+    }
   }
 
   /** Creates initial loop state counter. */

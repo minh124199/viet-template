@@ -33,6 +33,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.lowering.AstToIrLowerer
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind;
+import io.github.minh124199.viettemplate.language.vtl.ir.plan.LoopPlan;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullAccessMode;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBreak;
@@ -62,8 +63,8 @@ import io.github.minh124199.viettemplate.runtime.EscapeMode;
 import io.github.minh124199.viettemplate.runtime.SafeHtml;
 import io.github.minh124199.viettemplate.runtime.SafeUrl;
 import io.github.minh124199.viettemplate.runtime.StandardEscapers;
+import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -476,17 +477,13 @@ public final class IrInterpreter {
   }
 
   private static void executeLoop(IrLoop loop, InterpretedFrame frame) throws IOException {
-    Object iterObj = evaluateExpression(loop.iterable(), frame);
-    Iterable<?> iterable = toIterable(iterObj, frame, loop.span());
-
-    if (iterable == null) {
+    Iterator<?> iterator = iteratorForLoop(loop, frame);
+    if (iterator == null) {
       if (loop.elseBody().isPresent()) {
         executeBlock(loop.elseBody().get(), frame);
       }
       return;
     }
-
-    Iterator<?> iterator = iterable.iterator();
     if (!iterator.hasNext()) {
       if (loop.elseBody().isPresent()) {
         executeBlock(loop.elseBody().get(), frame);
@@ -565,6 +562,27 @@ public final class IrInterpreter {
       }
       frame.context.popScope();
     }
+  }
+
+  private static Iterator<?> iteratorForLoop(IrLoop loop, InterpretedFrame frame) {
+    SourceSpan span = loop.span();
+    if (loop.plan() == LoopPlan.RANGE && loop.iterable() instanceof IrBinaryOp range) {
+      Object left = unwrap(evaluateExpression(range.left(), frame));
+      Object right = unwrap(evaluateExpression(range.right(), frame));
+      return BytecodeRuntimeBridge.rangeIterator(
+          left,
+          right,
+          frame.options.limits().maxRangeSize(),
+          frame.templateId.value(),
+          span.startLine(),
+          span.startColumn(),
+          span.endLine(),
+          span.endColumn());
+    }
+
+    Object value = evaluateExpression(loop.iterable(), frame);
+    Iterable<?> iterable = toIterable(value, frame, span);
+    return iterable != null ? iterable.iterator() : null;
   }
 
   private static void executeCallMacro(IrCallMacro callM, InterpretedFrame frame)
@@ -1018,7 +1036,7 @@ public final class IrInterpreter {
     }
     int start = startNum.intValue();
     int end = endNum.intValue();
-    int size = Math.abs(end - start) + 1;
+    long size = Math.abs((long) end - start) + 1L;
     if (size > frame.options.limits().maxRangeSize()) {
       throw new TemplateLimitException(
           "Range size exceeds maximum limit ("
@@ -1030,14 +1048,20 @@ public final class IrInterpreter {
           span,
           InterpreterDiagnosticCodes.LIMIT_EXCEEDED);
     }
-    List<Integer> list = new ArrayList<>(size);
+    List<Integer> list = new ArrayList<>((int) size);
     if (start <= end) {
-      for (int i = start; i <= end; i++) {
+      for (int i = start; ; i++) {
         list.add(i);
+        if (i == end) {
+          break;
+        }
       }
     } else {
-      for (int i = start; i >= end; i--) {
+      for (int i = start; ; i--) {
         list.add(i);
+        if (i == end) {
+          break;
+        }
       }
     }
     return list;
@@ -1122,20 +1146,22 @@ public final class IrInterpreter {
       return map.values();
     }
     if (val.getClass().isArray()) {
-      int len = Array.getLength(val);
-      List<Object> list = new ArrayList<>(len);
-      for (int i = 0; i < len; i++) {
-        list.add(Array.get(val, i));
-      }
-      return list;
+      return singleIteratorIterable(
+          BytecodeRuntimeBridge.arrayIterator(val, null, null, 1, 1, 1, 1));
     }
     if (val instanceof Iterator<?> it) {
-      List<Object> list = new ArrayList<>();
-      while (it.hasNext()) {
-        list.add(it.next());
-      }
-      return list;
+      return singleIteratorIterable(it);
     }
     return null;
+  }
+
+  private static Iterable<?> singleIteratorIterable(Iterator<?> iterator) {
+    return new Iterable<Object>() {
+      @Override
+      @SuppressWarnings("unchecked")
+      public Iterator<Object> iterator() {
+        return (Iterator<Object>) iterator;
+      }
+    };
   }
 }
