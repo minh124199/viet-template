@@ -538,11 +538,14 @@ public final class IrInterpreter {
           frame.variables.reset(slot);
         }
 
-        frame.setLocal(loop.elementLocal().slot(), loopVar, item);
+        EvaluationValue itemValue = EvaluationValue.of(item);
+        frame.setLocalValue(loop.elementLocal().slot(), loopVar, itemValue);
+        EvaluationValue metadataValue = EvaluationValue.of(meta);
         if (loop.loopStateLocal().isPresent()) {
-          frame.setLocal(loop.loopStateLocal().get().slot(), "foreach", meta);
+          frame.setLocalValue(loop.loopStateLocal().get().slot(), "foreach", metadataValue);
+        } else {
+          frame.context.setLocalScope("foreach", metadataValue);
         }
-        frame.context.updateLoopVariable(loopVar, EvaluationValue.of(item), meta);
 
         try {
           executeBlock(loop.body(), frame);
@@ -615,8 +618,9 @@ public final class IrInterpreter {
 
     IrSlotLayout.SlotLayout fnLayout = preparedFunction.layout();
     ExecutionFrame macroVariables = new ExecutionFrame(fnLayout.frameSize());
-    Map<String, EvaluationValue> bindings = new HashMap<>();
     List<IrParameter> params = function.parameters();
+    Map<String, EvaluationValue> bindings =
+        HashMap.newHashMap(params.size() + (callM.bodyContent().isPresent() ? 1 : 0));
 
     for (int i = 0; i < params.size(); i++) {
       IrParameter p = params.get(i);
@@ -644,7 +648,7 @@ public final class IrInterpreter {
       }
     }
 
-    frame.context.pushScope(bindings, false);
+    frame.context.pushOwnedScope(bindings, false);
     try {
       InterpretedFrame macroFrame =
           frame.withMacroDepth(frame.macroDepth + 1, macroVariables, fnLayout);

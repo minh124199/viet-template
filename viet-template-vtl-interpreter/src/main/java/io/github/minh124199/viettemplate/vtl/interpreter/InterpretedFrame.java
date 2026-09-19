@@ -156,7 +156,10 @@ final class InterpretedFrame {
   }
 
   void setLocal(int slot, String name, Object value) {
-    EvaluationValue evaluationValue = EvaluationValue.of(value);
+    setLocalValue(slot, name, EvaluationValue.of(value));
+  }
+
+  void setLocalValue(int slot, String name, EvaluationValue evaluationValue) {
     variables.set(slot, evaluationValue);
     if (name != null) {
       if (layout != null) {

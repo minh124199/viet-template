@@ -672,7 +672,8 @@ public final class VtlInterpreter {
       argValues.add(evaluateExpression(argExpr, state));
     }
 
-    Map<String, EvaluationValue> bindings = new HashMap<>();
+    Map<String, EvaluationValue> bindings =
+        HashMap.newHashMap(macro.parameters().size() + (bodyContent != null ? 1 : 0));
     List<VtlMacroParameter> params = macro.parameters();
 
     for (int i = 0; i < params.size(); i++) {
@@ -693,7 +694,7 @@ public final class VtlInterpreter {
       bindings.put("bodyContent", EvaluationValue.of(bodyContent));
     }
 
-    state.context.pushScope(bindings, false);
+    state.context.pushOwnedScope(bindings, false);
     try {
       ExecutionState subState = state.withMacroDepth(state.macroDepth + 1);
       if (macro.sourceText() != null) {

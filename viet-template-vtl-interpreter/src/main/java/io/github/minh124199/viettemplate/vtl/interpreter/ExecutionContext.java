@@ -31,8 +31,9 @@ public final class ExecutionContext {
     }
 
     // 2. Search template-local variables (set during render)
-    if (templateVariables.containsKey(name)) {
-      return templateVariables.get(name);
+    EvaluationValue templateValue = templateVariables.get(name);
+    if (templateValue != null) {
+      return templateValue;
     }
 
     // 3. Search caller root RenderContext
@@ -65,14 +66,16 @@ public final class ExecutionContext {
   }
 
   public void pushScope(Map<String, EvaluationValue> bindings, boolean isolateSet) {
-    scopeStack.push(new LocalScope(bindings, isolateSet));
+    scopeStack.push(LocalScope.copyOf(bindings, isolateSet));
+  }
+
+  /** Pushes a scope whose binding map was created exclusively for this execution context. */
+  void pushOwnedScope(Map<String, EvaluationValue> bindings, boolean isolateSet) {
+    scopeStack.push(LocalScope.owned(bindings, isolateSet));
   }
 
   public void pushForeachScope(String loopVar, EvaluationValue loopVal, ForeachMetadata metadata) {
-    Map<String, EvaluationValue> bindings = new HashMap<>();
-    bindings.put(loopVar, loopVal);
-    bindings.put("foreach", EvaluationValue.of(metadata));
-    scopeStack.push(new LocalScope(bindings, false));
+    scopeStack.push(LocalScope.foreach(loopVar, loopVal, metadata));
   }
 
   public void updateLoopVariable(
@@ -111,14 +114,32 @@ public final class ExecutionContext {
   }
 
   private static final class LocalScope {
-    private final Map<String, EvaluationValue> variables = new HashMap<>();
+    private final Map<String, EvaluationValue> variables;
     private final boolean isolateSet;
 
-    LocalScope(Map<String, EvaluationValue> initial, boolean isolateSet) {
+    private LocalScope(Map<String, EvaluationValue> variables, boolean isolateSet) {
+      this.variables = variables;
+      this.isolateSet = isolateSet;
+    }
+
+    static LocalScope copyOf(Map<String, EvaluationValue> initial, boolean isolateSet) {
+      Map<String, EvaluationValue> variables =
+          initial == null ? new HashMap<>() : HashMap.newHashMap(initial.size());
       if (initial != null) {
         variables.putAll(initial);
       }
-      this.isolateSet = isolateSet;
+      return new LocalScope(variables, isolateSet);
+    }
+
+    static LocalScope owned(Map<String, EvaluationValue> variables, boolean isolateSet) {
+      return new LocalScope(Objects.requireNonNull(variables), isolateSet);
+    }
+
+    static LocalScope foreach(String loopVar, EvaluationValue loopVal, ForeachMetadata metadata) {
+      Map<String, EvaluationValue> variables = HashMap.newHashMap(2);
+      variables.put(Objects.requireNonNull(loopVar), Objects.requireNonNull(loopVal));
+      variables.put("foreach", EvaluationValue.of(metadata));
+      return new LocalScope(variables, false);
     }
 
     boolean contains(String name) {
