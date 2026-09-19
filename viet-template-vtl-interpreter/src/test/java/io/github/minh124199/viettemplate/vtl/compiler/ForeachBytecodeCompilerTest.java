@@ -18,6 +18,22 @@ import org.junit.jupiter.api.Test;
 class ForeachBytecodeCompilerTest {
 
   @Test
+  @DisplayName("Metadata-free foreach renders identically in IR and AOT")
+  void metadataFreeForeachAotAndIrParity() throws IOException {
+    assertIrAndAotRender("#foreach($item in [1..3])[$item]#end", "[1][2][3]");
+  }
+
+  @Test
+  @DisplayName("Captured foreach metadata remains an immutable iteration snapshot")
+  void capturedForeachMetadataRemainsSnapshot() throws IOException {
+    assertIrAndAotRender(
+        "#set($saved = '')#foreach($item in [1..3])"
+            + "#if($foreach.first)#set($saved = $foreach)#end#end"
+            + "[$saved.index:$saved.count:$saved.first:$saved.last]",
+        "[0:1:true:false]");
+  }
+
+  @Test
   @DisplayName("Verifies nested foreach parent metadata parity between IR and AOT backends")
   void testNestedForeachParentMetadataAotAndIrParity() throws IOException {
     String templateSource =
@@ -48,6 +64,25 @@ class ForeachBytecodeCompilerTest {
       assertThat(irOut.toString()).isEqualTo(expected);
       assertThat(aotOut.toString()).isEqualTo(expected);
       assertThat(aotOut.toString()).isEqualTo(irOut.toString());
+    }
+  }
+
+  private static void assertIrAndAotRender(String source, String expected) throws IOException {
+    InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
+    repo.put("foreach-observability.vm", source);
+    try (VtlTemplateEngine irEngine =
+            VtlTemplateEngine.builder().repository(repo).executionTier(ExecutionTier.IR).build();
+        VtlTemplateEngine aotEngine =
+            VtlTemplateEngine.builder()
+                .repository(repo)
+                .executionTier(ExecutionTier.AOT_BYTECODE)
+                .build()) {
+      StringTemplateOutput irOutput = new StringTemplateOutput();
+      irEngine.get("foreach-observability.vm").render(RenderContext.empty(), irOutput);
+      StringTemplateOutput aotOutput = new StringTemplateOutput();
+      aotEngine.get("foreach-observability.vm").render(RenderContext.empty(), aotOutput);
+      assertThat(irOutput.toString()).isEqualTo(expected);
+      assertThat(aotOutput.toString()).isEqualTo(expected);
     }
   }
 

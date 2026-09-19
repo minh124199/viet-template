@@ -229,15 +229,12 @@ class IrSlotLayoutTest {
                 .orElseThrow();
 
     int outerItemSlot = outerLoop.elementLocal().slot();
-    int outerStateSlot = outerLoop.loopStateLocal().orElseThrow().slot();
     int innerItemSlot = innerLoop.elementLocal().slot();
-    int innerStateSlot = innerLoop.loopStateLocal().orElseThrow().slot();
 
-    // Assert that nested loop element and state slots are strictly independent
+    // Metadata-free loops retain independent item and loop-local identities without state slots.
     assertThat(outerItemSlot).isNotEqualTo(innerItemSlot);
-    assertThat(outerStateSlot).isNotEqualTo(innerStateSlot);
-    assertThat(outerItemSlot).isNotEqualTo(outerStateSlot);
-    assertThat(innerItemSlot).isNotEqualTo(innerStateSlot);
+    assertThat(outerLoop.loopStateLocal()).isEmpty();
+    assertThat(innerLoop.loopStateLocal()).isEmpty();
 
     // Check loop-owned locals
     List<Integer> outerOwned = layout.loopLocals().get(outerLoop);
@@ -246,24 +243,18 @@ class IrSlotLayoutTest {
     assertThat(outerOwned).isNotNull();
     assertThat(innerOwned).isNotNull();
 
-    // All slots must be distinct and appropriately categorized
-    Set<Integer> allLoopSlots =
-        Set.of(outerItemSlot, outerStateSlot, innerItemSlot, innerStateSlot);
-    assertThat(allLoopSlots).hasSize(4);
+    // Only the item slots remain loop-owned when metadata is unobservable.
+    Set<Integer> allLoopSlots = Set.of(outerItemSlot, innerItemSlot);
+    assertThat(allLoopSlots).hasSize(2);
+    assertThat(layout.slots().values())
+        .noneMatch(metadata -> metadata.kind() == BindingKind.FOREACH_METADATA);
 
     SlotMetadata outerItemMeta = layout.slots().get(outerItemSlot);
     assertThat(outerItemMeta.kind()).isEqualTo(BindingKind.FOREACH_ITEM);
     assertThat(outerItemMeta.policy()).isEqualTo(InitializationPolicy.ITERATION_MANAGED);
 
-    SlotMetadata outerStateMeta = layout.slots().get(outerStateSlot);
-    assertThat(outerStateMeta.kind()).isEqualTo(BindingKind.FOREACH_METADATA);
-    assertThat(outerStateMeta.policy()).isEqualTo(InitializationPolicy.ITERATION_MANAGED);
-
     SlotMetadata innerItemMeta = layout.slots().get(innerItemSlot);
     assertThat(innerItemMeta.kind()).isEqualTo(BindingKind.FOREACH_ITEM);
-
-    SlotMetadata innerStateMeta = layout.slots().get(innerStateSlot);
-    assertThat(innerStateMeta.kind()).isEqualTo(BindingKind.FOREACH_METADATA);
   }
 
   @Test
@@ -456,8 +447,8 @@ class IrSlotLayoutTest {
         """;
     IrTemplate tableIr = parseAndLower(tableVm, ModelSchema.empty());
     SlotLayout tableLayout = IrSlotLayout.layout(tableIr);
-    assertThat(tableLayout.frameSize()).isEqualTo(2); // $row (slot 0) and $foreach (slot 1)
-    assertThat(tableLayout.slots()).hasSize(2);
+    assertThat(tableLayout.frameSize()).isEqualTo(1); // only $row; $foreach is unobservable
+    assertThat(tableLayout.slots()).hasSize(1);
 
     // 3. Workload B07 (Nested loop nested.vm with $foreach metadata)
     String nestedVm =
