@@ -839,7 +839,7 @@ Do not advertise ratios before measurement. Internal engineering targets:
 
 ---
 
-## M18 — TCK & Performance Release Gates (IMPLEMENTED; FINAL QUALIFICATION IN PROGRESS)
+## M18 — TCK & Performance Release Gates (COMPLETE & FROZEN)
 
 See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-release-gates.md) for the full milestone document.
 
@@ -848,7 +848,7 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **A1.** `config/tck/vtl-feature-matrix.json` — 80 features across 20 categories, durable IDs
 - [x] **A2.** `scripts/verify-tck-coverage.py` + `scripts/verify-tck-coverage.sh` — 100% coverage gate (80/80)
 - [x] **A3.** `TckSuiteRegistry.java` — 80 executable public-API conformance scenarios
-- [x] **A4.** `TckConformanceTest.java` — 688 tests across IR and AOT_BYTECODE, 0 failures
+- [x] **A4.** `TckConformanceTest.java` — derived scenario/profile/backend expansion across IR and AOT_BYTECODE, 0 failures
 - [x] **A5.** `FeatureMatrixValidationTest.java` — schema and coverage assertions
 - [x] **A6.** `TckRunner.java` — CLI entrypoint (`--backend`, `--profile`, `--json-output`)
 - [x] **A7.** `BackendParityTest.java` — 75 dual-backend bit-identical parity, 5 IR-only documented
@@ -863,13 +863,13 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **B3.** `ComparativeWorkloads.java` — shared data models for fixture parity
 - [x] **B4.** `CrossEngineFixtureCorrectnessTest.java` — 48 tests, 0 failures
 - [x] **B5.** `config/benchmark-manifest.json` — machine-readable registry (C01–C08 + B01–B15)
-- [x] **B6.** `benchmark-evidence/m18/` — raw evidence directory with README and .gitkeep
+- [x] **B6.** `benchmark-evidence/m18/` — durable raw J21/J25 JMH, environment, manifest, report, and checksums
 - [x] **B7.** `scripts/perf/generate-benchmark-report.py` — JMH JSON → Markdown report generator
-- [x] **B8.** `.gitignore` updated — `benchmark-evidence/m18/*.json` excluded from VCS
-- [x] **B9.** `scripts/verify-m18-release-gates.sh` — master release gate (8 checks, exits 0)
+- [x] **B8.** `.gitignore` updated — exploratory evidence ignored while formal qualification JSON is tracked
+- [x] **B9.** `scripts/verify-m18-release-gates.sh` — clean-room master release gate with mandatory evidence mode
 
 ### Documentation & CI
 
 - [x] `docs/40-m18-tck-performance-release-gates.md` — formal M18 milestone document
-- [x] `docs/18-roadmap.md` — M18 status updated to COMPLETE
+- [x] `docs/18-roadmap.md` — M18 status updated to COMPLETE & FROZEN after qualification
 - [x] `.github/workflows/ci.yml` — `tck-gates` job added (Tier A)

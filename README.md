@@ -598,11 +598,11 @@ java -jar viet-template-benchmarks/target/benchmarks.jar -f 1 -wi 1 -i 1 Variabl
 
 ### TCK & Performance Release Gates (Milestone M18)
 
-Milestone M18 is in final qualification. Its conformance and comparative harnesses are independently
-executable; clean-room release enforcement and durable SHA-bound comparative evidence must pass before
-the milestone is marked complete and frozen.
+Milestone M18 is complete and frozen. Its conformance and comparative harnesses are independently
+executable, the master gate runs with isolated Maven/Gradle state, and releases mechanically require
+durable SHA-bound comparative evidence before packaging and publication.
 
-**Language Conformance TCK** — 80 features, 688 tests, IR/AOT parity verified:
+**Language Conformance TCK** — 80 currently claimed features with complete executable coverage and IR/AOT parity where required:
 ```bash
 python3 scripts/verify-tck-coverage.py   # 100% coverage gate
 ./mvnw test -pl viet-template-tck -am    # conformance suite and required reactor modules
@@ -616,7 +616,7 @@ java -jar viet-template-benchmarks/target/benchmarks.jar ComparativeEngineBenchm
 python3 scripts/perf/generate-benchmark-report.py
 ```
 
-**Master release gate** (all 8 checks):
+**Master release gate** (including formal evidence validation):
 ```bash
 ./scripts/verify-m18-release-gates.sh
 ```
