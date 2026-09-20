@@ -2,7 +2,11 @@
 
 ## Status
 
-**COMPLETE.** Branch: `feature/m18-tck-performance-release-gates`.
+**IN QUALIFICATION.** Branch: `feature/m18-tck-performance-release-gates`.
+
+The feature matrix, TCK, backend parity, comparative harness, and gate framework are implemented.
+M18 is not complete or frozen until clean-room execution, mandatory release-workflow enforcement,
+and durable SHA-bound J21/J25 comparative evidence have all been validated.
 Baseline SHA: `af8142c8e5b8155a79a7379a39a0dc009336815e`.
 
 ## Objective

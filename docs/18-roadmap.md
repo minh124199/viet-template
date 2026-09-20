@@ -233,7 +233,7 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
     - Enforced architectural invariants: single-version bytecode without MRJARs (ADR-0011), ClassFile API evaluation retaining zero-dependency `ClassFileWriter` (ADR-0012), virtual thread non-pinning and thread-confinement invariants (ADR-0013), zero preview features in published APIs (ADR-0014), and legacy Spring 6 / Boot 3 compatibility policy (ADR-0015).
     - Verified Spring 7 and Spring Security 7 virtual thread execution on Tomcat 11 with `Thread.currentThread().isVirtual()` assertions across Maven and Gradle AOT consumer fixtures.
     - Modernized CI workflows (`ci.yml`, `native-image.yml`, `performance.yml`, `fuzz.yml`, `release.yml`, `devtools-restart.yml`) across Tier A-E suites.
-- **Milestone M18 (TCK & Performance Release Gates) — COMPLETE** ([`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-release-gates.md)):
+- **Milestone M18 (TCK & Performance Release Gates) — IMPLEMENTED; FINAL QUALIFICATION IN PROGRESS** ([`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-release-gates.md)):
     - Language feature claim matrix: 80 features across 20 categories (`config/tck/vtl-feature-matrix.json`), 100% TCK coverage enforced by `python3 scripts/verify-tck-coverage.py`.
     - 80 public-API conformance scenarios in `viet-template-tck`, 688 tests passing across IR and AOT_BYTECODE. Architecture boundary enforced: zero internal imports.
     - Backend parity verified: 75 dual-backend features produce bit-identical output; 5 IR-only features documented with rationale (`BackendParityTest.java`).

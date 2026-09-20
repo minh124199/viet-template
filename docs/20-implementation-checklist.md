@@ -839,7 +839,7 @@ Do not advertise ratios before measurement. Internal engineering targets:
 
 ---
 
-## M18 — TCK & Performance Release Gates (COMPLETE)
+## M18 — TCK & Performance Release Gates (IMPLEMENTED; FINAL QUALIFICATION IN PROGRESS)
 
 See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-release-gates.md) for the full milestone document.
 

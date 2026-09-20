@@ -598,12 +598,14 @@ java -jar viet-template-benchmarks/target/benchmarks.jar -f 1 -wi 1 -i 1 Variabl
 
 ### TCK & Performance Release Gates (Milestone M18)
 
-Milestone M18 makes all language-compatibility and performance claims independently executable and machine-verifiable.
+Milestone M18 is in final qualification. Its conformance and comparative harnesses are independently
+executable; clean-room release enforcement and durable SHA-bound comparative evidence must pass before
+the milestone is marked complete and frozen.
 
 **Language Conformance TCK** — 80 features, 688 tests, IR/AOT parity verified:
 ```bash
 python3 scripts/verify-tck-coverage.py   # 100% coverage gate
-./mvnw test -pl viet-template-tck        # 688 conformance tests
+./mvnw test -pl viet-template-tck -am    # conformance suite and required reactor modules
 ```
 
 **Comparative benchmarks** against Apache Velocity 2.4.1, Quarkus Qute 3.39.4, jte 3.2.4, and Thymeleaf 3.1.5.RELEASE across 8 workloads (C01–C08):
