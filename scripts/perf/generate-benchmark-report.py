@@ -35,9 +35,10 @@ def parse_jmh_json(path: Path) -> list[dict]:
     return payload
 
 
-def score_from_result(result: dict) -> float:
-    """Extract the primary score from a JMH result dict."""
-    return result.get("primaryMetric", {}).get("score", 0.0)
+def metric_from_result(result: dict, name: str = "primaryMetric") -> tuple[float, float, str]:
+    """Extract score, error, and units from a JMH metric."""
+    metric = result.get(name, {})
+    return metric.get("score", 0.0), metric.get("scoreError", 0.0), metric.get("scoreUnit", "")
 
 
 def engine_from_params(params: dict) -> str:
@@ -67,6 +68,18 @@ def format_throughput(ops_per_sec: float) -> str:
     return f"{ops_per_sec:.1f}"
 
 
+def format_error(error: float) -> str:
+    return format_throughput(error) if math.isfinite(error) else "n/a"
+
+
+def allocation_metric(result: dict) -> tuple[float, float, str]:
+    secondary = result.get("secondaryMetrics", {})
+    for name, metric in secondary.items():
+        if name.endswith("gc.alloc.rate.norm"):
+            return metric.get("score", 0.0), metric.get("scoreError", 0.0), metric.get("scoreUnit", "B/op")
+    return 0.0, 0.0, "B/op"
+
+
 def generate_report(input_dir: Path, output_path: Path, generated_at: str | None = None) -> bool:
     json_files = sorted(
         path for path in input_dir.glob("*.json")
@@ -92,7 +105,11 @@ def generate_report(input_dir: Path, output_path: Path, generated_at: str | None
     all_results: list[dict] = []
     for jf in json_files:
         try:
-            all_results.extend(parse_jmh_json(jf))
+            profile = jf.stem.removeprefix("comparative-")
+            for result in parse_jmh_json(jf):
+                result = dict(result)
+                result["_evidenceProfile"] = profile
+                all_results.append(result)
         except Exception as e:
             print(f"Warning: could not parse {jf}: {e}", file=sys.stderr)
 
@@ -117,33 +134,39 @@ def generate_report(input_dir: Path, output_path: Path, generated_at: str | None
     if comparative:
         lines.append("## Comparative Engine Benchmarks (C01–C08)")
         lines.append("")
-        lines.append("| Workload | Viet-IR | Viet-AOT | Velocity 2.4.1 | Qute 3.39.4 | jte 3.2.4 | Thymeleaf 3.1.5 |")
-        lines.append("|---|---|---|---|---|---|---|")
+        lines.append("Each cell reports `score ± JMH error; allocation` using the matched qualification run.")
+        lines.append("")
 
-        # Group by workload
-        by_workload: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+        # Group by profile, workload, and engine. Each JMH result already aggregates all forks.
+        by_profile: dict[str, dict[str, dict[str, dict]]] = defaultdict(lambda: defaultdict(dict))
         for r in comparative:
             workload = workload_from_benchmark(r.get("benchmark", "unknown"))
             params = r.get("params", {})
             engine = engine_from_params(params)
-            score = score_from_result(r)
-            if score > 0:
-                by_workload[workload][engine].append(score)
+            by_profile[r.get("_evidenceProfile", "unknown")][workload][engine] = r
 
         engine_order = ["Viet-IR", "Viet-AOT", "Velocity", "Qute", "jte", "Thymeleaf"]
-        for workload in sorted(by_workload.keys()):
-            row = [workload]
-            for engine in engine_order:
-                scores = by_workload[workload].get(engine, [])
-                if scores:
-                    gm = geometric_mean(scores)
-                    row.append(format_throughput(gm))
-                else:
-                    row.append("—")
-            lines.append("| " + " | ".join(row) + " |")
+        for profile in sorted(by_profile):
+            lines.append(f"### {profile}")
+            lines.append("")
+            lines.append("| Workload | Viet-IR | Viet-AOT | Velocity 2.4.1 | Qute 3.39.4 | jte 3.2.4 | Thymeleaf 3.1.5 |")
+            lines.append("|---|---|---|---|---|---|---|")
+            for workload in sorted(by_profile[profile]):
+                row = [workload]
+                for engine in engine_order:
+                    result = by_profile[profile][workload].get(engine)
+                    if result:
+                        score, error, unit = metric_from_result(result)
+                        allocation, _, allocation_unit = allocation_metric(result)
+                        row.append(
+                            f"{format_throughput(score)} ± {format_error(error)} {unit}; "
+                            f"{allocation:.1f} {allocation_unit}"
+                        )
+                    else:
+                        row.append("—")
+                lines.append("| " + " | ".join(row) + " |")
+            lines.append("")
 
-        lines.append("")
-        lines.append("> **Units:** ops/sec (throughput mode). Values are geometric means across measurement iterations.")
         lines.append("> **Track A (Dynamic/Interpreted):** Viet-IR, Velocity, Thymeleaf.")
         lines.append("> **Track B (Compiled/Bytecode):** Viet-AOT, Qute, jte.")
         lines.append("")
@@ -161,7 +184,7 @@ def generate_report(input_dir: Path, output_path: Path, generated_at: str | None
             bname = r.get("benchmark", "unknown")
             short = workload_from_benchmark(bname)
             suite = bname.split(".")[-2] if "." in bname else "unknown"
-            score = score_from_result(r)
+            score, _, _ = metric_from_result(r)
             if score > 0:
                 by_bench[short].append(score)
                 bench_suite[short] = suite
@@ -176,7 +199,6 @@ def generate_report(input_dir: Path, output_path: Path, generated_at: str | None
     lines.append("---")
     lines.append("_Report generated by `scripts/perf/generate-benchmark-report.py`._")
     lines.append(f"_Baseline SHA: `af8142c8e5b8155a79a7379a39a0dc009336815e`._")
-    lines.append("")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
