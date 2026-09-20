@@ -79,5 +79,6 @@ pom.xml.next
 dependency-reduced-pom.xml
 .flattened-pom.xml
 
-# M18 benchmark raw evidence (large JMH JSON files — run locally, not committed)
-benchmark-evidence/m18/*.json
+# Exploratory M18 runs are disposable. RELEASE_QUALIFICATION packages are committed or attached to
+# a permanent GitHub Release together with their manifest and checksums.
+benchmark-evidence/m18/exploratory-*.json

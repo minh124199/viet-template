@@ -12,10 +12,9 @@ Usage:
 import argparse
 import json
 import math
-import os
 import sys
+import tempfile
 from collections import defaultdict
-from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -30,7 +29,10 @@ def geometric_mean(values: list[float]) -> float:
 def parse_jmh_json(path: Path) -> list[dict]:
     """Parse a JMH JSON results file and return list of benchmark result dicts."""
     with open(path) as f:
-        return json.load(f)
+        payload = json.load(f)
+    if not isinstance(payload, list):
+        raise ValueError("JMH JSON root must be an array")
+    return payload
 
 
 def score_from_result(result: dict) -> float:
@@ -65,8 +67,11 @@ def format_throughput(ops_per_sec: float) -> str:
     return f"{ops_per_sec:.1f}"
 
 
-def generate_report(input_dir: Path, output_path: Path) -> None:
-    json_files = sorted(input_dir.glob("*.json"))
+def generate_report(input_dir: Path, output_path: Path, generated_at: str | None = None) -> bool:
+    json_files = sorted(
+        path for path in input_dir.glob("*.json")
+        if path.name != "manifest.json" and not path.name.startswith("environment-")
+    )
 
     if not json_files:
         print(
@@ -81,7 +86,7 @@ def generate_report(input_dir: Path, output_path: Path) -> None:
                 "> **No evidence files found.** Run benchmarks first;\n"
                 "> see `docs/40-m18-tck-performance-release-gates.md` for instructions.\n"
             )
-        return
+        return False
 
     # Collect all benchmark results
     all_results: list[dict] = []
@@ -93,17 +98,17 @@ def generate_report(input_dir: Path, output_path: Path) -> None:
 
     if not all_results:
         print("Warning: JSON files found but no results parsed.", file=sys.stderr)
-        return
+        return False
 
     # Separate comparative vs internal
     comparative = [r for r in all_results if classify_benchmark(r.get("benchmark", "")) == "COMPARATIVE"]
     internal = [r for r in all_results if classify_benchmark(r.get("benchmark", "")) == "INTERNAL"]
 
     lines: list[str] = []
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     lines.append("# M18 Benchmark Report")
     lines.append("")
-    lines.append(f"**Generated:** {ts}")
+    if generated_at:
+        lines.append(f"**Evidence generated:** {generated_at}")
     lines.append(f"**Evidence files:** {len(json_files)}")
     lines.append(f"**Total results:** {len(all_results)}")
     lines.append("")
@@ -178,6 +183,7 @@ def generate_report(input_dir: Path, output_path: Path) -> None:
         f.write("\n".join(lines) + "\n")
 
     print(f"Report written to {output_path}")
+    return True
 
 
 def main() -> None:
@@ -194,8 +200,27 @@ def main() -> None:
         default=Path("benchmark-evidence/m18/report.md"),
         help="Output Markdown file path (default: benchmark-evidence/m18/report.md)",
     )
+    parser.add_argument("--generated-at", help="Stable evidence timestamp to include in the report")
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Fail unless evidence exists and regenerating the report produces identical bytes",
+    )
     args = parser.parse_args()
-    generate_report(args.input_dir, args.output)
+    if args.verify:
+        if not args.output.is_file():
+            print(f"Report does not exist: {args.output}", file=sys.stderr)
+            raise SystemExit(1)
+        with tempfile.TemporaryDirectory() as directory:
+            regenerated = Path(directory) / "report.md"
+            if not generate_report(args.input_dir, regenerated, args.generated_at):
+                raise SystemExit(1)
+            if regenerated.read_bytes() != args.output.read_bytes():
+                print("Report is stale or non-deterministic; regenerate it from the raw evidence.", file=sys.stderr)
+                raise SystemExit(1)
+        print("Report reproducibility verified.")
+    elif not generate_report(args.input_dir, args.output, args.generated_at):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

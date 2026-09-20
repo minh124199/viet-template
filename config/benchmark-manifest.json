@@ -9,42 +9,48 @@
       "name": "Viet Template (IR)",
       "track": "TRACK_A_DYNAMIC",
       "version": "0.2.2-SNAPSHOT",
-      "mode": "Reference AST / IR Interpreter"
+      "mode": "Reference AST / IR Interpreter",
+      "coordinates": "io.github.minh124199:viet-template-vtl-interpreter:0.2.2-SNAPSHOT"
     },
     {
       "id": "viet-aot",
       "name": "Viet Template (AOT)",
       "track": "TRACK_B_COMPILED",
       "version": "0.2.2-SNAPSHOT",
-      "mode": "Ahead-of-Time Bytecode Generator"
+      "mode": "Ahead-of-Time Bytecode Generator",
+      "coordinates": "io.github.minh124199:viet-template-vtl-interpreter:0.2.2-SNAPSHOT"
     },
     {
       "id": "velocity",
       "name": "Apache Velocity",
       "track": "TRACK_A_DYNAMIC",
       "version": "2.4.1",
-      "mode": "Dynamic AST Interpreter"
+      "mode": "Dynamic AST Interpreter",
+      "coordinates": "org.apache.velocity:velocity-engine-core:2.4.1"
     },
     {
       "id": "thymeleaf",
       "name": "Thymeleaf",
       "track": "TRACK_A_DYNAMIC",
       "version": "3.1.5.RELEASE",
-      "mode": "Expression-Driven DOM / Markup Processor"
+      "mode": "Expression-Driven DOM / Markup Processor",
+      "coordinates": "org.thymeleaf:thymeleaf:3.1.5.RELEASE"
     },
     {
       "id": "jte",
       "name": "Java Template Engine (jte)",
       "track": "TRACK_B_COMPILED",
       "version": "3.2.4",
-      "mode": "Precompiled Java Class Generator"
+      "mode": "Precompiled Java Class Generator",
+      "coordinates": "gg.jte:jte:3.2.4"
     },
     {
       "id": "qute",
       "name": "Quarkus Qute",
       "track": "TRACK_B_COMPILED",
       "version": "3.39.4",
-      "mode": "Type-Safe Value Resolver / Compiled Section Helpers"
+      "mode": "Type-Safe Value Resolver / Compiled Section Helpers",
+      "coordinates": "io.quarkus.qute:qute-core:3.39.4"
     }
   ],
   "comparisonTracks": {
@@ -77,19 +83,26 @@
       "description": "All benchmark runs must enforce identical JVM flags (-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC) and consume identical data model instances across all comparative adapters."
     }
   },
-  "jmhProtocols": {
-    "defaultMode": "Throughput",
-    "outputTimeUnit": "SECONDS",
-    "warmup": {
-      "iterations": 3,
-      "timeSeconds": 1
+  "protocols": {
+    "CHARACTERIZATION": {
+      "forks": 1,
+      "warmupIterations": 3,
+      "measurementIterations": 5,
+      "iterationSeconds": 1
     },
-    "measurement": {
-      "iterations": 5,
-      "timeSeconds": 1
-    },
-    "forks": 1,
-    "profilers": ["gc"]
+    "RELEASE_QUALIFICATION": {
+      "forks": 3,
+      "warmupIterations": 5,
+      "measurementIterations": 10,
+      "iterationSeconds": 1
+    }
+  },
+  "executionMode": "Throughput",
+  "units": "ops/s",
+  "allocationEvidencePolicy": "MATCHED_REQUIRED",
+  "comparativeCorrectnessFixture": {
+    "testClass": "CrossEngineFixtureCorrectnessTest",
+    "workloads": ["C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08"]
   },
   "workloads": [
     {

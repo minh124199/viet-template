@@ -1,6 +1,8 @@
 # M18 Benchmark Evidence
 
-This directory stores raw JMH JSON output from qualifying M18 benchmark runs.
+This directory stores the durable example M18 `RELEASE_QUALIFICATION` package. Future release
+candidates must generate or retrieve their own package; this snapshot is not permanent proof for
+later source changes.
 
 ## File Naming Convention
 
@@ -12,19 +14,21 @@ Examples:
 - `comparative-J25-G1-2026-09-20.json` — ComparativeEngineBenchmark on JDK 25 / G1
 - `full-J25-G1-2026-09-20.json` — Full benchmark suite on JDK 25 / G1
 
-## What Goes Here
+## Evidence Contract
 
-- Raw JMH JSON result files (`-rf json -rff <file>`)
-- These files are **NOT committed to git** (`.gitignore` excludes `*.json`)
-- Only `.gitkeep` and `README.md` are version-controlled
+A qualifying package contains `manifest.json`, J21-G1 and J25-G1 environment records, matched JMH
+JSON with GC allocation metrics, generated `report.md`, and `SHA256SUMS`. The manifest records the
+measured commit, tree, comparator coordinates, correctness result, and a digest of qualification
+inputs. Raw JSON is retained either in git when its size is reasonable or as a permanent GitHub
+Release asset. Expiring workflow artifacts are not the durable source of record.
 
 ## Generating a Report
 
-After running benchmarks:
+After running the qualification runner:
 
 ```bash
-python3 scripts/perf/generate-benchmark-report.py
-# Output: benchmark-evidence/m18/report.md
+JAVA21_HOME=/path/to/jdk-21 JAVA25_HOME=/path/to/jdk-25 \
+  ./scripts/perf/run-m18-comparative-qualification.sh
 ```
 
 Or with explicit paths:
@@ -35,20 +39,14 @@ python3 scripts/perf/generate-benchmark-report.py \
   --output benchmark-evidence/m18/report.md
 ```
 
-## Running the Comparative Benchmarks
+The runner refuses a dirty tree, runs the 8 × 6 correctness matrix before JMH, applies the matched
+3-fork/5-warmup/10-measurement protocol on both required JDKs, records allocation metrics with the
+GC profiler, and verifies the completed package.
 
-```bash
-./mvnw package -pl viet-template-benchmarks -DskipTests
-java -jar viet-template-benchmarks/target/benchmarks.jar ComparativeEngineBenchmark \
-  -rf json -rff benchmark-evidence/m18/comparative-J25-G1-$(date +%Y-%m-%d).json
-```
-
-## Running the Full Internal Suite
-
-```bash
-java -jar viet-template-benchmarks/target/benchmarks.jar \
-  -rf json -rff benchmark-evidence/m18/full-J25-G1-$(date +%Y-%m-%d).json
-```
+Release validation normally requires an exact source SHA. The checked-in example may be followed
+only by evidence/report documentation changes; in that case the qualification-input digest (which
+includes production, harness, scripts, build, and workflow inputs while excluding evidence and docs)
+must remain identical. Any executable-input change invalidates the package.
 
 ## Environment Reference
 
