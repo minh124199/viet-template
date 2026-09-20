@@ -6,7 +6,13 @@ group = "io.github.minh124199.test"
 version = "1.0.0"
 
 repositories {
-    mavenLocal()
+    val isolatedRepository = providers.gradleProperty("m18MavenRepository")
+        .orElse(providers.environmentVariable("M18_MAVEN_REPOSITORY"))
+    if (isolatedRepository.isPresent) {
+        maven { url = uri(isolatedRepository.get()) }
+    } else {
+        mavenLocal()
+    }
     mavenCentral()
 }
 

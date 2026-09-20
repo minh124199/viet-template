@@ -6,6 +6,8 @@ import java.util.Locale;
 
 /** Machine-readable execution summary for TCK conformance suite runs. */
 public record TckSummary(
+    String schemaVersion,
+    String engineVersion,
     Instant timestamp,
     String engineName,
     String profile,
@@ -26,6 +28,8 @@ public record TckSummary(
   public String toJson() {
     StringBuilder sb = new StringBuilder(4096);
     sb.append("{\n");
+    sb.append("  \"schemaVersion\": \"").append(escape(schemaVersion)).append("\",\n");
+    sb.append("  \"engineVersion\": \"").append(escape(engineVersion)).append("\",\n");
     sb.append("  \"timestamp\": \"").append(escape(timestamp.toString())).append("\",\n");
     sb.append("  \"engine\": \"").append(escape(engineName)).append("\",\n");
     sb.append("  \"profile\": \"").append(escape(profile)).append("\",\n");

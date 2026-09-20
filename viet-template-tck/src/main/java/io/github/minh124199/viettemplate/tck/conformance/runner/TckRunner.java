@@ -41,6 +41,8 @@ public final class TckRunner {
         backendArg = args[++i];
       } else if ("--profile".equals(args[i]) && i + 1 < args.length) {
         profileArg = args[++i];
+      } else {
+        throw new IllegalArgumentException("Unknown or incomplete argument: " + args[i]);
       }
     }
 
@@ -126,6 +128,8 @@ public final class TckRunner {
     List<String> backendNames = targetBackends.stream().map(Enum::name).toList();
     TckSummary summary =
         new TckSummary(
+            "1.0.0",
+            engineVersion(),
             Instant.now(),
             "Viet Template Engine",
             defaultProfile.name(),
@@ -280,8 +284,13 @@ public final class TckRunner {
     try {
       return VtlProfile.valueOf(profileArg.toUpperCase());
     } catch (IllegalArgumentException e) {
-      return VtlProfile.VTL_CORE;
+      throw new IllegalArgumentException("Unknown TCK profile: " + profileArg, e);
     }
+  }
+
+  private static String engineVersion() {
+    String version = TckRunner.class.getPackage().getImplementationVersion();
+    return version == null || version.isBlank() ? "development" : version;
   }
 
   private static List<ExecutionTier> parseBackends(String backendArg) {
@@ -291,7 +300,7 @@ public final class TckRunner {
     try {
       return List.of(ExecutionTier.valueOf(backendArg.toUpperCase()));
     } catch (IllegalArgumentException e) {
-      return List.of(ExecutionTier.IR, ExecutionTier.AOT_BYTECODE);
+      throw new IllegalArgumentException("Unknown TCK backend: " + backendArg, e);
     }
   }
 }

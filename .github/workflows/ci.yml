@@ -110,14 +110,11 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Verify TCK feature matrix coverage (Gate 1)
-        run: python3 scripts/verify-tck-coverage.py
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
 
-      - name: Run TCK conformance suite (Gate 4)
-        run: ./mvnw test -pl viet-template-tck -B
-
-      - name: Run cross-engine fixture correctness (Gate 5)
-        run: ./mvnw test -pl viet-template-benchmarks -Dtest=CrossEngineFixtureCorrectnessTest -B
+      - name: Run self-contained M18 gates with empty Maven and Gradle state
+        run: ./scripts/verify-m18-release-gates.sh --clean-room
 
   parity-check-tier-a:
     name: Tier A — Build Parity Verification (JDK 25)
