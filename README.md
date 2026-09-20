@@ -29,7 +29,7 @@ Many existing JVM template engines require teams to choose between familiar, fle
 | Item | Value |
 | :--- | :--- |
 | **Current Published Release** | `0.2.2` (2026-09-21) |
-| **Development Branch** | `0.2.2` (release preparation in progress) |
+| **Development Branch** | `0.2.3-SNAPSHOT` on `main` |
 | **Maturity Level** | **Pre-1.0 (`0.2.x`)** |
 | **Maven Group** | `io.github.minh124199` |
 | **Java Baseline** | Java 21 (`--release 21`, major version 65), runtime optimized for Java 25 |
@@ -714,7 +714,7 @@ Please also review our [Code of Conduct](CODE_OF_CONDUCT.md) and [Security Polic
 Viet Template follows an evidence-driven, benchmark-verified phased roadmap:
 
 - **Phase 0.1.x**: Baseline stabilization, adversarial security fuzzing, and Milestone M19.1 JMH benchmark infrastructure.
-- **Phase 0.2.x (Current)**: High-performance runtime architecture with compiler-assigned variable slot execution frames (`EvaluationValue[] slots`) and indexed compilation cache invalidation. Active version is `0.2.2`, finalizing publication of `0.2.2` (M17 GraalVM native image, Spring 7/Boot 4 modernization, DevTools restart hardening, and M18 TCK release gates).
+- **Phase 0.2.x (Current)**: High-performance runtime architecture with compiler-assigned variable slot execution frames (`EvaluationValue[] slots`) and indexed compilation cache invalidation. Active version is `0.2.3-SNAPSHOT` on `main` (0.2.2 published with M17 GraalVM native image, Spring 7/Boot 4 modernization, DevTools restart hardening, and M18 TCK release gates).
 - **Phase 0.3.x+**: Subsequent roadmap milestone introducing evidence-driven optimizations guided by profiling (cache contention reduction, zero-copy token slices).
 - **Phase 1.0**: GraalVM Native Image verification (M17), independently runnable public TCK and reproducible benchmark report (M18), comprehensive migration guide, stable API freeze, and formal publication.
 
