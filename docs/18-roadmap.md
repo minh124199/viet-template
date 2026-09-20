@@ -233,9 +233,14 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
     - Enforced architectural invariants: single-version bytecode without MRJARs (ADR-0011), ClassFile API evaluation retaining zero-dependency `ClassFileWriter` (ADR-0012), virtual thread non-pinning and thread-confinement invariants (ADR-0013), zero preview features in published APIs (ADR-0014), and legacy Spring 6 / Boot 3 compatibility policy (ADR-0015).
     - Verified Spring 7 and Spring Security 7 virtual thread execution on Tomcat 11 with `Thread.currentThread().isVirtual()` assertions across Maven and Gradle AOT consumer fixtures.
     - Modernized CI workflows (`ci.yml`, `native-image.yml`, `performance.yml`, `fuzz.yml`, `release.yml`, `devtools-restart.yml`) across Tier A-E suites.
-- **Milestone M18 (TCK & Performance Release Gates) — NEXT**:
-    - Independently executable public TCK verifying 100% of claimed language features.
-    - Reproducible benchmark report published with full hardware metadata, raw JMH outputs, and comparative analyses against Velocity, Qute, jte, and Thymeleaf.
+- **Milestone M18 (TCK & Performance Release Gates) — COMPLETE** ([`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-release-gates.md)):
+    - Language feature claim matrix: 80 features across 20 categories (`config/tck/vtl-feature-matrix.json`), 100% TCK coverage enforced by `python3 scripts/verify-tck-coverage.py`.
+    - 80 public-API conformance scenarios in `viet-template-tck`, 688 tests passing across IR and AOT_BYTECODE. Architecture boundary enforced: zero internal imports.
+    - Backend parity verified: 75 dual-backend features produce bit-identical output; 5 IR-only features documented with rationale (`BackendParityTest.java`).
+    - Independent consumer fixture: Maven and Gradle standalone projects verify external TCK consumption without reactor access (`integration-tests/tck-consumer/`, `scripts/verify-tck-consumer.sh`).
+    - Comparative JMH benchmarks against Apache Velocity 2.4.1, Quarkus Qute 3.39.4, jte 3.2.4, Thymeleaf 3.1.5.RELEASE across workloads C01–C08 (`ComparativeEngineBenchmark`); cross-engine fixture correctness verified (48 tests).
+    - Master release gate: `./scripts/verify-m18-release-gates.sh` (8 gates: coverage, surface, API compat, TCK suite, cross-engine correctness, independent consumer, JSON validity × 2).
+    - Evidence infrastructure: `benchmark-evidence/m18/`, report generator `scripts/perf/generate-benchmark-report.py`, `config/benchmark-manifest.json` (C01–C08 + B01–B15).
 - **Production Hardening**:
   - GraalVM Native Image reachability-metadata verification.
   - Comprehensive migration guide from Apache Velocity.

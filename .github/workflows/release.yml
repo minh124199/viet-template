@@ -30,6 +30,15 @@ defaults:
     shell: bash
 
 jobs:
+  # ==========================================================================
+  # M18 RELEASE QUALIFICATION NOTE
+  # Before tagging a release, the M18 release gates MUST be run locally:
+  #   ./scripts/verify-m18-release-gates.sh
+  # This includes the independent TCK consumer fixture which requires local
+  # Maven snapshot installation and cannot run in CI without a published artifact.
+  # See docs/40-m18-tck-performance-release-gates.md for full instructions.
+  # ==========================================================================
+
   validate-metadata:
     name: 1. Validate Release Metadata
     runs-on: ubuntu-latest

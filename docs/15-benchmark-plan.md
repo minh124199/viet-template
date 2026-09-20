@@ -510,3 +510,51 @@ Every publicly released performance report must contain:
 4. Complete raw JMH JSON outputs and GC logs.
 5. Exact build tool configurations (Gradle/Maven) and JVM options.
 6. Explicit caveats, known limitations, and comparative fairness notes (e.g., Qute typed vs. dynamic fairness).
+
+---
+
+## 15. M18 Comparative Engine Benchmarks (C01–C08)
+
+M18 adds independent comparative benchmarks against the leading Java template engines. All
+benchmarks are in `viet-template-benchmarks/src/main/java/.../benchmarks/comparative/`.
+
+### Engines Under Comparison
+
+| Engine | Version | Track | Adapter |
+|---|---|---|---|
+| Viet Template (IR) | 0.2.2-SNAPSHOT | Track A (Dynamic) | `VietIrAdapter` |
+| Apache Velocity | 2.4.1 | Track A (Dynamic) | `VelocityAdapter` |
+| Thymeleaf | 3.1.5.RELEASE | Track A (Dynamic) | `ThymeleafAdapter` |
+| Viet Template (AOT) | 0.2.2-SNAPSHOT | Track B (Compiled) | `VietAotAdapter` |
+| Quarkus Qute | 3.39.4 | Track B (Compiled) | `QuteAdapter` |
+| jte | 3.2.4 | Track B (Compiled) | `JteAdapter` |
+
+### Workloads
+
+| ID | Name | Track |
+|---|---|---|
+| C01 | Hello World (5 scalars) | A + B |
+| C02 | Scalar Substitution (20 vars) | A + B |
+| C03 | Deep Property Chains | A + B |
+| C04 | Conditionals & Branching | A + B |
+| C05 | Small Table Foreach (5 × 3) | A + B |
+| C06 | Large Table Foreach (100 × 3) | A + B |
+| C07 | Nested Foreach Loops | A + B |
+| C08 | HTML Contextual Escaping | A + B |
+
+### Correctness Gate
+
+Before any performance claim, fixture correctness is verified:
+
+```bash
+./mvnw test -pl viet-template-benchmarks -Dtest=CrossEngineFixtureCorrectnessTest
+# 48 tests, 0 failures required
+```
+
+### Evidence Infrastructure
+
+- Raw JMH JSON → `benchmark-evidence/m18/*.json` (excluded from VCS)
+- Report: `python3 scripts/perf/generate-benchmark-report.py`
+- Benchmark manifest: `config/benchmark-manifest.json`
+
+See `docs/40-m18-tck-performance-release-gates.md` for full instructions.

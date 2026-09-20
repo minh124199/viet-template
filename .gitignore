@@ -78,3 +78,6 @@ pom.xml.tag
 pom.xml.next
 dependency-reduced-pom.xml
 .flattened-pom.xml
+
+# M18 benchmark raw evidence (large JMH JSON files — run locally, not committed)
+benchmark-evidence/m18/*.json
