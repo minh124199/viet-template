@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [0.2.2] - 2026-09-21
+
+### Added
 - **Steady-State Execution Preparation & DSA Specialization (Milestone M19.3c)**:
   - **Faster Warmed AOT Lookup (M19.3c.1)**: Precompiled generated template instances are constructed once per engine generation and reused concurrently, eliminating repetitive reflection, wrapper overhead, and key reconstruction during warmed lookups while preserving engine isolation and classloader collectability.
   - **Prepared IR Execution (M19.3c.2)**: Structural IR preparation (final optimization, invariant verification, root layout, and function dispatch maps) executes once per compilation generation. Warmed IR renders execute directly through immutable prepared metadata with request-only mutable state, completely eliminating render-time optimizer, verifier, and layout overhead.
@@ -42,12 +56,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automated Parity & Lifecycle Verification (`scripts/verify-devtools-restart-integration.sh`, `.github/workflows/devtools-restart.yml`):
     - Verified Mode A (Dynamic hot reload without restart), Mode B (AOT recompile + trigger-file restart with `RestartClassLoader` turnover), stale template deletion, Spring Security & CSRF isolation, and 10x restart stress test with zero ClassLoader leaks (`leakFree = true`).
     - Formally documented in [`docs/38-m17-devtools-restart-hardening.md`](docs/38-m17-devtools-restart-hardening.md).
-
-### Changed
-
-### Deprecated
-
-### Removed
+- **Spring Framework 7 & Spring Boot 4 Canonical Modernization**:
+  - Established Spring Framework 7 and Spring Boot 4 as the canonical integration baseline on Java 21+, verified against Jakarta Servlet 6.1.0 and Tomcat 11.0.24.
+  - Added multi-generation compatibility fixtures for Spring MVC, Spring Boot, and Spring Security under both Boot 3 / Security 6 and Boot 4 / Security 7.
+  - Verified non-blocking, pin-free virtual-thread execution under concurrent HTTP server load in `Spring7VirtualThreadServerTest` and `Spring7SecurityVirtualThreadServerTest`.
+- **Technology Compatibility Kit (TCK) & Performance Release Gates (Milestone M18)**:
+  - **Language Feature Claim Matrix**: Established machine-verifiable feature claim matrix (`config/tck/vtl-feature-matrix.json`) defining 80 language features across 20 categories, verified with complete coverage (80/80 features) via `scripts/verify-tck-coverage.py`.
+  - **TCK Conformance Suite & Backend Parity**: Implemented executable conformance test suite in `viet-template-tck` (`TckSuiteRegistry`, `TckConformanceTest`) and automated backend execution parity tests (`BackendParityTest`) verifying identical behavior between IR Interpreter and AOT Bytecode backends.
+  - **Independent Consumer Fixtures**: Added isolated external consumer test fixtures for Maven (`integration-tests/tck-consumer/maven`) and Gradle (`integration-tests/tck-consumer/gradle`) consuming published artifacts via `scripts/verify-tck-consumer.sh`.
+  - **Multi-Engine Comparative Benchmark Harness**: Built comparative benchmark harness in `viet-template-benchmarks` evaluating 8 canonical workloads against Velocity 2.4.1, Thymeleaf 3.1.5, JTE 3.2.4, and Quarkus Qute 3.39.4 across Java 21 and Java 25.
+  - **Formal Evidence Contract & Master Release Gates**: Implemented durable, SHA-bound evidence generation and verification (`benchmark-evidence/m18/`, `scripts/perf/build-m18-evidence-package.py`, `scripts/perf/verify-m18-evidence.py`), and unified master qualification gate `scripts/verify-m18-release-gates.sh` integrated as mandatory blocking dependency in release CI workflow.
 
 ### Fixed
 - **BoundedWeakClassCache & ClassLoader Turnover**:
@@ -64,8 +82,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Hardened JFR pinning audits in `SharedEngineVirtualThreadStressTest` with narrow classification and detailed diagnostic logging for ultra-short JVM-internal `MethodType` maintenance events.
   - Added regression test suite `VtlDynamicLinkerReuseTest` verifying call site reuse and registry clearing on close.
   - Documented architectural invariants and JFR classification boundaries in `docs/adr/0013-virtual-thread-invariants.md`.
-
-### Security
 
 ## [0.2.1] - 2026-09-17
 
@@ -375,5 +391,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 1 `VIET_EXTENSION` (`$foreach.stop()` programmatic loop termination)
   - 0 `UNSUPPORTED`, 0 `BUG` (100.00% accounted behavior coverage)
 
-[Unreleased]: https://github.com/minh124199/viet-template/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/minh124199/viet-template/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/minh124199/viet-template/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/minh124199/viet-template/compare/v0.2.0...v0.2.1

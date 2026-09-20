@@ -28,8 +28,8 @@ Many existing JVM template engines require teams to choose between familiar, fle
 
 | Item | Value |
 | :--- | :--- |
-| **Current Published Release** | `0.2.1` (2026-09-17) |
-| **Development Branch** | `0.2.2-SNAPSHOT` | `main` | Under active development (M17 GraalVM native image, Spring 7/Boot 4 modernization, and DevTools restart hardening complete; M18 TCK release gates next) |
+| **Current Published Release** | `0.2.2` (2026-09-21) |
+| **Development Branch** | `0.2.2` (release preparation in progress) |
 | **Maturity Level** | **Pre-1.0 (`0.2.x`)** |
 | **Maven Group** | `io.github.minh124199` |
 | **Java Baseline** | Java 21 (`--release 21`, major version 65), runtime optimized for Java 25 |
@@ -60,11 +60,12 @@ Many existing JVM template engines require teams to choose between familiar, fle
   - GraalVM Native Image & Spring AOT compatibility (Milestone M17 Phase A): out-of-the-box runtime hints (`VietTemplateRuntimeHints`, `VietTemplateSecurityRuntimeHints`) registering precompiled template bytecode, `templates.idx` resource discovery, and security view reflection. GraalVM 25 native execution is verified by building and running the native Spring Boot fixture and serving real Viet Template endpoints.
   - Spring Boot DevTools restart & ClassLoader lifecycle hardening (Milestone M17 Phase B): robust `close()` lifecycle and thread termination, Mode A dynamic hot reload without restart, Mode B AOT recompile + trigger restart with ClassLoader turnover, stale template deletion handling, zero ClassLoader leaks across multi-generation restarts, and 4 dual-build DevTools fixtures.
   - Maven Central publication metadata hardening: canonical per-module deep links (`/tree/main/<module>`), root SCM inheritance suppression controls (`child.scm.*.inherit.append.path="false"`), and automated CI metadata and effective POM verification.
+  - Milestone M18 Technology Compatibility Kit (TCK) release gates & multi-engine comparative performance benchmarks: 100% language feature claim matrix coverage (80/80 features), TCK conformance runner and backend execution parity testing, isolated Maven and Gradle consumer fixtures, multi-engine comparative benchmark harness (Velocity, Thymeleaf, JTE, Qute), clean-room release gates, and formal SHA-bound evidence package.
 - **Experimental**:
   - Dynamic call-site specialization in AOT bytecode when complete type signatures are absent.
   - File-system hot-reload watcher (`DevelopmentFileWatcher`) using NIO `WatchService`.
 - **Planned (Future Releases)**:
-  - Milestone M18: Technology Compatibility Kit (TCK) release gate & multi-engine performance benchmarks.
+  - Milestone M19: Continuous performance tracking and automated benchmark regressions detection in CI.
 
 ---
 
@@ -270,18 +271,18 @@ Viet Template provides production integration for Spring MVC and Spring Boot via
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-boot-starter</artifactId>
-    <version>0.2.1</version>
+    <version>0.2.2</version>
 </dependency>
 ```
 
 ##### Gradle (Kotlin DSL)
 ```kotlin
-implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.1")
+implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.2")
 ```
 
 ##### Gradle (Groovy DSL)
 ```groovy
-implementation 'io.github.minh124199:viet-template-spring-boot-starter:0.2.1'
+implementation 'io.github.minh124199:viet-template-spring-boot-starter:0.2.2'
 ```
 
 #### Application Properties
@@ -362,13 +363,13 @@ Applications using Spring Security can add the optional `viet-template-spring-se
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-security</artifactId>
-    <version>0.2.1</version>
+    <version>0.2.2</version>
 </dependency>
 ```
 
 ##### Gradle (Kotlin DSL)
 ```kotlin
-implementation("io.github.minh124199:viet-template-spring-security:0.2.1")
+implementation("io.github.minh124199:viet-template-spring-security:0.2.2")
 ```
 
 #### Template Usage
@@ -713,7 +714,7 @@ Please also review our [Code of Conduct](CODE_OF_CONDUCT.md) and [Security Polic
 Viet Template follows an evidence-driven, benchmark-verified phased roadmap:
 
 - **Phase 0.1.x**: Baseline stabilization, adversarial security fuzzing, and Milestone M19.1 JMH benchmark infrastructure.
-- **Phase 0.2.x (Current)**: High-performance runtime architecture with compiler-assigned variable slot execution frames (`EvaluationValue[] slots`) and indexed compilation cache invalidation. Active version is `0.2.1`, finalizing publication of `0.2.1` (M15 AOT build plugins and M16 Spring integration).
+- **Phase 0.2.x (Current)**: High-performance runtime architecture with compiler-assigned variable slot execution frames (`EvaluationValue[] slots`) and indexed compilation cache invalidation. Active version is `0.2.2`, finalizing publication of `0.2.2` (M17 GraalVM native image, Spring 7/Boot 4 modernization, DevTools restart hardening, and M18 TCK release gates).
 - **Phase 0.3.x+**: Subsequent roadmap milestone introducing evidence-driven optimizations guided by profiling (cache contention reduction, zero-copy token slices).
 - **Phase 1.0**: GraalVM Native Image verification (M17), independently runnable public TCK and reproducible benchmark report (M18), comprehensive migration guide, stable API freeze, and formal publication.
 
