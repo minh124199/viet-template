@@ -8,16 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **1.0 Adoption Readiness, Migration, & Documentation Suite**:
+  - **Authoritative User Documentation Suite**: Added comprehensive guides organized in thematic directories: Quickstart (`docs/getting-started/quickstart.md`), Support Matrix (`docs/getting-started/support-matrix.md`), VTL Syntax Reference (`docs/language/syntax-reference.md`), 3-State Undefined/Null Evaluation (`docs/language/undefined-null-semantics.md`), Foreach & Scopes (`docs/language/foreach-and-scopes.md`), Macros & Layouts (`docs/language/macros-and-layouts.md`), Typed Models (`docs/language/typed-models.md`), Build Tooling for Maven & Gradle (`docs/build-tooling/`), Spring Boot Integration (`docs/spring/spring-boot-integration.md`), Secure Templates (`docs/security/secure-templates.md`), Production & AOT Deployment (`docs/deployment/production-aot.md`), GraalVM Native Image (`docs/native-image/graalvm-native-image.md`), Extension Guide & SPIs (`docs/extensions/extension-guide.md`), and Comparative Performance Benchmarks (`docs/performance/comparative-benchmarks.md`).
+  - **Apache Velocity 2.4.1 Migration Guide & Differences Catalog**: Published step-by-step transition roadmap (`docs/migration/velocity-migration-guide.md`, `docs/migration/velocity-differences.md`) backed by executable test verification in `VelocityMigrationPatternsTest.java`.
+  - **Machine-Verified Compatibility Matrix**: Created `scripts/generate-compatibility-matrix.py` generating `docs/migration/compatibility-matrix.md` directly from `config/tck/vtl-feature-matrix.json` (80 features, 20 categories, 76 exact matches, 3 differences, 1 extension, 100% TCK coverage).
+  - **Comprehensive Diagnostics & Error Code Catalog**: Authored `docs/diagnostics/error-catalog.md` detailing all parse-time, compile-time, semantic, security, limit, and runtime diagnostic codes with concrete examples, likely causes, and actionable remedies.
+  - **Comparative Performance Evidence Qualification**: Documented M18 C01–C08 comparative benchmarks across Java 21 and Java 25 against Apache Velocity 2.4.1, Quarkus Qute 3.39.4, jte 3.2.4, and Thymeleaf 3.1.5, confirming all four 1.0 performance success gates.
+  - **1.0 Readiness Gap Analysis & Surface Audit**: Produced `docs/1.0-readiness-gap-analysis.md` assessing all 15 architectural areas, cataloging the 99 stable types vs 257 accidental public types, and outlining the encapsulation roadmap for 0.2.3 and 0.3.0.
+  - **Automated Documentation Verification Infrastructure**: Implemented `scripts/verify-documentation.py` and unit test suite `scripts/tests/test_verify_documentation.py` (30 tests) verifying release date integrity, consumer version references, coordinates, baseline compiler flags, Spring properties, internal link resolution, public types, diagnostic codes, and compatibility matrix synchronization. Integrated into `.github/workflows/ci.yml`.
+  - **Standalone Executable Plain Java Fixture**: Added standalone project `examples/plain-java/` with verified build and test suite demonstrating direct programmatic engine usage.
 
 ### Changed
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
+- **Release Date Corrections**: Aligned release date for `v0.2.2` to `2026-09-20` (matching official Maven Central and GitHub Releases timestamps) across `README.md`, `CHANGELOG.md`, `docs/18-roadmap.md`, and `docs/20-implementation-checklist.md`.
+- **Restructured README**: Overhauled `README.md` to be user-oriented and adoption-focused, featuring a 5-minute quickstart, Velocity migration summary, performance highlights, and a structured documentation sitemap.
 
 ## [0.2.2] - 2026-09-20
 
