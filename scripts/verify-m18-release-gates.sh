@@ -77,6 +77,9 @@ echo "[Bootstrap] Installing reactor artifacts once for isolated downstream gate
 "${ROOT_DIR}/mvnw" "${MAVEN_REPO_ARG}" \
   install \
   -DskipTests -Dspotless.check.skip=true --no-transfer-progress -B
+echo "[Bootstrap] Compiling the Gradle public surface for API classification gates..."
+GRADLE_USER_HOME="${M18_GRADLE_USER_HOME}" "${ROOT_DIR}/gradlew" \
+  classes --no-daemon --console=plain
 
 # ---------- Gate 1: TCK coverage ----------
 echo ""
