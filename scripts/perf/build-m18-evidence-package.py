@@ -15,11 +15,21 @@ def digest(path: Path) -> str:
 
 def qualification_input_digest(root: Path) -> str:
     tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=root).split(b"\0")
-    excluded_prefixes = (b"benchmark-evidence/m18/", b"docs/")
-    excluded_files = {b"README.md"}
+    root_build_files = {b"pom.xml", b"build.gradle.kts", b"settings.gradle.kts", b"gradle.properties"}
+    exact_inputs = {
+        b"config/benchmark-manifest.json",
+        b"config/benchmark-runtime-profiles.json",
+        b"scripts/perf/run-m18-comparative-qualification.sh",
+        b"scripts/record-benchmark-env.sh",
+    }
     value = hashlib.sha256()
     for raw_path in sorted(path for path in tracked if path):
-        if raw_path.startswith(excluded_prefixes) or raw_path in excluded_files:
+        if not (
+            raw_path.startswith(b"viet-template-")
+            or raw_path.startswith(b"gradle/")
+            or raw_path in root_build_files
+            or raw_path in exact_inputs
+        ):
             continue
         path = root / raw_path.decode()
         value.update(raw_path + b"\0")

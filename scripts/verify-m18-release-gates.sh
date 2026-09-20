@@ -75,7 +75,7 @@ echo "==========================================================================
 
 echo "[Bootstrap] Installing reactor artifacts once for isolated downstream gates..."
 "${ROOT_DIR}/mvnw" "${MAVEN_REPO_ARG}" \
-  -pl viet-template-tck,viet-template-benchmarks -am install \
+  install \
   -DskipTests -Dspotless.check.skip=true --no-transfer-progress -B
 
 # ---------- Gate 1: TCK coverage ----------
