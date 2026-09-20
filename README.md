@@ -28,7 +28,7 @@ Many existing JVM template engines require teams to choose between familiar, fle
 
 | Item | Value |
 | :--- | :--- |
-| **Current Published Release** | `0.2.2` (2026-09-21) |
+| **Current Published Release** | `0.2.2` (2026-09-20) |
 | **Development Branch** | `0.2.3-SNAPSHOT` on `main` |
 | **Maturity Level** | **Pre-1.0 (`0.2.x`)** |
 | **Maven Group** | `io.github.minh124199` |
@@ -90,7 +90,7 @@ Add the engine dependency to your `pom.xml`:
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-vtl-interpreter</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.2</version>
 </dependency>
 ```
 
@@ -99,13 +99,13 @@ Add the engine dependency to your `pom.xml`:
 Add the dependency to your `build.gradle.kts`:
 
 ```kotlin
-implementation("io.github.minh124199:viet-template-vtl-interpreter:0.2.0")
+implementation("io.github.minh124199:viet-template-vtl-interpreter:0.2.2")
 ```
 
 ### Gradle (Groovy DSL)
 
 ```groovy
-implementation 'io.github.minh124199:viet-template-vtl-interpreter:0.2.0'
+implementation 'io.github.minh124199:viet-template-vtl-interpreter:0.2.2'
 ```
 
 ---
