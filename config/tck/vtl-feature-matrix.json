@@ -1,0 +1,812 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "title": "Viet Template Language (VTL) Feature Claim Matrix",
+  "description": "Authoritative inventory of claimed language features, intentional differences, and extensions for the Viet Template Technology Compatibility Kit (TCK).",
+  "features": [
+    {
+      "id": "LEX-001",
+      "category": "LEXICAL",
+      "name": "Single-line comment",
+      "description": "Lines or inline fragments starting with ## are treated as single-line comments and omitted from rendered output.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#2"
+    },
+    {
+      "id": "LEX-002",
+      "category": "LEXICAL",
+      "name": "Multi-line block comment",
+      "description": "Content enclosed within #* and *# is treated as a block comment and excluded from rendered output.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#2"
+    },
+    {
+      "id": "LEX-003",
+      "category": "LEXICAL",
+      "name": "Reference backslash escaping",
+      "description": "Backslashes preceding reference sigils escape variable rendering according to standard Velocity escaping rules.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#18"
+    },
+    {
+      "id": "LEX-004",
+      "category": "LEXICAL",
+      "name": "Directive backslash escaping",
+      "description": "Backslashes preceding directive keywords escape directive parsing and render keyword literally.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#18"
+    },
+    {
+      "id": "LEX-005",
+      "category": "LEXICAL",
+      "name": "String literal quotes",
+      "description": "Supports single-quoted uninterpreted string literals and double-quoted interpolated string literals.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+    },
+    {
+      "id": "REF-001",
+      "category": "REFERENCE",
+      "name": "Shorthand reference notation",
+      "description": "Evaluates shorthand reference identifiers such as $user from the render context.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+    },
+    {
+      "id": "REF-002",
+      "category": "REFERENCE",
+      "name": "Formal reference notation",
+      "description": "Evaluates formal reference identifiers delimited by braces such as ${user}.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+    },
+    {
+      "id": "REF-003",
+      "category": "REFERENCE",
+      "name": "Quiet shorthand reference",
+      "description": "Suppresses output when reference evaluates to null using quiet notation $!user.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+    },
+    {
+      "id": "REF-004",
+      "category": "REFERENCE",
+      "name": "Quiet formal reference",
+      "description": "Suppresses output when reference evaluates to null using quiet formal notation $!{user}.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+    },
+    {
+      "id": "REF-005",
+      "category": "REFERENCE",
+      "name": "Reference text concatenation",
+      "description": "Concatenates formal reference with immediately adjacent literal suffix text without whitespace.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+    },
+    {
+      "id": "PROP-001",
+      "category": "PROPERTY",
+      "name": "JavaBean getter property access",
+      "description": "Resolves $bean.property to standard getProperty() getter method.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+    },
+    {
+      "id": "PROP-002",
+      "category": "PROPERTY",
+      "name": "Boolean is-accessor property access",
+      "description": "Resolves $bean.active to boolean isProperty() accessor method.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+    },
+    {
+      "id": "PROP-003",
+      "category": "PROPERTY",
+      "name": "Record component property access",
+      "description": "Resolves $record.component to Java record accessor component().",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+    },
+    {
+      "id": "PROP-004",
+      "category": "PROPERTY",
+      "name": "Map key property access",
+      "description": "Resolves $map.key to Map.get('key') when receiver is java.util.Map.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+    },
+    {
+      "id": "PROP-005",
+      "category": "PROPERTY",
+      "name": "Property lookup fallback order",
+      "description": "Resolves properties using Velocity candidate ordering (getProp, GetProp, isProp, prop).",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+    },
+    {
+      "id": "IDX-001",
+      "category": "INDEX",
+      "name": "Array index access",
+      "description": "Indexes into Java arrays with zero-based integer index syntax $arr[0].",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#7"
+    },
+    {
+      "id": "IDX-002",
+      "category": "INDEX",
+      "name": "List index access",
+      "description": "Indexes into java.util.List instances with zero-based index syntax $list[1].",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#7"
+    },
+    {
+      "id": "IDX-003",
+      "category": "INDEX",
+      "name": "Map key index access",
+      "description": "Accesses java.util.Map entries using bracket notation $map['key'].",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#7"
+    },
+    {
+      "id": "IDX-004",
+      "category": "INDEX",
+      "name": "Dynamic variable index access",
+      "description": "Indexes collection or map using dynamic variable expression $arr[$idx].",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#7"
+    },
+    {
+      "id": "IDX-005",
+      "category": "INDEX",
+      "name": "Multi-dimensional nested index",
+      "description": "Chains consecutive index brackets for nested collections $matrix[0][1].",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#7"
+    },
+    {
+      "id": "METH-001",
+      "category": "METHOD",
+      "name": "Parameterless method call",
+      "description": "Invokes public parameterless method on receiver object $obj.getName().",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#6"
+    },
+    {
+      "id": "METH-002",
+      "category": "METHOD",
+      "name": "Single-argument method call",
+      "description": "Invokes public method passing single argument expression $calc.doubleVal(5).",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#6"
+    },
+    {
+      "id": "METH-003",
+      "category": "METHOD",
+      "name": "Multi-argument method call",
+      "description": "Invokes public method passing multiple argument expressions $calc.add(3, 4).",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#6"
+    },
+    {
+      "id": "METH-004",
+      "category": "METHOD",
+      "name": "Overloaded method resolution",
+      "description": "Resolves overloaded method candidates by dynamic argument types.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#6"
+    },
+    {
+      "id": "METH-005",
+      "category": "METHOD",
+      "name": "Varargs method invocation",
+      "description": "Invokes variable-arity method with variable number of arguments $calc.join('a', 'b').",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#6"
+    },
+    {
+      "id": "EXPR-001",
+      "category": "EXPRESSION",
+      "name": "Arithmetic operators",
+      "description": "Evaluates standard arithmetic operators (+, -, *, /, %).",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+    },
+    {
+      "id": "EXPR-002",
+      "category": "EXPRESSION",
+      "name": "Relational comparison operators",
+      "description": "Evaluates comparison operators (==, !=, <, <=, >, >=).",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+    },
+    {
+      "id": "EXPR-003",
+      "category": "EXPRESSION",
+      "name": "Logical boolean operators",
+      "description": "Evaluates logical operators (&&, ||, !, and, or, not).",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+    },
+    {
+      "id": "EXPR-004",
+      "category": "EXPRESSION",
+      "name": "Integer range literal",
+      "description": "Constructs ascending and descending integer range sequences [1..5].",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+    },
+    {
+      "id": "EXPR-005",
+      "category": "EXPRESSION",
+      "name": "Parenthesized expression grouping",
+      "description": "Overrides operator precedence with parenthesized sub-expressions (a + b) * c.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+    },
+    {
+      "id": "TRUTH-001",
+      "category": "TRUTHINESS",
+      "name": "Boolean literal truthiness",
+      "description": "Evaluates boolean true as truthy and false as falsy.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#9"
+    },
+    {
+      "id": "TRUTH-002",
+      "category": "TRUTHINESS",
+      "name": "Null truthiness",
+      "description": "Evaluates null value or undefined reference as falsy in boolean context.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#9"
+    },
+    {
+      "id": "TRUTH-003",
+      "category": "TRUTHINESS",
+      "name": "Number truthiness",
+      "description": "Evaluates numeric zero (0) as falsy and non-zero numbers as truthy.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#9"
+    },
+    {
+      "id": "TRUTH-004",
+      "category": "TRUTHINESS",
+      "name": "String truthiness",
+      "description": "Evaluates empty string as falsy and non-empty string as truthy.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#9"
+    },
+    {
+      "id": "TRUTH-005",
+      "category": "TRUTHINESS",
+      "name": "Collection and map truthiness",
+      "description": "Evaluates empty collections and maps as falsy, non-empty as truthy.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#9"
+    },
+    {
+      "id": "TRUTH-006",
+      "category": "TRUTHINESS",
+      "name": "Non-null object truthiness",
+      "description": "Evaluates arbitrary non-null non-empty Java objects as truthy.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#9"
+    },
+    {
+      "id": "SET-001",
+      "category": "SET",
+      "name": "Scalar assignment",
+      "description": "Assigns integer or string literal to template-scoped variable via #set.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#10"
+    },
+    {
+      "id": "SET-002",
+      "category": "SET",
+      "name": "Expression evaluation assignment",
+      "description": "Assigns evaluated arithmetic or reference expression to variable via #set.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#10"
+    },
+    {
+      "id": "SET-003",
+      "category": "SET",
+      "name": "List literal assignment",
+      "description": "Assigns list literal [1, 2, 3] to variable via #set.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#10"
+    },
+    {
+      "id": "SET-004",
+      "category": "SET",
+      "name": "Map literal assignment",
+      "description": "Assigns map literal {'key': 'value'} to variable via #set.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#10"
+    },
+    {
+      "id": "SET-005",
+      "category": "SET",
+      "name": "Variable reassignment",
+      "description": "Reassigns existing variable to new value within template execution scope.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#10"
+    },
+    {
+      "id": "IF-001",
+      "category": "IF",
+      "name": "Basic #if conditional",
+      "description": "Executes template body conditionally based on boolean expression in #if.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#11"
+    },
+    {
+      "id": "IF-002",
+      "category": "IF",
+      "name": "#if and #else branches",
+      "description": "Selects between truthy branch and #else fallback branch.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#11"
+    },
+    {
+      "id": "IF-003",
+      "category": "IF",
+      "name": "#if, #elseif and #else branches",
+      "description": "Chains multiple conditional branches through #elseif directives.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#11"
+    },
+    {
+      "id": "IF-004",
+      "category": "IF",
+      "name": "Nested conditional directives",
+      "description": "Evaluates nested #if conditions within outer conditional blocks.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#11"
+    },
+    {
+      "id": "FOREACH-001",
+      "category": "FOREACH",
+      "name": "List collection iteration",
+      "description": "Iterates over java.util.List elements via #foreach($item in $list).",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#12"
+    },
+    {
+      "id": "FOREACH-002",
+      "category": "FOREACH",
+      "name": "Array and range iteration",
+      "description": "Iterates over Java arrays and integer range literals [1..3].",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#12"
+    },
+    {
+      "id": "FOREACH-003",
+      "category": "FOREACH",
+      "name": "Loop index and count metadata",
+      "description": "Exposes 0-based $foreach.index and 1-based $foreach.count loop metadata.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#12"
+    },
+    {
+      "id": "FOREACH-004",
+      "category": "FOREACH",
+      "name": "Loop boundary state metadata",
+      "description": "Exposes $foreach.first, $foreach.last, and $foreach.hasNext loop state flags.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#12"
+    },
+    {
+      "id": "FOREACH-005",
+      "category": "FOREACH",
+      "name": "Early loop break directive",
+      "description": "Terminates current loop execution immediately upon encountering #break.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#15"
+    },
+    {
+      "id": "FOREACH-006",
+      "category": "FOREACH",
+      "name": "Empty collection loop fallback",
+      "description": "Executes #else branch when iterated collection is empty or null.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#12"
+    },
+    {
+      "id": "MACRO-001",
+      "category": "MACRO",
+      "name": "Parameterless velocimacro",
+      "description": "Defines and invokes parameterless inline velocimacro via #macro(name) and #name().",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#17"
+    },
+    {
+      "id": "MACRO-002",
+      "category": "MACRO",
+      "name": "Parameterized velocimacro",
+      "description": "Defines and calls velocimacro with positional arguments #macro(greet $name).",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#17"
+    },
+    {
+      "id": "MACRO-003",
+      "category": "MACRO",
+      "name": "Nested velocimacro invocation",
+      "description": "Invokes a velocimacro from within the body of another velocimacro.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#17"
+    },
+    {
+      "id": "MACRO-004",
+      "category": "MACRO",
+      "name": "Recursive velocimacro invocation",
+      "description": "Supports recursive macro invocations with base case termination.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#17"
+    },
+    {
+      "id": "DYN-001",
+      "category": "DYNAMIC",
+      "name": "Dynamic evaluation directive #evaluate",
+      "description": "Evaluates dynamic VTL snippet string at runtime in VTL_DYNAMIC profile.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#16"
+    },
+    {
+      "id": "DYN-002",
+      "category": "DYNAMIC",
+      "name": "Dynamic property resolution",
+      "description": "Resolves map or bean property with variable runtime key expression.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+    },
+    {
+      "id": "DYN-003",
+      "category": "DYNAMIC",
+      "name": "Polymorphic dynamic method dispatch",
+      "description": "Dispatches method invocation on polymorphic interface receiver instance.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#6"
+    },
+    {
+      "id": "STATE3-001",
+      "category": "STATE3",
+      "name": "Tri-state quiet null suppression",
+      "description": "Quiet reference notation $!nullVar renders empty string when receiver is null.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+    },
+    {
+      "id": "STATE3-002",
+      "category": "STATE3",
+      "name": "Unresolved reference literal rendering",
+      "description": "Unresolved non-quiet reference renders literal source string $undefined.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+    },
+    {
+      "id": "STATE3-003",
+      "category": "STATE3",
+      "name": "Alternate default value expression",
+      "description": "Provides fallback value expression when reference is null or missing ($val|'default').",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+    },
+    {
+      "id": "STRICT-001",
+      "category": "STRICT",
+      "name": "Strict mode undefined variable check",
+      "description": "Throws TemplateRenderException when undefined variable is accessed in strict mode.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+    },
+    {
+      "id": "STRICT-002",
+      "category": "STRICT",
+      "name": "Strict mode invalid property access check",
+      "description": "Throws TemplateRenderException when non-existent property is accessed on target in strict mode.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+    },
+    {
+      "id": "SEC-001",
+      "category": "SECURITY",
+      "name": "Reflection denial on getClass",
+      "description": "Denies access to getClass() and .class property by default with TemplateSecurityException.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#21"
+    },
+    {
+      "id": "SEC-002",
+      "category": "SECURITY",
+      "name": "ClassLoader and system pivot blocking",
+      "description": "Blocks access to ClassLoader, Thread, Runtime, and ProcessBuilder targets.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#21"
+    },
+    {
+      "id": "SEC-003",
+      "category": "SECURITY",
+      "name": "Macro recursion depth limit",
+      "description": "Terminates infinite or excessive macro recursion with TemplateLimitException.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#21"
+    },
+    {
+      "id": "SEC-004",
+      "category": "SECURITY",
+      "name": "Parse cycle and depth limit",
+      "description": "Guards against infinite #parse cycles and recursion with TemplateLimitException.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#21"
+    },
+    {
+      "id": "ERR-001",
+      "category": "ERRORS",
+      "name": "Division by zero runtime error",
+      "description": "Fails fast throwing TemplateRenderException with DIVISION_BY_ZERO diagnostic code.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+    },
+    {
+      "id": "ERR-002",
+      "category": "ERRORS",
+      "name": "Syntax error diagnosis",
+      "description": "Reports malformed template syntax throwing TemplateSyntaxException with exact span coordinates.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#19"
+    },
+    {
+      "id": "ERR-003",
+      "category": "ERRORS",
+      "name": "Missing template resource error",
+      "description": "Throws TemplateResourceException when referenced template resource cannot be resolved.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#14"
+    },
+    {
+      "id": "UNICODE-001",
+      "category": "UNICODE",
+      "name": "Vietnamese diacritic encoding",
+      "description": "Correctly parses and renders UTF-8 Vietnamese accented characters (ă, â, đ, ê, ô, ơ, ư).",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#1"
+    },
+    {
+      "id": "UNICODE-002",
+      "category": "UNICODE",
+      "name": "Multilingual CJK and non-Latin text",
+      "description": "Preserves multibyte CJK, Arabic, and Cyrillic character encodings without corruption.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#1"
+    },
+    {
+      "id": "UNICODE-003",
+      "category": "UNICODE",
+      "name": "Emoji and surrogate pair rendering",
+      "description": "Preserves supplementary plane characters and 4-byte UTF-8 emoji surrogates.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#1"
+    },
+    {
+      "id": "APP-001",
+      "category": "APPLICATION",
+      "name": "Static template composition #parse",
+      "description": "Composes nested template by static name via #parse directive inheriting caller context.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#14"
+    },
+    {
+      "id": "APP-002",
+      "category": "APPLICATION",
+      "name": "Static raw resource inclusion #include",
+      "description": "Includes raw non-evaluated resource text directly via #include directive.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#13"
+    },
+    {
+      "id": "APP-003",
+      "category": "APPLICATION",
+      "name": "RenderContext contributor merge",
+      "description": "Merges external attributes into execution context via RenderContextContributor SPI.",
+      "status": "SUPPORTED",
+      "classification": "EXACT_MATCH",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/02-vtl-compatibility-spec.md#20"
+    },
+    {
+      "id": "DIFF-001",
+      "category": "INTENTIONAL_DIFFERENCE",
+      "name": "Fail-fast division by zero",
+      "description": "Viet Template fails fast with TemplateRenderException instead of producing null output on division by zero.",
+      "status": "INTENTIONAL_DIFFERENCE",
+      "classification": "EXPECTED_DIFFERENCE",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/06-velocity-2.4.1-compatibility.md#4.1",
+      "rationale": "Silent arithmetic errors mask critical bugs in financial and billing templates; fail-fast ensures immediate defect discovery."
+    },
+    {
+      "id": "DIFF-002",
+      "category": "INTENTIONAL_DIFFERENCE",
+      "name": "Default reflection and class access denial",
+      "description": "Viet Template denies reflection access to getClass() and .class by default in standard execution.",
+      "status": "INTENTIONAL_DIFFERENCE",
+      "classification": "EXPECTED_DIFFERENCE",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/06-velocity-2.4.1-compatibility.md#4.2",
+      "rationale": "Template injection vulnerabilities in Velocity frequently pivot through getClass() to achieve RCE; Viet Template is secure by default."
+    },
+    {
+      "id": "DIFF-003",
+      "category": "INTENTIONAL_DIFFERENCE",
+      "name": "Legacy #set null RHS preservation option",
+      "description": "Viet Template supports Velocity 1.x null RHS preservation where undefined RHS leaves variable untouched.",
+      "status": "INTENTIONAL_DIFFERENCE",
+      "classification": "EXPECTED_DIFFERENCE",
+      "requiredBackends": ["IR", "AOT_BYTECODE"],
+      "specificationReference": "docs/06-velocity-2.4.1-compatibility.md#4.3",
+      "rationale": "Many enterprise templates migrating from Velocity 1.7 rely on null RHS preservation for cascading defaults, which was removed in Velocity 2.x."
+    },
+    {
+      "id": "EXT-001",
+      "category": "EXTENSION",
+      "name": "Programmatic loop termination via $foreach.stop()",
+      "description": "Supports programmatic loop termination using $foreach.stop() method call on loop metadata.",
+      "status": "EXTENSION",
+      "classification": "VIET_EXTENSION",
+      "requiredBackends": ["IR"],
+      "specificationReference": "docs/06-velocity-2.4.1-compatibility.md#5.1",
+      "rationale": "Preserves backward compatibility with legacy enterprise templates utilizing programmatic loop termination."
+    }
+  ]
+}

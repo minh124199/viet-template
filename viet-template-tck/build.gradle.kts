@@ -17,3 +17,9 @@ dependencies {
     testRuntimeOnly(libs.junit.jupiter.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
+
+tasks.jar {
+    manifest {
+        attributes["Main-Class"] = "io.github.minh124199.viettemplate.tck.conformance.runner.TckRunner"
+    }
+}
