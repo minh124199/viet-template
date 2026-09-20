@@ -596,6 +596,33 @@ java -jar viet-template-benchmarks/target/benchmarks.jar -f 1 -wi 1 -i 1 Variabl
 ./scripts/record-benchmark-env.sh benchmark-env.json
 ```
 
+### TCK & Performance Release Gates (Milestone M18)
+
+Milestone M18 is complete and frozen. Its conformance and comparative harnesses are independently
+executable, the master gate runs with isolated Maven/Gradle state, and releases mechanically require
+durable SHA-bound comparative evidence before packaging and publication.
+
+**Language Conformance TCK** — 80 currently claimed features with complete executable coverage and IR/AOT parity where required:
+```bash
+python3 scripts/verify-tck-coverage.py   # 100% coverage gate
+./mvnw test -pl viet-template-tck -am    # conformance suite and required reactor modules
+```
+
+**Comparative benchmarks** against Apache Velocity 2.4.1, Quarkus Qute 3.39.4, jte 3.2.4, and Thymeleaf 3.1.5.RELEASE across 8 workloads (C01–C08):
+```bash
+./mvnw package -pl viet-template-benchmarks -DskipTests
+java -jar viet-template-benchmarks/target/benchmarks.jar ComparativeEngineBenchmark \
+  -rf json -rff benchmark-evidence/m18/comparative-$(date +%Y-%m-%d).json
+python3 scripts/perf/generate-benchmark-report.py
+```
+
+**Master release gate** (including formal evidence validation):
+```bash
+./scripts/verify-m18-release-gates.sh
+```
+
+See [docs/40-m18-tck-performance-release-gates.md](docs/40-m18-tck-performance-release-gates.md) for full documentation.
+
 ---
 
 ## Building from Source

@@ -836,3 +836,40 @@ Do not advertise ratios before measurement. Internal engineering targets:
 9. Generated-code/source diagnostics are actionable.
 10. No benchmark or compatibility marketing claim exceeds the evidence produced by the checked-in suites.
 11. Stable public surface convergence: reconcile `config/api-baseline/public-surface-classification.txt` with layered baselines (`1.0-core-public-api.txt` [80 types], `1.0-aot-public-api.txt` [6 types], `1.0-spring-public-api.txt` [8 types], `1.0-spring-security-public-api.txt` [5 types]) so every public type classified as `STABLE_API` or `STABLE_SPI` (99 total types) is mechanically verified and protected by automated compatibility verification with full bijection invariant before 1.0 freeze.
+
+---
+
+## M18 — TCK & Performance Release Gates (COMPLETE & FROZEN)
+
+See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-release-gates.md) for the full milestone document.
+
+### Deliverable A: Language Conformance TCK
+
+- [x] **A1.** `config/tck/vtl-feature-matrix.json` — 80 features across 20 categories, durable IDs
+- [x] **A2.** `scripts/verify-tck-coverage.py` + `scripts/verify-tck-coverage.sh` — 100% coverage gate (80/80)
+- [x] **A3.** `TckSuiteRegistry.java` — 80 executable public-API conformance scenarios
+- [x] **A4.** `TckConformanceTest.java` — derived scenario/profile/backend expansion across IR and AOT_BYTECODE, 0 failures
+- [x] **A5.** `FeatureMatrixValidationTest.java` — schema and coverage assertions
+- [x] **A6.** `TckRunner.java` — CLI entrypoint (`--backend`, `--profile`, `--json-output`)
+- [x] **A7.** `BackendParityTest.java` — 75 dual-backend bit-identical parity, 5 IR-only documented
+- [x] **A8.** `integration-tests/tck-consumer/maven/` — Maven standalone consumer fixture (3 tests)
+- [x] **A9.** `integration-tests/tck-consumer/gradle/` — Gradle standalone consumer fixture (3 tests)
+- [x] **A10.** `scripts/verify-tck-consumer.sh` — end-to-end independent consumer gate
+
+### Deliverable B: Performance Release Gates
+
+- [x] **B1.** `ComparativeEngineBenchmark.java` — C01–C08 workloads, Velocity/Qute/jte/Thymeleaf
+- [x] **B2.** `BenchmarkEngineAdapter` + 7 adapters (Viet-IR, Viet-AOT, Velocity, Qute, jte, Thymeleaf)
+- [x] **B3.** `ComparativeWorkloads.java` — shared data models for fixture parity
+- [x] **B4.** `CrossEngineFixtureCorrectnessTest.java` — 48 tests, 0 failures
+- [x] **B5.** `config/benchmark-manifest.json` — machine-readable registry (C01–C08 + B01–B15)
+- [x] **B6.** `benchmark-evidence/m18/` — durable raw J21/J25 JMH, environment, manifest, report, and checksums
+- [x] **B7.** `scripts/perf/generate-benchmark-report.py` — JMH JSON → Markdown report generator
+- [x] **B8.** `.gitignore` updated — exploratory evidence ignored while formal qualification JSON is tracked
+- [x] **B9.** `scripts/verify-m18-release-gates.sh` — clean-room master release gate with mandatory evidence mode
+
+### Documentation & CI
+
+- [x] `docs/40-m18-tck-performance-release-gates.md` — formal M18 milestone document
+- [x] `docs/18-roadmap.md` — M18 status updated to COMPLETE & FROZEN after qualification
+- [x] `.github/workflows/ci.yml` — `tck-gates` job added (Tier A)

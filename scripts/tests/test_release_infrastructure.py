@@ -197,6 +197,24 @@ class WorkflowContractTests(unittest.TestCase):
             self.assertTrue(any("not directly on Maven deploy" in error for error in errors))
             self.assertTrue(any("viet-template-tck publication exclusion" in error for error in errors))
 
+    def test_detects_m18_release_gate_bypass(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.fixture(directory)
+            workflow = root / ".github/workflows/release.yml"
+            text = workflow.read_text()
+            text = text.replace(
+                "needs: [validate-metadata, verify-builds, m18-release-qualification]",
+                "needs: [validate-metadata, verify-builds]",
+            )
+            text = text.replace(
+                "./scripts/verify-m18-release-gates.sh --clean-room --require-evidence",
+                "./scripts/verify-m18-release-gates.sh --clean-room",
+            )
+            workflow.write_text(text)
+            errors = self.validate(root)
+            self.assertTrue(any("formal evidence" in error for error in errors))
+            self.assertTrue(any("publication bundle must depend" in error for error in errors))
+
     def test_detects_deploy_rerun_bypass_and_missing_release_repository(self):
         with tempfile.TemporaryDirectory() as directory:
             root = self.fixture(directory)

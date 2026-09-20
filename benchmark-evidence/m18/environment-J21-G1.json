@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-09-20T03:13:56Z",
+  "git": {
+    "commit": "6838a3227d8010d74dbd94aea93411208e43438b",
+    "shortCommit": "6838a32",
+    "branch": "feature/m18-tck-performance-release-gates",
+    "dirty": false
+  },
+  "environment": {
+    "os": "Linux",
+    "kernel": "7.2.4-3-cachyos",
+    "osDistro": "CachyOS",
+    "arch": "x86_64",
+    "cpuModel": "Intel(R) Core(TM) i5-8350U CPU @ 1.70GHz",
+    "processorCount": 8,
+    "totalMemoryBytes": 12262699008
+  },
+  "java": {
+    "profile": "J21-G1",
+    "version": "21.0.12.1",
+    "majorVersion": 21,
+    "vm": "OpenJDK Runtime Environment (build 21.0.12.1+1)",
+    "vendor": "Arch Linux",
+    "executable": "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+    "collector": "G1",
+    "compactObjectHeaders": false,
+    "virtualThreadsSupported": true,
+    "aotSupported": false,
+    "standardJvmFlags": [
+      "-server",
+      "-Xms2g",
+      "-Xmx2g",
+      "-XX:+AlwaysPreTouch",
+      "-XX:+UseG1GC"
+    ]
+  },
+  "jmh": {
+    "version": "1.37",
+    "forks": null,
+    "threads": null,
+    "warmupIterations": null,
+    "measurementIterations": null
+  }
+}

@@ -78,3 +78,7 @@ pom.xml.tag
 pom.xml.next
 dependency-reduced-pom.xml
 .flattened-pom.xml
+
+# Exploratory M18 runs are disposable. RELEASE_QUALIFICATION packages are committed or attached to
+# a permanent GitHub Release together with their manifest and checksums.
+benchmark-evidence/m18/exploratory-*.json

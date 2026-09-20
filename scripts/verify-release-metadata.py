@@ -427,6 +427,7 @@ def validate_workflow_contract(errors):
     required = {
         "validate-metadata",
         "verify-builds",
+        "m18-release-qualification",
         "package-and-validate-bundle",
         "guard-publication",
         "publish-to-central",
@@ -439,6 +440,17 @@ def validate_workflow_contract(errors):
     if missing:
         errors.append(f"release workflow missing jobs: {', '.join(sorted(missing))}")
         return
+    m18_needs = as_needs(jobs["m18-release-qualification"])
+    if not {"validate-metadata", "verify-builds"} <= m18_needs:
+        errors.append("M18 release qualification must depend on metadata and verified builds")
+    m18_run = combined_run(jobs["m18-release-qualification"])
+    if "verify-m18-release-gates.sh --clean-room --require-evidence" not in m18_run:
+        errors.append("M18 release qualification must require clean-room gates and formal evidence")
+    package_needs = as_needs(jobs["package-and-validate-bundle"])
+    if "m18-release-qualification" not in package_needs:
+        errors.append("publication bundle must depend on M18 release qualification")
+    if "package-and-validate-bundle" not in as_needs(jobs["guard-publication"]):
+        errors.append("Central publication guard must depend on the M18-gated publication bundle")
     if "publish-to-central" not in as_needs(jobs["wait-for-central-publication"]):
         errors.append("publication monitor must depend on publish-to-central")
     if "wait-for-central-publication" not in as_needs(jobs["verify-public-artifacts"]):

@@ -1,0 +1,132 @@
+{
+  "benchmarkManifestSha256": "fb658d4f8bc7de38a6f79b8cc544979431286f7150b845b68c1ad2101bb74a28",
+  "classification": "RELEASE_QUALIFICATION",
+  "competitors": [
+    {
+      "coordinates": "org.apache.velocity:velocity-engine-core:2.4.1",
+      "id": "velocity"
+    },
+    {
+      "coordinates": "org.thymeleaf:thymeleaf:3.1.5.RELEASE",
+      "id": "thymeleaf"
+    },
+    {
+      "coordinates": "gg.jte:jte:3.2.4",
+      "id": "jte"
+    },
+    {
+      "coordinates": "io.quarkus.qute:qute-core:3.39.4",
+      "id": "qute"
+    }
+  ],
+  "correctness": {
+    "engines": 6,
+    "passed": true,
+    "sourceSha": "b68c5d03fe4945852d9b22c2aba602d0863cc6cb",
+    "testClass": "CrossEngineFixtureCorrectnessTest",
+    "workloads": 8
+  },
+  "createdAt": "2026-09-20T03:13:45Z",
+  "files": [
+    {
+      "kind": "environment",
+      "path": "environment-J21-G1.json",
+      "sha256": "ce3676ee3b531430a2dc7e86995e5cc3b7c32b349526610d67823de53d0dcaf6"
+    },
+    {
+      "kind": "jmh-comparative-with-gc",
+      "path": "comparative-J21-G1.json",
+      "sha256": "3a91e9c0ff40f64351f909c99b10d4dae526a01d79232b47e843e26c67d36266"
+    },
+    {
+      "kind": "environment",
+      "path": "environment-J25-G1.json",
+      "sha256": "aaf3f3f0c08c2ccc7291238c0c9b530f8f787f6eab77563f5a9d5d77a9946b53"
+    },
+    {
+      "kind": "jmh-comparative-with-gc",
+      "path": "comparative-J25-G1.json",
+      "sha256": "f5c82ecad3497c9d85997c315f4ca293f212d338a24ab577427405b06f48ffd2"
+    },
+    {
+      "kind": "report",
+      "path": "report.md",
+      "sha256": "9674b1034962b9518eb984958c02046b334b651115853a0dc21730c4c5b56867"
+    }
+  ],
+  "generationCommand": "scripts/perf/run-m18-comparative-qualification.sh",
+  "gitSha": "b68c5d03fe4945852d9b22c2aba602d0863cc6cb",
+  "gitTree": "0fa3ea678f1f7fcad16fe0594256d0f8ee940277",
+  "profiles": [
+    {
+      "environment": {
+        "arch": "x86_64",
+        "cpuModel": "Intel(R) Core(TM) i5-8350U CPU @ 1.70GHz",
+        "kernel": "7.2.4-3-cachyos",
+        "os": "Linux",
+        "osDistro": "CachyOS",
+        "processorCount": 8,
+        "totalMemoryBytes": 12262699008
+      },
+      "id": "J21-G1",
+      "java": {
+        "aotSupported": false,
+        "collector": "G1",
+        "compactObjectHeaders": false,
+        "executable": "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "majorVersion": 21,
+        "profile": "J21-G1",
+        "standardJvmFlags": [
+          "-server",
+          "-Xms2g",
+          "-Xmx2g",
+          "-XX:+AlwaysPreTouch",
+          "-XX:+UseG1GC"
+        ],
+        "vendor": "Arch Linux",
+        "version": "21.0.12.1",
+        "virtualThreadsSupported": true,
+        "vm": "OpenJDK Runtime Environment (build 21.0.12.1+1)"
+      }
+    },
+    {
+      "environment": {
+        "arch": "x86_64",
+        "cpuModel": "Intel(R) Core(TM) i5-8350U CPU @ 1.70GHz",
+        "kernel": "7.2.4-3-cachyos",
+        "os": "Linux",
+        "osDistro": "CachyOS",
+        "processorCount": 8,
+        "totalMemoryBytes": 12262699008
+      },
+      "id": "J25-G1",
+      "java": {
+        "aotSupported": false,
+        "collector": "G1",
+        "compactObjectHeaders": false,
+        "executable": "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
+        "majorVersion": 25,
+        "profile": "J25-G1",
+        "standardJvmFlags": [
+          "-server",
+          "-Xms2g",
+          "-Xmx2g",
+          "-XX:+AlwaysPreTouch",
+          "-XX:+UseG1GC"
+        ],
+        "vendor": "Oracle Corporation",
+        "version": "25.0.4",
+        "virtualThreadsSupported": true,
+        "vm": "Java(TM) SE Runtime Environment Oracle GraalVM 25.0.4+7.1 (build 25.0.4+7-LTS-jvmci-b01)"
+      }
+    }
+  ],
+  "qualificationInputSha256": "f19bdbc9aa89554bbc5481a8813aaa37c18d994a776f1c26fb83331f8faeb7c8",
+  "qualificationProtocol": {
+    "forks": 3,
+    "iterationSeconds": 1,
+    "measurementIterations": 10,
+    "warmupIterations": 5
+  },
+  "schemaVersion": "1.0.0"
+}
