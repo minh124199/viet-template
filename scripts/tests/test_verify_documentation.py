@@ -241,6 +241,47 @@ viet-template.non-existent=123
         self.assertTrue(any("SECURITY:UNKNOWN_OP" in err for err in errors))
 
     # -------------------------------------------------------------------------
+    # Check 9: Compatibility Matrix Synchronization
+    # -------------------------------------------------------------------------
+
+    def test_current_repo_compatibility_matrix_is_synced(self):
+        errors = doc_verifier.check_compatibility_matrix_synced(self.repo_root)
+        self.assertEqual([], errors, f"Unexpected compatibility matrix sync errors: {errors}")
+
+    def test_compatibility_matrix_rejects_missing_matrix_file(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            errors = doc_verifier.check_compatibility_matrix_synced(tmp_root)
+            self.assertTrue(any("not found" in err.lower() for err in errors))
+
+    def test_compatibility_matrix_rejects_missing_doc(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            (tmp_root / "config" / "tck").mkdir(parents=True)
+            (tmp_root / "config" / "tck" / "vtl-feature-matrix.json").write_text(
+                (self.repo_root / "config" / "tck" / "vtl-feature-matrix.json").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            errors = doc_verifier.check_compatibility_matrix_synced(tmp_root)
+            self.assertTrue(any("missing" in err.lower() for err in errors))
+
+    def test_compatibility_matrix_rejects_out_of_sync(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            (tmp_root / "config" / "tck").mkdir(parents=True)
+            (tmp_root / "docs" / "migration").mkdir(parents=True)
+            (tmp_root / "config" / "tck" / "vtl-feature-matrix.json").write_text(
+                (self.repo_root / "config" / "tck" / "vtl-feature-matrix.json").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            (tmp_root / "docs" / "migration" / "compatibility-matrix.md").write_text(
+                "# Stale Matrix\n",
+                encoding="utf-8",
+            )
+            errors = doc_verifier.check_compatibility_matrix_synced(tmp_root)
+            self.assertTrue(any("out of sync" in err.lower() for err in errors))
+
+    # -------------------------------------------------------------------------
     # Orchestration
     # -------------------------------------------------------------------------
 

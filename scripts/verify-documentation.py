@@ -20,6 +20,8 @@ Automated documentation verification infrastructure for Viet Template:
    in documentation correspond to registered types in config/api-baseline/.
 8. Diagnostic Code Consistency: Ensures diagnostic codes mentioned in documentation
    match known codes in the engine or adhere to defined diagnostic namespaces.
+9. Compatibility Matrix Synchronization: Ensures docs/migration/compatibility-matrix.md
+   is present and in sync with config/tck/vtl-feature-matrix.json.
 """
 
 import argparse
@@ -666,6 +668,52 @@ def check_all_diagnostic_codes(repo_root: Path) -> list[str]:
 
 
 # =============================================================================
+# CHECK 9: Compatibility Matrix Synchronization
+# =============================================================================
+
+def check_compatibility_matrix_synced(repo_root: Path) -> list[str]:
+    """Verifies that docs/migration/compatibility-matrix.md is synchronized with config/tck/vtl-feature-matrix.json."""
+    errors = []
+    matrix_file = repo_root / "config" / "tck" / "vtl-feature-matrix.json"
+    doc_file = repo_root / "docs" / "migration" / "compatibility-matrix.md"
+
+    if not matrix_file.is_file():
+        errors.append(f"Feature matrix file not found: {matrix_file}")
+        return errors
+
+    if not doc_file.is_file():
+        errors.append(
+            f"Compatibility matrix documentation missing: {doc_file}. "
+            "Run 'python3 scripts/generate-compatibility-matrix.py' to generate it."
+        )
+        return errors
+
+    try:
+        gen_script = repo_root / "scripts" / "generate-compatibility-matrix.py"
+        if not gen_script.is_file():
+            gen_script = Path(__file__).resolve().parent / "generate-compatibility-matrix.py"
+
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("generate_compatibility_matrix_mod", gen_script)
+        if spec and spec.loader:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            expected = mod.generate_compatibility_matrix(matrix_file)
+            actual = doc_file.read_text(encoding="utf-8")
+            if actual != expected:
+                errors.append(
+                    f"Compatibility matrix '{doc_file}' is out of sync with '{matrix_file}'. "
+                    "Run 'python3 scripts/generate-compatibility-matrix.py' to synchronize."
+                )
+        else:
+            errors.append(f"Could not load generator script: {gen_script}")
+    except Exception as e:
+        errors.append(f"Failed to verify compatibility matrix synchronization: {e}")
+
+    return errors
+
+
+# =============================================================================
 # TOP-LEVEL VERIFICATION ORCHESTRATION
 # =============================================================================
 
@@ -682,6 +730,7 @@ def verify_all(repo_root: Path, verbose: bool = False) -> list[str]:
         ("Internal Markdown Link Resolution", check_all_markdown_links),
         ("Public Type Classification Alignment", check_all_public_types),
         ("Diagnostic Code Consistency", check_all_diagnostic_codes),
+        ("Compatibility Matrix Synchronization", check_compatibility_matrix_synced),
     ]
 
     for name, check_fn in checks:
