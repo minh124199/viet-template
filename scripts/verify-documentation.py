@@ -542,9 +542,9 @@ def check_public_types_in_text(
     """Verifies that public type mentions in text correspond to registered types."""
     errors = []
 
-    # 1. FQCN mentions for production packages (ignoring .benchmarks. and .tck.)
+    # 1. FQCN mentions for production packages (ignoring .benchmarks., .tck., and .generated.)
     fqcn_pattern = re.compile(
-        r"\b(io\.github\.minh124199\.viettemplate\.(?!benchmarks\.|tck\.)[A-Za-z0-9_.]+)\b"
+        r"\b(io\.github\.minh124199\.viettemplate\.(?!benchmarks\.|tck\.|generated\.)[A-Za-z0-9_.]+)\b"
     )
     for m in fqcn_pattern.finditer(text):
         fqcn = m.group(1).rstrip(".")
