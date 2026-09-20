@@ -5,12 +5,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 MAVEN_REPO_LOCAL="${MAVEN_REPO_LOCAL:-${VT_DEVTOOLS_M2_REPO:-/tmp/viet-template-devtools-m2}}"
+PROJECT_VERSION="$(sed -n 's/^[[:space:]]*<version>\([^<]*\)<\/version>/\1/p' "${ROOT_DIR}/pom.xml" | head -n 1)"
 
-echo "[BOOTSTRAP] Preparing Viet Template 0.2.2-SNAPSHOT reactor artifacts in ${MAVEN_REPO_LOCAL}..."
+echo "[BOOTSTRAP] Preparing Viet Template ${PROJECT_VERSION} reactor artifacts in ${MAVEN_REPO_LOCAL}..."
 "${ROOT_DIR}/gradlew" publishToMavenLocal --no-daemon -x test -Dmaven.repo.local="${MAVEN_REPO_LOCAL}" -q
 "${ROOT_DIR}/mvnw" install -DskipTests -Dspotless.check.skip=true -B -Dmaven.repo.local="${MAVEN_REPO_LOCAL}" -q
 
-# Pre-flight assertions verifying snapshot artifacts exist in ${MAVEN_REPO_LOCAL}
+# Pre-flight assertions verifying artifacts exist in ${MAVEN_REPO_LOCAL}
 REQUIRED_MODULES=(
     "viet-template-parent"
     "viet-template-api"
@@ -27,16 +28,16 @@ REQUIRED_MODULES=(
 
 for mod in "${REQUIRED_MODULES[@]}"; do
     if [ "${mod}" = "viet-template-parent" ]; then
-        artifact_path="${MAVEN_REPO_LOCAL}/io/github/minh124199/${mod}/0.2.2-SNAPSHOT/${mod}-0.2.2-SNAPSHOT.pom"
+        artifact_path="${MAVEN_REPO_LOCAL}/io/github/minh124199/${mod}/${PROJECT_VERSION}/${mod}-${PROJECT_VERSION}.pom"
     else
-        artifact_path="${MAVEN_REPO_LOCAL}/io/github/minh124199/${mod}/0.2.2-SNAPSHOT/${mod}-0.2.2-SNAPSHOT.jar"
+        artifact_path="${MAVEN_REPO_LOCAL}/io/github/minh124199/${mod}/${PROJECT_VERSION}/${mod}-${PROJECT_VERSION}.jar"
     fi
     if [ ! -f "${artifact_path}" ]; then
         echo "[FAIL] Pre-flight assertion failed: missing ${artifact_path}"
         exit 1
     fi
 done
-echo "[PASS] All 11 required 0.2.2-SNAPSHOT reactor artifacts verified in ${MAVEN_REPO_LOCAL}."
+echo "[PASS] All 11 required ${PROJECT_VERSION} reactor artifacts verified in ${MAVEN_REPO_LOCAL}."
 
 APP_PID=""
 CURRENT_FIXTURE_DIR=""

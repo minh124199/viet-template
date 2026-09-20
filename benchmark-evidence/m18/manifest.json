@@ -22,11 +22,11 @@
   "correctness": {
     "engines": 6,
     "passed": true,
-    "sourceSha": "b68c5d03fe4945852d9b22c2aba602d0863cc6cb",
+    "sourceSha": "a667ad050bbd0050308c0d8af7fa48cf343473bc",
     "testClass": "CrossEngineFixtureCorrectnessTest",
     "workloads": 8
   },
-  "createdAt": "2026-09-20T03:13:45Z",
+  "createdAt": "2026-09-20T12:43:47Z",
   "files": [
     {
       "kind": "environment",
@@ -55,8 +55,8 @@
     }
   ],
   "generationCommand": "scripts/perf/run-m18-comparative-qualification.sh",
-  "gitSha": "b68c5d03fe4945852d9b22c2aba602d0863cc6cb",
-  "gitTree": "0fa3ea678f1f7fcad16fe0594256d0f8ee940277",
+  "gitSha": "a667ad050bbd0050308c0d8af7fa48cf343473bc",
+  "gitTree": "d9bac534dd036ef3aa4c9711b484fd01b6533c74",
   "profiles": [
     {
       "environment": {
@@ -121,7 +121,7 @@
       }
     }
   ],
-  "qualificationInputSha256": "f19bdbc9aa89554bbc5481a8813aaa37c18d994a776f1c26fb83331f8faeb7c8",
+  "qualificationInputSha256": "afa46a1bf8a83878ee5a6ff845b4c635b5eae94d7f1fc1e9f56d8e94f4f45fc8",
   "qualificationProtocol": {
     "forks": 3,
     "iterationSeconds": 1,
