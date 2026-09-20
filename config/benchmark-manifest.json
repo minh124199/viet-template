@@ -1,0 +1,326 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "title": "Viet Template Benchmark Manifest & Comparative Methodology Specification",
+  "description": "Authoritative registry of internal and comparative benchmark workloads, execution tracks, fairness constraints, and marketing claim eligibility rules.",
+  "participatingEngines": [
+    {
+      "id": "viet-ir",
+      "name": "Viet Template (IR)",
+      "track": "TRACK_A_DYNAMIC",
+      "version": "0.2.2-SNAPSHOT",
+      "mode": "Reference AST / IR Interpreter"
+    },
+    {
+      "id": "viet-aot",
+      "name": "Viet Template (AOT)",
+      "track": "TRACK_B_COMPILED",
+      "version": "0.2.2-SNAPSHOT",
+      "mode": "Ahead-of-Time Bytecode Generator"
+    },
+    {
+      "id": "velocity",
+      "name": "Apache Velocity",
+      "track": "TRACK_A_DYNAMIC",
+      "version": "2.4.1",
+      "mode": "Dynamic AST Interpreter"
+    },
+    {
+      "id": "thymeleaf",
+      "name": "Thymeleaf",
+      "track": "TRACK_A_DYNAMIC",
+      "version": "3.1.5.RELEASE",
+      "mode": "Expression-Driven DOM / Markup Processor"
+    },
+    {
+      "id": "jte",
+      "name": "Java Template Engine (jte)",
+      "track": "TRACK_B_COMPILED",
+      "version": "3.2.4",
+      "mode": "Precompiled Java Class Generator"
+    },
+    {
+      "id": "qute",
+      "name": "Quarkus Qute",
+      "track": "TRACK_B_COMPILED",
+      "version": "3.39.4",
+      "mode": "Type-Safe Value Resolver / Compiled Section Helpers"
+    }
+  ],
+  "comparisonTracks": {
+    "TRACK_A_DYNAMIC": {
+      "name": "Dynamic & Interpreted Execution Track",
+      "description": "Engines executing untyped or dynamic lexical scopes via runtime interpretation, dynamic property resolution, or AST evaluation.",
+      "engines": ["viet-ir", "velocity", "thymeleaf"]
+    },
+    "TRACK_B_COMPILED": {
+      "name": "Compiled & Bytecode Execution Track",
+      "description": "Engines executing precompiled JVM bytecode, ahead-of-time generated classes, or direct-dispatch accessor paths.",
+      "engines": ["viet-aot", "jte", "qute"]
+    }
+  },
+  "fairnessRules": {
+    "escapingSemantics": {
+      "rule": "RAW vs HTML_ESCAPED Segregation",
+      "description": "Workloads C01–C07 and B01–B07 evaluate unescaped raw throughput. Workloads C08 and B08 evaluate contextual HTML escaping. Cross-engine comparisons must compare raw with raw and escaped with escaped; unescaped templates must never be compared against auto-escaping configurations without explicit normalization."
+    },
+    "warmedTemplateCaching": {
+      "rule": "Mandatory Pre-Warm Cache Isolation",
+      "description": "All templates across all engines must be parsed, compiled, and resolved into cache during JMH @Setup(Level.Trial). Zero template file I/O, on-demand compilation, or classloading overhead is permitted inside steady-state benchmark measurement loops."
+    },
+    "sinkSemantics": {
+      "rule": "Uniform Blackhole Materialization",
+      "description": "All engines must materialize rendered content into standard in-memory buffers (String or byte output) consumed uniformly via JMH Blackhole to prevent dead-code elimination, compiler dead-loop elision, and uneven network/socket flushing bias."
+    },
+    "runtimeEnvironment": {
+      "rule": "Standardized JVM Runtime Settings",
+      "description": "All benchmark runs must enforce identical JVM flags (-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC) and consume identical data model instances across all comparative adapters."
+    }
+  },
+  "jmhProtocols": {
+    "defaultMode": "Throughput",
+    "outputTimeUnit": "SECONDS",
+    "warmup": {
+      "iterations": 3,
+      "timeSeconds": 1
+    },
+    "measurement": {
+      "iterations": 5,
+      "timeSeconds": 1
+    },
+    "forks": 1,
+    "profilers": ["gc"]
+  },
+  "workloads": [
+    {
+      "id": "C01",
+      "name": "Static HTML Streaming",
+      "suite": "ComparativeEngineBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["TRACK_A_DYNAMIC", "TRACK_B_COMPILED"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "Pure static HTML boilerplate streaming without dynamic variable interpolation, measuring raw buffer copying efficiency."
+    },
+    {
+      "id": "C02",
+      "name": "Scalar Variables",
+      "suite": "ComparativeEngineBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["TRACK_A_DYNAMIC", "TRACK_B_COMPILED"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "Evaluation of flat scalar variables (strings, integers, booleans) measuring lexical variable lookup and primitive formatting."
+    },
+    {
+      "id": "C03",
+      "name": "Deep Property Chains",
+      "suite": "ComparativeEngineBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["TRACK_A_DYNAMIC", "TRACK_B_COMPILED"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "Deeply nested bean/record access (order.customer.address.city.name) testing getter dispatch and reflection overhead."
+    },
+    {
+      "id": "C04",
+      "name": "Conditionals & Branching",
+      "suite": "ComparativeEngineBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["TRACK_A_DYNAMIC", "TRACK_B_COMPILED"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "Complex boolean conditionals, truthiness checks, and multi-branch alternatives testing branch evaluation speed."
+    },
+    {
+      "id": "C05",
+      "name": "Small Table Foreach Loop",
+      "suite": "ComparativeEngineBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["TRACK_A_DYNAMIC", "TRACK_B_COMPILED"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "Standard web table rendering (5 items x 3 columns) measuring loop frame allocation and row iteration efficiency."
+    },
+    {
+      "id": "C06",
+      "name": "Large Table Foreach Loop",
+      "suite": "ComparativeEngineBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["TRACK_A_DYNAMIC", "TRACK_B_COMPILED"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "High-volume batch rendering (100 items x 3 columns) measuring streaming allocation rate and memory stability."
+    },
+    {
+      "id": "C07",
+      "name": "Nested Foreach Loops",
+      "suite": "ComparativeEngineBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["TRACK_A_DYNAMIC", "TRACK_B_COMPILED"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "Hierarchical parent-child collection rendering measuring nested activation frame management and parent context navigation."
+    },
+    {
+      "id": "C08",
+      "name": "HTML Contextual Escaping",
+      "suite": "ComparativeEngineBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["TRACK_A_DYNAMIC", "TRACK_B_COMPILED"],
+      "escaping": "HTML_ESCAPED",
+      "claimEligible": true,
+      "description": "Streaming HTML escaping of unsafe characters (&, <, >, \", ') measuring escaper lookup, buffering, and encoding throughput."
+    },
+    {
+      "id": "B01",
+      "name": "Static HTML (20 KB)",
+      "suite": "RenderingEndToEndBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "20 KB static HTML chunk rendering measuring zero-allocation literal write speed."
+    },
+    {
+      "id": "B02",
+      "name": "Scalar Substitutions (50 scalars)",
+      "suite": "RenderingEndToEndBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "Template binding 50 variables of mixed types measuring array slot access vs dynamic lookup."
+    },
+    {
+      "id": "B03",
+      "name": "Deep Property Chain",
+      "suite": "RenderingEndToEndBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "Depth 4-5 domain records measuring inline getter dispatch vs dynamic call site invocation."
+    },
+    {
+      "id": "B04",
+      "name": "Mixed Conditionals (100 branches)",
+      "suite": "RenderingEndToEndBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "100 conditionals exercising boolean logic, null checks, and numeric truthiness."
+    },
+    {
+      "id": "B05",
+      "name": "Small Table Loop (10 rows x 5 cols)",
+      "suite": "ForeachRenderingBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "Standard web table rendering measuring minimal per-row frame allocation."
+    },
+    {
+      "id": "B06",
+      "name": "Large Table Loop (1,000 rows x 5 cols)",
+      "suite": "ForeachRenderingBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "High-volume batch rendering measuring maximum streaming throughput and zero GC pause operation."
+    },
+    {
+      "id": "B07",
+      "name": "Nested Loops (100 x 10)",
+      "suite": "ForeachRenderingBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": true,
+      "description": "Hierarchical structures with $foreach.parent navigation measuring scope stack efficiency."
+    },
+    {
+      "id": "B08",
+      "name": "Heavy Escaping",
+      "suite": "HtmlEscapingBenchmark",
+      "category": "QUALIFICATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "HTML_ESCAPED",
+      "claimEligible": true,
+      "description": "High density of unsafe characters measuring zero-allocation streaming HTML escaper performance."
+    },
+    {
+      "id": "B09",
+      "name": "Monomorphic Property Access",
+      "suite": "CallSiteBenchmark",
+      "category": "CHARACTERIZATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": false,
+      "description": "Single receiver type at dynamic call site measuring exact class guard branch overhead."
+    },
+    {
+      "id": "B10",
+      "name": "Polymorphic PIC Access (4 types)",
+      "suite": "CallSiteBenchmark",
+      "category": "CHARACTERIZATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": false,
+      "description": "Dynamic call site invoked with 4 distinct receiver shapes measuring AccessLink linear scan."
+    },
+    {
+      "id": "B11",
+      "name": "Macro-Heavy Rendering",
+      "suite": "RenderingEndToEndBenchmark",
+      "category": "CHARACTERIZATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": false,
+      "description": "Repeated calls to nested local and global macros testing macro parameter binding and frame reuse."
+    },
+    {
+      "id": "B12",
+      "name": "Two-Stage Layout Rendering",
+      "suite": "RenderingEndToEndBenchmark",
+      "category": "CHARACTERIZATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": false,
+      "description": "Screen and layout two-pass rendering evaluating screen_content capture buffer efficiency."
+    },
+    {
+      "id": "B13",
+      "name": "Large Report Streaming (1-5 MiB)",
+      "suite": "StreamingOutputQualificationBenchmark",
+      "category": "CHARACTERIZATION",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": false,
+      "description": "Multi-megabyte streaming text generation to OutputStream testing buffer flush and heap stability."
+    },
+    {
+      "id": "B14",
+      "name": "Missing / Denied Property Failure",
+      "suite": "RenderingEndToEndBenchmark",
+      "category": "DIAGNOSTIC",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": false,
+      "description": "Strict mode errors and security policy denial paths verifying clean diagnostic assembly without memory leaks."
+    },
+    {
+      "id": "B15",
+      "name": "Compile & Invalidate 1,000 Templates",
+      "suite": "CacheInvalidationBenchmark",
+      "category": "DIAGNOSTIC",
+      "tracks": ["INTERNAL_VIET"],
+      "escaping": "RAW",
+      "claimEligible": false,
+      "description": "Rapid template compilation and reverse-indexed invalidation under concurrency."
+    }
+  ]
+}

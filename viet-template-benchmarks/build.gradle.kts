@@ -9,6 +9,12 @@ dependencies {
     implementation(libs.jmh.core)
     annotationProcessor(libs.jmh.generator.annprocess)
 
+    implementation(libs.velocity.engine.core)
+    implementation(libs.qute.core)
+    implementation(libs.jte)
+    implementation(libs.jte.runtime)
+    implementation(libs.thymeleaf)
+
     testImplementation(project(":viet-template-api"))
     testImplementation(project(":viet-template-runtime"))
     testImplementation(project(":viet-template-language-vtl"))
