@@ -656,13 +656,13 @@ Every optimization must preserve:
 
 ## 18. TCK release gate
 
-- [ ] TCK is independently runnable.
-- [ ] Every syntax feature maps to TCK IDs.
-- [ ] Every compatibility profile has its own expected feature set.
-- [ ] Compiler and interpreter execute the same TCK corpus.
-- [ ] AOT and dynamic backend outputs are differential-tested against the interpreter.
-- [ ] VTL migration fixtures are additionally compared with Apache Velocity.
-- [ ] Release blocks on unexpected semantic differences.
+- [x] TCK is independently runnable.
+- [x] Every syntax feature maps to TCK IDs.
+- [x] Every compatibility profile has its own expected feature set.
+- [x] Compiler and interpreter execute the same TCK corpus.
+- [x] AOT and dynamic backend outputs are differential-tested against the interpreter.
+- [x] VTL migration fixtures are additionally compared with Apache Velocity.
+- [x] Release blocks on unexpected semantic differences.
 
 ---
 
@@ -873,3 +873,4 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] `docs/40-m18-tck-performance-release-gates.md` — formal M18 milestone document
 - [x] `docs/18-roadmap.md` — M18 status updated to COMPLETE & FROZEN after qualification
 - [x] `.github/workflows/ci.yml` — `tck-gates` job added (Tier A)
+- [x] Milestones M17 and M18 released as 0.2.2 on 2026-09-21 (published to Maven Central and GitHub Releases, public consumer smoke tests passing; active development on main advanced to 0.2.3-SNAPSHOT).
