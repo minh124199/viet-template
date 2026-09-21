@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -362,17 +363,24 @@ class VietTemplateAutoConfigurationTest {
   @Test
   @DisplayName("Configuration metadata contains suffix and suffixes properties")
   void configurationMetadataVerification() throws Exception {
-    try (InputStream in =
-        getClass()
-            .getClassLoader()
-            .getResourceAsStream("META-INF/spring-configuration-metadata.json")) {
-      assertThat(in).isNotNull();
-      String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-      assertThat(json).contains("\"name\": \"viet-template.suffix\"");
-      assertThat(json).contains("\"name\": \"viet-template.suffixes\"");
-      assertThat(json).contains("\"type\": \"java.lang.String\"");
-      assertThat(json).contains("\"type\": \"java.util.List<java.lang.String>\"");
+    Enumeration<URL> resources =
+        getClass().getClassLoader().getResources("META-INF/spring-configuration-metadata.json");
+    String vietTemplateMetadata = null;
+    while (resources.hasMoreElements()) {
+      URL url = resources.nextElement();
+      try (InputStream in = url.openStream()) {
+        String content = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        if (content.contains("viet-template.suffix")) {
+          vietTemplateMetadata = content;
+          break;
+        }
+      }
     }
+    assertThat(vietTemplateMetadata).isNotNull();
+    assertThat(vietTemplateMetadata).contains("\"name\": \"viet-template.suffix\"");
+    assertThat(vietTemplateMetadata).contains("\"name\": \"viet-template.suffixes\"");
+    assertThat(vietTemplateMetadata).contains("\"type\": \"java.lang.String\"");
+    assertThat(vietTemplateMetadata).contains("\"type\": \"java.util.List<java.lang.String>\"");
   }
 
   @Configuration(proxyBeanMethods = false)
