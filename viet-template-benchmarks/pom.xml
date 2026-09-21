@@ -102,6 +102,15 @@
             <groupId>io.github.minh124199</groupId>
             <artifactId>viet-template-vtl-interpreter</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.github.minh124199</groupId>
+            <artifactId>viet-template-spring</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- JMH Dependencies -->
         <dependency>
