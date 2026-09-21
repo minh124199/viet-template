@@ -5,6 +5,8 @@ dependencies {
     implementation(project(":viet-template-runtime"))
     implementation(project(":viet-template-language-vtl"))
     implementation(project(":viet-template-vtl-interpreter"))
+    implementation(project(":viet-template-spring"))
+    implementation(libs.jakarta.servlet.api)
 
     implementation(libs.jmh.core)
     annotationProcessor(libs.jmh.generator.annprocess)

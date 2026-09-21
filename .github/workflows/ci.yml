@@ -214,6 +214,9 @@ jobs:
           RELEASE_TAG: ''
         run: python3 scripts/verify-release-metadata.py --check-workflow-contract --check-publication-metadata
 
+      - name: Verify documentation
+        run: python3 scripts/verify-documentation.py
+
       - name: Run release infrastructure unit tests
         run: python3 -m unittest discover -s scripts/tests -v
 

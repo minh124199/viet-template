@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.github.minh124199.examples</groupId>
+    <artifactId>plain-java-example</artifactId>
+    <version>0.2.2</version>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <viet-template.version>0.2.3-SNAPSHOT</viet-template.version>
+        <junit.version>5.11.3</junit.version>
+        <assertj.version>3.26.3</assertj.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.minh124199</groupId>
+            <artifactId>viet-template-api</artifactId>
+            <version>${viet-template.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.minh124199</groupId>
+            <artifactId>viet-template-runtime</artifactId>
+            <version>${viet-template.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.minh124199</groupId>
+            <artifactId>viet-template-vtl-interpreter</artifactId>
+            <version>${viet-template.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>21</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>

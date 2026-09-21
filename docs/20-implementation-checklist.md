@@ -581,6 +581,7 @@ Every optimization must preserve:
 
 - [x] `VietTemplateView` (Spring MVC `View` implementation).
 - [x] `VietTemplateViewResolver` with caching and AOT index discovery fallback.
+- [x] First-class multiple-suffix support (`suffixes`) with deterministic candidate evaluation, legacy `suffix` backward compatibility, cache invalidation, and Spring Boot binding.
 - [x] Stream directly to response output where safe (`Utf8OutputStreamTemplateOutput` + `NonClosingOutputStream`).
 - [x] Content type/charset behavior (`text/html;charset=UTF-8`, UTF-8 validated).
 - [x] Locale-aware template resolution / view caching (`ConcurrentHashMap`).
@@ -873,4 +874,45 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] `docs/40-m18-tck-performance-release-gates.md` — formal M18 milestone document
 - [x] `docs/18-roadmap.md` — M18 status updated to COMPLETE & FROZEN after qualification
 - [x] `.github/workflows/ci.yml` — `tck-gates` job added (Tier A)
-- [x] Milestones M17 and M18 released as 0.2.2 on 2026-09-21 (published to Maven Central and GitHub Releases, public consumer smoke tests passing; active development on main advanced to 0.2.3-SNAPSHOT).
+- [x] Milestones M17 and M18 released as 0.2.2 on 2026-09-20 (published to Maven Central and GitHub Releases, public consumer smoke tests passing; active development on main advanced to 0.2.3-SNAPSHOT).
+
+---
+
+## Milestone M20 — 1.0 Adoption Readiness, Migration & Documentation Suite
+
+### Deliverable A: Release Consistency & Documentation Infrastructure
+- [x] **A1.** Fix release date consistency (`2026-09-20`) across README, CHANGELOG, roadmap, and checklist.
+- [x] **A2.** `scripts/verify-documentation.py` — comprehensive documentation verification engine (release dates, coordinates, Java 21 baseline, Spring properties, internal links, public types, diagnostic codes, matrix sync).
+- [x] **A3.** `scripts/tests/test_verify_documentation.py` — unit tests (30 tests) for documentation verification engine.
+- [x] **A4.** `.github/workflows/ci.yml` — documentation verification step integrated into CI quick-checks.
+
+### Deliverable B: Language Reference & Compatibility
+- [x] **B1.** `scripts/generate-compatibility-matrix.py` — sync generator from `config/tck/vtl-feature-matrix.json`.
+- [x] **B2.** `docs/migration/compatibility-matrix.md` — 80 features, 20 categories, 100% TCK coverage.
+- [x] **B3.** `docs/language/syntax-reference.md` — complete VTL syntax, directives, and operator precedence.
+- [x] **B4.** `docs/language/undefined-null-semantics.md` — 3-state evaluation model conceptual guide.
+- [x] **B5.** `docs/language/foreach-and-scopes.md` — `$foreach` metadata, frame lifecycle, and scope isolation.
+- [x] **B6.** `docs/language/macros-and-layouts.md` — Velocimacros, global libraries, and layout rendering plans.
+- [x] **B7.** `docs/language/typed-models.md` — `#* @vtlvariable *#` typed declarations and compile-time diagnostics.
+
+### Deliverable C: Apache Velocity Migration Suite
+- [x] **C1.** `docs/migration/velocity-migration-guide.md` — step-by-step replacement guide, context, layouts, tools.
+- [x] **C2.** `docs/migration/velocity-differences.md` — intentional differences catalog (DIFF-001 through DIFF-003, sandboxing).
+- [x] **C3.** `VelocityMigrationPatternsTest.java` — executable regression fixture validating migration patterns.
+
+### Deliverable D: Security, Deployment & Spring Integration
+- [x] **D1.** `docs/security/secure-templates.md` — `MemberAccessPolicy`, `RenderBudget`, path confinement, CSP nonces.
+- [x] **D2.** `docs/deployment/production-aot.md` — Dev vs Prod profiles, AOT bytecode, `templates.idx`, cache sizing.
+- [x] **D3.** `docs/native-image/graalvm-native-image.md` — GraalVM Native Image compilation, runtime hints, native builds.
+- [x] **D4.** `docs/spring/spring-boot-integration.md` — Spring Boot 4 / Framework 7 starter, full property catalog.
+- [x] **D5.** `docs/build-tooling/maven.md` & `docs/build-tooling/gradle.md` — Maven and Gradle plugin guides.
+- [x] **D6.** `docs/extensions/extension-guide.md` — STABLE_SPI implementations, lifecycles, and error handling.
+- [x] **D7.** `examples/plain-java/` — standalone executable plain Java example fixture.
+
+### Deliverable E: Diagnostics, Performance Evidence & Readiness
+- [x] **E1.** `docs/diagnostics/error-catalog.md` — comprehensive error codes catalog with examples and fixes.
+- [x] **E2.** `docs/performance/comparative-benchmarks.md` — authoritative M18 C01–C08 comparative evidence across J21 and J25 with 4-gate qualification.
+- [x] **E3.** `docs/1.0-readiness-gap-analysis.md` — 15-point readiness audit, 99 stable vs 257 accidental public types, encapsulation roadmap.
+- [x] **E4.** `docs/getting-started/quickstart.md` — 5-minute quickstart guide.
+- [x] **E5.** `docs/getting-started/support-matrix.md` — complete JDK, build tooling, Spring, and OS support matrix.
+- [x] **E6.** `README.md` — restructured adoption-focused landing page.

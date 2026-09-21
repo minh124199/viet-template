@@ -69,7 +69,7 @@ To adhere to the Java-first design policy and avoid premature complexity:
 
 Release `0.2.0` introduces the next major internal runtime evolution, transitioning variable resolution from string-based hash lookups to compiler-assigned flat array slots and indexing the compilation cache for scalable invalidation.
 
-**Release Status**: 0.2.2 is RELEASED. Published to Maven Central and GitHub Releases on 2026-09-21 (0.2.0 on 2026-09-12, 0.2.1 on 2026-09-17). The supported release line is `0.2.x`. The current active development version is `0.2.3-SNAPSHOT` on `main`. Subsequent minor milestones target `0.3.x` (evidence-driven optimizations) and `1.0`.
+**Release Status**: 0.2.2 is RELEASED. Published to Maven Central and GitHub Releases on 2026-09-20 (0.2.0 on 2026-09-12, 0.2.1 on 2026-09-17). The supported release line is `0.2.x`. The current active development version is `0.2.3-SNAPSHOT` on `main`. Subsequent minor milestones target `0.3.x` (evidence-driven optimizations) and `1.0`.
 
 **Post-release infrastructure status**: 0.2.x release infrastructure hardening is COMPLETE. Central
 submission, publication monitoring, public-coordinate verification, consumer smoke testing, and
@@ -241,7 +241,16 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
     - Comparative JMH benchmarks against Apache Velocity 2.4.1, Quarkus Qute 3.39.4, jte 3.2.4, Thymeleaf 3.1.5.RELEASE across workloads C01–C08 (`ComparativeEngineBenchmark`); cross-engine fixture correctness verified (48 tests).
     - Master release gate: `./scripts/verify-m18-release-gates.sh` (8 gates: coverage, surface, API compat, TCK suite, cross-engine correctness, independent consumer, JSON validity × 2).
     - Evidence infrastructure: `benchmark-evidence/m18/`, report generator `scripts/perf/generate-benchmark-report.py`, `config/benchmark-manifest.json` (C01–C08 + B01–B15).
-- **Production Hardening**:
-  - GraalVM Native Image reachability-metadata verification.
-  - Comprehensive migration guide from Apache Velocity.
-  - Publication to Maven Central under `io.github.minh124199:viet-template-*`.
+- **Milestone M20 (1.0 Adoption Readiness, Migration & Documentation Suite) — COMPLETE**:
+    - Complete user documentation suite across 11 thematic areas in `docs/` (`getting-started/`, `language/`, `migration/`, `security/`, `deployment/`, `native-image/`, `build-tooling/`, `spring/`, `diagnostics/`, `extensions/`, `performance/`).
+    - Authoritative Apache Velocity 2.4.1 migration roadmap (`docs/migration/velocity-migration-guide.md`) and differences catalog (`docs/migration/velocity-differences.md`) with executable test fixtures.
+    - Synchronized compatibility matrix (`docs/migration/compatibility-matrix.md`) derived from `config/tck/vtl-feature-matrix.json` (80 features, 100% TCK coverage).
+    - Diagnostic error catalog (`docs/diagnostics/error-catalog.md`) covering all parse, compile, semantic, and runtime codes with remedies.
+    - Comparative benchmark evidence report (`docs/performance/comparative-benchmarks.md`) qualifying C01–C08 on Java 21/25 against Velocity, Qute, jte, and Thymeleaf.
+    - 1.0 Readiness Gap Analysis (`docs/1.0-readiness-gap-analysis.md`) evaluating all 15 architectural areas and establishing the public surface containment plan (99 stable vs 257 accidental types).
+    - Automated CI documentation verification engine (`scripts/verify-documentation.py`) and 30 unit tests.
+    - Restructured adoption-focused `README.md`, 5-minute quickstart, and standalone plain Java executable fixture (`examples/plain-java/`).
+- **Roadmap Sequence Towards 1.0 GA**:
+  - **0.2.3 (Immediate Stabilization Release)**: Release documentation suite, migration guides, diagnostic catalog, and build tooling refinements to external developers.
+  - **0.3.0 (Surface Encapsulation Milestone)**: Modularize with `module-info.java` qualified exports and relocate 257 accidental public types to `*.internal.*`, securing binary compatibility.
+  - **1.0.0 GA**: General Availability release locking permanent SemVer binary backwards compatibility, validated by production adopters.

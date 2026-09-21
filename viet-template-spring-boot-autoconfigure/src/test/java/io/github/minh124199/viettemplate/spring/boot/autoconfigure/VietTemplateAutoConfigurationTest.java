@@ -6,9 +6,11 @@ import io.github.minh124199.viettemplate.api.TemplateEngine;
 import io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer;
 import io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView;
 import io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,6 +49,7 @@ class VietTemplateAutoConfigurationTest {
           VietTemplateViewResolver resolver = context.getBean(VietTemplateViewResolver.class);
           assertThat(resolver.getPrefix()).isEmpty();
           assertThat(resolver.getSuffix()).isEmpty();
+          assertThat(resolver.getSuffixes()).isEmpty();
           assertThat(resolver.getContentType()).isEqualTo(VietTemplateView.DEFAULT_CONTENT_TYPE);
           assertThat(resolver.getCharset()).isEqualTo(StandardCharsets.UTF_8);
           assertThat(resolver.isCache()).isTrue();
@@ -201,6 +204,100 @@ class VietTemplateAutoConfigurationTest {
   }
 
   @Test
+  @DisplayName(
+      "Configuration properties bind indexed suffixes to VietTemplateProperties and resolver")
+  void indexedSuffixesBinding() {
+    this.webContextRunner
+        .withPropertyValues("viet-template.suffixes[0]=.vtl", "viet-template.suffixes[1]=.vm")
+        .run(
+            context -> {
+              VietTemplateProperties properties = context.getBean(VietTemplateProperties.class);
+              assertThat(properties.getSuffixes()).containsExactly(".vtl", ".vm");
+              assertThat(properties.determineEffectiveSuffixes()).containsExactly(".vtl", ".vm");
+
+              VietTemplateViewResolver resolver = context.getBean(VietTemplateViewResolver.class);
+              assertThat(resolver.getSuffix()).isEmpty();
+              assertThat(resolver.getSuffixes()).containsExactly(".vtl", ".vm");
+            });
+  }
+
+  @Test
+  @DisplayName(
+      "Configuration properties bind comma-separated suffixes to VietTemplateProperties and"
+          + " resolver")
+  void commaSeparatedSuffixesBinding() {
+    this.webContextRunner
+        .withPropertyValues("viet-template.suffixes=.vtl,.vm")
+        .run(
+            context -> {
+              VietTemplateProperties properties = context.getBean(VietTemplateProperties.class);
+              assertThat(properties.getSuffixes()).containsExactly(".vtl", ".vm");
+              assertThat(properties.determineEffectiveSuffixes()).containsExactly(".vtl", ".vm");
+
+              VietTemplateViewResolver resolver = context.getBean(VietTemplateViewResolver.class);
+              assertThat(resolver.getSuffix()).isEmpty();
+              assertThat(resolver.getSuffixes()).containsExactly(".vtl", ".vm");
+            });
+  }
+
+  @Test
+  @DisplayName(
+      "Configuration properties bind comma-separated suffixes with whitespace to"
+          + " VietTemplateProperties and resolver")
+  void commaSeparatedSuffixesWithWhitespaceBinding() {
+    this.webContextRunner
+        .withPropertyValues("viet-template.suffixes=.vtl, .vm")
+        .run(
+            context -> {
+              VietTemplateProperties properties = context.getBean(VietTemplateProperties.class);
+              assertThat(properties.getSuffixes()).containsExactly(".vtl", ".vm");
+              assertThat(properties.determineEffectiveSuffixes()).containsExactly(".vtl", ".vm");
+
+              VietTemplateViewResolver resolver = context.getBean(VietTemplateViewResolver.class);
+              assertThat(resolver.getSuffix()).isEmpty();
+              assertThat(resolver.getSuffixes()).containsExactly(".vtl", ".vm");
+            });
+  }
+
+  @Test
+  @DisplayName(
+      "Both suffix and suffixes set: suffixes takes precedence on resolver and"
+          + " determineEffectiveSuffixes")
+  void suffixAndSuffixesPrecedenceBinding() {
+    this.webContextRunner
+        .withPropertyValues("viet-template.suffix=.html", "viet-template.suffixes=.vtl,.vm")
+        .run(
+            context -> {
+              VietTemplateProperties properties = context.getBean(VietTemplateProperties.class);
+              assertThat(properties.getSuffix()).isEqualTo(".html");
+              assertThat(properties.getSuffixes()).containsExactly(".vtl", ".vm");
+              assertThat(properties.determineEffectiveSuffixes()).containsExactly(".vtl", ".vm");
+
+              VietTemplateViewResolver resolver = context.getBean(VietTemplateViewResolver.class);
+              assertThat(resolver.getSuffix()).isEqualTo(".html");
+              assertThat(resolver.getSuffixes()).containsExactly(".vtl", ".vm");
+            });
+  }
+
+  @Test
+  @DisplayName("Empty suffixes property falls back to single suffix")
+  void emptySuffixesBinding() {
+    this.webContextRunner
+        .withPropertyValues("viet-template.suffix=.vtl", "viet-template.suffixes=")
+        .run(
+            context -> {
+              VietTemplateProperties properties = context.getBean(VietTemplateProperties.class);
+              assertThat(properties.getSuffix()).isEqualTo(".vtl");
+              assertThat(properties.getSuffixes()).isEmpty();
+              assertThat(properties.determineEffectiveSuffixes()).containsExactly(".vtl");
+
+              VietTemplateViewResolver resolver = context.getBean(VietTemplateViewResolver.class);
+              assertThat(resolver.getSuffix()).isEqualTo(".vtl");
+              assertThat(resolver.getSuffixes()).isEmpty();
+            });
+  }
+
+  @Test
   @DisplayName("Clean TemplateEngine.close() invocation on application context shutdown")
   void cleanCloseOnShutdown() {
     this.webContextRunner.run(
@@ -261,6 +358,29 @@ class VietTemplateAutoConfigurationTest {
             context -> {
               assertThat(output.getAll()).doesNotContain("Cannot find template location");
             });
+  }
+
+  @Test
+  @DisplayName("Configuration metadata contains suffix and suffixes properties")
+  void configurationMetadataVerification() throws Exception {
+    Enumeration<URL> resources =
+        getClass().getClassLoader().getResources("META-INF/spring-configuration-metadata.json");
+    String vietTemplateMetadata = null;
+    while (resources.hasMoreElements()) {
+      URL url = resources.nextElement();
+      try (InputStream in = url.openStream()) {
+        String content = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        if (content.contains("viet-template.suffix")) {
+          vietTemplateMetadata = content;
+          break;
+        }
+      }
+    }
+    assertThat(vietTemplateMetadata).isNotNull();
+    assertThat(vietTemplateMetadata).contains("\"name\": \"viet-template.suffix\"");
+    assertThat(vietTemplateMetadata).contains("\"name\": \"viet-template.suffixes\"");
+    assertThat(vietTemplateMetadata).contains("\"type\": \"java.lang.String\"");
+    assertThat(vietTemplateMetadata).contains("\"type\": \"java.util.List<java.lang.String>\"");
   }
 
   @Configuration(proxyBeanMethods = false)
