@@ -66,13 +66,16 @@ Actual base/interface should follow current Spring 7 API and minimize unnecessar
 ## 5. View resolver
 
 ```java
-public final class VietTemplateViewResolver extends AbstractCachingViewResolver {
+public class VietTemplateViewResolver implements ViewResolver, Ordered, InitializingBean, ApplicationContextAware {
     private String prefix = "";
-    private String suffix = ".vm";
+    private volatile String suffix = "";
+    private volatile List<String> suffixes = List.of();
+    private volatile List<String> effectiveSuffixes = List.of("");
+    ...
 }
 ```
 
-Resolve logical template ids; do not assume direct filesystem paths.
+Resolve logical template ids; do not assume direct filesystem paths. Supports ordered multi-suffix candidate evaluation via `setSuffixes(List<String>)` (e.g. `[".vtl", ".vm"]`) while retaining single-suffix backward compatibility (`setSuffix(String)`). Candidate suffixes are probed in configured order, returning `null` when no candidate exists to allow Spring MVC `ViewResolver` chaining. Mutating configuration setters automatically clear the internal view cache.
 
 ## 6. Model exposure defaults
 

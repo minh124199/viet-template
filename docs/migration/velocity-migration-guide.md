@@ -148,6 +148,62 @@ viet-template.content-type=text/html;charset=UTF-8
 viet-template.runtime-compilation-enabled=true
 ```
 
+#### 4.2.1 Incremental Migration with Multiple Suffixes
+
+When migrating large enterprise Velocity codebases, converting hundreds of `.vm` templates to native `.vtl` templates in a single commit is often impractical. Viet Template provides first-class multiple-suffix support, allowing native and legacy templates to coexist and resolve deterministically:
+
+```yaml
+# application.yml
+viet-template:
+  prefix: templates/
+  suffixes:
+    - .vtl
+    - .vm
+```
+
+Or in `application.properties`:
+
+```properties
+viet-template.prefix=templates/
+viet-template.suffixes=.vtl,.vm
+```
+
+##### Directory Layout Example
+```text
+src/main/resources/templates/
+├── dashboard.vtl     # Migrated to native Viet Template
+├── users.vtl         # Migrated to native Viet Template
+├── account.vm        # Legacy Apache Velocity template
+└── reports.vm        # Legacy Apache Velocity template
+```
+
+##### Controllers Require Zero Changes
+```java
+@Controller
+public class AppController {
+
+    @GetMapping("/dashboard")
+    public String dashboard() {
+        return "dashboard"; // Resolves templates/dashboard.vtl
+    }
+
+    @GetMapping("/account")
+    public String account() {
+        return "account"; // Resolves templates/account.vm
+    }
+}
+```
+
+##### Precedence During Transition
+If both `account.vtl` and `account.vm` exist simultaneously:
+- `templates/account.vtl` is selected because `.vtl` appears first in the configured suffixes list.
+- `templates/account.vm` is ignored.
+
+This allows engineers to migrate files one by one at their own pace: creating `account.vtl` immediately takes over from `account.vm` without touching controller routes or view resolver configuration.
+
+> [!NOTE]
+> **Resource Location Ordering vs. Template Syntax Contract**: Configured suffixes control template resource location ordering exclusively. All resolved templates—regardless of file extension (`.vtl`, `.vm`, etc.)—are parsed, compiled, and executed under Viet Template's unified VTL compatibility contract and security sandbox, not by separate dialect interpreters.
+
 ### 4.3 Spring Security Integration
 
 In legacy applications, developers frequently passed raw Spring Security authentication objects into the template context. Viet Template provides safe, read-only view facades via `viet-template-spring-security`:

@@ -77,7 +77,8 @@ All properties reside under the `viet-template.*` namespace and map to `VietTemp
 |---|---|---|---|
 | `viet-template.enabled` | `boolean` | `true` | Enables or disables Viet Template auto-configuration. |
 | `viet-template.prefix` | `String` | `""` | Prefix prepended to view names when constructing template identifiers (e.g. `templates/`). |
-| `viet-template.suffix` | `String` | `""` | Suffix appended to view names (e.g. `.vm` or `.vtl`). |
+| `viet-template.suffix` | `String` | `""` | Legacy suffix appended to view names (e.g. `.vm` or `.vtl`). Used when `suffixes` is unconfigured. |
+| `viet-template.suffixes` | `List<String>` | `[]` | Ordered list of template suffixes to probe (e.g. `[.vtl, .vm]`). Takes precedence over `suffix` when non-empty. |
 | `viet-template.content-type` | `String` | `text/html;charset=UTF-8` | Content-Type header emitted by `VietTemplateView`. |
 | `viet-template.charset` | `Charset` | `UTF-8` | Character encoding used for template rendering and byte streaming. |
 | `viet-template.cache` | `boolean` | `true` | Enables view instance caching in `VietTemplateViewResolver`. Keep `true` in production. |
@@ -89,6 +90,33 @@ All properties reside under the `viet-template.*` namespace and map to `VietTemp
 | `viet-template.watch-debounce-millis` | `long` | `50` | Debounce window in milliseconds for filesystem modification events. |
 | `viet-template.order` | `int` | `Ordered.LOWEST_PRECEDENCE` | Order priority of `VietTemplateViewResolver` in the Spring MVC view resolver chain. |
 | `viet-template.security.enabled` | `boolean` | `true` | Enables Spring Security integration and exposes `$security` and `$csrf` in templates. |
+
+---
+
+### 3.1 Multiple Suffix Resolution & Gradual Migration
+
+Applications undergoing gradual migration from Apache Velocity or supporting multiple template file extensions can configure `viet-template.suffixes`:
+
+```yaml
+viet-template:
+  prefix: templates/
+  suffixes:
+    - .vtl
+    - .vm
+```
+
+When a controller returns a logical view name such as `"dashboard"`, `VietTemplateViewResolver` probes candidate paths in deterministic configured order:
+1. `templates/dashboard.vtl`
+2. `templates/dashboard.vm`
+3. Returns `null` if neither exists, permitting subsequent `ViewResolver`s in the Spring MVC chain to resolve the view.
+
+#### Precedence & Semantics
+- **Precedence**: `viet-template.suffixes` takes precedence whenever it is configured and non-empty. `viet-template.suffix` remains supported for backward compatibility.
+- **Single-suffix fallback**: If `suffixes` is empty or omitted, resolution falls back to `suffix` (default `""`).
+- **Explicit extension**: If the logical view name already ends with one of the configured non-empty suffixes (e.g. `return "dashboard.vm"`), that exact template is probed first without redundant suffix appending (`dashboard.vm` instead of `dashboard.vm.vtl`).
+- **Location check disabled**: When `viet-template.check-template-location=false`, no existence probes are performed; the resolver deterministically resolves using the first configured suffix.
+- **Syntax error isolation**: If a candidate template file exists on disk or classpath but fails to parse or compile, resolution does not fall through to lower-priority suffixes. The preferred template is selected and its compilation diagnostic is surfaced immediately during rendering.
+- **Resource location vs. language syntax**: Configured suffixes control template resource location ordering exclusively. All resolved templates—regardless of file extension (`.vtl`, `.vm`, `.html`, etc.)—are parsed, compiled, and executed under Viet Template's unified VTL compatibility contract and security sandboxing, not distinct dialect runtimes.
 
 ---
 

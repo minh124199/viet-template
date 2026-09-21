@@ -107,7 +107,9 @@ Configure `application.properties`:
 ```properties
 # Template resolution and encoding
 viet-template.prefix=templates/
-viet-template.suffix=.vtl
+# Multi-suffix support (ordered lookup, e.g. .vtl before legacy .vm):
+viet-template.suffixes=.vtl,.vm
+# or legacy single suffix: viet-template.suffix=.vtl
 viet-template.charset=UTF-8
 
 # View caching and runtime compilation
@@ -135,7 +137,7 @@ public class WebController {
 Viet Template was engineered as a modern, clean-room replacement for Apache Velocity:
 
 1. **Step 1: Swap Dependencies**: Replace `org.apache.velocity:velocity-engine-core` with `viet-template-spring-boot-starter` or `viet-template-api`.
-2. **Step 2: Keep Existing Templates**: Retain all existing `.vm` and `.vtl` files. Viet Template achieves 100% compatibility across all 80 standard VTL grammar features.
+2. **Step 2: Keep Existing Templates**: Retain all existing `.vm` and `.vtl` files. Configure `viet-template.suffixes=.vtl,.vm` for ordered multi-extension lookup during gradual migration. Viet Template achieves 100% compatibility across all 80 standard VTL grammar features.
 3. **Step 3: Update Engine Initialization**: Replace `VelocityEngine` and `VelocityContext` with `TemplateEngine` and `RenderContext`.
 
 See the comprehensive [Apache Velocity Migration Guide](docs/migration/velocity-migration-guide.md) and [Velocity Differences Catalog](docs/migration/velocity-differences.md) for full details.
