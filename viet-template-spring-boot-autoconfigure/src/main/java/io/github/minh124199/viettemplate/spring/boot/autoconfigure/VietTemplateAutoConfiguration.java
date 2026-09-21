@@ -117,6 +117,7 @@ public class VietTemplateAutoConfiguration implements InitializingBean {
       VietTemplateViewResolver resolver = new VietTemplateViewResolver(engine);
       resolver.setPrefix(properties.getPrefix());
       resolver.setSuffix(properties.getSuffix());
+      resolver.setSuffixes(properties.getSuffixes());
       resolver.setContentType(properties.getContentType());
       resolver.setCharset(properties.getCharset());
       resolver.setCache(properties.isCache());

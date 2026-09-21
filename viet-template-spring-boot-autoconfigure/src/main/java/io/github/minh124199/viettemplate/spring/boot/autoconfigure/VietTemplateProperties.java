@@ -2,6 +2,11 @@ package io.github.minh124199.viettemplate.spring.boot.autoconfigure;
 
 import io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.Ordered;
 
@@ -11,6 +16,7 @@ public class VietTemplateProperties {
 
   public static final String DEFAULT_PREFIX = "";
   public static final String DEFAULT_SUFFIX = "";
+  public static final List<String> DEFAULT_SUFFIXES = List.of();
   public static final String DEFAULT_CONTENT_TYPE = VietTemplateView.DEFAULT_CONTENT_TYPE;
   public static final Charset DEFAULT_CHARSET = VietTemplateView.DEFAULT_CHARSET;
 
@@ -22,6 +28,12 @@ public class VietTemplateProperties {
 
   /** Suffix that gets appended to view names when building a template identifier. */
   private String suffix = DEFAULT_SUFFIX;
+
+  /**
+   * Ordered list of suffixes appended to view names when resolving template identifiers. Takes
+   * precedence over {@link #suffix} when non-empty.
+   */
+  private List<String> suffixes = new ArrayList<>();
 
   /** Content-Type value for template views. */
   private String contentType = DEFAULT_CONTENT_TYPE;
@@ -77,7 +89,63 @@ public class VietTemplateProperties {
   }
 
   public void setSuffix(String suffix) {
-    this.suffix = suffix != null ? suffix : "";
+    String normalized = suffix != null ? suffix : "";
+    validateSuffix(normalized);
+    this.suffix = normalized;
+  }
+
+  public List<String> getSuffixes() {
+    return this.suffixes;
+  }
+
+  public void setSuffixes(List<String> suffixes) {
+    if (suffixes == null) {
+      this.suffixes = new ArrayList<>();
+      return;
+    }
+    Set<String> unique = new LinkedHashSet<>(suffixes.size());
+    for (String s : suffixes) {
+      if (s == null) {
+        throw new IllegalArgumentException("Suffix element must not be null");
+      }
+      validateSuffix(s);
+      unique.add(s);
+    }
+    this.suffixes = new ArrayList<>(unique);
+  }
+
+  List<String> determineEffectiveSuffixes() {
+    return !this.suffixes.isEmpty()
+        ? List.copyOf(this.suffixes)
+        : List.of(this.suffix != null ? this.suffix : DEFAULT_SUFFIX);
+  }
+
+  private static void validateSuffix(String suffix) {
+    if (suffix == null) {
+      throw new IllegalArgumentException("Suffix must not be null");
+    }
+    if (suffix.indexOf('\0') >= 0) {
+      throw new IllegalArgumentException("Suffix must not contain null bytes: " + suffix);
+    }
+    if (suffix.contains("..")) {
+      throw new IllegalArgumentException(
+          "Suffix must not contain path traversal ('..'): " + suffix);
+    }
+    if (suffix.contains("/") || suffix.contains("\\")) {
+      throw new IllegalArgumentException("Suffix must not contain path separators: " + suffix);
+    }
+    if (suffix.contains(":")) {
+      throw new IllegalArgumentException(
+          "Suffix must not contain URI schemes or drive letters (':'): " + suffix);
+    }
+    String lower = suffix.toLowerCase(Locale.ROOT);
+    if (lower.contains("%2e")
+        || lower.contains("%2f")
+        || lower.contains("%5c")
+        || lower.contains("%00")) {
+      throw new IllegalArgumentException(
+          "Suffix contains encoded path separators or traversal sequences: " + suffix);
+    }
   }
 
   public String getContentType() {

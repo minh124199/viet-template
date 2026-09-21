@@ -23,12 +23,14 @@ TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.Vi
   MEMBER public java.lang.String getPrefix()
   MEMBER public java.lang.String getSuffix()
   MEMBER public java.nio.charset.Charset getCharset()
+  MEMBER public java.util.List<java.lang.String> getSuffixes()
   MEMBER public long getNegativeCacheTtlMillis()
   MEMBER public long getWatchDebounceMillis()
   MEMBER public static final java.lang.String DEFAULT_CONTENT_TYPE
   MEMBER public static final java.lang.String DEFAULT_PREFIX
   MEMBER public static final java.lang.String DEFAULT_SUFFIX
   MEMBER public static final java.nio.charset.Charset DEFAULT_CHARSET
+  MEMBER public static final java.util.List<java.lang.String> DEFAULT_SUFFIXES
   MEMBER public void setCache(boolean)
   MEMBER public void setCharset(java.nio.charset.Charset)
   MEMBER public void setCheckTemplateLocation(boolean)
@@ -41,6 +43,7 @@ TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.Vi
   MEMBER public void setPrefix(java.lang.String)
   MEMBER public void setRuntimeCompilationEnabled(boolean)
   MEMBER public void setSuffix(java.lang.String)
+  MEMBER public void setSuffixes(java.util.List<java.lang.String>)
   MEMBER public void setWatchDebounceMillis(long)
 
 TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties$Security
@@ -90,6 +93,7 @@ TYPE public class io.github.minh124199.viettemplate.spring.web.servlet.VietTempl
   MEMBER public java.lang.String getPrefix()
   MEMBER public java.lang.String getSuffix()
   MEMBER public java.nio.charset.Charset getCharset()
+  MEMBER public java.util.List<java.lang.String> getSuffixes()
   MEMBER public org.springframework.web.servlet.View resolveViewName(java.lang.String, java.util.Locale) throws java.lang.Exception
   MEMBER public void afterPropertiesSet() throws java.lang.Exception
   MEMBER public void clearCache()
@@ -103,3 +107,4 @@ TYPE public class io.github.minh124199.viettemplate.spring.web.servlet.VietTempl
   MEMBER public void setOrder(int)
   MEMBER public void setPrefix(java.lang.String)
   MEMBER public void setSuffix(java.lang.String)
+  MEMBER public void setSuffixes(java.util.List<java.lang.String>)

@@ -7,10 +7,13 @@ import io.github.minh124199.viettemplate.api.TemplateRepository;
 import io.github.minh124199.viettemplate.api.TemplateResourceException;
 import io.github.minh124199.viettemplate.api.TemplateSource;
 import java.nio.charset.Charset;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.springframework.beans.factory.InitializingBean;
@@ -32,7 +35,7 @@ public class VietTemplateViewResolver
 
   private TemplateEngine engine;
   private String prefix = "";
-  private String suffix = "";
+  private volatile SuffixConfiguration suffixConfig = new SuffixConfiguration("", List.of());
   private String contentType = VietTemplateView.DEFAULT_CONTENT_TYPE;
   private Charset charset = VietTemplateView.DEFAULT_CHARSET;
   private boolean checkTemplateLocation = true;
@@ -53,6 +56,7 @@ public class VietTemplateViewResolver
 
   public void setEngine(TemplateEngine engine) {
     this.engine = engine;
+    clearCache();
   }
 
   public String getPrefix() {
@@ -61,14 +65,49 @@ public class VietTemplateViewResolver
 
   public void setPrefix(String prefix) {
     this.prefix = prefix != null ? prefix : "";
+    clearCache();
   }
 
   public String getSuffix() {
-    return this.suffix;
+    return this.suffixConfig.suffix;
   }
 
   public void setSuffix(String suffix) {
-    this.suffix = suffix != null ? suffix : "";
+    String normalized = suffix != null ? suffix : "";
+    validateSuffix(normalized);
+    synchronized (this) {
+      this.suffixConfig = new SuffixConfiguration(normalized, this.suffixConfig.suffixes);
+    }
+    clearCache();
+  }
+
+  public List<String> getSuffixes() {
+    return this.suffixConfig.suffixes;
+  }
+
+  public void setSuffixes(List<String> suffixes) {
+    List<String> validated;
+    if (suffixes == null || suffixes.isEmpty()) {
+      validated = List.of();
+    } else {
+      Set<String> unique = new LinkedHashSet<>(suffixes.size());
+      for (String s : suffixes) {
+        if (s == null) {
+          throw new IllegalArgumentException("Suffix element must not be null");
+        }
+        validateSuffix(s);
+        unique.add(s);
+      }
+      validated = List.copyOf(unique);
+    }
+    synchronized (this) {
+      this.suffixConfig = new SuffixConfiguration(this.suffixConfig.suffix, validated);
+    }
+    clearCache();
+  }
+
+  List<String> getEffectiveSuffixes() {
+    return this.suffixConfig.effectiveSuffixes;
   }
 
   public String getContentType() {
@@ -77,6 +116,7 @@ public class VietTemplateViewResolver
 
   public void setContentType(String contentType) {
     this.contentType = contentType;
+    clearCache();
   }
 
   public Charset getCharset() {
@@ -85,11 +125,13 @@ public class VietTemplateViewResolver
 
   public void setCharset(Charset charset) {
     this.charset = Objects.requireNonNull(charset, "charset must not be null");
+    clearCache();
   }
 
   public void setCharset(String charsetName) {
     Objects.requireNonNull(charsetName, "charsetName must not be null");
     this.charset = Charset.forName(charsetName);
+    clearCache();
   }
 
   public boolean isCheckTemplateLocation() {
@@ -98,6 +140,7 @@ public class VietTemplateViewResolver
 
   public void setCheckTemplateLocation(boolean checkTemplateLocation) {
     this.checkTemplateLocation = checkTemplateLocation;
+    clearCache();
   }
 
   @Override
@@ -168,20 +211,54 @@ public class VietTemplateViewResolver
       }
     }
 
-    TemplateId templateId = TemplateId.normalize(this.prefix + viewName + this.suffix);
+    SuffixConfiguration config = this.suffixConfig;
+    List<String> effective = config.effectiveSuffixes;
+    String matchingSuffix = findMatchingSuffix(viewName, effective);
 
-    if (this.checkTemplateLocation && !templateExists(templateId)) {
-      return null;
+    if (!this.checkTemplateLocation) {
+      TemplateId candidate;
+      if (matchingSuffix != null) {
+        candidate = TemplateId.normalize(this.prefix + viewName);
+      } else {
+        candidate = TemplateId.normalize(this.prefix + viewName + effective.get(0));
+      }
+      View view = buildView(candidate);
+      if (this.cache) {
+        View existing = this.viewCache.putIfAbsent(viewName, view);
+        return existing != null ? existing : view;
+      }
+      return view;
     }
 
-    View view = buildView(templateId);
-
-    if (this.cache) {
-      View existing = this.viewCache.putIfAbsent(viewName, view);
-      return existing != null ? existing : view;
+    TemplateId exactCandidate = null;
+    if (matchingSuffix != null) {
+      exactCandidate = TemplateId.normalize(this.prefix + viewName);
+      if (templateExists(exactCandidate)) {
+        View view = buildView(exactCandidate);
+        if (this.cache) {
+          View existing = this.viewCache.putIfAbsent(viewName, view);
+          return existing != null ? existing : view;
+        }
+        return view;
+      }
     }
 
-    return view;
+    for (String s : effective) {
+      TemplateId candidate = TemplateId.normalize(this.prefix + viewName + s);
+      if (candidate.equals(exactCandidate)) {
+        continue;
+      }
+      if (templateExists(candidate)) {
+        View view = buildView(candidate);
+        if (this.cache) {
+          View existing = this.viewCache.putIfAbsent(viewName, view);
+          return existing != null ? existing : view;
+        }
+        return view;
+      }
+    }
+
+    return null;
   }
 
   protected View buildView(TemplateId templateId) throws Exception {
@@ -241,6 +318,61 @@ public class VietTemplateViewResolver
         || lower.contains("%00")) {
       throw new IllegalArgumentException(
           "View name contains encoded path separators or traversal sequences: " + viewName);
+    }
+  }
+
+  private static void validateSuffix(String suffix) {
+    if (suffix == null) {
+      throw new IllegalArgumentException("Suffix must not be null");
+    }
+    if (suffix.indexOf('\0') >= 0) {
+      throw new IllegalArgumentException("Suffix must not contain null bytes: " + suffix);
+    }
+    if (suffix.contains("..")) {
+      throw new IllegalArgumentException(
+          "Suffix must not contain path traversal ('..'): " + suffix);
+    }
+    if (suffix.contains("/") || suffix.contains("\\")) {
+      throw new IllegalArgumentException("Suffix must not contain path separators: " + suffix);
+    }
+    if (suffix.contains(":")) {
+      throw new IllegalArgumentException(
+          "Suffix must not contain URI schemes or drive letters (':'): " + suffix);
+    }
+    String lower = suffix.toLowerCase(Locale.ROOT);
+    if (lower.contains("%2e")
+        || lower.contains("%2f")
+        || lower.contains("%5c")
+        || lower.contains("%00")) {
+      throw new IllegalArgumentException(
+          "Suffix contains encoded path separators or traversal sequences: " + suffix);
+    }
+  }
+
+  private static String findMatchingSuffix(String viewName, List<String> effectiveSuffixes) {
+    for (String s : effectiveSuffixes) {
+      if (!s.isEmpty() && viewName.endsWith(s)) {
+        int suffixStart = viewName.length() - s.length();
+        if (suffixStart > 0) {
+          char prev = viewName.charAt(suffixStart - 1);
+          if (prev != '/' && prev != '\\') {
+            return s;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  private static final class SuffixConfiguration {
+    final String suffix;
+    final List<String> suffixes;
+    final List<String> effectiveSuffixes;
+
+    SuffixConfiguration(String suffix, List<String> suffixes) {
+      this.suffix = suffix;
+      this.suffixes = List.copyOf(suffixes);
+      this.effectiveSuffixes = !this.suffixes.isEmpty() ? this.suffixes : List.of(this.suffix);
     }
   }
 }

@@ -581,6 +581,7 @@ Every optimization must preserve:
 
 - [x] `VietTemplateView` (Spring MVC `View` implementation).
 - [x] `VietTemplateViewResolver` with caching and AOT index discovery fallback.
+- [x] First-class multiple-suffix support (`suffixes`) with deterministic candidate evaluation, legacy `suffix` backward compatibility, cache invalidation, and Spring Boot binding.
 - [x] Stream directly to response output where safe (`Utf8OutputStreamTemplateOutput` + `NonClosingOutputStream`).
 - [x] Content type/charset behavior (`text/html;charset=UTF-8`, UTF-8 validated).
 - [x] Locale-aware template resolution / view caching (`ConcurrentHashMap`).
