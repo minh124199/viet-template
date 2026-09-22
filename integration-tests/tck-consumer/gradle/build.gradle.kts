@@ -22,7 +22,7 @@ java {
     }
 }
 
-val vietTemplateVersion = "0.2.3-SNAPSHOT"
+val vietTemplateVersion = "0.2.3"
 
 dependencies {
     testImplementation("io.github.minh124199:viet-template-tck:$vietTemplateVersion")
