@@ -912,7 +912,17 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 ### Deliverable E: Diagnostics, Performance Evidence & Readiness
 - [x] **E1.** `docs/diagnostics/error-catalog.md` — comprehensive error codes catalog with examples and fixes.
 - [x] **E2.** `docs/performance/comparative-benchmarks.md` — authoritative M18 C01–C08 comparative evidence across J21 and J25 with 4-gate qualification.
-- [x] **E3.** `docs/1.0-readiness-gap-analysis.md` — 15-point readiness audit, 99 stable vs 257 accidental public types, encapsulation roadmap.
+- [x] **E3.** `docs/1.0-readiness-gap-analysis.md` — 15-point readiness audit, 105 stable vs 259 accidental public types, encapsulation roadmap.
 - [x] **E4.** `docs/getting-started/quickstart.md` — 5-minute quickstart guide.
-- [x] **E5.** `docs/getting-started/support-matrix.md` — complete JDK, build tooling, Spring, and OS support matrix.
+- [x] **E5.** `docs/getting-started/support-matrix.md` — complete JDK, build tooling, Spring, Quarkus, and OS support matrix.
 - [x] **E6.** `README.md` — restructured adoption-focused landing page.
+
+### Deliverable F: Quarkus Extension & Multi-Framework Foundation (Milestone M21)
+- [x] **F1.** `viet-template-quarkus` & `viet-template-quarkus-deployment` — separated runtime/deployment modules with Maven/Gradle dual-build parity.
+- [x] **F2.** `VietTemplateProducer` & `VietTemplateRenderer` — CDI injection and streaming HTTP output.
+- [x] **F3.** `TemplateSuffixConfiguration` & `UndefinedReferencePolicy` — canonical framework-neutral abstractions in `viet-template-api`.
+- [x] **F4.** `VietTemplateProcessor` — build-time template AOT compilation and index generation (`templates.idx`).
+- [x] **F5.** Dev-mode hot reload — `HotDeploymentWatchedFileBuildItem`, transitive `#parse` reload, and classloader leak safety.
+- [x] **F6.** GraalVM native image execution — empirically verified on Linux x86_64 across Maven and Gradle native runners.
+- [x] **F7.** Quarkus Security facade & Qute coexistence — `$security` context view and side-by-side execution with Qute.
+- [x] **F8.** `docs/extensions/quarkus.md` — complete Quarkus extension guide.

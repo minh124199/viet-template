@@ -18,8 +18,8 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 - **100% Velocity Syntax Compatibility**: Drop-in syntax compatibility for Velocity Template Language (VTL). Evaluated across 80 specification features in the Technology Compatibility Kit (TCK) with 100% pass rate.
 - **Blazing Fast Multi-Tier Execution**: Offers both a lightweight development interpreter (Viet-IR) and a high-performance Ahead-Of-Time bytecode compiler (Viet-AOT) delivering **1.3x to 5.3x higher throughput** than Apache Velocity 2.4.1.
 - **Precompiled Bytecode & Zero Reflection**: Compiles templates to standard Java 21 bytecode (`.class` files) with compiler-assigned variable slots and pre-encoded UTF-8 literals, eliminating runtime reflection and AST traversal.
-- **GraalVM Native Image Ready**: Seamlessly compiles to native executables via out-of-the-box `VietTemplateRuntimeHints` and Spring AOT support.
-- **Next-Gen Spring Ecosystem**: Turnkey auto-configuration for Spring Boot 4, Spring Framework 7, and Spring Security 7 with full Virtual Threads (Project Loom) compatibility.
+- **GraalVM Native Image Ready**: Seamlessly compiles to native executables via out-of-the-box `VietTemplateRuntimeHints`, Spring AOT, and Quarkus deployment build steps (empirically qualified on Linux x86_64).
+- **First-Class Spring & Quarkus Ecosystems**: Turnkey auto-configuration for Spring Boot 4 / Spring Framework 7 / Spring Security 7 and idiomatic CDI extension for Quarkus 3 with build-time AOT compilation and dev-mode hot reload.
 - **Defense-in-Depth Security**: Denies access to reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), classloaders, and system resources by default. Enforces strict `MemberAccessPolicy` sandboxing and execution budgets (`RenderBudget`).
 
 ---
@@ -130,6 +130,37 @@ public class WebController {
 }
 ```
 
+### 3. Quarkus 3 Extension
+
+Add the extension dependency:
+
+```xml
+<dependency>
+    <groupId>io.github.minh124199</groupId>
+    <artifactId>viet-template-quarkus</artifactId>
+    <version>0.2.2</version>
+</dependency>
+```
+
+Inject and render inside any CDI bean or JAX-RS resource:
+
+```java
+@Path("/hello")
+public class HelloResource {
+
+    @Inject
+    VietTemplateRenderer renderer;
+
+    @GET
+    @Produces(MediaType.TEXT_HTML)
+    public String hello(@QueryParam("name") String name) {
+        return renderer.render("hello.vtl", Map.of("name", name != null ? name : "World"));
+    }
+}
+```
+
+Templates placed in `src/main/resources/templates/` are compiled ahead-of-time during `mvn package` or `gradle build` (producing ~52 MB native binaries on Linux x86_64) and hot-reloaded during `quarkus dev`. See the [Quarkus Extension Guide](docs/extensions/quarkus.md) for details.
+
 ---
 
 ## Migrating from Apache Velocity in 3 Steps
@@ -196,9 +227,10 @@ Explore the complete documentation suite organized by topic:
 - **[Apache Maven Plugin](docs/build-tooling/maven.md)** — Build-time AOT precompilation and verification via `viet-template-maven-plugin`.
 - **[Gradle Plugin](docs/build-tooling/gradle.md)** — Gradle Kotlin/Groovy DSL plugin configuration and incremental build-cache.
 
-### Spring Integration
+### Framework Integrations
 - **[Spring Boot Integration Guide](docs/spring/spring-boot-integration.md)** — Spring Boot 4 / Framework 7 starter, property catalog, and reactive view resolution.
 - **[Spring Security Integration](docs/36-spring-security-integration.md)** — `$security` and `$csrf` template facades with contextual escaping.
+- **[Quarkus Extension Guide](docs/extensions/quarkus.md)** — Quarkus 3 CDI extension, AOT template compilation, live reload, and Qute coexistence.
 
 ### Diagnostics & Extensions
 - **[Diagnostics & Error Catalog](docs/diagnostics/error-catalog.md)** — Complete catalog of parse-time, compile-time, and runtime error codes with remedies.

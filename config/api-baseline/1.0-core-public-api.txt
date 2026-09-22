@@ -419,9 +419,31 @@ TYPE public final class io.github.minh124199.viettemplate.api.TemplateSource ext
   MEMBER public static io.github.minh124199.viettemplate.api.TemplateSource of(io.github.minh124199.viettemplate.api.TemplateId, java.net.URI, java.nio.charset.Charset, java.lang.String, long)
   MEMBER public static java.lang.String computeSha256(java.lang.String)
 
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration extends java.lang.Record implements java.io.Serializable
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration(java.lang.String, java.util.List<java.lang.String>, java.util.List<java.lang.String>)
+  MEMBER public java.lang.String primarySuffix()
+  MEMBER public java.util.List<java.lang.String> additionalSuffixes()
+  MEMBER public java.util.List<java.lang.String> effectiveSuffixes()
+  MEMBER public java.util.Optional<java.lang.String> findMatchingSuffix(java.lang.String)
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.api.TemplateId> resolveCandidates(java.lang.String)
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.api.TemplateId> resolveCandidates(java.lang.String, java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration of(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration of(java.lang.String, java.lang.String...)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration of(java.lang.String, java.util.List<java.lang.String>)
+
 TYPE public class io.github.minh124199.viettemplate.api.TemplateSyntaxException extends io.github.minh124199.viettemplate.api.TemplateException
   MEMBER public io.github.minh124199.viettemplate.api.TemplateSyntaxException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode)
   MEMBER public io.github.minh124199.viettemplate.api.TemplateSyntaxException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
+
+TYPE public final class io.github.minh124199.viettemplate.api.UndefinedReferencePolicy extends java.lang.Enum<io.github.minh124199.viettemplate.api.UndefinedReferencePolicy>
+  MEMBER public static final io.github.minh124199.viettemplate.api.UndefinedReferencePolicy ERROR
+  MEMBER public static final io.github.minh124199.viettemplate.api.UndefinedReferencePolicy SILENT
+  MEMBER public static final io.github.minh124199.viettemplate.api.UndefinedReferencePolicy WARN
+  MEMBER public static io.github.minh124199.viettemplate.api.UndefinedReferencePolicy valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.UndefinedReferencePolicy[] values()
 
 TYPE public final class io.github.minh124199.viettemplate.api.ValueOrigin extends java.lang.Enum<io.github.minh124199.viettemplate.api.ValueOrigin>
   MEMBER public static final io.github.minh124199.viettemplate.api.ValueOrigin CONTRIBUTOR
@@ -633,6 +655,7 @@ TYPE public final class io.github.minh124199.viettemplate.runtime.WriterTemplate
   MEMBER public void writeShort(short) throws java.io.IOException
   MEMBER public void writeUtf8(byte[]) throws java.io.IOException
   MEMBER public void writeUtf8(byte[], int, int) throws java.io.IOException
+
 
 TYPE public final class io.github.minh124199.viettemplate.vtl.engine.VtlTemplate implements io.github.minh124199.viettemplate.api.Template
   MEMBER public io.github.minh124199.viettemplate.api.TemplateDescriptor descriptor()

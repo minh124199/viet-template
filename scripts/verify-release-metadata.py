@@ -35,6 +35,8 @@ PUBLISHED_MODULES = [
     "viet-template-spring-boot-starter",
     "viet-template-maven-plugin",
     "viet-template-gradle-plugin",
+    "viet-template-quarkus",
+    "viet-template-quarkus-deployment",
 ]
 
 NON_PUBLISHED_MODULES = [

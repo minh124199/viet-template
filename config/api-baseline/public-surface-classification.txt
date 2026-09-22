@@ -1,6 +1,6 @@
 # Viet Template Public Surface Classification Baseline
-# Total Types: 362
-# STABLE_API: 80
+# Total Types: 365
+# STABLE_API: 83
 # STABLE_SPI: 19
 # EXPERIMENTAL: 6
 # PUBLIC_BUT_INTERNAL_ACCIDENT: 257
@@ -68,7 +68,9 @@ io.github.minh124199.viettemplate.api.TemplateResourceException STABLE_API
 io.github.minh124199.viettemplate.api.TemplateSecurityException STABLE_API
 io.github.minh124199.viettemplate.api.TemplateSemanticException STABLE_API
 io.github.minh124199.viettemplate.api.TemplateSource STABLE_API
+io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration STABLE_API
 io.github.minh124199.viettemplate.api.TemplateSyntaxException STABLE_API
+io.github.minh124199.viettemplate.api.UndefinedReferencePolicy STABLE_API
 io.github.minh124199.viettemplate.api.ValueOrigin STABLE_API
 io.github.minh124199.viettemplate.language.vtl.VtlFeatureState EXPERIMENTAL
 io.github.minh124199.viettemplate.language.vtl.VtlFrontend EXPERIMENTAL
@@ -255,6 +257,11 @@ io.github.minh124199.viettemplate.language.vtl.semantics.type.VType$PrimitiveTyp
 io.github.minh124199.viettemplate.language.vtl.semantics.type.VType$UnionType PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.language.vtl.source.SourceText STABLE_API
+io.github.minh124199.viettemplate.quarkus.VietTemplateConfig STABLE_API
+io.github.minh124199.viettemplate.quarkus.VietTemplateProducer PUBLIC_BUT_INTERNAL_ACCIDENT
+io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer STABLE_API
+io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor STABLE_SPI
+io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView STABLE_API
 io.github.minh124199.viettemplate.runtime.CssStringEscaper STABLE_API
 io.github.minh124199.viettemplate.runtime.EscapeMode STABLE_SPI
 io.github.minh124199.viettemplate.runtime.Escaper STABLE_SPI
@@ -287,6 +294,7 @@ io.github.minh124199.viettemplate.runtime.linker.LinkerStatistics PUBLIC_BUT_INT
 io.github.minh124199.viettemplate.runtime.linker.LinkerStatistics$Snapshot PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.runtime.linker.MemberKey PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.runtime.linker.MemberOperation PUBLIC_BUT_INTERNAL_ACCIDENT
+io.github.minh124199.viettemplate.runtime.stream.NonClosingOutputStream PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration STABLE_API
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties STABLE_API
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties$Security STABLE_API

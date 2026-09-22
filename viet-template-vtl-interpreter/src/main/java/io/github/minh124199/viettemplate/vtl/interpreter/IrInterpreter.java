@@ -1,5 +1,6 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
+import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateLimitException;
@@ -7,6 +8,7 @@ import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateResourceException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
+import io.github.minh124199.viettemplate.api.UndefinedReferencePolicy;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
@@ -85,6 +87,8 @@ import java.util.regex.Pattern;
  * template evaluation.
  */
 public final class IrInterpreter {
+
+  private static final System.Logger LOGGER = System.getLogger(IrInterpreter.class.getName());
 
   private IrInterpreter() {}
 
@@ -283,7 +287,9 @@ public final class IrInterpreter {
 
     NullRenderMode nullMode = wv.nullMode();
 
-    if (frame.options.strictReferences()) {
+    UndefinedReferencePolicy policy = frame.options.undefinedReferencePolicy();
+
+    if (policy == UndefinedReferencePolicy.ERROR) {
       if (val.isUndefined()) {
         String varName = extractRootName(wv.value());
         throw new TemplateRenderException(
@@ -305,6 +311,24 @@ public final class IrInterpreter {
       }
       renderRenderable(val.value(), wv, frame);
       return;
+    }
+
+    if (policy == UndefinedReferencePolicy.WARN) {
+      if (val.isUndefined()) {
+        String varName = extractRootName(wv.value());
+        emitWarning(
+            frame,
+            wv.span(),
+            InterpreterDiagnosticCodes.VARIABLE_UNDEFINED,
+            "Variable '$" + varName + "' has not been set");
+      } else if (val.isNull() && nullMode != NullRenderMode.EMPTY_STRING) {
+        String varName = extractRootName(wv.value());
+        emitWarning(
+            frame,
+            wv.span(),
+            InterpreterDiagnosticCodes.VARIABLE_UNDEFINED,
+            "Reference '$" + varName + "' evaluated to null when attempting to render");
+      }
     }
 
     if (nullMode == NullRenderMode.EMPTY_STRING) {
@@ -863,12 +887,19 @@ public final class IrInterpreter {
     }
     Object recv = unwrap(evaluateExpression(dyn.receiver().get(), frame));
     if (recv == null) {
-      if (frame.options.strictReferences()) {
+      if (frame.options.undefinedReferencePolicy() == UndefinedReferencePolicy.ERROR) {
         throw new TemplateRenderException(
             "Cannot navigate property/method on null or undefined reference",
             frame.templateId,
             dyn.span(),
             InterpreterDiagnosticCodes.VARIABLE_UNDEFINED);
+      }
+      if (frame.options.undefinedReferencePolicy() == UndefinedReferencePolicy.WARN) {
+        emitWarning(
+            frame,
+            dyn.span(),
+            InterpreterDiagnosticCodes.VARIABLE_UNDEFINED,
+            "Cannot navigate property/method on null or undefined reference");
       }
       return EvaluationValue.definedNull();
     }
@@ -884,12 +915,20 @@ public final class IrInterpreter {
   private static Object evaluateGetProperty(IrGetProperty prop, InterpretedFrame frame) {
     Object recv = unwrap(evaluateExpression(prop.receiver(), frame));
     if (recv == null) {
-      if (prop.nullMode() == NullAccessMode.THROW_IF_NULL || frame.options.strictReferences()) {
+      if (prop.nullMode() == NullAccessMode.THROW_IF_NULL
+          || frame.options.undefinedReferencePolicy() == UndefinedReferencePolicy.ERROR) {
         throw new TemplateRenderException(
             "Cannot navigate property/method on null or undefined reference",
             frame.templateId,
             prop.span(),
             InterpreterDiagnosticCodes.VARIABLE_UNDEFINED);
+      }
+      if (frame.options.undefinedReferencePolicy() == UndefinedReferencePolicy.WARN) {
+        emitWarning(
+            frame,
+            prop.span(),
+            InterpreterDiagnosticCodes.VARIABLE_UNDEFINED,
+            "Cannot navigate property/method on null or undefined reference");
       }
       return EvaluationValue.definedNull();
     }
@@ -1169,5 +1208,28 @@ public final class IrInterpreter {
         return (Iterator<Object>) iterator;
       }
     };
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void emitWarning(
+      InterpretedFrame frame,
+      SourceSpan span,
+      io.github.minh124199.viettemplate.api.DiagnosticCode code,
+      String message) {
+    Diagnostic diag = Diagnostic.warning(code, message, span != null ? span : SourceSpan.UNKNOWN);
+    if (frame != null && frame.context != null) {
+      EvaluationValue listenerVal = frame.context.lookup("diagnosticConsumer");
+      if (!listenerVal.isUndefined()
+          && listenerVal.value() instanceof java.util.function.Consumer<?> c) {
+        ((java.util.function.Consumer<Diagnostic>) c).accept(diag);
+      }
+      EvaluationValue diagListVal = frame.context.lookup("diagnostics");
+      if (!diagListVal.isUndefined() && diagListVal.value() instanceof List<?> list) {
+        ((List<Diagnostic>) list).add(diag);
+      }
+    }
+    LOGGER.log(
+        System.Logger.Level.WARNING,
+        () -> "[" + (frame != null ? frame.templateId : "?") + "] " + message + " at " + span);
   }
 }

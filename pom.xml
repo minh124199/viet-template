@@ -51,6 +51,8 @@
         <module>viet-template-benchmarks</module>
         <module>viet-template-maven-plugin</module>
         <module>viet-template-gradle-plugin</module>
+        <module>viet-template-quarkus</module>
+        <module>viet-template-quarkus-deployment</module>
     </modules>
 
 
@@ -77,6 +79,7 @@
         <spring-security.version>7.1.1</spring-security.version>
         <jakarta-servlet.version>6.1.0</jakarta-servlet.version>
         <tomcat.version>11.0.24</tomcat.version>
+        <quarkus.version>3.39.4</quarkus.version>
 
         <!-- Pinned Maven Plugin Versions -->
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
@@ -147,6 +150,25 @@
                 <groupId>io.github.minh124199</groupId>
                 <artifactId>viet-template-gradle-plugin</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.minh124199</groupId>
+                <artifactId>viet-template-quarkus</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.minh124199</groupId>
+                <artifactId>viet-template-quarkus-deployment</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Quarkus BOM -->
+            <dependency>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-bom</artifactId>
+                <version>${quarkus.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
             <!-- Spring Boot BOM -->

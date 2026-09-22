@@ -38,6 +38,7 @@ BASELINE_LEGACY = os.path.join(REPO_ROOT, "config/api-baseline/1.0-public-api.tx
 BASELINE_AOT = os.path.join(REPO_ROOT, "config/api-baseline/1.0-aot-public-api.txt")
 BASELINE_SPRING = os.path.join(REPO_ROOT, "config/api-baseline/1.0-spring-public-api.txt")
 BASELINE_SPRING_SECURITY = os.path.join(REPO_ROOT, "config/api-baseline/1.0-spring-security-public-api.txt")
+BASELINE_QUARKUS = os.path.join(REPO_ROOT, "config/api-baseline/1.0-quarkus-public-api.txt")
 CLASSIFICATION_FILE = os.path.join(REPO_ROOT, "config/api-baseline/public-surface-classification.txt")
 
 DEFAULT_BASELINES = [
@@ -45,6 +46,7 @@ DEFAULT_BASELINES = [
     ("aot", BASELINE_AOT),
     ("spring", BASELINE_SPRING),
     ("spring-security", BASELINE_SPRING_SECURITY),
+    ("quarkus", BASELINE_QUARKUS),
 ]
 
 JAVAP = os.environ.get("JAVAP_BIN")
@@ -75,6 +77,7 @@ MODULES = [
     "viet-template-spring",
     "viet-template-spring-boot-autoconfigure",
     "viet-template-spring-security",
+    "viet-template-quarkus",
 ]
 
 FULL_CP = ":".join([os.path.join(REPO_ROOT, m, "build/classes/java/main") for m in MODULES])
@@ -86,6 +89,7 @@ STABLE_PACKAGES = [
     "io.github.minh124199.viettemplate.spring.web.servlet",
     "io.github.minh124199.viettemplate.spring.boot.autoconfigure",
     "io.github.minh124199.viettemplate.spring.security",
+    "io.github.minh124199.viettemplate.quarkus",
 ]
 
 STABLE_EXPLICIT_CLASSES = [

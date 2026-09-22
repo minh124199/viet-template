@@ -32,7 +32,20 @@ import zipfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+import importlib
+import importlib.util
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
+_metadata_script = Path(__file__).resolve().parent / "verify-release-metadata.py"
+if _metadata_script.exists():
+    _spec = importlib.util.spec_from_file_location("verify_release_metadata", _metadata_script)
+    _mod = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    PUBLISHED_MODULES = _mod.PUBLISHED_MODULES
+    NON_PUBLISHED_MODULES = _mod.NON_PUBLISHED_MODULES
+else:
+    PUBLISHED_MODULES = []
+    NON_PUBLISHED_MODULES = []
 
 PRODUCTION_MODULES = [
     "viet-template-api",
@@ -41,23 +54,8 @@ PRODUCTION_MODULES = [
     "viet-template-vtl-interpreter",
 ]
 
-ALL_PUBLISHED_MODULES = [
-    "viet-template-api",
-    "viet-template-runtime",
-    "viet-template-language-vtl",
-    "viet-template-vtl-interpreter",
-    "viet-template-spring",
-    "viet-template-spring-security",
-    "viet-template-spring-boot-autoconfigure",
-    "viet-template-spring-boot-starter",
-    "viet-template-maven-plugin",
-    "viet-template-gradle-plugin",
-]
-
-EXCLUDED_MODULES = [
-    "viet-template-tck",
-    "viet-template-benchmarks",
-]
+ALL_PUBLISHED_MODULES = PUBLISHED_MODULES
+EXCLUDED_MODULES = NON_PUBLISHED_MODULES
 
 PARENT_MODULE = "viet-template-parent"
 

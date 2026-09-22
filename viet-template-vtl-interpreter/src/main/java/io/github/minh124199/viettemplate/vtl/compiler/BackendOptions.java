@@ -1,5 +1,6 @@
 package io.github.minh124199.viettemplate.vtl.compiler;
 
+import io.github.minh124199.viettemplate.api.UndefinedReferencePolicy;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions;
 import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema;
 import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
@@ -19,6 +20,7 @@ public final class BackendOptions {
   private final TemplateClassLoader classLoader;
   private final boolean setNullAllowed;
   private final boolean strictReferences;
+  private final UndefinedReferencePolicy undefinedReferencePolicy;
 
   private BackendOptions(Builder builder) {
     this.optimizationOptions = builder.optimizationOptions;
@@ -31,6 +33,7 @@ public final class BackendOptions {
     this.classLoader = builder.classLoader;
     this.setNullAllowed = builder.setNullAllowed;
     this.strictReferences = builder.strictReferences;
+    this.undefinedReferencePolicy = builder.undefinedReferencePolicy;
   }
 
   public static Builder builder() {
@@ -82,7 +85,13 @@ public final class BackendOptions {
   }
 
   public boolean strictReferences() {
-    return strictReferences;
+    return undefinedReferencePolicy == UndefinedReferencePolicy.ERROR || strictReferences;
+  }
+
+  public UndefinedReferencePolicy undefinedReferencePolicy() {
+    return undefinedReferencePolicy != null
+        ? undefinedReferencePolicy
+        : (strictReferences ? UndefinedReferencePolicy.ERROR : UndefinedReferencePolicy.SILENT);
   }
 
   public static final class Builder {
@@ -96,6 +105,7 @@ public final class BackendOptions {
     private TemplateClassLoader classLoader;
     private boolean setNullAllowed = true;
     private boolean strictReferences = false;
+    private UndefinedReferencePolicy undefinedReferencePolicy = UndefinedReferencePolicy.SILENT;
 
     public Builder optimizationOptions(IrOptimizationOptions options) {
       this.optimizationOptions = Objects.requireNonNull(options, "options must not be null");
@@ -144,6 +154,14 @@ public final class BackendOptions {
 
     public Builder strictReferences(boolean strictReferences) {
       this.strictReferences = strictReferences;
+      this.undefinedReferencePolicy =
+          strictReferences ? UndefinedReferencePolicy.ERROR : UndefinedReferencePolicy.SILENT;
+      return this;
+    }
+
+    public Builder undefinedReferencePolicy(UndefinedReferencePolicy policy) {
+      this.undefinedReferencePolicy = Objects.requireNonNull(policy, "policy must not be null");
+      this.strictReferences = (policy == UndefinedReferencePolicy.ERROR);
       return this;
     }
 

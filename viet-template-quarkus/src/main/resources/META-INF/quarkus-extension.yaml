@@ -1,0 +1,11 @@
+name: "Viet Template"
+description: "High-performance, compiler-driven JVM template engine with AOT compilation"
+metadata:
+  keywords:
+    - "template"
+    - "vtl"
+    - "velocity"
+    - "aot"
+  categories:
+    - "web"
+  status: "preview"

@@ -14,6 +14,7 @@ spring-boot = "4.1.1"
 spring-framework = "7.0.9"
 spring-security = "7.1.1"
 jakarta-servlet = "6.1.0"
+quarkus = "3.39.4"
 
 [libraries]
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
@@ -45,6 +46,20 @@ spring-security-web = { module = "org.springframework.security:spring-security-w
 spring-security-test = { module = "org.springframework.security:spring-security-test", version.ref = "spring-security" }
 spring-security-config = { module = "org.springframework.security:spring-security-config", version.ref = "spring-security" }
 jakarta-servlet-api = { module = "jakarta.servlet:jakarta.servlet-api", version.ref = "jakarta-servlet" }
+quarkus-bom = { module = "io.quarkus:quarkus-bom", version.ref = "quarkus" }
+quarkus-core = { module = "io.quarkus:quarkus-core", version.ref = "quarkus" }
+quarkus-arc = { module = "io.quarkus:quarkus-arc", version.ref = "quarkus" }
+quarkus-core-deployment = { module = "io.quarkus:quarkus-core-deployment", version.ref = "quarkus" }
+quarkus-arc-deployment = { module = "io.quarkus:quarkus-arc-deployment", version.ref = "quarkus" }
+quarkus-junit = { module = "io.quarkus:quarkus-junit", version.ref = "quarkus" }
+quarkus-junit-internal = { module = "io.quarkus:quarkus-junit-internal", version.ref = "quarkus" }
+quarkus-junit5 = { module = "io.quarkus:quarkus-junit5", version.ref = "quarkus" }
+quarkus-junit5-internal = { module = "io.quarkus:quarkus-junit5-internal", version.ref = "quarkus" }
+quarkus-extension-processor = { module = "io.quarkus:quarkus-extension-processor", version.ref = "quarkus" }
+quarkus-security = { module = "io.quarkus:quarkus-security", version.ref = "quarkus" }
+quarkus-security-deployment = { module = "io.quarkus:quarkus-security-deployment", version.ref = "quarkus" }
+quarkus-test-security = { module = "io.quarkus:quarkus-test-security", version.ref = "quarkus" }
+quarkus-qute = { module = "io.quarkus:quarkus-qute", version.ref = "quarkus" }
 
 [plugins]
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

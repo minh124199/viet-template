@@ -29,6 +29,7 @@ BASELINE_LEGACY_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-public-a
 BASELINE_AOT_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-aot-public-api.txt")
 BASELINE_SPRING_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-spring-public-api.txt")
 BASELINE_SECURITY_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-spring-security-public-api.txt")
+BASELINE_QUARKUS_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-quarkus-public-api.txt")
 CLASSIFICATION_FILE = os.path.join(REPO_ROOT, "config/api-baseline/public-surface-classification.txt")
 
 DEFAULT_BASELINES = [
@@ -36,6 +37,7 @@ DEFAULT_BASELINES = [
     ("aot", BASELINE_AOT_FILE),
     ("spring", BASELINE_SPRING_FILE),
     ("spring-security", BASELINE_SECURITY_FILE),
+    ("quarkus", BASELINE_QUARKUS_FILE),
 ]
 
 JAVAP = os.environ.get("JAVAP_BIN")
@@ -66,6 +68,7 @@ MODULES = [
     "viet-template-spring",
     "viet-template-spring-boot-autoconfigure",
     "viet-template-spring-security",
+    "viet-template-quarkus",
 ]
 
 FULL_CP = ":".join([os.path.join(REPO_ROOT, m, "build/classes/java/main") for m in MODULES])

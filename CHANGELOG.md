@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **First-Class Quarkus Extension Foundation (`viet-template-quarkus`, `viet-template-quarkus-deployment`)**:
+  - **Quarkus 3 Integration**: Introduced runtime (`viet-template-quarkus`) and deployment (`viet-template-quarkus-deployment`) modules providing first-class, idiomatic Quarkus 3.39.4+ support alongside Spring Boot.
+  - **CDI Injection**: Registered `@ApplicationScoped` beans for `TemplateEngine` and `VietTemplateRenderer` with streaming `OutputStream` support and container-safe lifecycle.
+  - **Quarkus Configuration**: Implemented `@ConfigMapping(prefix = "quarkus.viet-template")` for configuring template paths, suffixes, cache sizing, negative cache TTL, runtime compilation, and undefined reference policies.
+  - **Build-Time AOT Compilation**: Build steps automatically discover templates, compile them to Java 21 bytecode via `TemplateAotCompiler`, generate `templates.idx`, and register `GeneratedClassBuildItem` and `GeneratedResourceBuildItem`.
+  - **GraalVM Native Image Support**: Emits `ReflectiveClassBuildItem` and `NativeImageResourceBuildItem` for all compiled templates and index metadata, enabling out-of-the-box native compilation without dynamic reflection. Empirically verified on Mandrel 25.0.4.1-Final on Linux x86_64, producing ~52 MB native executables with < 20ms startup. Enforces pure-AOT invariant: dynamic `#parse` and `#evaluate` directives fail fast at build time (`VTLAOT:1101`, `VTLAOT:1102`).
+  - **Dev-Mode Hot Reload**: Registers `HotDeploymentWatchedFileBuildItem` for template directories and files, enabling immediate live reload during `quarkus dev`.
+  - **Quarkus Security Integration**: Provides presentation-safe `$security` facade via `QuarkusSecurityRenderContextContributor` exposing `authenticated`, `anonymous`, `name`, and `hasRole()` using runtime-safe reflection and Arc bean lookup without hard linkage requirements. Clarified CSRF model: Spring MVC provides automatic `$csrf`; Quarkus requires manual model contribution when CSRF protection is active.
+  - **Qute Coexistence**: Verified zero-conflict side-by-side execution with Quarkus Qute within the same application.
+  - **Dual-Build Consumer Integration**: Created consumer fixtures for Apache Maven (`integration-tests/quarkus/maven-quarkus-aot`) and Gradle Kotlin DSL (`integration-tests/quarkus/gradle-quarkus-aot`), verified by `scripts/verify-quarkus-integration.sh`. Standard JVM execution qualified on Ubuntu, macOS, and Windows.
+- **Canonical Framework-Neutral Multiple-Suffix Model (`viet-template-api`)**:
+  - Introduced `TemplateSuffixConfiguration` with fail-closed path traversal validation, deduplication, deterministic order preservation, and candidate resolution.
+  - Refactored `VietTemplateViewResolver` and `VietTemplateProperties` to delegate to `TemplateSuffixConfiguration` while preserving 100% backward compatibility.
+- **Configurable Undefined Reference Policy (`viet-template-api`)**:
+  - Added `UndefinedReferencePolicy` (`SILENT`, `WARN`, `ERROR`) governing variable evaluation behavior.
+  - Integrated into `VtlInterpreterOptions`, `BackendOptions`, `VtlInterpreter`, `IrInterpreter`, and `BytecodeRuntimeBridge`.
+- **Framework-Neutral Non-Closing Output Stream (`viet-template-runtime`)**:
+  - Extracted `NonClosingOutputStream` into `io.github.minh124199.viettemplate.runtime.stream` for container-safe streaming across Spring MVC, Quarkus REST, and generic servlet containers.
+  - Preserved backward compatibility for Spring with `io.github.minh124199.viettemplate.spring.web.servlet.NonClosingOutputStream` subclassing the runtime type.
 - **First-Class Multiple-Suffix View Resolution & Gradual Velocity Migration**:
   - **Ordered Multi-Suffix Resolution (`VietTemplateViewResolver`)**: Added support for ordered suffix candidate evaluation via `suffixes` (`getSuffixes()`, `setSuffixes(List<String>)`). Logical view names probe candidate suffixes deterministically in configured order, returning `null` on miss to preserve Spring MVC `ViewResolver` chaining.
   - **Single-Suffix Backward Compatibility**: Retained existing `suffix` (`getSuffix()`, `setSuffix(String)`) and `viet-template.suffix` property. When `suffixes` is empty or unconfigured, the resolver seamlessly falls back to the legacy single suffix.
@@ -21,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Machine-Verified Compatibility Matrix**: Created `scripts/generate-compatibility-matrix.py` generating `docs/migration/compatibility-matrix.md` directly from `config/tck/vtl-feature-matrix.json` (80 features, 20 categories, 76 exact matches, 3 differences, 1 extension, 100% TCK coverage).
   - **Comprehensive Diagnostics & Error Code Catalog**: Authored `docs/diagnostics/error-catalog.md` detailing all parse-time, compile-time, semantic, security, limit, and runtime diagnostic codes with concrete examples, likely causes, and actionable remedies.
   - **Comparative Performance Evidence Qualification**: Documented M18 C01–C08 comparative benchmarks across Java 21 and Java 25 against Apache Velocity 2.4.1, Quarkus Qute 3.39.4, jte 3.2.4, and Thymeleaf 3.1.5, confirming all four 1.0 performance success gates.
-  - **1.0 Readiness Gap Analysis & Surface Audit**: Produced `docs/1.0-readiness-gap-analysis.md` assessing all 15 architectural areas, cataloging the 99 stable types vs 257 accidental public types, and outlining the encapsulation roadmap for 0.2.3 and 0.3.0.
+  - **1.0 Readiness Gap Analysis & Surface Audit**: Produced `docs/1.0-readiness-gap-analysis.md` assessing all 15 architectural areas, cataloging the 105 stable types (85 `STABLE_API`, 20 `STABLE_SPI`) vs 259 accidental public types across 5 baselines (`1.0-core-public-api.txt`, `1.0-aot-public-api.txt`, `1.0-spring-public-api.txt`, `1.0-spring-security-public-api.txt`, `1.0-quarkus-public-api.txt`), and outlining the encapsulation roadmap for 0.3.0 (`config/api-baseline/accidental-public-types-inventory.json`).
   - **Automated Documentation Verification Infrastructure**: Implemented `scripts/verify-documentation.py` and unit test suite `scripts/tests/test_verify_documentation.py` (30 tests) verifying release date integrity, consumer version references, coordinates, baseline compiler flags, Spring properties, internal link resolution, public types, diagnostic codes, and compatibility matrix synchronization. Integrated into `.github/workflows/ci.yml`.
   - **Standalone Executable Plain Java Fixture**: Added standalone project `examples/plain-java/` with verified build and test suite demonstrating direct programmatic engine usage.
 

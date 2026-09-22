@@ -59,6 +59,10 @@ public final class ClasspathTemplateRepository implements TemplateRepository {
     String resourcePath = prefix.isEmpty() ? normalizedPath : prefix + "/" + normalizedPath;
 
     URL resourceUrl = classLoader.getResource(resourcePath);
+    if (resourceUrl == null && !prefix.isEmpty() && normalizedPath.startsWith(prefix + "/")) {
+      resourcePath = normalizedPath;
+      resourceUrl = classLoader.getResource(resourcePath);
+    }
     if (resourceUrl == null) {
       return Optional.empty();
     }

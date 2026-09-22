@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
 import io.github.minh124199.viettemplate.api.CompiledTemplate;
+import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateDescriptor;
@@ -10,6 +11,7 @@ import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateResourceException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
+import io.github.minh124199.viettemplate.api.UndefinedReferencePolicy;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.ast.*;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
@@ -36,6 +38,8 @@ import java.util.*;
  * core VTL syntax and directives.
  */
 public final class VtlInterpreter {
+
+  private static final System.Logger LOGGER = System.getLogger(VtlInterpreter.class.getName());
 
   private final VtlInterpreterOptions options;
   private final ReferenceAccess referenceAccess;
@@ -381,7 +385,9 @@ public final class VtlInterpreter {
     VtlReference ref = node.reference();
     EvaluationValue val = evaluateReference(ref, state);
 
-    if (options.strictReferences()) {
+    UndefinedReferencePolicy policy = options.undefinedReferencePolicy();
+
+    if (policy == UndefinedReferencePolicy.ERROR) {
       if (val.isUndefined()) {
         throw new TemplateRenderException(
             "Variable '$" + ref.rootName() + "' has not been set",
@@ -401,6 +407,22 @@ public final class VtlInterpreter {
       }
       renderValue(val.value(), state);
       return;
+    }
+
+    if (policy == UndefinedReferencePolicy.WARN) {
+      if (val.isUndefined()) {
+        emitWarning(
+            state,
+            node.span(),
+            InterpreterDiagnosticCodes.VARIABLE_UNDEFINED,
+            "Variable '$" + ref.rootName() + "' has not been set");
+      } else if (val.isNull() && !ref.isQuiet()) {
+        emitWarning(
+            state,
+            node.span(),
+            InterpreterDiagnosticCodes.VARIABLE_UNDEFINED,
+            "Reference '$" + ref.rootName() + "' evaluated to null when attempting to render");
+      }
     }
 
     if (ref.isQuiet()) {
@@ -621,12 +643,19 @@ public final class VtlInterpreter {
       throws IOException {
     MacroDefinition macro = state.macroRegistry.lookup(node.name());
     if (macro == null) {
-      if (options.strictReferences()) {
+      if (options.undefinedReferencePolicy() == UndefinedReferencePolicy.ERROR) {
         throw new TemplateRenderException(
             "Unknown macro or directive: #" + node.name(),
             state.templateId,
             node.span(),
             InterpreterDiagnosticCodes.SYNTAX_ERROR);
+      }
+      if (options.undefinedReferencePolicy() == UndefinedReferencePolicy.WARN) {
+        emitWarning(
+            state,
+            node.span(),
+            InterpreterDiagnosticCodes.SYNTAX_ERROR,
+            "Unknown macro or directive: #" + node.name());
       }
       return;
     }
@@ -637,12 +666,19 @@ public final class VtlInterpreter {
       throws IOException {
     MacroDefinition macro = state.macroRegistry.lookup(node.name());
     if (macro == null) {
-      if (options.strictReferences()) {
+      if (options.undefinedReferencePolicy() == UndefinedReferencePolicy.ERROR) {
         throw new TemplateRenderException(
             "Unknown block macro: #" + node.name(),
             state.templateId,
             node.span(),
             InterpreterDiagnosticCodes.SYNTAX_ERROR);
+      }
+      if (options.undefinedReferencePolicy() == UndefinedReferencePolicy.WARN) {
+        emitWarning(
+            state,
+            node.span(),
+            InterpreterDiagnosticCodes.SYNTAX_ERROR,
+            "Unknown block macro: #" + node.name());
       }
       return;
     }
@@ -1058,18 +1094,26 @@ public final class VtlInterpreter {
 
     for (VtlAccessStep step : ref.accessSteps()) {
       if (current.isUndefined() || current.isNull()) {
-        if (options.strictReferences()) {
+        if (options.undefinedReferencePolicy() == UndefinedReferencePolicy.ERROR) {
           throw new TemplateRenderException(
               "Cannot navigate property/method on null or undefined reference",
               state.templateId,
               step.span(),
               InterpreterDiagnosticCodes.VARIABLE_UNDEFINED);
         }
+        if (options.undefinedReferencePolicy() == UndefinedReferencePolicy.WARN) {
+          emitWarning(
+              state,
+              step.span(),
+              InterpreterDiagnosticCodes.VARIABLE_UNDEFINED,
+              "Cannot navigate property/method on null or undefined reference");
+        }
         return EvaluationValue.undefined();
       }
       Object targetObj = current.value();
       current = evaluateAccessStep(current, step, state);
-      if (options.strictReferences() && current.isUndefined()) {
+      if (options.undefinedReferencePolicy() == UndefinedReferencePolicy.ERROR
+          && current.isUndefined()) {
         if (step instanceof VtlAccessStep.PropertyAccess prop) {
           throw new TemplateRenderException(
               "Object '"
@@ -1091,6 +1135,30 @@ public final class VtlInterpreter {
               state.templateId,
               step.span(),
               InterpreterDiagnosticCodes.INVALID_METHOD);
+        }
+      } else if (options.undefinedReferencePolicy() == UndefinedReferencePolicy.WARN
+          && current.isUndefined()) {
+        if (step instanceof VtlAccessStep.PropertyAccess prop) {
+          emitWarning(
+              state,
+              step.span(),
+              InterpreterDiagnosticCodes.INVALID_PROPERTY,
+              "Object '"
+                  + (targetObj != null ? targetObj.getClass().getName() : "null")
+                  + "' does not contain property '"
+                  + prop.propertyName()
+                  + "'");
+        }
+        if (step instanceof VtlAccessStep.MethodCall call) {
+          emitWarning(
+              state,
+              step.span(),
+              InterpreterDiagnosticCodes.INVALID_METHOD,
+              "Object '"
+                  + (targetObj != null ? targetObj.getClass().getName() : "null")
+                  + "' does not contain method '"
+                  + call.methodName()
+                  + "'");
         }
       }
     }
@@ -1194,6 +1262,8 @@ public final class VtlInterpreter {
     final int parseDepth;
     final int evaluateDepth;
 
+    final Set<SourceSpan> warnedSpans;
+
     ExecutionState(
         TemplateId templateId,
         SourceText source,
@@ -1204,6 +1274,30 @@ public final class VtlInterpreter {
         int macroDepth,
         int parseDepth,
         int evaluateDepth) {
+      this(
+          templateId,
+          source,
+          context,
+          macroRegistry,
+          output,
+          gobbledIndices,
+          macroDepth,
+          parseDepth,
+          evaluateDepth,
+          new HashSet<>());
+    }
+
+    ExecutionState(
+        TemplateId templateId,
+        SourceText source,
+        ExecutionContext context,
+        MacroRegistry macroRegistry,
+        TemplateOutput output,
+        BitSet gobbledIndices,
+        int macroDepth,
+        int parseDepth,
+        int evaluateDepth,
+        Set<SourceSpan> warnedSpans) {
       this.templateId = templateId;
       this.source = source;
       this.context = context;
@@ -1213,6 +1307,7 @@ public final class VtlInterpreter {
       this.macroDepth = macroDepth;
       this.parseDepth = parseDepth;
       this.evaluateDepth = evaluateDepth;
+      this.warnedSpans = warnedSpans != null ? warnedSpans : new HashSet<>();
     }
 
     ExecutionState withContext(ExecutionContext newContext) {
@@ -1225,7 +1320,8 @@ public final class VtlInterpreter {
           gobbledIndices,
           macroDepth,
           parseDepth,
-          evaluateDepth);
+          evaluateDepth,
+          warnedSpans);
     }
 
     ExecutionState withMacroDepth(int newMacroDepth) {
@@ -1238,7 +1334,8 @@ public final class VtlInterpreter {
           gobbledIndices,
           newMacroDepth,
           parseDepth,
-          evaluateDepth);
+          evaluateDepth,
+          warnedSpans);
     }
 
     ExecutionState withParseDepth(int newParseDepth) {
@@ -1251,7 +1348,8 @@ public final class VtlInterpreter {
           gobbledIndices,
           macroDepth,
           newParseDepth,
-          evaluateDepth);
+          evaluateDepth,
+          warnedSpans);
     }
 
     ExecutionState withEvaluateDepth(int newEvaluateDepth) {
@@ -1264,7 +1362,8 @@ public final class VtlInterpreter {
           gobbledIndices,
           macroDepth,
           parseDepth,
-          newEvaluateDepth);
+          newEvaluateDepth,
+          warnedSpans);
     }
 
     ExecutionState withTemplate(TemplateId newId, SourceText newSource, BitSet newGobbled) {
@@ -1277,7 +1376,36 @@ public final class VtlInterpreter {
           newGobbled,
           macroDepth,
           parseDepth,
-          evaluateDepth);
+          evaluateDepth,
+          warnedSpans);
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private void emitWarning(
+      ExecutionState state,
+      SourceSpan span,
+      io.github.minh124199.viettemplate.api.DiagnosticCode code,
+      String message) {
+    if (span != null && !span.equals(SourceSpan.UNKNOWN)) {
+      if (state != null && state.warnedSpans != null && !state.warnedSpans.add(span)) {
+        return; // Deduplicate: warn once per source location per render
+      }
+    }
+    Diagnostic diag = Diagnostic.warning(code, message, span != null ? span : SourceSpan.UNKNOWN);
+    if (state != null && state.context != null) {
+      EvaluationValue listenerVal = state.context.lookup("diagnosticConsumer");
+      if (!listenerVal.isUndefined()
+          && listenerVal.value() instanceof java.util.function.Consumer<?> c) {
+        ((java.util.function.Consumer<Diagnostic>) c).accept(diag);
+      }
+      EvaluationValue diagListVal = state.context.lookup("diagnostics");
+      if (!diagListVal.isUndefined() && diagListVal.value() instanceof List<?> list) {
+        ((List<Diagnostic>) list).add(diag);
+      }
+    }
+    LOGGER.log(
+        System.Logger.Level.WARNING,
+        () -> "[" + (state != null ? state.templateId : "?") + "] " + message + " at " + span);
   }
 }

@@ -8,6 +8,7 @@ import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
+import io.github.minh124199.viettemplate.api.UndefinedReferencePolicy;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.UnaryOpKind;
@@ -44,6 +45,9 @@ import java.util.NoSuchElementException;
  */
 public final class BytecodeRuntimeBridge {
 
+  private static final System.Logger LOGGER =
+      System.getLogger(BytecodeRuntimeBridge.class.getName());
+
   private BytecodeRuntimeBridge() {}
 
   /** Writes a value expression to output, applying escaping and null rendering semantics. */
@@ -53,7 +57,7 @@ public final class BytecodeRuntimeBridge {
       int escapeModeOrdinal,
       int nullModeOrdinal,
       String literal,
-      boolean strict,
+      UndefinedReferencePolicy policy,
       String templateIdStr,
       int startLine,
       int startCol,
@@ -66,7 +70,7 @@ public final class BytecodeRuntimeBridge {
         escapeModeOrdinal,
         nullModeOrdinal,
         literal,
-        strict,
+        policy,
         templateIdStr,
         startLine,
         startCol,
@@ -81,7 +85,7 @@ public final class BytecodeRuntimeBridge {
       int escapeModeOrdinal,
       int nullModeOrdinal,
       String literal,
-      boolean strict,
+      UndefinedReferencePolicy policy,
       String templateIdStr,
       int startLine,
       int startCol,
@@ -107,7 +111,10 @@ public final class BytecodeRuntimeBridge {
     boolean isNullOrUndef =
         (val == null) || (val instanceof EvaluationValue ev && (ev.isNull() || ev.isUndefined()));
 
-    if (strict) {
+    UndefinedReferencePolicy effectivePolicy =
+        policy != null ? policy : UndefinedReferencePolicy.SILENT;
+
+    if (effectivePolicy == UndefinedReferencePolicy.ERROR) {
       if (val instanceof EvaluationValue ev && ev.isUndefined()) {
         throw new TemplateRenderException(
             "Variable '" + (literal != null ? literal : "$ref") + "' has not been set",
@@ -127,6 +134,22 @@ public final class BytecodeRuntimeBridge {
             span,
             InterpreterDiagnosticCodes.VARIABLE_UNDEFINED);
       }
+    } else if (effectivePolicy == UndefinedReferencePolicy.WARN) {
+      if (val instanceof EvaluationValue ev && ev.isUndefined()) {
+        LOGGER.log(
+            System.Logger.Level.WARNING,
+            "Variable ''{0}'' has not been set at {1}:{2}",
+            (literal != null ? literal : "$ref"),
+            templateId,
+            span);
+      } else if (isNullOrUndef && nullMode != NullRenderMode.EMPTY_STRING) {
+        LOGGER.log(
+            System.Logger.Level.WARNING,
+            "Reference ''{0}'' evaluated to null when attempting to render at {1}:{2}",
+            (literal != null ? literal : "$ref"),
+            templateId,
+            span);
+      }
     }
 
     if (nullMode == NullRenderMode.EMPTY_STRING) {
@@ -142,6 +165,83 @@ public final class BytecodeRuntimeBridge {
       }
     } else {
       renderEscaped(unwrapped, output, escapeMode, securityPolicy, templateId, span);
+    }
+  }
+
+  public static void writeValue(
+      Object val,
+      TemplateOutput output,
+      int escapeModeOrdinal,
+      int nullModeOrdinal,
+      String literal,
+      boolean strict,
+      String templateIdStr,
+      int startLine,
+      int startCol,
+      int endLine,
+      int endCol)
+      throws IOException {
+    writeValue(
+        val,
+        output,
+        escapeModeOrdinal,
+        nullModeOrdinal,
+        literal,
+        strict ? UndefinedReferencePolicy.ERROR : UndefinedReferencePolicy.SILENT,
+        templateIdStr,
+        startLine,
+        startCol,
+        endLine,
+        endCol,
+        null);
+  }
+
+  public static void writeValue(
+      Object val,
+      TemplateOutput output,
+      int escapeModeOrdinal,
+      int nullModeOrdinal,
+      String literal,
+      boolean strict,
+      String templateIdStr,
+      int startLine,
+      int startCol,
+      int endLine,
+      int endCol,
+      LinkerAccessPolicy securityPolicy)
+      throws IOException {
+    writeValue(
+        val,
+        output,
+        escapeModeOrdinal,
+        nullModeOrdinal,
+        literal,
+        strict ? UndefinedReferencePolicy.ERROR : UndefinedReferencePolicy.SILENT,
+        templateIdStr,
+        startLine,
+        startCol,
+        endLine,
+        endCol,
+        securityPolicy);
+  }
+
+  public static void handleUndefinedReference(
+      String literal, TemplateId templateId, SourceSpan span, UndefinedReferencePolicy policy) {
+    UndefinedReferencePolicy effective = policy != null ? policy : UndefinedReferencePolicy.SILENT;
+    if (effective == UndefinedReferencePolicy.ERROR) {
+      throw new TemplateRenderException(
+          "Variable '" + (literal != null ? literal : "$ref") + "' has not been set",
+          templateId,
+          span,
+          InterpreterDiagnosticCodes.VARIABLE_UNDEFINED);
+    }
+    if (effective == UndefinedReferencePolicy.WARN) {
+      LOGGER.log(
+          System.Logger.Level.WARNING,
+          "Variable ''{0}'' has not been set at {1}:{2}",
+          literal != null ? literal : "$ref",
+          templateId,
+          span);
     }
   }
 

@@ -30,4 +30,6 @@ include("viet-template-tck")
 include("viet-template-benchmarks")
 include("viet-template-maven-plugin")
 include("viet-template-gradle-plugin")
+include("viet-template-quarkus")
+include("viet-template-quarkus-deployment")
 

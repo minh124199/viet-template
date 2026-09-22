@@ -1,0 +1,50 @@
+# Viet Template 1.0 Quarkus Integration Public API and SPI Baseline
+# Machine-readable public signatures for source and binary compatibility enforcement
+# Format: TYPE <class-header>
+#         MEMBER <member-signature>
+
+TYPE public interface io.github.minh124199.viettemplate.quarkus.VietTemplateConfig
+  MEMBER public abstract boolean runtimeCompilationEnabled()
+  MEMBER public abstract int cacheMaxEntries()
+  MEMBER public abstract java.lang.String encoding()
+  MEMBER public abstract java.lang.String path()
+  MEMBER public abstract java.lang.String suffix()
+  MEMBER public abstract java.lang.String undefinedReferencePolicy()
+  MEMBER public abstract java.util.Optional<java.util.List<java.lang.String>> additionalSuffixes()
+  MEMBER public abstract long negativeCacheTtlMillis()
+  MEMBER public default java.util.List<java.lang.String> effectiveAdditionalSuffixes()
+
+
+TYPE public class io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId resolveTemplateId(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer()
+  MEMBER public io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer(io.github.minh124199.viettemplate.api.TemplateEngine, io.github.minh124199.viettemplate.quarkus.VietTemplateConfig)
+  MEMBER public java.lang.String render(io.github.minh124199.viettemplate.api.TemplateId, java.util.Map<java.lang.String, ?>)
+  MEMBER public java.lang.String render(java.lang.String, java.util.Map<java.lang.String, ?>)
+  MEMBER public void render(io.github.minh124199.viettemplate.api.TemplateId, java.util.Map<java.lang.String, ?>, java.io.OutputStream)
+  MEMBER public void render(java.lang.String, java.util.Map<java.lang.String, ?>, java.io.OutputStream)
+
+TYPE public final class io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor implements io.github.minh124199.viettemplate.api.RenderContextContributor
+  MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor()
+  MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor(java.util.function.Supplier<io.quarkus.security.identity.SecurityIdentity>)
+  MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor(java.util.function.Supplier<io.quarkus.security.identity.SecurityIdentity>, java.lang.String)
+  MEMBER public java.lang.String getVariableName()
+  MEMBER public static final java.lang.String DEFAULT_SECURITY_VARIABLE_NAME
+  MEMBER public static final java.lang.String SECURITY_IDENTITY_ATTRIBUTE
+  MEMBER public void contribute(io.github.minh124199.viettemplate.api.ContributorContext, io.github.minh124199.viettemplate.api.RenderRequest)
+
+TYPE public final class io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView
+  MEMBER public boolean equals(java.lang.Object)
+  MEMBER public boolean hasRole(java.lang.String)
+  MEMBER public boolean isAnonymous()
+  MEMBER public boolean isAuthenticated()
+  MEMBER public int hashCode()
+  MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView(java.lang.String, boolean, boolean, java.util.Set<java.lang.String>)
+  MEMBER public java.lang.String getName()
+  MEMBER public java.lang.String name()
+  MEMBER public java.lang.String toString()
+  MEMBER public java.util.Set<java.lang.String> getRoles()
+  MEMBER public java.util.Set<java.lang.String> roles()
+  MEMBER public static io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView anonymous()
+  MEMBER public static io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView from(io.quarkus.security.identity.SecurityIdentity)
+
