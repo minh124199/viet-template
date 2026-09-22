@@ -26,7 +26,7 @@ import java.util.Optional;
  * Optimization pass performing boolean algebra simplifications, short-circuit literal reductions,
  * double negation elimination, redundant truthiness flattening, and conditional branch inversion.
  */
-public final class BooleanSimplificationPass implements IrOptimizationPass {
+final class BooleanSimplificationPass implements IrOptimizationPass {
 
   public static final String NAME = "BooleanSimplification";
 

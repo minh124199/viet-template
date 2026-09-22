@@ -45,7 +45,7 @@ import java.util.Set;
  * AccessPlan.DirectGetter}, {@link AccessPlan.DirectField}, {@link AccessPlan.MapLookup}) or
  * allowed direct method calls when receiver types are statically known.
  */
-public final class DirectAccessorBindingPass implements IrOptimizationPass {
+final class DirectAccessorBindingPass implements IrOptimizationPass {
 
   public static final String NAME = "DirectAccessorBinding";
 

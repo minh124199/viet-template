@@ -26,7 +26,7 @@ import java.util.Optional;
  * Optimization pass eliminating redundant local loads, dead local stores, and identity type
  * conversions ({@link IrConvert}).
  */
-public final class RedundantConversionPass implements IrOptimizationPass {
+final class RedundantConversionPass implements IrOptimizationPass {
 
   public static final String NAME = "RedundantConversion";
 

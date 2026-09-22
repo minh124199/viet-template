@@ -22,7 +22,7 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface TemplateModel {
+@interface TemplateModel {
   /** Optional relative path or template identifier that this model corresponds to. */
   String value() default "";
 }

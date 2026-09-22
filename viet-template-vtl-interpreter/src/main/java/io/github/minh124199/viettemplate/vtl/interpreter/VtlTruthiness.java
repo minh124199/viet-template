@@ -8,7 +8,7 @@ import java.util.Collection;
 import java.util.Map;
 
 /** Centralized truthiness evaluator implementing Apache Velocity 2.4.x compatible rules. */
-public final class VtlTruthiness {
+final class VtlTruthiness {
 
   private VtlTruthiness() {}
 

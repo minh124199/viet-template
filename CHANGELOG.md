@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **0.3.0-M1 Public Surface Containment (Milestone M22.1)**:
+  - Completed package-private visibility containment for 34 validated Category-A types across `viet-template-language-vtl`, `viet-template-runtime`, and `viet-template-vtl-interpreter`.
+  - Reduced accidental public types count from 259 to 225 (-34 types) with zero package moves or file relocations.
+  - Frozen intentional stable public surface remains strictly unchanged at exactly 105 types (85 `STABLE_API`, 20 `STABLE_SPI`) with 0 signature leaks.
+  - Regenerated `config/api-baseline/accidental-public-types-inventory.json` with corrected category assignments: 62 in Category B (same-module relocation), 159 in Category C (cross-module internal contract), 4 in Category F (true generated runtime ABI), and 0 remaining in Category A.
+  - Established mechanical runtime ABI verification via constant-pool inspection (`scripts/verify-generated-abi.py`, `config/api-baseline/generated-template-runtime-abi.txt`) and recorded ADR-0016 establishing Model D pre-1.0 generated template version compatibility policy.
+
 ## [0.2.3] - 2026-09-22
 
 ### Added

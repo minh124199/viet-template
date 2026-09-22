@@ -86,7 +86,7 @@ import java.util.regex.Pattern;
  * compatibility semantics, deterministic execution limits, source-span error reporting, and dynamic
  * template evaluation.
  */
-public final class IrInterpreter {
+final class IrInterpreter {
 
   private static final System.Logger LOGGER = System.getLogger(IrInterpreter.class.getName());
 

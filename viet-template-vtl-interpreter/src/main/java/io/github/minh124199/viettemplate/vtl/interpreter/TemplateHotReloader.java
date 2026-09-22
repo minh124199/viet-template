@@ -29,9 +29,9 @@ import java.util.function.Supplier;
  * during development, atomic generation swaps ensure zero-downtime reloads without disturbing
  * in-flight renders using prior generation instances.
  */
-public final class TemplateHotReloader {
+final class TemplateHotReloader {
 
-  public record CacheEntry(
+  record CacheEntry(
       IrTemplate template, long generation, String contentHash, long loadedEpochMillis) {
 
     public CacheEntry {
@@ -43,7 +43,7 @@ public final class TemplateHotReloader {
   private final ConcurrentMap<TemplateId, CacheEntry> cache = new ConcurrentHashMap<>();
   private final AtomicLong globalGeneration = new AtomicLong(1);
 
-  public TemplateHotReloader() {}
+  TemplateHotReloader() {}
 
   /** Retrieves an existing cached {@link IrTemplate} or loads and compiles it if absent. */
   public IrTemplate getOrLoad(

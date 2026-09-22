@@ -927,3 +927,10 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **F7.** Quarkus Security facade & Qute coexistence — `$security` context view and side-by-side execution with Qute.
 - [x] **F8.** `docs/extensions/quarkus.md` — complete Quarkus extension guide.
 - [x] Milestone M21 released as 0.2.3 on 2026-09-22 (active development advanced to 0.3.0-SNAPSHOT).
+
+### Deliverable G: Public Surface Containment & Generated ABI Foundation (Milestone M22.1 / 0.3.0-M1)
+- [x] **G1.** ADR-0016 (`docs/adr/0016-generated-template-abi-compatibility.md`) — formal generated-template ABI compatibility policy (Model D: pre-1.0 recompilation allowed; forward compatibility locked at 1.0).
+- [x] **G2.** Mechanical generated runtime ABI audit (`scripts/verify-generated-abi.py`, `config/api-baseline/generated-template-runtime-abi.txt`) — verified 4 true runtime ABI types: `BytecodeRuntimeBridge`, `DynamicCallSite`, `LinkerAccessPolicy`, `ForeachMetadata`.
+- [x] **G3.** Package-private containment completed for 34 validated Category-A types across `viet-template-language-vtl`, `viet-template-runtime`, and `viet-template-vtl-interpreter`.
+- [x] **G4.** Accidental public surface reduced from 259 to 225 types (-34 types); stable surface frozen at 105 types with 0 signature leaks.
+- [x] **G5.** Accidental public inventory regenerated (`config/api-baseline/accidental-public-types-inventory.json`): 62 Category B, 159 Category C, 4 Category F, 0 Category A remaining.

@@ -10,7 +10,7 @@ import java.util.Objects;
  * Represents a lazily executed template block, used for {@code #define} and block macro bodies
  * ({@code $bodyContent}).
  */
-public final class RenderableBlock {
+final class RenderableBlock {
 
   private final List<VtlNode> body;
   private final ExecutionContext capturedContext;

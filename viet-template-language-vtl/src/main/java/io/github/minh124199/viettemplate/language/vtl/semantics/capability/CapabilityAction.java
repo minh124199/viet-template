@@ -1,7 +1,7 @@
 package io.github.minh124199.viettemplate.language.vtl.semantics.capability;
 
 /** Actions categorized during template capability and security analysis. */
-public enum CapabilityAction {
+enum CapabilityAction {
   READ_PROPERTY,
   READ_INDEX,
   CALL_METHOD,

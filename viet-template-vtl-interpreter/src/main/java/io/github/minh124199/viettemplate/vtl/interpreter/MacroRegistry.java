@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /** Render-local macro registry holding macro definitions. */
-public final class MacroRegistry {
+final class MacroRegistry {
 
   private final Map<String, MacroDefinition> macros = new HashMap<>();
 

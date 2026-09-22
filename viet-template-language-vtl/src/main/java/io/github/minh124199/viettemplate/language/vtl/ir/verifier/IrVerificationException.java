@@ -4,7 +4,7 @@ import io.github.minh124199.viettemplate.api.SourceSpan;
 import java.util.Objects;
 
 /** Exception thrown when Template IR fails invariant verification. */
-public final class IrVerificationException extends RuntimeException {
+final class IrVerificationException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 

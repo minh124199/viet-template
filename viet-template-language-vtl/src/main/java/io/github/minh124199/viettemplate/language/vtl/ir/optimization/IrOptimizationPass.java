@@ -17,7 +17,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
  *   <li>Security capability boundaries
  * </ol>
  */
-public interface IrOptimizationPass {
+interface IrOptimizationPass {
 
   /** Returns the human-readable canonical name of this optimization pass. */
   String name();

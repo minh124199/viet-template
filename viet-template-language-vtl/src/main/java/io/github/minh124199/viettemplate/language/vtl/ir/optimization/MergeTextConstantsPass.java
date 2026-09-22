@@ -19,7 +19,7 @@ import java.util.Optional;
  * Optimization pass detecting and consolidating sequential {@link IrWriteConst} statements within
  * blocks into single, combined text constants in {@link IrConstantPool}.
  */
-public final class MergeTextConstantsPass implements IrOptimizationPass {
+final class MergeTextConstantsPass implements IrOptimizationPass {
 
   public static final String NAME = "MergeTextConstants";
 

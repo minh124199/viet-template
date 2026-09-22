@@ -20,7 +20,7 @@ import java.util.Optional;
  * Optimization pass that performs compile-time escaping of static constant writes and hoists
  * escaping checks when content is statically verified to be safe.
  */
-public final class EscapeSpecializationPass implements IrOptimizationPass {
+final class EscapeSpecializationPass implements IrOptimizationPass {
 
   public static final String NAME = "EscapeSpecialization";
 

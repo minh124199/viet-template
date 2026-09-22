@@ -24,7 +24,7 @@ import java.util.Optional;
  * Optimization pass specializing primitive expressions and operations (primitive arithmetic,
  * comparisons, and eliminating boxed wrapper conversions for primitive values).
  */
-public final class PrimitiveSpecializationPass implements IrOptimizationPass {
+final class PrimitiveSpecializationPass implements IrOptimizationPass {
 
   public static final String NAME = "PrimitiveSpecialization";
 

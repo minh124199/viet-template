@@ -4,7 +4,7 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.type.PrimitiveKi
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 
 /** Maps {@link VType} instances to JVM type descriptors and internal names. */
-public final class VTypeDescriptorMapper {
+final class VTypeDescriptorMapper {
 
   private VTypeDescriptorMapper() {}
 

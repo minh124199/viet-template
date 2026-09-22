@@ -784,20 +784,6 @@
     "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
   },
   {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout$InitializationPolicy",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir",
-    "simple_name": "InitializationPolicy",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
     "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout$SlotLayout",
     "module": "viet-template-language-vtl",
     "package": "io.github.minh124199.viettemplate.language.vtl.ir",
@@ -1089,91 +1075,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.BooleanSimplificationPass",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "BooleanSimplificationPass",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.ConstantFoldingPass",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "ConstantFoldingPass",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.DeadCodeEliminationPass",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "DeadCodeEliminationPass",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.DirectAccessorBindingPass",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "DirectAccessorBindingPass",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.EscapeSpecializationPass",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "EscapeSpecializationPass",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrExplainPlan",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "IrExplainPlan",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions",
@@ -1204,20 +1106,6 @@
     "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
   },
   {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationPass",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "IrOptimizationPass",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
     "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer",
     "module": "viet-template-language-vtl",
     "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
@@ -1230,62 +1118,6 @@
     "used_quarkus": false,
     "used_tck": false,
     "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer$OptimizationResult",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "OptimizationResult",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.LoopSpecializationPass",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "LoopSpecializationPass",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.MacroInliningPass",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "MacroInliningPass",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.MergeTextConstantsPass",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "MergeTextConstantsPass",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.MethodSizePlanningPass",
@@ -1313,7 +1145,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel",
@@ -1328,62 +1160,6 @@
     "used_quarkus": false,
     "used_tck": false,
     "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationStatistics",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "OptimizationStatistics",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.PreEncodeUtf8Pass",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "PreEncodeUtf8Pass",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.PrimitiveSpecializationPass",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "PrimitiveSpecializationPass",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.RedundantConversionPass",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.optimization",
-    "simple_name": "RedundantConversionPass",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan",
@@ -1904,20 +1680,6 @@
     "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
   },
   {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.verifier.IrVerificationException",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.ir.verifier",
-    "simple_name": "IrVerificationException",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
     "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.verifier.IrVerifier",
     "module": "viet-template-language-vtl",
     "package": "io.github.minh124199.viettemplate.language.vtl.ir.verifier",
@@ -2072,20 +1834,6 @@
     "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
   },
   {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.capability.CapabilityAction",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.semantics.capability",
-    "simple_name": "CapabilityAction",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
     "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.capability.TemplateCapabilities",
     "module": "viet-template-language-vtl",
     "package": "io.github.minh124199.viettemplate.language.vtl.semantics.capability",
@@ -2154,20 +1902,6 @@
     "used_quarkus": false,
     "used_tck": true,
     "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.model.TemplateModel",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.semantics.model",
-    "simple_name": "TemplateModel",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.resolve.LevenshteinDistance",
@@ -2279,7 +2013,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
+    "category": "F \u2014 GENERATED_OR_TOOLING_VISIBILITY_REQUIRED"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ScopeKind",
@@ -2321,7 +2055,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.scope.SymbolTable",
@@ -2503,7 +2237,7 @@
     "used_spring": false,
     "used_quarkus": true,
     "used_tck": false,
-    "category": "F \u2014 GENERATED_OR_TOOLING_VISIBILITY_REQUIRED"
+    "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.runtime.linker.AccessLink",
@@ -2545,7 +2279,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "F \u2014 GENERATED_OR_TOOLING_VISIBILITY_REQUIRED"
+    "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite",
@@ -2559,7 +2293,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
+    "category": "F \u2014 GENERATED_OR_TOOLING_VISIBILITY_REQUIRED"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite$State",
@@ -2601,7 +2335,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
+    "category": "F \u2014 GENERATED_OR_TOOLING_VISIBILITY_REQUIRED"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.runtime.linker.LinkerStatistics",
@@ -2616,20 +2350,6 @@
     "used_quarkus": false,
     "used_tck": false,
     "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.runtime.linker.LinkerStatistics$Snapshot",
-    "module": "viet-template-runtime",
-    "package": "io.github.minh124199.viettemplate.runtime.linker",
-    "simple_name": "Snapshot",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.runtime.linker.MemberKey",
@@ -2671,7 +2391,7 @@
     "used_spring": true,
     "used_quarkus": true,
     "used_tck": false,
-    "category": "F \u2014 GENERATED_OR_TOOLING_VISIBILITY_REQUIRED"
+    "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.spring.boot.autoconfigure.aot.VietTemplateRuntimeHints",
@@ -2713,7 +2433,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.BackendId",
@@ -2727,7 +2447,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.BackendOptions",
@@ -2797,7 +2517,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "F \u2014 GENERATED_OR_TOOLING_VISIBILITY_REQUIRED"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.TemplateBackend",
@@ -2811,7 +2531,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.TemplateClassLoader",
@@ -2825,7 +2545,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "F \u2014 GENERATED_OR_TOOLING_VISIBILITY_REQUIRED"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.TemplateSidecarIndex",
@@ -2839,7 +2559,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.TemplateSidecarIndex$SourceMapping",
@@ -2853,7 +2573,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeNaming",
@@ -2867,7 +2587,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge",
@@ -2909,7 +2629,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.ClassFileWriter$ConstantPool",
@@ -2923,7 +2643,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.ClassFileWriter$Label",
@@ -2937,7 +2657,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.ClassFileWriter$MethodWriter",
@@ -2951,7 +2671,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.ClassFileWriter$VerificationType",
@@ -2965,7 +2685,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.ClassFileWriter$VerificationType$ObjectType",
@@ -2979,7 +2699,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.ClassFileWriter$VerificationType$Simple",
@@ -2993,21 +2713,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": true,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.VTypeDescriptorMapper",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.compiler.bytecode",
-    "simple_name": "VTypeDescriptorMapper",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.engine.cache.CompileCacheKey",
@@ -3036,20 +2742,6 @@
     "used_quarkus": false,
     "used_tck": false,
     "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.engine.cache.NegativeCacheEntry",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.engine.cache",
-    "simple_name": "NegativeCacheEntry",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.engine.cache.TemplateCompileCache",
@@ -3092,20 +2784,6 @@
     "used_quarkus": false,
     "used_tck": true,
     "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.engine.context.ContributingContextComposer$DefaultContributorContext",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.engine.context",
-    "simple_name": "DefaultContributorContext",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.engine.dependency.DefaultTemplateDependencyGraph",
@@ -3178,34 +2856,6 @@
     "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.BreakSignal",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.interpreter",
-    "simple_name": "BreakSignal",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.ControlSignal",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.interpreter",
-    "simple_name": "ControlSignal",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
     "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput",
     "module": "viet-template-vtl-interpreter",
     "package": "io.github.minh124199.viettemplate.vtl.interpreter",
@@ -3220,20 +2870,6 @@
     "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.DefaultReferenceAccess",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.interpreter",
-    "simple_name": "DefaultReferenceAccess",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
     "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue",
     "module": "viet-template-vtl-interpreter",
     "package": "io.github.minh124199.viettemplate.vtl.interpreter",
@@ -3245,7 +2881,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": true,
-    "category": "F \u2014 GENERATED_OR_TOOLING_VISIBILITY_REQUIRED"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue$State",
@@ -3287,7 +2923,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "F \u2014 GENERATED_OR_TOOLING_VISIBILITY_REQUIRED"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits",
@@ -3301,7 +2937,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": true,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder",
@@ -3360,20 +2996,6 @@
     "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.IrInterpreter",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.interpreter",
-    "simple_name": "IrInterpreter",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
     "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.LinkedReferenceAccess",
     "module": "viet-template-vtl-interpreter",
     "package": "io.github.minh124199.viettemplate.vtl.interpreter",
@@ -3385,7 +3007,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "F \u2014 GENERATED_OR_TOOLING_VISIBILITY_REQUIRED"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.MacroDefinition",
@@ -3402,20 +3024,6 @@
     "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
   },
   {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.MacroRegistry",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.interpreter",
-    "simple_name": "MacroRegistry",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
     "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.ReferenceAccess",
     "module": "viet-template-vtl-interpreter",
     "package": "io.github.minh124199.viettemplate.vtl.interpreter",
@@ -3428,20 +3036,6 @@
     "used_quarkus": false,
     "used_tck": false,
     "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.RenderableBlock",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.interpreter",
-    "simple_name": "RenderableBlock",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler",
@@ -3470,48 +3064,6 @@
     "used_quarkus": false,
     "used_tck": true,
     "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.StopSignal",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.interpreter",
-    "simple_name": "StopSignal",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.TemplateHotReloader",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.interpreter",
-    "simple_name": "TemplateHotReloader",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.TemplateHotReloader$CacheEntry",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.interpreter",
-    "simple_name": "CacheEntry",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": true,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResource",
@@ -3553,7 +3105,7 @@
     "used_spring": false,
     "used_quarkus": false,
     "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
+    "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.VtlComparisonOperations",
@@ -3568,20 +3120,6 @@
     "used_quarkus": false,
     "used_tck": false,
     "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.VtlEscaping",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.interpreter",
-    "simple_name": "VtlEscaping",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
   },
   {
     "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.VtlNumericOperations",
@@ -3610,19 +3148,5 @@
     "used_quarkus": false,
     "used_tck": true,
     "category": "B \u2014 MOVE_TO_INTERNAL_PACKAGE"
-  },
-  {
-    "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.VtlTruthiness",
-    "module": "viet-template-vtl-interpreter",
-    "package": "io.github.minh124199.viettemplate.vtl.interpreter",
-    "simple_name": "VtlTruthiness",
-    "used_other_prod_mod": false,
-    "used_other_pkg_same_mod": false,
-    "used_tests": false,
-    "used_plugins": false,
-    "used_spring": false,
-    "used_quarkus": false,
-    "used_tck": false,
-    "category": "A \u2014 CAN_BECOME_PACKAGE_PRIVATE"
   }
 ]

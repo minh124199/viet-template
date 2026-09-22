@@ -22,7 +22,7 @@ import java.util.Optional;
  * trailing statements after terminal statements (return, stop, break), and redundant no-op
  * statements.
  */
-public final class DeadCodeEliminationPass implements IrOptimizationPass {
+final class DeadCodeEliminationPass implements IrOptimizationPass {
 
   public static final String NAME = "DeadCodeElimination";
 

@@ -7,7 +7,7 @@ import java.util.Objects;
  * Record representing a negatively cached lookup (e.g. missing template or fatal syntax error) to
  * protect against repeated disk/classpath misses.
  */
-public record NegativeCacheEntry(TemplateId templateId, String reason, long expirationEpochMillis) {
+record NegativeCacheEntry(TemplateId templateId, String reason, long expirationEpochMillis) {
 
   public NegativeCacheEntry {
     Objects.requireNonNull(templateId, "templateId must not be null");

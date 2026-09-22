@@ -152,7 +152,7 @@ public final class ContributingContextComposer {
     return new CompositionResult(ctx, origins);
   }
 
-  public static final class DefaultContributorContext implements ContributorContext {
+  static final class DefaultContributorContext implements ContributorContext {
     private final Map<String, Object> entries = new LinkedHashMap<>();
 
     @Override

@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /** Correctness-first reflection-based implementation of {@link ReferenceAccess}. */
-public final class DefaultReferenceAccess implements ReferenceAccess {
+final class DefaultReferenceAccess implements ReferenceAccess {
 
   private final VtlSecurityPolicy securityPolicy;
 

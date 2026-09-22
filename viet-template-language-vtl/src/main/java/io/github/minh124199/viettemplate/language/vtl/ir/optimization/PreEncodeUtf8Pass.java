@@ -9,7 +9,7 @@ import java.util.List;
  * Optimization pass ensuring that every static text constant in the template constant pool has a
  * pre-encoded UTF-8 byte array available for zero-copy streaming output.
  */
-public final class PreEncodeUtf8Pass implements IrOptimizationPass {
+final class PreEncodeUtf8Pass implements IrOptimizationPass {
 
   public static final String NAME = "PreEncodeUtf8";
 
