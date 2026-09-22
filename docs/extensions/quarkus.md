@@ -22,7 +22,7 @@ Add the `viet-template-quarkus` extension dependency to your `pom.xml`:
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-quarkus</artifactId>
-    <version>0.2.3</version>
+    <version>0.3.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -43,7 +43,7 @@ In `build.gradle.kts`:
 
 ```kotlin
 // Development / Snapshot Build
-implementation("io.github.minh124199:viet-template-quarkus:0.2.3")
+implementation("io.github.minh124199:viet-template-quarkus:0.3.0-SNAPSHOT")
 
 // Release Build
 implementation("io.github.minh124199:viet-template-quarkus:0.2.2")

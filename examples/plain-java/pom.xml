@@ -11,7 +11,7 @@
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <viet-template.version>0.2.3</viet-template.version>
+        <viet-template.version>0.3.0-SNAPSHOT</viet-template.version>
         <junit.version>5.11.3</junit.version>
         <assertj.version>3.26.3</assertj.version>
     </properties>
