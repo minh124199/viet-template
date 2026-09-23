@@ -8,7 +8,7 @@ import java.util.Objects;
 
 /**
  * Cached prepared template entry bundling the canonical {@link Template} instance, its execution
- * handle, generation metadata, descriptor, and optional freshness token.
+ * handle, generation metadata, descriptor, optional freshness token, and macro generation token.
  */
 public record PreparedTemplateEntry(
     TemplateId templateId,
@@ -17,7 +17,8 @@ public record PreparedTemplateEntry(
     CompiledTemplateHandle handle,
     Template templateInstance,
     TemplateDescriptor descriptor,
-    FreshnessToken freshnessToken) {
+    FreshnessToken freshnessToken,
+    long macroGeneration) {
 
   public PreparedTemplateEntry {
     Objects.requireNonNull(templateId, "templateId must not be null");
@@ -34,7 +35,18 @@ public record PreparedTemplateEntry(
       CompiledTemplateHandle handle,
       Template templateInstance,
       TemplateDescriptor descriptor) {
-    this(templateId, generation, key, handle, templateInstance, descriptor, null);
+    this(templateId, generation, key, handle, templateInstance, descriptor, null, 0L);
+  }
+
+  public PreparedTemplateEntry(
+      TemplateId templateId,
+      long generation,
+      CompileCacheKey key,
+      CompiledTemplateHandle handle,
+      Template templateInstance,
+      TemplateDescriptor descriptor,
+      FreshnessToken freshnessToken) {
+    this(templateId, generation, key, handle, templateInstance, descriptor, freshnessToken, 0L);
   }
 }
 

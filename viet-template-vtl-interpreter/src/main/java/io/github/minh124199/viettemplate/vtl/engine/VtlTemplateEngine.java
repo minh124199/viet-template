@@ -208,12 +208,10 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     Optional<PreparedTemplateEntry> activeOpt = cache.getActiveEntry(id);
     if (activeOpt.isPresent()) {
       PreparedTemplateEntry active = activeOpt.get();
-      if (active.freshnessToken() != null) {
+      if (active.freshnessToken() != null && active.macroGeneration() == globalMacroManager.generation()) {
         Optional<FreshnessToken> currentToken = repository.freshnessToken(id);
         if (currentToken.isPresent() && currentToken.get().equals(active.freshnessToken())) {
-          if (active.key().globalMacrosFingerprint().equals(globalMacroManager.computeFingerprint())) {
-            return active.templateInstance();
-          }
+          return active.templateInstance();
         }
       }
     }
@@ -287,7 +285,8 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
             compiledHandle,
             template,
             descriptor,
-            freshness.orElse(null));
+            freshness.orElse(null),
+            globalMacroManager.generation());
     cache.put(entry);
 
     return template;
@@ -403,5 +402,9 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
 
   TemplateDependencyCoordinator dependencyCoordinator() {
     return dependencyCoordinator;
+  }
+
+  GlobalMacroManager globalMacroManager() {
+    return globalMacroManager;
   }
 }

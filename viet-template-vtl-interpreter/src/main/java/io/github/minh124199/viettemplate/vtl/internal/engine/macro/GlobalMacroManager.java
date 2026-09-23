@@ -45,6 +45,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Manages global Velocimacro library templates (`velocimacro.library`), parsing them once into
@@ -67,6 +68,8 @@ public final class GlobalMacroManager {
   private final IrOptimizationOptions optimizationOptions;
 
   private final Map<TemplateId, ParsedLibrary> libraryCache = new ConcurrentHashMap<>();
+  private final AtomicLong macroGeneration;
+  private volatile String cachedFingerprint;
 
   public GlobalMacroManager(
       TemplateRepository repository,
@@ -85,6 +88,17 @@ public final class GlobalMacroManager {
         Objects.requireNonNull(interpreterOptions, "interpreterOptions must not be null");
     this.optimizationOptions =
         Objects.requireNonNull(optimizationOptions, "optimizationOptions must not be null");
+    if (this.libraryIds.isEmpty()) {
+      this.macroGeneration = new AtomicLong(0L);
+      this.cachedFingerprint = "";
+    } else {
+      this.macroGeneration = new AtomicLong(1L);
+      this.cachedFingerprint = null;
+    }
+  }
+
+  public long generation() {
+    return macroGeneration.get();
   }
 
   public List<TemplateId> libraryIds() {
@@ -96,11 +110,21 @@ public final class GlobalMacroManager {
   }
 
   public void invalidate(TemplateId id) {
+    if (libraryIds.isEmpty() || !libraryIds.contains(id)) {
+      return;
+    }
     libraryCache.remove(id);
+    cachedFingerprint = null;
+    macroGeneration.incrementAndGet();
   }
 
   public void invalidateAll() {
+    if (libraryIds.isEmpty()) {
+      return;
+    }
     libraryCache.clear();
+    cachedFingerprint = null;
+    macroGeneration.incrementAndGet();
   }
 
   /** Returns all dependencies extracted from the configured global macro libraries. */
@@ -229,19 +253,29 @@ public final class GlobalMacroManager {
     if (libraryIds.isEmpty()) {
       return "";
     }
-    try {
-      MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      for (TemplateId id : libraryIds) {
-        ParsedLibrary lib = ensureLibrary(id);
-        digest.update(id.value().getBytes(StandardCharsets.UTF_8));
-        digest.update((byte) ':');
-        digest.update(lib.fingerprint().getBytes(StandardCharsets.UTF_8));
-        digest.update((byte) ';');
+    String cached = cachedFingerprint;
+    if (cached != null) {
+      return cached;
+    }
+    synchronized (this) {
+      if (cachedFingerprint != null) {
+        return cachedFingerprint;
       }
-      digest.update(precedence.name().getBytes(StandardCharsets.UTF_8));
-      return HexFormat.of().formatHex(digest.digest());
-    } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException("SHA-256 not available", e);
+      try {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        for (TemplateId id : libraryIds) {
+          ParsedLibrary lib = ensureLibrary(id);
+          digest.update(id.value().getBytes(StandardCharsets.UTF_8));
+          digest.update((byte) ':');
+          digest.update(lib.fingerprint().getBytes(StandardCharsets.UTF_8));
+          digest.update((byte) ';');
+        }
+        digest.update(precedence.name().getBytes(StandardCharsets.UTF_8));
+        cachedFingerprint = HexFormat.of().formatHex(digest.digest());
+        return cachedFingerprint;
+      } catch (NoSuchAlgorithmException e) {
+        throw new IllegalStateException("SHA-256 not available", e);
+      }
     }
   }
 

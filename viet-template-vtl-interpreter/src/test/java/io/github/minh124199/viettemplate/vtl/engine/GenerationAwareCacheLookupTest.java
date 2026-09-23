@@ -19,6 +19,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -185,6 +186,60 @@ class GenerationAwareCacheLookupTest {
       assertThat(t3).isNotNull();
     } finally {
       cl.close();
+    }
+  }
+
+  @Test
+  @DisplayName("Global macro invalidation bumps macro generation, bypassing fast path and recompiling template")
+  void globalMacroInvalidationBypassesFastPathAndRecompiles() throws IOException {
+    InMemoryTemplateRepository memoryRepo = InMemoryTemplateRepository.create();
+    TemplateId macroId = TemplateId.of("macros.vm");
+    TemplateId templateId = TemplateId.of("main.vm");
+
+    memoryRepo.put(macroId, "#macro(greeting $name)Hello $name!#end");
+    memoryRepo.put(templateId, "#greeting('Alice')");
+
+    CountingFreshnessProviderWrapper wrapper = new CountingFreshnessProviderWrapper(memoryRepo);
+
+    try (VtlTemplateEngine engine =
+        VtlTemplateEngine.builder()
+            .repository(wrapper)
+            .globalMacroLibraries(List.of(macroId))
+            .build()) {
+      long initialGen = engine.globalMacroManager().generation();
+      assertThat(initialGen).isEqualTo(1L);
+
+      // 1. Initial retrieval: compiles and caches entry with FreshnessToken and macroGeneration = 1
+      Template t1 = engine.get(templateId);
+      assertThat(t1).isNotNull();
+      StringTemplateOutput out1 = new StringTemplateOutput();
+      t1.render(RenderContext.empty(), out1);
+      assertThat(out1.toString()).isEqualTo("Hello Alice!");
+      int initialFindCount = wrapper.findCallCount();
+
+      // 2. Fast-path check: returns same template instance, find() is NOT called
+      Template t2 = engine.get(templateId);
+      assertThat(t2).isSameAs(t1);
+      assertThat(wrapper.findCallCount()).isEqualTo(initialFindCount);
+
+      // 3. Invalidate macro library: changes globalMacroManager.generation()
+      memoryRepo.put(macroId, "#macro(greeting $name)Hi $name!#end");
+      engine.invalidate(macroId);
+      long nextGen = engine.globalMacroManager().generation();
+      assertThat(nextGen).isGreaterThan(initialGen);
+
+      // 4. Subsequent retrieval: fast-path is bypassed because macroGeneration changed, recompiling template
+      Template t3 = engine.get(templateId);
+      assertThat(t3).isNotSameAs(t1);
+      assertThat(wrapper.findCallCount()).isGreaterThan(initialFindCount);
+
+      StringTemplateOutput out3 = new StringTemplateOutput();
+      t3.render(RenderContext.empty(), out3);
+      assertThat(out3.toString()).isEqualTo("Hi Alice!");
+
+      // 5. Subsequent retrieval returns the newly recompiled template instance via fast-path
+      Template t4 = engine.get(templateId);
+      assertThat(t4).isSameAs(t3);
     }
   }
 
