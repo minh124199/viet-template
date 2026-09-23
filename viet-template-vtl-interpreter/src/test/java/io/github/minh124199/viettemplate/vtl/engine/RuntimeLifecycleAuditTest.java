@@ -1,8 +1,11 @@
 package io.github.minh124199.viettemplate.vtl.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.minh124199.viettemplate.api.*;
+import io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
@@ -191,5 +194,88 @@ class RuntimeLifecycleAuditTest {
     for (int i = 0; i < 98; i++) {
       directTemplate.render(ctx, new StringTemplateOutput());
     }
+  }
+
+  @Test
+  @DisplayName("Audit 5: Static dependency pre-compilation propagates syntax exceptions but tolerates missing resources")
+  void auditStaticDependencyPrecompilationExceptionPropagation() {
+    InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
+    TemplateId parentBroken = TemplateId.of("parentBroken.vtl");
+    TemplateId badChild = TemplateId.of("badChild.vtl");
+    repo.put(parentBroken, "Header #parse('badChild.vtl') Footer");
+    repo.put(badChild, "#if (unclosed expression");
+
+    VtlTemplateEngine engine =
+        VtlTemplateEngine.builder()
+            .repository(repo)
+            .executionTier(ExecutionTier.IR)
+            .build();
+
+    // 1. Dependency syntax error must NOT be swallowed during pre-compilation
+    assertThatThrownBy(() -> engine.get(parentBroken))
+        .isInstanceOf(TemplateSyntaxException.class)
+        .hasMessageContaining("badChild.vtl");
+
+    // 2. Expected missing dependency resources ARE tolerated during static pre-compilation
+    TemplateId parentMissing = TemplateId.of("parentMissing.vtl");
+    repo.put(parentMissing, "Header #parse('missingChild.vtl') Footer");
+    assertThatCode(() -> engine.get(parentMissing)).doesNotThrowAnyException();
+
+    engine.close();
+  }
+
+  @Test
+  @DisplayName("Audit 6: EngineFingerprint precomputes immutable engine descriptors once at construction")
+  void auditEngineFingerprintPrecomputation() {
+    InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
+    VtlTemplateEngine engine =
+        VtlTemplateEngine.builder()
+            .repository(repo)
+            .executionTier(ExecutionTier.IR)
+            .optimizationLevel(OptimizationLevel.O2)
+            .build();
+
+    EngineFingerprint fp = engine.engineFingerprint();
+    assertThat(fp).isNotNull();
+    assertThat(fp.compilerVersion()).isEqualTo("0.2.0");
+    assertThat(fp.optimizationLevel()).isEqualTo(OptimizationLevel.O2);
+    assertThat(fp.executionTier()).isEqualTo(ExecutionTier.IR);
+    assertThat(fp.accessPolicyId()).isNotBlank();
+    assertThat(fp.modelSignature()).isNotNull();
+    assertThat(fp.backendHash()).isEqualTo("VTL_CORE:VTL_CORE");
+
+    // Validate canonical constructor non-null constraints
+    assertThatThrownBy(
+            () ->
+                new EngineFingerprint(
+                    null, OptimizationLevel.O0, ExecutionTier.IR, "p", "m", "b"))
+        .isInstanceOf(NullPointerException.class);
+    assertThatThrownBy(
+            () ->
+                new EngineFingerprint(
+                    "0.2.0", null, ExecutionTier.IR, "p", "m", "b"))
+        .isInstanceOf(NullPointerException.class);
+    assertThatThrownBy(
+            () ->
+                new EngineFingerprint(
+                    "0.2.0", OptimizationLevel.O0, null, "p", "m", "b"))
+        .isInstanceOf(NullPointerException.class);
+    assertThatThrownBy(
+            () ->
+                new EngineFingerprint(
+                    "0.2.0", OptimizationLevel.O0, ExecutionTier.IR, null, "m", "b"))
+        .isInstanceOf(NullPointerException.class);
+    assertThatThrownBy(
+            () ->
+                new EngineFingerprint(
+                    "0.2.0", OptimizationLevel.O0, ExecutionTier.IR, "p", null, "b"))
+        .isInstanceOf(NullPointerException.class);
+    assertThatThrownBy(
+            () ->
+                new EngineFingerprint(
+                    "0.2.0", OptimizationLevel.O0, ExecutionTier.IR, "p", "m", null))
+        .isInstanceOf(NullPointerException.class);
+
+    engine.close();
   }
 }

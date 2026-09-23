@@ -72,6 +72,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
   private final List<RenderContextContributor> contextContributors;
   private final ContextCollisionPolicy contextCollisionPolicy;
   private final LayoutConfiguration layoutConfiguration;
+  private final EngineFingerprint engineFingerprint;
   private volatile Map<TemplateId, PreparedAotTemplate> aotTemplates;
   final ThreadLocal<Set<TemplateId>> compilingTemplates = new ThreadLocal<>();
 
@@ -151,6 +152,14 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
         contextCollisionPolicy != null ? contextCollisionPolicy : ContextCollisionPolicy.MODEL_WINS;
     this.layoutConfiguration =
         layoutConfiguration != null ? layoutConfiguration : LayoutConfiguration.builder().build();
+    this.engineFingerprint =
+        new EngineFingerprint(
+            COMPILER_VERSION,
+            this.optimizationLevel,
+            this.executionTier,
+            this.interpreterOptions.securityPolicy().policyFingerprint(),
+            this.semanticOptions.modelSchema().parameters().toString(),
+            this.interpreterOptions.profile().name() + ":" + this.semanticOptions.profile().name());
 
     if (enableWatcher && repository instanceof FilesystemTemplateRepository fsRepo) {
       try {
@@ -223,22 +232,18 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     TemplateSource source = sourceOpt.get();
 
     // 3. Multi-dimensional cache key
-    String accessPolicyId = interpreterOptions.securityPolicy().policyFingerprint();
-    String modelSignature = semanticOptions.modelSchema().parameters().toString();
-    String backendHash =
-        interpreterOptions.profile().name() + ":" + semanticOptions.profile().name();
     String macroFingerprint = globalMacroManager.computeFingerprint();
 
     CompileCacheKey key =
         CompileCacheKey.of(
             id,
             source.fingerprint(),
-            COMPILER_VERSION,
-            optimizationLevel,
-            executionTier,
-            accessPolicyId,
-            modelSignature,
-            backendHash,
+            engineFingerprint.compilerVersion(),
+            engineFingerprint.optimizationLevel(),
+            engineFingerprint.executionTier(),
+            engineFingerprint.accessPolicyId(),
+            engineFingerprint.modelSignature(),
+            engineFingerprint.backendHash(),
             macroFingerprint);
 
     // 4. Cache hit check
@@ -371,6 +376,10 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     return fileWatcher;
   }
 
+  EngineFingerprint engineFingerprint() {
+    return engineFingerprint;
+  }
+
   private CompiledTemplateHandle compileTemplate(
       TemplateId id, CompileCacheKey key, SourceText sourceText) {
     VtlParseResult parseResult = VtlParser.parse(sourceText);
@@ -416,7 +425,9 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
               && !compiling.contains(dep.target())) {
             try {
               get(dep.target());
-            } catch (Exception ignored) {
+            } catch (TemplateResourceException ignored) {
+              // Expected missing resources are tolerated during static pre-compilation;
+              // internal engine, parser, and compiler exceptions must propagate.
             }
           }
         }
