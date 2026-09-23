@@ -2,6 +2,7 @@ package io.github.minh124199.viettemplate.vtl.interpreter;
 
 import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.api.TemplateException;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
@@ -68,6 +69,7 @@ import io.github.minh124199.viettemplate.runtime.StandardEscapers;
 import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge;
 import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -913,6 +915,7 @@ final class IrInterpreter {
         recv, dyn.targetName(), args, dyn.span(), frame.templateId);
   }
 
+  @SuppressWarnings("removal")
   private static Object evaluateGetProperty(IrGetProperty prop, InterpretedFrame frame) {
     Object recv = unwrap(evaluateExpression(prop.receiver(), frame));
     if (recv == null) {
@@ -938,6 +941,34 @@ final class IrInterpreter {
     if (plan instanceof AccessPlan.DirectRecord rec) {
       try {
         return rec.accessor().invoke(recv);
+      } catch (ControlSignal cs) {
+        throw cs;
+      } catch (VirtualMachineError | ThreadDeath fatal) {
+        throw fatal;
+      } catch (TemplateException te) {
+        throw te;
+      } catch (InvocationTargetException ite) {
+        Throwable cause = ite.getTargetException();
+        if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+          throw (Error) cause;
+        }
+        if (cause instanceof ControlSignal cs) {
+          throw cs;
+        }
+        if (cause instanceof TemplateException te) {
+          throw te;
+        }
+        throw new TemplateRenderException(
+            "Property '"
+                + prop.propertyName()
+                + "' evaluation threw an exception: "
+                + (cause.getMessage() != null
+                    ? cause.getMessage()
+                    : cause.getClass().getSimpleName()),
+            frame.templateId,
+            prop.span(),
+            InterpreterDiagnosticCodes.INVALID_METHOD,
+            cause);
       } catch (Exception e) {
         return frame.referenceAccess.getProperty(
             recv, prop.propertyName(), prop.span(), frame.templateId);
@@ -945,6 +976,34 @@ final class IrInterpreter {
     } else if (plan instanceof AccessPlan.DirectGetter getter) {
       try {
         return getter.getter().invoke(recv);
+      } catch (ControlSignal cs) {
+        throw cs;
+      } catch (VirtualMachineError | ThreadDeath fatal) {
+        throw fatal;
+      } catch (TemplateException te) {
+        throw te;
+      } catch (InvocationTargetException ite) {
+        Throwable cause = ite.getTargetException();
+        if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+          throw (Error) cause;
+        }
+        if (cause instanceof ControlSignal cs) {
+          throw cs;
+        }
+        if (cause instanceof TemplateException te) {
+          throw te;
+        }
+        throw new TemplateRenderException(
+            "Property '"
+                + prop.propertyName()
+                + "' evaluation threw an exception: "
+                + (cause.getMessage() != null
+                    ? cause.getMessage()
+                    : cause.getClass().getSimpleName()),
+            frame.templateId,
+            prop.span(),
+            InterpreterDiagnosticCodes.INVALID_METHOD,
+            cause);
       } catch (Exception e) {
         return frame.referenceAccess.getProperty(
             recv, prop.propertyName(), prop.span(), frame.templateId);
@@ -952,6 +1011,12 @@ final class IrInterpreter {
     } else if (plan instanceof AccessPlan.DirectField field) {
       try {
         return field.field().get(recv);
+      } catch (ControlSignal cs) {
+        throw cs;
+      } catch (VirtualMachineError | ThreadDeath fatal) {
+        throw fatal;
+      } catch (TemplateException te) {
+        throw te;
       } catch (Exception e) {
         return frame.referenceAccess.getProperty(
             recv, prop.propertyName(), prop.span(), frame.templateId);
@@ -967,6 +1032,34 @@ final class IrInterpreter {
     } else if (plan instanceof AccessPlan.ExtensionCall ext) {
       try {
         return ext.method().invoke(null, recv);
+      } catch (ControlSignal cs) {
+        throw cs;
+      } catch (VirtualMachineError | ThreadDeath fatal) {
+        throw fatal;
+      } catch (TemplateException te) {
+        throw te;
+      } catch (InvocationTargetException ite) {
+        Throwable cause = ite.getTargetException();
+        if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+          throw (Error) cause;
+        }
+        if (cause instanceof ControlSignal cs) {
+          throw cs;
+        }
+        if (cause instanceof TemplateException te) {
+          throw te;
+        }
+        throw new TemplateRenderException(
+            "Property '"
+                + prop.propertyName()
+                + "' evaluation threw an exception: "
+                + (cause.getMessage() != null
+                    ? cause.getMessage()
+                    : cause.getClass().getSimpleName()),
+            frame.templateId,
+            prop.span(),
+            InterpreterDiagnosticCodes.INVALID_METHOD,
+            cause);
       } catch (Exception e) {
         return frame.referenceAccess.getProperty(
             recv, prop.propertyName(), prop.span(), frame.templateId);
@@ -977,6 +1070,7 @@ final class IrInterpreter {
     }
   }
 
+  @SuppressWarnings("removal")
   private static Object evaluateInvokeAllowedMethod(
       IrInvokeAllowedMethod inv, InterpretedFrame frame) {
     Object recv = unwrap(evaluateExpression(inv.receiver(), frame));
@@ -989,9 +1083,40 @@ final class IrInterpreter {
     }
     try {
       return inv.targetMethod().invoke(recv, args);
+    } catch (ControlSignal cs) {
+      throw cs;
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateException te) {
+      throw te;
+    } catch (InvocationTargetException ite) {
+      Throwable cause = ite.getTargetException();
+      if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+        throw (Error) cause;
+      }
+      if (cause instanceof ControlSignal cs) {
+        throw cs;
+      }
+      if (cause instanceof TemplateException te) {
+        throw te;
+      }
+      throw new TemplateRenderException(
+          "Error invoking method '"
+              + inv.methodName()
+              + "': "
+              + (cause.getMessage() != null
+                  ? cause.getMessage()
+                  : cause.getClass().getSimpleName()),
+          frame.templateId,
+          inv.span(),
+          InterpreterDiagnosticCodes.INVALID_METHOD,
+          cause);
     } catch (Exception e) {
       throw new TemplateRenderException(
-          "Error invoking method '" + inv.methodName() + "': " + e.getMessage(),
+          "Error invoking method '"
+              + inv.methodName()
+              + "': "
+              + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()),
           frame.templateId,
           inv.span(),
           InterpreterDiagnosticCodes.INVALID_METHOD,
