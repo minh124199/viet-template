@@ -3,13 +3,21 @@ package io.github.minh124199.viettemplate.vtl.engine;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.minh124199.viettemplate.api.ClasspathTemplateRepository;
+import io.github.minh124199.viettemplate.api.DiagnosticCode;
+import io.github.minh124199.viettemplate.api.FilesystemTemplateRepository;
+import io.github.minh124199.viettemplate.api.FreshnessToken;
 import io.github.minh124199.viettemplate.api.InMemoryTemplateRepository;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.Template;
+import io.github.minh124199.viettemplate.api.TemplateFreshnessProvider;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
+import io.github.minh124199.viettemplate.api.TemplateRepository;
+import io.github.minh124199.viettemplate.api.TemplateResourceException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
+import io.github.minh124199.viettemplate.api.TemplateSource;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicLinker;
@@ -20,8 +28,20 @@ import io.github.minh124199.viettemplate.vtl.internal.interpreter.InterpreterDia
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Verification of Milestone M6.1 exception semantics hardening.
@@ -361,5 +381,267 @@ class ExceptionSemanticsHardeningTest {
             });
 
     engine.close();
+  }
+
+  @Test
+  @DisplayName("Repository I/O failure (TemplateResourceException) does not poison negative cache")
+  void repositoryResourceExceptionDoesNotPoisonNegativeCache() throws IOException {
+    AtomicBoolean shouldFail = new AtomicBoolean(true);
+    TemplateId id = TemplateId.of("recoverableResource.vm");
+
+    TemplateRepository repo =
+        new TemplateRepository() {
+          @Override
+          public Optional<TemplateSource> find(TemplateId reqId) {
+            if (reqId.equals(id)) {
+              if (shouldFail.get()) {
+                throw new TemplateResourceException(
+                    "Simulated storage I/O failure: " + reqId.value(),
+                    reqId,
+                    SourceSpan.UNKNOWN,
+                    DiagnosticCode.of("RESOURCE", "IO_FAILURE"));
+              }
+              return Optional.of(TemplateSource.fromString(id, "Recovered resource: $data"));
+            }
+            return Optional.empty();
+          }
+        };
+
+    try (VtlTemplateEngine engine = VtlTemplateEngine.builder().repository(repo).build()) {
+      // 1. Initial attempt fails with TemplateResourceException
+      assertThatThrownBy(() -> engine.get(id))
+          .isInstanceOf(TemplateResourceException.class)
+          .hasMessageContaining("Simulated storage I/O failure");
+
+      // Verify that negative cache was NOT poisoned
+      assertThat(engine.cache().isNegativelyCached(id)).isFalse();
+
+      // 2. Fix the underlying repository issue
+      shouldFail.set(false);
+
+      // 3. Subsequent lookup succeeds immediately without waiting for negative cache TTL
+      Template template = engine.get(id);
+      assertThat(template).isNotNull();
+
+      StringTemplateOutput out = new StringTemplateOutput();
+      template.render(RenderContext.of(Map.of("data", "Success")), out);
+      assertThat(out.toString()).isEqualTo("Recovered resource: Success");
+      assertThat(engine.cache().isNegativelyCached(id)).isFalse();
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "Repository security denial (TemplateSecurityException) does not poison negative cache")
+  void repositorySecurityExceptionDoesNotPoisonNegativeCache() throws IOException {
+    AtomicBoolean denied = new AtomicBoolean(true);
+    TemplateId id = TemplateId.of("recoverableSecurity.vm");
+
+    TemplateRepository repo =
+        new TemplateRepository() {
+          @Override
+          public Optional<TemplateSource> find(TemplateId reqId) {
+            if (reqId.equals(id)) {
+              if (denied.get()) {
+                throw new TemplateSecurityException(
+                    "Simulated permission denial: " + reqId.value(), reqId, SourceSpan.UNKNOWN);
+              }
+              return Optional.of(TemplateSource.fromString(id, "Authorized: $role"));
+            }
+            return Optional.empty();
+          }
+        };
+
+    try (VtlTemplateEngine engine = VtlTemplateEngine.builder().repository(repo).build()) {
+      // 1. Initial attempt fails with TemplateSecurityException
+      assertThatThrownBy(() -> engine.get(id))
+          .isInstanceOf(TemplateSecurityException.class)
+          .hasMessageContaining("Simulated permission denial");
+
+      // Verify negative cache is NOT poisoned
+      assertThat(engine.cache().isNegativelyCached(id)).isFalse();
+
+      // 2. Grant permission
+      denied.set(false);
+
+      // 3. Subsequent call succeeds immediately
+      Template template = engine.get(id);
+      assertThat(template).isNotNull();
+
+      StringTemplateOutput out = new StringTemplateOutput();
+      template.render(RenderContext.of(Map.of("role", "Admin")), out);
+      assertThat(out.toString()).isEqualTo("Authorized: Admin");
+      assertThat(engine.cache().isNegativelyCached(id)).isFalse();
+    }
+  }
+
+  @Test
+  @DisplayName("Ordinary repository not found (Optional.empty) is recorded in negative cache")
+  void ordinaryNotFoundIsRecordedInNegativeCache() throws IOException {
+    InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
+    TemplateId id = TemplateId.of("genuinelyMissing.vm");
+
+    try (VtlTemplateEngine engine = VtlTemplateEngine.builder().repository(repo).build()) {
+      // 1. Initial attempt fails with Template not found in repository
+      assertThatThrownBy(() -> engine.get(id))
+          .isInstanceOf(TemplateResourceException.class)
+          .hasMessageContaining("Template not found in repository");
+
+      // Verify negative cache was recorded
+      assertThat(engine.cache().isNegativelyCached(id)).isTrue();
+
+      // 2. Subsequent call hits negative cache
+      assertThatThrownBy(() -> engine.get(id))
+          .isInstanceOf(TemplateResourceException.class)
+          .hasMessageContaining("cached negative lookup");
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "FilesystemTemplateRepository distinguishes not found, access denied, and I/O error on"
+          + " unreadable file")
+  void filesystemRepositoryDistinguishesNotFoundFromAccessDeniedAndIoError(@TempDir Path tempDir)
+      throws IOException {
+    FilesystemTemplateRepository repo = FilesystemTemplateRepository.of(tempDir);
+
+    // 1. Genuinely absent file returns Optional.empty()
+    TemplateId missingId = TemplateId.of("missing.vm");
+    assertThat(repo.find(missingId)).isEmpty();
+
+    // 2. Access denied on reading file throws TemplateSecurityException, never Optional.empty()
+    Path unreadableFile = tempDir.resolve("unreadable.vm");
+    Files.writeString(unreadableFile, "confidential payload");
+    unreadableFile.toFile().setReadable(false, false);
+    TemplateId unreadableId = TemplateId.of("unreadable.vm");
+    try {
+      assertThatThrownBy(() -> repo.find(unreadableId))
+          .isInstanceOf(TemplateSecurityException.class)
+          .hasMessageContaining("Access denied reading template file: unreadable.vm");
+    } finally {
+      unreadableFile.toFile().setReadable(true, false);
+    }
+
+    // 3. Access denied resolving real path (unsearchable directory) throws
+    // TemplateSecurityException
+    Path restrictedDir = tempDir.resolve("restricted_dir");
+    Files.createDirectory(restrictedDir);
+    Path secretFile = restrictedDir.resolve("secret.vm");
+    Files.writeString(secretFile, "secret under restricted dir");
+    restrictedDir.toFile().setReadable(false, false);
+    restrictedDir.toFile().setExecutable(false, false);
+    TemplateId restrictedId = TemplateId.of("restricted_dir/secret.vm");
+    try {
+      assertThatThrownBy(() -> repo.find(restrictedId))
+          .isInstanceOf(TemplateSecurityException.class)
+          .hasMessageContaining("Access denied resolving real path: restricted_dir/secret.vm");
+    } finally {
+      restrictedDir.toFile().setReadable(true, false);
+      restrictedDir.toFile().setExecutable(true, false);
+    }
+
+    // 4. Directory accessed as template file triggers I/O read failure ->
+    // TemplateResourceException,
+    // never Optional.empty()
+    Path dirAsFile = tempDir.resolve("dir_as_file.vm");
+    Files.createDirectory(dirAsFile);
+    TemplateId dirId = TemplateId.of("dir_as_file.vm");
+    assertThatThrownBy(() -> repo.find(dirId))
+        .isInstanceOf(TemplateResourceException.class)
+        .hasMessageContaining("Failed to read template file: dir_as_file.vm");
+  }
+
+  @Test
+  @DisplayName("ClasspathTemplateRepository throws TemplateResourceException on I/O read failure")
+  void classpathRepositoryThrowsTemplateResourceExceptionOnIoError() throws Exception {
+    URLStreamHandler failingHandler =
+        new URLStreamHandler() {
+          @Override
+          protected URLConnection openConnection(URL u) {
+            return new URLConnection(u) {
+              @Override
+              public void connect() throws IOException {
+                throw new IOException("Simulated network stream disconnect");
+              }
+
+              @Override
+              public InputStream getInputStream() throws IOException {
+                throw new IOException("Simulated classpath read stream failure");
+              }
+            };
+          }
+        };
+
+    URL failingUrl =
+        URL.of(URI.create("classpath-test://localhost/templates/corrupt.vm"), failingHandler);
+    ClassLoader cl =
+        new ClassLoader(ClasspathTemplateRepository.class.getClassLoader()) {
+          @Override
+          public URL getResource(String name) {
+            if ("templates/corrupt.vm".equals(name)) {
+              return failingUrl;
+            }
+            return null;
+          }
+        };
+
+    ClasspathTemplateRepository repo = new ClasspathTemplateRepository(cl, "templates");
+    TemplateId corruptId = TemplateId.of("corrupt.vm");
+
+    assertThatThrownBy(() -> repo.find(corruptId))
+        .isInstanceOf(TemplateResourceException.class)
+        .hasMessageContaining("Failed to read classpath resource: templates/corrupt.vm");
+  }
+
+  @Test
+  @DisplayName(
+      "Security denials during freshness check fail closed across fast path and negative cache")
+  void freshnessCheckSecurityDenialFailsClosed() throws IOException {
+    AtomicBoolean revokeAccess = new AtomicBoolean(false);
+    TemplateId id = TemplateId.of("secure_freshness.vm");
+
+    class DynamicSecurityRepository implements TemplateRepository, TemplateFreshnessProvider {
+      private final Map<TemplateId, String> templates = new ConcurrentHashMap<>();
+
+      DynamicSecurityRepository() {
+        templates.put(id, "Secure content: $v");
+      }
+
+      @Override
+      public Optional<TemplateSource> find(TemplateId templateId) {
+        String content = templates.get(templateId);
+        if (content == null) {
+          return Optional.empty();
+        }
+        return Optional.of(TemplateSource.fromString(templateId, content));
+      }
+
+      @Override
+      public Optional<FreshnessToken> freshnessToken(TemplateId templateId) {
+        if (revokeAccess.get()) {
+          throw new TemplateSecurityException(
+              "Access revoked during freshness verification: " + templateId.value(),
+              templateId,
+              SourceSpan.UNKNOWN);
+        }
+        return Optional.of(FreshnessToken.ofVersion(1L));
+      }
+    }
+
+    DynamicSecurityRepository repo = new DynamicSecurityRepository();
+
+    try (VtlTemplateEngine engine = VtlTemplateEngine.builder().repository(repo).build()) {
+      // 1. Initial retrieval compiles and warms cache
+      Template t1 = engine.get(id);
+      assertThat(t1).isNotNull();
+
+      // 2. Revoke access during freshness check
+      revokeAccess.set(true);
+
+      // Fast-path freshness check must rethrow TemplateSecurityException fail-closed
+      assertThatThrownBy(() -> engine.get(id))
+          .isInstanceOf(TemplateSecurityException.class)
+          .hasMessageContaining("Access revoked during freshness verification");
+    }
   }
 }

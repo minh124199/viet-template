@@ -3,7 +3,9 @@ package io.github.minh124199.viettemplate.api;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
@@ -72,10 +74,6 @@ public final class FilesystemTemplateRepository implements TemplateRepository {
           SourceSpan.UNKNOWN);
     }
 
-    if (!Files.exists(candidate) || !Files.isRegularFile(candidate)) {
-      return Optional.empty();
-    }
-
     // Confinement check 2: Symlink policy enforcement
     if (!followSymlinks) {
       if (Files.isSymbolicLink(candidate)) {
@@ -108,16 +106,28 @@ public final class FilesystemTemplateRepository implements TemplateRepository {
             id,
             SourceSpan.UNKNOWN);
       }
-    } catch (IOException e) {
+    } catch (NoSuchFileException e) {
       return Optional.empty();
+    } catch (AccessDeniedException e) {
+      throw new TemplateSecurityException(
+          "Access denied resolving real path: " + id.value(), id, SourceSpan.UNKNOWN, null, e);
+    } catch (IOException e) {
+      throw new TemplateResourceException(
+          "I/O failure resolving real path: " + id.value(), id, SourceSpan.UNKNOWN, null, e);
     }
 
     try {
       String content = Files.readString(realCandidate, charset);
       long lastModified = Files.getLastModifiedTime(realCandidate).toMillis();
       return Optional.of(TemplateSource.of(id, candidate.toUri(), charset, content, lastModified));
-    } catch (IOException e) {
+    } catch (NoSuchFileException e) {
       return Optional.empty();
+    } catch (AccessDeniedException e) {
+      throw new TemplateSecurityException(
+          "Access denied reading template file: " + id.value(), id, SourceSpan.UNKNOWN, null, e);
+    } catch (IOException e) {
+      throw new TemplateResourceException(
+          "Failed to read template file: " + id.value(), id, SourceSpan.UNKNOWN, null, e);
     }
   }
 

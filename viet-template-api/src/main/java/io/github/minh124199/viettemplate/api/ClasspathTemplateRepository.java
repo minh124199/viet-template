@@ -80,12 +80,13 @@ public final class ClasspathTemplateRepository
       long lastModified = 0L;
       try {
         lastModified = resourceUrl.openConnection().getLastModified();
-      } catch (Exception ignored) {
+      } catch (IOException ignored) {
       }
       URI uri = URI.create("classpath:/" + resourcePath);
       return Optional.of(TemplateSource.of(id, uri, charset, content, lastModified));
     } catch (IOException e) {
-      return Optional.empty();
+      throw new TemplateResourceException(
+          "Failed to read classpath resource: " + resourcePath, id, SourceSpan.UNKNOWN, null, e);
     }
   }
 

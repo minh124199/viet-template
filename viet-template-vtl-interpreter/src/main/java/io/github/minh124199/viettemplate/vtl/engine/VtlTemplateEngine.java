@@ -295,7 +295,13 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
 
   private Optional<FreshnessToken> repositoryFreshnessToken(TemplateId id) {
     if (repository instanceof TemplateFreshnessProvider provider) {
-      return provider.freshnessToken(id);
+      try {
+        return provider.freshnessToken(id);
+      } catch (TemplateSecurityException e) {
+        throw e;
+      } catch (Exception e) {
+        return Optional.empty();
+      }
     }
     return Optional.empty();
   }
