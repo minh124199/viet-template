@@ -45,7 +45,7 @@ public class EngineSteadyStateBenchmark {
 
   @State(Scope.Benchmark)
   public static class EngineState {
-    @Param({"IR", "AOT_BYTECODE"})
+    @Param({"IR", "AOT_BYTECODE", "AST"})
     String tier;
 
     VtlTemplateEngine engine;
@@ -117,6 +117,16 @@ public class EngineSteadyStateBenchmark {
         retained.reset();
       }
     }
+  }
+
+  @Benchmark
+  public void warmedEngineGet(EngineState state, Blackhole blackhole) {
+    blackhole.consume(state.engine.get(TEMPLATE_ID));
+  }
+
+  @Benchmark
+  public void pureAotWarmedEngineGet(PureAotState state, Blackhole blackhole) {
+    blackhole.consume(state.engine.get(PRECOMPILED_ID));
   }
 
   @Benchmark
