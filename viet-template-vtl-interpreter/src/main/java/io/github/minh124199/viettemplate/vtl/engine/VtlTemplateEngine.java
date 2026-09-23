@@ -15,6 +15,7 @@ import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.runtime.linker.CallSiteRegistry;
 import io.github.minh124199.viettemplate.vtl.engine.cache.CompileCacheKey;
 import io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle;
+import io.github.minh124199.viettemplate.vtl.engine.cache.PreparedTemplateEntry;
 import io.github.minh124199.viettemplate.vtl.engine.cache.TemplateCompileCache;
 import io.github.minh124199.viettemplate.vtl.engine.dependency.DefaultTemplateDependencyGraph;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.*;
@@ -247,16 +248,9 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
             macroFingerprint);
 
     // 4. Cache hit check
-    Optional<CompiledTemplateHandle> cachedHandle = cache.get(key);
-    SourceText sourceText = SourceText.of(id, source.content());
-
-    if (cachedHandle.isPresent()) {
-      return new VtlTemplate(
-          TemplateDescriptor.of(id, executionTier.name()),
-          cachedHandle.get(),
-          sourceText,
-          interpreterOptions,
-          interpreter);
+    Optional<PreparedTemplateEntry> cachedEntry = cache.getEntry(key);
+    if (cachedEntry.isPresent()) {
+      return cachedEntry.get().templateInstance();
     }
 
     // 5. Hardened production check: reject runtime compilation
@@ -269,15 +263,22 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     }
 
     // 6. Compilation on cache miss
+    SourceText sourceText = SourceText.of(id, source.content());
     CompiledTemplateHandle compiledHandle = compileTemplate(id, key, sourceText);
-    cache.put(key, compiledHandle);
+    TemplateDescriptor descriptor = TemplateDescriptor.of(id, executionTier.name());
+    VtlTemplate template =
+        new VtlTemplate(
+            descriptor,
+            compiledHandle,
+            sourceText,
+            interpreterOptions,
+            interpreter);
+    PreparedTemplateEntry entry =
+        new PreparedTemplateEntry(
+            id, compiledHandle.generation(), key, compiledHandle, template, descriptor);
+    cache.put(entry);
 
-    return new VtlTemplate(
-        TemplateDescriptor.of(id, executionTier.name()),
-        compiledHandle,
-        sourceText,
-        interpreterOptions,
-        interpreter);
+    return template;
   }
 
   @Override

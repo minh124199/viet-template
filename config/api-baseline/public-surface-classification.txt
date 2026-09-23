@@ -312,6 +312,7 @@ io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder STABLE_API
 io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineProvider STABLE_API
 io.github.minh124199.viettemplate.vtl.engine.cache.CompileCacheKey INTERNAL_CROSS_PACKAGE
 io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle INTERNAL_CROSS_PACKAGE
+io.github.minh124199.viettemplate.vtl.engine.cache.PreparedTemplateEntry INTERNAL_CROSS_PACKAGE
 io.github.minh124199.viettemplate.vtl.engine.cache.TemplateCompileCache INTERNAL_CROSS_PACKAGE
 io.github.minh124199.viettemplate.vtl.engine.dependency.DefaultTemplateDependencyGraph INTERNAL_CROSS_PACKAGE
 io.github.minh124199.viettemplate.vtl.internal.compiler.BackendCapabilities INTERNAL_CROSS_PACKAGE

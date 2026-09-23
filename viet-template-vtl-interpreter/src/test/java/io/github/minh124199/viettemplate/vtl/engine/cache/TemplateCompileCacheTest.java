@@ -893,6 +893,44 @@ class TemplateCompileCacheTest {
     assertThat(cache.isInternallyConsistent()).isTrue();
   }
 
+  @Test
+  void preparedTemplateEntryPutAndGet() {
+    TemplateCompileCache cache = new TemplateCompileCache(10, 5000L, 10);
+    TemplateId id = TemplateId.of("prepared.vm");
+    CompileCacheKey k = key(id, 1);
+    CompiledTemplateHandle handle = handle(k);
+    io.github.minh124199.viettemplate.api.TemplateDescriptor descriptor =
+        io.github.minh124199.viettemplate.api.TemplateDescriptor.of(id, "IR");
+    io.github.minh124199.viettemplate.api.Template templateInstance =
+        new io.github.minh124199.viettemplate.api.Template() {
+          @Override
+          public io.github.minh124199.viettemplate.api.TemplateDescriptor descriptor() {
+            return descriptor;
+          }
+
+          @Override
+          public void render(
+              io.github.minh124199.viettemplate.api.RenderContext context,
+              io.github.minh124199.viettemplate.api.TemplateOutput output) {}
+        };
+
+    PreparedTemplateEntry entry =
+        new PreparedTemplateEntry(id, 42L, k, handle, templateInstance, descriptor);
+    cache.put(entry);
+
+    assertThat(cache.getEntry(k)).isPresent();
+    assertThat(cache.getEntry(k).get()).isSameAs(entry);
+    assertThat(cache.getEntry(k).get().templateInstance()).isSameAs(templateInstance);
+    assertThat(cache.getActiveEntry(id)).isPresent();
+    assertThat(cache.getActiveEntry(id).get()).isSameAs(entry);
+
+    // Backwards-compatible get() and getActive()
+    assertThat(cache.get(k)).isPresent();
+    assertThat(cache.get(k).get()).isSameAs(handle);
+    assertThat(cache.getActive(id)).isPresent();
+    assertThat(cache.getActive(id).get()).isSameAs(handle);
+  }
+
   private static CompileCacheKey key(TemplateId id, int variant) {
     return CompileCacheKey.of(
         id,
