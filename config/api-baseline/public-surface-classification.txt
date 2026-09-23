@@ -1,5 +1,5 @@
 # Viet Template Public Surface Classification Baseline
-# Total Types: 338
+# Total Types: 339
 # STABLE_API: 94
 # STABLE_SPI: 27
 # EXPERIMENTAL: 5
@@ -8,7 +8,7 @@
 # SERVICE_ENTRYPOINT: 0
 # GENERATED_RUNTIME_ABI: 1
 # INTERNAL_CROSS_MODULE: 59
-# INTERNAL_CROSS_PACKAGE: 56
+# INTERNAL_CROSS_PACKAGE: 57
 # BENCHMARK_SUPPORT_INTERNAL: 3
 # PUBLIC_BUT_INTERNAL_ACCIDENT: 85
 #
@@ -308,6 +308,7 @@ io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension BUILD_TOO
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplatePlugin BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateCompileMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge GENERATED_RUNTIME_ABI
+io.github.minh124199.viettemplate.vtl.engine.EngineFingerprint INTERNAL_CROSS_PACKAGE
 io.github.minh124199.viettemplate.vtl.engine.VtlTemplate STABLE_API
 io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine STABLE_API
 io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder STABLE_API

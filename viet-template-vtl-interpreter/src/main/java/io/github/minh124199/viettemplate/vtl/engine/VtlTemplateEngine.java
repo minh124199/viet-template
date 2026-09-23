@@ -242,16 +242,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     String macroFingerprint = globalMacroManager.computeFingerprint();
 
     CompileCacheKey key =
-        CompileCacheKey.of(
-            id,
-            source.fingerprint(),
-            engineFingerprint.compilerVersion(),
-            engineFingerprint.optimizationLevel(),
-            engineFingerprint.executionTier(),
-            engineFingerprint.accessPolicyId(),
-            engineFingerprint.modelSignature(),
-            engineFingerprint.backendHash(),
-            macroFingerprint);
+        CompileCacheKey.of(id, source.fingerprint(), engineFingerprint, macroFingerprint);
 
     // 4. Cache hit check
     Optional<PreparedTemplateEntry> cachedEntry = cache.getEntry(key);

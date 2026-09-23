@@ -2,21 +2,22 @@ package io.github.minh124199.viettemplate.vtl.engine;
 
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * Precomputed engine-invariant fingerprint capturing immutable compiler, optimization, execution,
  * security policy, and model schema descriptors at engine construction time.
  */
-record EngineFingerprint(
+public record EngineFingerprint(
     String compilerVersion,
     OptimizationLevel optimizationLevel,
     ExecutionTier executionTier,
     String accessPolicyId,
     String modelSignature,
-    String backendHash) {
+    String backendHash) implements Serializable {
 
-  EngineFingerprint {
+  public EngineFingerprint {
     Objects.requireNonNull(compilerVersion, "compilerVersion must not be null");
     Objects.requireNonNull(optimizationLevel, "optimizationLevel must not be null");
     Objects.requireNonNull(executionTier, "executionTier must not be null");
