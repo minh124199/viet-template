@@ -39,6 +39,7 @@ public class VietTemplateProducer {
 
   @Produces
   @ApplicationScoped
+  @SuppressWarnings("removal")
   public TemplateEngine produceTemplateEngine() {
     Charset charset;
     try {
@@ -95,6 +96,8 @@ public class VietTemplateProducer {
         }
       } catch (ClassNotFoundException | NoClassDefFoundError ignored) {
         // Quarkus Security extension is not present on classpath - optional!
+      } catch (VirtualMachineError | ThreadDeath fatal) {
+        throw fatal;
       } catch (Throwable ignored) {
       }
     }

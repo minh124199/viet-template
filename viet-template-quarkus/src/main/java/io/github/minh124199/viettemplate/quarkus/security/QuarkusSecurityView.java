@@ -72,6 +72,7 @@ public final class QuarkusSecurityView {
    * @param identity the Quarkus security identity, or {@code null}
    * @return immutable security view snapshot
    */
+  @SuppressWarnings("removal")
   public static QuarkusSecurityView from(SecurityIdentity identity) {
     if (identity == null) {
       return ANONYMOUS;
@@ -89,6 +90,8 @@ public final class QuarkusSecurityView {
       String principalName =
           (principal != null && principal.getName() != null) ? principal.getName() : "";
       return new QuarkusSecurityView(principalName, true, false, identity.getRoles());
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
     } catch (Throwable ignored) {
       return ANONYMOUS;
     }

@@ -72,7 +72,7 @@ public final class DevelopmentFileWatcher implements AutoCloseable {
           return new WatchEvent.Modifier[] {modifier};
         }
       }
-    } catch (Throwable ignored) {
+    } catch (ReflectiveOperationException | LinkageError | SecurityException ignored) {
       // SensitivityWatchEventModifier not available on all platforms/runtimes
     }
     return new WatchEvent.Modifier[0];

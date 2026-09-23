@@ -99,12 +99,16 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
             TemplateId targetId = TemplateId.normalize(path);
             try {
               get(targetId);
+            } catch (TemplateSecurityException | TemplateCompilationException e) {
+              throw e;
             } catch (Exception ignored) {
             }
             return repository
                 .find(targetId)
                 .map(src -> new TemplateResource(src.id(), src.content()));
-          } catch (Exception e) {
+          } catch (TemplateSecurityException | TemplateCompilationException e) {
+            throw e;
+          } catch (IllegalArgumentException e) {
             return Optional.empty();
           }
         };
@@ -410,5 +414,13 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
 
   GlobalMacroManager globalMacroManager() {
     return globalMacroManager;
+  }
+
+  VtlInterpreterOptions interpreterOptions() {
+    return interpreterOptions;
+  }
+
+  VtlInterpreter interpreter() {
+    return interpreter;
   }
 }

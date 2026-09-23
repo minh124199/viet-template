@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.api.TemplateException;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
@@ -11,6 +12,7 @@ import io.github.minh124199.viettemplate.runtime.linker.DynamicLinker;
 import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
 import io.github.minh124199.viettemplate.runtime.linker.MemberKey;
 import io.github.minh124199.viettemplate.vtl.internal.interpreter.InterpreterDiagnosticCodes;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,6 +56,7 @@ final class LinkedReferenceAccess implements ReferenceAccess {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public EvaluationValue getProperty(
       Object target, String propertyName, SourceSpan span, TemplateId id) {
     if (target == null) {
@@ -96,13 +99,30 @@ final class LinkedReferenceAccess implements ReferenceAccess {
         return EvaluationValue.of(value);
       } catch (ControlSignal cs) {
         throw cs;
+      } catch (VirtualMachineError | ThreadDeath fatal) {
+        throw fatal;
+      } catch (TemplateException te) {
+        throw te;
       } catch (Throwable t) {
+        Throwable cause =
+            (t instanceof InvocationTargetException ite) ? ite.getTargetException() : t;
+        if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+          throw (Error) cause;
+        }
+        if (cause instanceof TemplateException te) {
+          throw te;
+        }
         throw new TemplateRenderException(
-            "Property '" + propertyName + "' evaluation threw an exception: " + t.getMessage(),
+            "Property '"
+                + propertyName
+                + "' evaluation threw an exception: "
+                + (cause.getMessage() != null
+                    ? cause.getMessage()
+                    : cause.getClass().getSimpleName()),
             id,
             span,
-            InterpreterDiagnosticCodes.SYNTAX_ERROR,
-            t);
+            InterpreterDiagnosticCodes.INVALID_METHOD,
+            cause);
       }
     }
 
@@ -110,6 +130,7 @@ final class LinkedReferenceAccess implements ReferenceAccess {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public EvaluationValue invokeMethod(
       Object target,
       String methodName,
@@ -157,13 +178,30 @@ final class LinkedReferenceAccess implements ReferenceAccess {
           return EvaluationValue.of(result);
         } catch (ControlSignal cs) {
           throw cs;
+        } catch (VirtualMachineError | ThreadDeath fatal) {
+          throw fatal;
+        } catch (TemplateException te) {
+          throw te;
         } catch (Throwable t) {
+          Throwable cause =
+              (t instanceof InvocationTargetException ite) ? ite.getTargetException() : t;
+          if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+            throw (Error) cause;
+          }
+          if (cause instanceof TemplateException te) {
+            throw te;
+          }
           throw new TemplateRenderException(
-              "Method '" + methodName + "' threw an exception: " + t.getMessage(),
+              "Method '"
+                  + methodName
+                  + "' threw an exception: "
+                  + (cause.getMessage() != null
+                      ? cause.getMessage()
+                      : cause.getClass().getSimpleName()),
               id,
               span,
-              InterpreterDiagnosticCodes.SYNTAX_ERROR,
-              t);
+              InterpreterDiagnosticCodes.INVALID_METHOD,
+              cause);
         }
       }
     }

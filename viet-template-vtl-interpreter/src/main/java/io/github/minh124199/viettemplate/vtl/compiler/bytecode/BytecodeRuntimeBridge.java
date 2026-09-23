@@ -30,6 +30,7 @@ import io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue;
 import io.github.minh124199.viettemplate.vtl.interpreter.ForeachMetadata;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -761,6 +762,9 @@ public final class BytecodeRuntimeBridge {
     try {
       return site.invoke(unwrapped);
     } catch (Throwable t) {
+      if (t instanceof Error err) {
+        throw err;
+      }
       if (t instanceof RuntimeException re) {
         throw re;
       }
@@ -780,6 +784,9 @@ public final class BytecodeRuntimeBridge {
     try {
       site.invoke(unwrapped, value);
     } catch (Throwable t) {
+      if (t instanceof Error err) {
+        throw err;
+      }
       if (t instanceof RuntimeException re) {
         throw re;
       }
@@ -799,6 +806,9 @@ public final class BytecodeRuntimeBridge {
     try {
       return site.invoke(unwrapped, index);
     } catch (Throwable t) {
+      if (t instanceof Error err) {
+        throw err;
+      }
       if (t instanceof RuntimeException re) {
         throw re;
       }
@@ -819,6 +829,9 @@ public final class BytecodeRuntimeBridge {
     try {
       site.invoke(unwrapped, index, value);
     } catch (Throwable t) {
+      if (t instanceof Error err) {
+        throw err;
+      }
       if (t instanceof RuntimeException re) {
         throw re;
       }
@@ -869,6 +882,15 @@ public final class BytecodeRuntimeBridge {
             try {
               m.setAccessible(true);
               return m.invoke(unwrapped, args);
+            } catch (InvocationTargetException ite) {
+              Throwable targetEx = ite.getTargetException();
+              if (targetEx instanceof Error err) {
+                throw err;
+              }
+              if (targetEx instanceof RuntimeException re) {
+                throw re;
+              }
+              throw new RuntimeException(targetEx);
             } catch (Exception ex) {
               throw new RuntimeException(ex);
             }
@@ -877,6 +899,9 @@ public final class BytecodeRuntimeBridge {
       }
       throw cce;
     } catch (Throwable t) {
+      if (t instanceof Error err) {
+        throw err;
+      }
       if (t instanceof RuntimeException re) {
         throw re;
       }

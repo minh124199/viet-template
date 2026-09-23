@@ -75,6 +75,7 @@ public final class QuarkusSecurityRenderContextContributor implements RenderCont
     return this.variableName;
   }
 
+  @SuppressWarnings("removal")
   private SecurityIdentity resolveIdentity(RenderRequest request) {
     // 1. Explicit request attribute takes precedence
     if (request.attributes() != null) {
@@ -92,6 +93,8 @@ public final class QuarkusSecurityRenderContextContributor implements RenderCont
     if (this.identitySupplier != null) {
       try {
         return this.identitySupplier.get();
+      } catch (VirtualMachineError | ThreadDeath fatal) {
+        throw fatal;
       } catch (Throwable ignored) {
         return null;
       }
@@ -106,6 +109,8 @@ public final class QuarkusSecurityRenderContextContributor implements RenderCont
           return handle.get();
         }
       }
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
     } catch (Throwable ignored) {
       // Container not running or security identity bean not resolvable
     }
