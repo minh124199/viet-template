@@ -5,6 +5,7 @@ import io.github.minh124199.viettemplate.api.TemplateEngine;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateRepository;
 import io.github.minh124199.viettemplate.api.TemplateResourceException;
+import io.github.minh124199.viettemplate.api.TemplateSecurityException;
 import io.github.minh124199.viettemplate.api.TemplateSource;
 import io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration;
 import java.nio.charset.Charset;
@@ -270,6 +271,7 @@ public class VietTemplateViewResolver
     return new VietTemplateView(this.engine, templateId, this.contentType, this.charset);
   }
 
+  @SuppressWarnings("removal")
   protected boolean templateExists(TemplateId templateId) {
     if (this.engine == null) {
       return false;
@@ -281,6 +283,10 @@ public class VietTemplateViewResolver
         if (source != null && source.isPresent()) {
           return true;
         }
+      } catch (VirtualMachineError | ThreadDeath fatal) {
+        throw fatal;
+      } catch (TemplateSecurityException e) {
+        throw e;
       } catch (TemplateResourceException e) {
         // Fall through to engine.get()
       } catch (Exception ignored) {
@@ -290,6 +296,10 @@ public class VietTemplateViewResolver
     try {
       Template template = this.engine.get(templateId);
       return template != null;
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateSecurityException e) {
+      throw e;
     } catch (TemplateResourceException e) {
       return false;
     } catch (Exception e) {

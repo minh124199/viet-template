@@ -105,7 +105,7 @@ public class VietTemplateCompileMojo extends AbstractMojo {
     Charset charset;
     try {
       charset = Charset.forName(encoding);
-    } catch (Exception e) {
+    } catch (IllegalArgumentException e) {
       throw new MojoExecutionException("Invalid encoding: " + encoding, e);
     }
 
@@ -132,7 +132,7 @@ public class VietTemplateCompileMojo extends AbstractMojo {
     TemplateAotRequest request;
     try {
       request = requestBuilder.build();
-    } catch (Exception e) {
+    } catch (IllegalArgumentException | IllegalStateException e) {
       throw new MojoExecutionException(
           "Failed to build AOT compilation request: " + e.getMessage(), e);
     }

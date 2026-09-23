@@ -1,15 +1,26 @@
 package io.github.minh124199.viettemplate.quarkus;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.minh124199.viettemplate.api.InMemoryTemplateRepository;
+import io.github.minh124199.viettemplate.api.LayoutRenderPlan;
+import io.github.minh124199.viettemplate.api.RenderContext;
+import io.github.minh124199.viettemplate.api.RenderRequest;
+import io.github.minh124199.viettemplate.api.Template;
+import io.github.minh124199.viettemplate.api.TemplateDependencyGraph;
 import io.github.minh124199.viettemplate.api.TemplateEngine;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import io.github.minh124199.viettemplate.api.TemplateOutput;
+import io.github.minh124199.viettemplate.api.TemplateRepository;
+import io.github.minh124199.viettemplate.api.TemplateSecurityException;
+import io.github.minh124199.viettemplate.api.TemplateSource;
 import io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -127,5 +138,107 @@ public class VietTemplateRendererTest {
     TemplateEngine producedEngine = producer.produceTemplateEngine();
     assertThat(producedEngine).isNotNull();
     producer.close();
+  }
+
+  @Test
+  public void testTemplateExistsRethrowsSecurityExceptionFromRepository() {
+    TemplateRepository secureRepo =
+        new TemplateRepository() {
+          @Override
+          public Optional<TemplateSource> find(TemplateId id) {
+            throw new TemplateSecurityException("Access to path is denied: " + id, id, null);
+          }
+        };
+    TemplateEngine mockEngine =
+        new TemplateEngine() {
+          @Override
+          public Template get(TemplateId id) {
+            return null;
+          }
+
+          @Override
+          public void render(RenderRequest request, TemplateOutput output) {}
+
+          @Override
+          public TemplateRepository repository() {
+            return secureRepo;
+          }
+
+          @Override
+          public LayoutRenderPlan prepareLayoutPlan(TemplateId screenId, RenderContext context) {
+            return null;
+          }
+
+          @Override
+          public TemplateDependencyGraph dependencyGraph() {
+            return null;
+          }
+
+          @Override
+          public Set<TemplateId> invalidateWithDependents(TemplateId id) {
+            return Set.of();
+          }
+
+          @Override
+          public void close() {}
+
+          @Override
+          public boolean rejectRuntimeCompilation() {
+            return false;
+          }
+        };
+
+    VietTemplateRenderer secureRenderer = new VietTemplateRenderer(mockEngine, config);
+    assertThatThrownBy(() -> secureRenderer.render("forbidden", Map.of()))
+        .isInstanceOf(TemplateSecurityException.class)
+        .hasMessageContaining("Access to path is denied");
+  }
+
+  @Test
+  public void testTemplateExistsRethrowsSecurityExceptionFromEngineGet() {
+    TemplateEngine mockEngine =
+        new TemplateEngine() {
+          @Override
+          public Template get(TemplateId id) {
+            throw new TemplateSecurityException(
+                "Security denial during template get: " + id, id, null);
+          }
+
+          @Override
+          public void render(RenderRequest request, TemplateOutput output) {}
+
+          @Override
+          public TemplateRepository repository() {
+            return null;
+          }
+
+          @Override
+          public LayoutRenderPlan prepareLayoutPlan(TemplateId screenId, RenderContext context) {
+            return null;
+          }
+
+          @Override
+          public TemplateDependencyGraph dependencyGraph() {
+            return null;
+          }
+
+          @Override
+          public Set<TemplateId> invalidateWithDependents(TemplateId id) {
+            return Set.of();
+          }
+
+          @Override
+          public void close() {}
+
+          @Override
+          public boolean rejectRuntimeCompilation() {
+            return false;
+          }
+        };
+
+    VietTemplateRenderer secureRenderer = new VietTemplateRenderer(mockEngine, config);
+    assertThatThrownBy(() -> secureRenderer.render("forbidden", Map.of()))
+        .isInstanceOf(TemplateSecurityException.class)
+        .hasMessageContaining("Security denial during template get");
   }
 }

@@ -9,6 +9,7 @@ import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateRepository;
 import io.github.minh124199.viettemplate.api.TemplateResourceException;
+import io.github.minh124199.viettemplate.api.TemplateSecurityException;
 import io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration;
 import io.github.minh124199.viettemplate.runtime.Utf8OutputStreamTemplateOutput;
 import io.github.minh124199.viettemplate.runtime.stream.NonClosingOutputStream;
@@ -151,6 +152,7 @@ public class VietTemplateRenderer {
     return candidatesDirect.get(0);
   }
 
+  @SuppressWarnings("removal")
   private boolean templateExists(TemplateId templateId) {
     if (engine == null) {
       return false;
@@ -161,6 +163,10 @@ public class VietTemplateRenderer {
         if (repository.find(templateId).isPresent()) {
           return true;
         }
+      } catch (VirtualMachineError | ThreadDeath fatal) {
+        throw fatal;
+      } catch (TemplateSecurityException e) {
+        throw e;
       } catch (TemplateResourceException e) {
         // Fall through to engine.get()
       } catch (Exception ignored) {
@@ -168,6 +174,10 @@ public class VietTemplateRenderer {
     }
     try {
       return engine.get(templateId) != null;
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateSecurityException e) {
+      throw e;
     } catch (TemplateResourceException e) {
       return false;
     } catch (Exception e) {

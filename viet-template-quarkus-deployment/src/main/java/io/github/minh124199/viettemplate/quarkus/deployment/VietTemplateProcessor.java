@@ -181,7 +181,7 @@ public class VietTemplateProcessor {
               .orElse("UTF-8")
               .trim();
       charset = Charset.forName(encoding);
-    } catch (Exception e) {
+    } catch (IllegalArgumentException e) {
       charset = StandardCharsets.UTF_8;
     }
 

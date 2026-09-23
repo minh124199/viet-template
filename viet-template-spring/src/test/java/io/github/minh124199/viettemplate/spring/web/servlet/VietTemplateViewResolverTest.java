@@ -17,6 +17,7 @@ import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.api.TemplateRepository;
 import io.github.minh124199.viettemplate.api.TemplateResourceException;
+import io.github.minh124199.viettemplate.api.TemplateSecurityException;
 import io.github.minh124199.viettemplate.api.TemplateSource;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -746,6 +747,74 @@ class VietTemplateViewResolverTest {
     assertThat(view).isInstanceOf(VietTemplateView.class);
     assertThat(((VietTemplateView) view).getTemplateId())
         .isEqualTo(TemplateId.of("views/errorTemplate.vtl"));
+  }
+
+  @Test
+  @DisplayName("Propagates TemplateSecurityException thrown by repository.find")
+  void repositoryFindThrowsTemplateSecurityExceptionPropagates() {
+    engine.setRepository(
+        new TemplateRepository() {
+          @Override
+          public Optional<TemplateSource> find(TemplateId id) {
+            throw new TemplateSecurityException("Access denied to template: " + id, id, null);
+          }
+        });
+
+    assertThatThrownBy(() -> resolver.resolveViewName("secret", Locale.ROOT))
+        .isInstanceOf(TemplateSecurityException.class)
+        .hasMessageContaining("Access denied to template");
+  }
+
+  @Test
+  @DisplayName("Propagates TemplateSecurityException thrown by engine.get")
+  void engineGetThrowsTemplateSecurityExceptionPropagates() {
+    TemplateEngine securityEngine =
+        new TemplateEngine() {
+          @Override
+          public Template get(TemplateId id) {
+            throw new TemplateSecurityException(
+                "Security violation during compilation: " + id, id, null);
+          }
+
+          @Override
+          public void render(RenderRequest request, TemplateOutput output) {}
+
+          @Override
+          public TemplateRepository repository() {
+            return null;
+          }
+
+          @Override
+          public LayoutRenderPlan prepareLayoutPlan(TemplateId screenId, RenderContext context) {
+            return null;
+          }
+
+          @Override
+          public TemplateDependencyGraph dependencyGraph() {
+            return null;
+          }
+
+          @Override
+          public Set<TemplateId> invalidateWithDependents(TemplateId id) {
+            return Set.of();
+          }
+
+          @Override
+          public void close() {}
+
+          @Override
+          public boolean rejectRuntimeCompilation() {
+            return false;
+          }
+        };
+
+    VietTemplateViewResolver customResolver = new VietTemplateViewResolver(securityEngine);
+    customResolver.setPrefix("views/");
+    customResolver.setSuffix(".vtl");
+
+    assertThatThrownBy(() -> customResolver.resolveViewName("forbidden", Locale.ROOT))
+        .isInstanceOf(TemplateSecurityException.class)
+        .hasMessageContaining("Security violation during compilation");
   }
 
   private void registerDummyTemplate(String templateId) {

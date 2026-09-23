@@ -44,7 +44,7 @@ public class VietTemplateProducer {
     Charset charset;
     try {
       charset = Charset.forName(config.encoding());
-    } catch (Exception e) {
+    } catch (IllegalArgumentException e) {
       charset = StandardCharsets.UTF_8;
     }
 
@@ -64,7 +64,7 @@ public class VietTemplateProducer {
       undefinedPolicy =
           UndefinedReferencePolicy.valueOf(
               config.undefinedReferencePolicy().trim().toUpperCase(Locale.ROOT));
-    } catch (Exception e) {
+    } catch (IllegalArgumentException e) {
       undefinedPolicy = UndefinedReferencePolicy.SILENT;
     }
     builder.interpreterOptions(
