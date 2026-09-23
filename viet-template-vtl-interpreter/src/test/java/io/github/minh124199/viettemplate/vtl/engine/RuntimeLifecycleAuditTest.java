@@ -17,9 +17,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Mechanical architecture audit tests establishing current runtime behavior for M4.0:
- * 1. Template wrapper identity and equality across warmed lookups (IR, runtime AOT, precompiled AOT).
- * 2. Parse counts across get, render, repeated render, and invalidation for AST and IR execution.
+ * Mechanical architecture audit tests establishing current runtime behavior for M4.0: 1. Template
+ * wrapper identity and equality across warmed lookups (IR, runtime AOT, precompiled AOT). 2. Parse
+ * counts across get, render, repeated render, and invalidation for AST and IR execution.
  */
 class RuntimeLifecycleAuditTest {
 
@@ -31,19 +31,16 @@ class RuntimeLifecycleAuditTest {
     repo.put(id, "Hello $name");
 
     VtlTemplateEngine engine =
-        VtlTemplateEngine.builder()
-            .repository(repo)
-            .executionTier(ExecutionTier.IR)
-            .build();
+        VtlTemplateEngine.builder().repository(repo).executionTier(ExecutionTier.IR).build();
 
     // 1. Unchanged generation, IR execution tier
     Template t1 = engine.get(id);
     Template t2 = engine.get(id);
 
-    // Documented behavior: In current VtlTemplateEngine, a new VtlTemplate wrapper is allocated on EVERY warmed get()!
-    assertThat(t1 == t2).isFalse();
-    // VtlTemplate does not override equals(), so Object identity equals is used
-    assertThat(t1.equals(t2)).isFalse();
+    // Warmed engine.get() returns the canonical cached Template instance from PreparedTemplateEntry
+    assertThat(t1).isSameAs(t2);
+    assertThat(t1 == t2).isTrue();
+    assertThat(t1.equals(t2)).isTrue();
 
     // Both wrap the exact same compiled handle in cache
     VtlTemplate vt1 = (VtlTemplate) t1;
@@ -84,7 +81,8 @@ class RuntimeLifecycleAuditTest {
 
     @Override
     public TemplateDescriptor descriptor() {
-      return TemplateDescriptor.of(TemplateId.of("test/precompiled.vm"), ExecutionTier.AOT_BYTECODE.name());
+      return TemplateDescriptor.of(
+          TemplateId.of("test/precompiled.vm"), ExecutionTier.AOT_BYTECODE.name());
     }
 
     @Override
@@ -94,7 +92,8 @@ class RuntimeLifecycleAuditTest {
   }
 
   @Test
-  @DisplayName("Audit 3: Engine AST execution tier compiles to prepared IR; parse occurs once at get()")
+  @DisplayName(
+      "Audit 3: Engine AST execution tier compiles to prepared IR; parse occurs once at get()")
   void auditEngineAstTierParseBehavior() throws IOException {
     AtomicInteger repositoryReads = new AtomicInteger();
     InMemoryTemplateRepository delegate = InMemoryTemplateRepository.create();
@@ -115,7 +114,8 @@ class RuntimeLifecycleAuditTest {
             .executionTier(ExecutionTier.AST)
             .build();
 
-    // 1. First get() -> misses cache, reads repository, parses source, lowers & optimizes IR, caches prepared handle
+    // 1. First get() -> misses cache, reads repository, parses source, lowers & optimizes IR,
+    // caches prepared handle
     Template t1 = engine.get(id);
     assertThat(repositoryReads.get()).isEqualTo(1);
     assertThat(t1.descriptor().executionTier()).isEqualTo("AST");
@@ -153,8 +153,10 @@ class RuntimeLifecycleAuditTest {
   }
 
   @Test
-  @DisplayName("Audit 4: Direct VtlTemplate AST fallback reparses on EVERY render")
-  void auditDirectVtlTemplateAstFallbackReparsesEveryRender() throws IOException {
+  @DisplayName(
+      "Audit 4: PreparedAstExecutionTarget prepares AST once per generation and renders without"
+          + " re-parsing")
+  void auditPreparedAstExecutionTargetPreparesAstOncePerGeneration() throws IOException {
     TemplateId id = TemplateId.of("direct-ast.vm");
     io.github.minh124199.viettemplate.language.vtl.source.SourceText source =
         io.github.minh124199.viettemplate.language.vtl.source.SourceText.of(id, "Val: $x");
@@ -162,8 +164,8 @@ class RuntimeLifecycleAuditTest {
     VtlInterpreterOptions options =
         VtlInterpreterOptions.builder().executionTier(ExecutionTier.AST).build();
 
-    // Create a CompiledTemplateHandle with PreparedAstExecutionTarget without pre-parsed AST
-    CompiledTemplateHandle emptyCompiledHandle =
+    // 1. Create handle using ofAst(id, gen, key, interpreter, source) without passing explicit AST
+    CompiledTemplateHandle compiledHandle =
         CompiledTemplateHandle.ofAst(
             id,
             1L,
@@ -171,36 +173,75 @@ class RuntimeLifecycleAuditTest {
                 id,
                 "hash",
                 "0.2.0",
-                io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel.O0,
+                OptimizationLevel.O0,
                 ExecutionTier.AST,
                 "policy",
                 "schema",
                 "backend"),
             new io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter(options),
             source);
+
+    // Verify AST was prepared and stored immutably once at generation/construction time
+    assertThat(compiledHandle.astNode()).isPresent();
+    io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate preparedAst =
+        compiledHandle.astNode().orElseThrow();
+    assertThat(preparedAst).isNotNull();
+
     VtlTemplate directTemplate =
-        new VtlTemplate(TemplateDescriptor.of(id, "AST"), emptyCompiledHandle, source, options);
+        new VtlTemplate(TemplateDescriptor.of(id, "AST"), compiledHandle, source, options);
 
     RenderContext ctx = RenderContext.builder().put("x", 42).build();
 
-    // First render -> parses sourceText in VtlTemplate.render() line 81
+    // First render -> executes against prepared astNode with zero reparsing
     StringTemplateOutput out1 = new StringTemplateOutput();
     directTemplate.render(ctx, out1);
     assertThat(out1.toString()).isEqualTo("Val: 42");
 
-    // Second render -> parses sourceText AGAIN
+    // Second render -> executes against identical prepared astNode
     StringTemplateOutput out2 = new StringTemplateOutput();
     directTemplate.render(ctx, out2);
     assertThat(out2.toString()).isEqualTo("Val: 42");
 
-    // 100 renders -> 100 parses executed!
+    // 100 renders -> 100 renders executed against the prepared tree without re-parsing
     for (int i = 0; i < 98; i++) {
-      directTemplate.render(ctx, new StringTemplateOutput());
+      StringTemplateOutput out = new StringTemplateOutput();
+      directTemplate.render(ctx, out);
+      assertThat(out.toString()).isEqualTo("Val: 42");
     }
+
+    // Verify astNode instance remained identical throughout all renders
+    assertThat(compiledHandle.astNode().orElseThrow()).isSameAs(preparedAst);
+
+    // 2. Also verify ofAst with explicit pre-parsed AST retains the provided instance
+    CompiledTemplateHandle explicitHandle =
+        CompiledTemplateHandle.ofAst(
+            id,
+            2L,
+            io.github.minh124199.viettemplate.vtl.engine.cache.CompileCacheKey.of(
+                id,
+                "hash",
+                "0.2.0",
+                OptimizationLevel.O0,
+                ExecutionTier.AST,
+                "policy",
+                "schema",
+                "backend"),
+            new io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter(options),
+            source,
+            preparedAst);
+    assertThat(explicitHandle.astNode()).containsSame(preparedAst);
+
+    VtlTemplate explicitTemplate =
+        new VtlTemplate(TemplateDescriptor.of(id, "AST"), explicitHandle, source, options);
+    StringTemplateOutput explicitOut = new StringTemplateOutput();
+    explicitTemplate.render(ctx, explicitOut);
+    assertThat(explicitOut.toString()).isEqualTo("Val: 42");
   }
 
   @Test
-  @DisplayName("Audit 5: Static dependency pre-compilation propagates syntax exceptions but tolerates missing resources")
+  @DisplayName(
+      "Audit 5: Static dependency pre-compilation propagates syntax exceptions but tolerates"
+          + " missing resources")
   void auditStaticDependencyPrecompilationExceptionPropagation() {
     InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
     TemplateId parentBroken = TemplateId.of("parentBroken.vtl");
@@ -209,10 +250,7 @@ class RuntimeLifecycleAuditTest {
     repo.put(badChild, "#if (unclosed expression");
 
     VtlTemplateEngine engine =
-        VtlTemplateEngine.builder()
-            .repository(repo)
-            .executionTier(ExecutionTier.IR)
-            .build();
+        VtlTemplateEngine.builder().repository(repo).executionTier(ExecutionTier.IR).build();
 
     // 1. Dependency syntax error must NOT be swallowed during pre-compilation
     assertThatThrownBy(() -> engine.get(parentBroken))
@@ -228,7 +266,8 @@ class RuntimeLifecycleAuditTest {
   }
 
   @Test
-  @DisplayName("Audit 6: EngineFingerprint precomputes immutable engine descriptors once at construction")
+  @DisplayName(
+      "Audit 6: EngineFingerprint precomputes immutable engine descriptors once at construction")
   void auditEngineFingerprintPrecomputation() {
     InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
     VtlTemplateEngine engine =
@@ -250,18 +289,12 @@ class RuntimeLifecycleAuditTest {
     // Validate canonical constructor non-null constraints
     assertThatThrownBy(
             () ->
-                new EngineFingerprint(
-                    null, OptimizationLevel.O0, ExecutionTier.IR, "p", "m", "b"))
+                new EngineFingerprint(null, OptimizationLevel.O0, ExecutionTier.IR, "p", "m", "b"))
+        .isInstanceOf(NullPointerException.class);
+    assertThatThrownBy(() -> new EngineFingerprint("0.2.0", null, ExecutionTier.IR, "p", "m", "b"))
         .isInstanceOf(NullPointerException.class);
     assertThatThrownBy(
-            () ->
-                new EngineFingerprint(
-                    "0.2.0", null, ExecutionTier.IR, "p", "m", "b"))
-        .isInstanceOf(NullPointerException.class);
-    assertThatThrownBy(
-            () ->
-                new EngineFingerprint(
-                    "0.2.0", OptimizationLevel.O0, null, "p", "m", "b"))
+            () -> new EngineFingerprint("0.2.0", OptimizationLevel.O0, null, "p", "m", "b"))
         .isInstanceOf(NullPointerException.class);
     assertThatThrownBy(
             () ->

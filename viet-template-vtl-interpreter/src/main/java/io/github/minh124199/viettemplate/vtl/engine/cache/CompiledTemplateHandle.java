@@ -51,9 +51,7 @@ public record CompiledTemplateHandle(
                         ? new AotExecutionTarget(ct, classLoader, irTemplate)
                         : new PreparedIrExecutionTarget(ct, irTemplate))
             .orElseGet(
-                () ->
-                    new PreparedIrExecutionTarget(
-                        noOpCompiledTemplate(templateId), irTemplate)),
+                () -> new PreparedIrExecutionTarget(noOpCompiledTemplate(templateId), irTemplate)),
         compiledEpochMillis);
   }
 
@@ -100,6 +98,13 @@ public record CompiledTemplateHandle(
     return Optional.empty();
   }
 
+  public Optional<VtlTemplate> astNode() {
+    if (target instanceof PreparedAstExecutionTarget ast) {
+      return Optional.of(ast.astNode());
+    }
+    return Optional.empty();
+  }
+
   public static CompiledTemplateHandle ofBytecode(
       TemplateId templateId,
       long generation,
@@ -112,9 +117,7 @@ public record CompiledTemplateHandle(
         generation,
         key,
         new AotExecutionTarget(
-            compiledTemplate,
-            Optional.ofNullable(classLoader),
-            Optional.ofNullable(irTemplate)),
+            compiledTemplate, Optional.ofNullable(classLoader), Optional.ofNullable(irTemplate)),
         System.currentTimeMillis());
   }
 
@@ -125,11 +128,7 @@ public record CompiledTemplateHandle(
       CompiledTemplate preparedTemplate,
       IrTemplate irTemplate) {
     return ofPreparedIr(
-        templateId,
-        generation,
-        key,
-        preparedTemplate,
-        Optional.ofNullable(irTemplate));
+        templateId, generation, key, preparedTemplate, Optional.ofNullable(irTemplate));
   }
 
   public static CompiledTemplateHandle ofPreparedIr(
@@ -151,15 +150,13 @@ public record CompiledTemplateHandle(
       long generation,
       CompileCacheKey key,
       VtlInterpreter interpreter,
-      SourceText sourceText,
-      VtlTemplate astNode) {
-    return ofAst(
+      SourceText sourceText) {
+    return new CompiledTemplateHandle(
         templateId,
         generation,
         key,
-        interpreter,
-        sourceText,
-        Optional.ofNullable(astNode));
+        PreparedAstExecutionTarget.of(interpreter, sourceText, Optional.empty()),
+        System.currentTimeMillis());
   }
 
   public static CompiledTemplateHandle ofAst(
@@ -168,7 +165,7 @@ public record CompiledTemplateHandle(
       CompileCacheKey key,
       VtlInterpreter interpreter,
       SourceText sourceText,
-      Optional<VtlTemplate> astNode) {
+      VtlTemplate astNode) {
     return new CompiledTemplateHandle(
         templateId,
         generation,
@@ -182,8 +179,14 @@ public record CompiledTemplateHandle(
       long generation,
       CompileCacheKey key,
       VtlInterpreter interpreter,
-      SourceText sourceText) {
-    return ofAst(templateId, generation, key, interpreter, sourceText, Optional.empty());
+      SourceText sourceText,
+      Optional<VtlTemplate> astNode) {
+    return new CompiledTemplateHandle(
+        templateId,
+        generation,
+        key,
+        PreparedAstExecutionTarget.of(interpreter, sourceText, astNode),
+        System.currentTimeMillis());
   }
 
   public static CompiledTemplateHandle ofIr(
