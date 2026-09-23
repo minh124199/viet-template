@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.minh124199.viettemplate.api.*;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import java.io.IOException;
 import java.nio.file.Files;

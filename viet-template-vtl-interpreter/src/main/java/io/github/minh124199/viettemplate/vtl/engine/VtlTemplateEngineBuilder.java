@@ -14,6 +14,14 @@ import io.github.minh124199.viettemplate.language.vtl.ir.optimization.Optimizati
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.vtl.engine.cache.TemplateCompileCache;
 import io.github.minh124199.viettemplate.vtl.engine.dependency.DefaultTemplateDependencyGraph;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.*;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.context.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.dependency.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.layout.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.macro.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.watcher.*;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
 import java.util.ArrayList;
@@ -105,7 +113,7 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
     return this;
   }
 
-  public VtlTemplateEngineBuilder semanticOptions(VtlSemanticOptions options) {
+  VtlTemplateEngineBuilder semanticOptions(VtlSemanticOptions options) {
     this.semanticOptions = Objects.requireNonNull(options, "options must not be null");
     return this;
   }

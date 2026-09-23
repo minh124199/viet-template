@@ -1,7 +1,7 @@
 package io.github.minh124199.viettemplate.language.vtl.ir.statement;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
-import io.github.minh124199.viettemplate.language.vtl.ir.plan.BudgetKind;
+import io.github.minh124199.viettemplate.language.vtl.internal.ir.plan.BudgetKind;
 import java.util.Objects;
 
 /** Statement verifying that runtime execution does not exceed configured safety budgets. */

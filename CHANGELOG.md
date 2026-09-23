@@ -8,6 +8,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **0.3.0-M3.5 Final Public/Internal Architecture Convergence**:
+  - Introduced `INTERNAL_CROSS_PACKAGE` classification (55 types): types intentionally public within their owning artifact due to cross-package callers within the same JAR. Covers `vtl.internal.compiler.*`, `vtl.internal.engine.*`, `vtl.internal.interpreter.*`, `vtl.engine.cache.*`, `vtl.engine.dependency.*`, `language.vtl.internal.*`, `runtime.linker.BoundedWeakClassCache`, `runtime.linker.DynamicCallSite`. These are architectural intent, not debt.
+  - Introduced `BENCHMARK_SUPPORT_INTERNAL` classification (3 types): `EvaluationValue$State`, `ExecutionFrame`, `ForeachMetadata` — exposed solely to the unpublished JMH benchmark suite (`viet-template-benchmarks`). Reclassified from `INTERNAL_CROSS_MODULE`.
+  - Updated cross-module contract registry schema (`config/architecture/cross-module-internal-contracts.json`, version `0.3.0-M3.5`): added `consumerScope` (`MAIN`/`TEST`/`BENCHMARK`) and `publicationStatus` fields to all 62 contracts. Production internal contract count: **56**. Non-production (benchmark/TCK): 6.
+  - Updated `scripts/verify-cross-module-contracts.py` to report production vs test vs benchmark contract counts separately.
+  - Updated `scripts/verify-public-surface-classification.py` to recognize new categories in signature leak check and summary output.
+  - Updated `scripts/test_verify_public_surface.py` with 3 new test cases for `INTERNAL_CROSS_PACKAGE` and `BENCHMARK_SUPPORT_INTERNAL` leak detection. Total: 15 tests.
+  - Created `config/architecture/public-surface-debt-registry.json` tracking all 85 remaining `PUBLIC_BUT_INTERNAL_ACCIDENT` types in 4 groups with target milestones (M4.5 and M22) and remediation plans.
+  - JPMS decision: **DEFER**. Corrected documentation: JPMS `qualified exports` control named-module access only; they do not reduce the Java `public` access modifier. Package-private is the only mechanism that prevents classpath access regardless of module path. (See `docs/32-m14-public-api-spi-stabilization.md` §12.)
+  - Physical module boundary decision: **KEEP** (`viet-template-language-vtl` / `viet-template-vtl-interpreter`). 48 cross-module contracts exist but restructuring changes published coordinates; deferred to M22.
+  - Benchmark/TCK audit: all 6 M3.4 interpreter contracts are non-production. Both `viet-template-benchmarks` and `viet-template-tck` are `maven.deploy.skip=true` (unpublished). Benchmark relocation prototype deferred to M4.5.
+  - Post-M3.5 metrics: `STABLE_API` 94, `STABLE_SPI` 25, `INTERNAL_CROSS_MODULE` 59, `INTERNAL_CROSS_PACKAGE` 55, `BENCHMARK_SUPPORT_INTERNAL` 3, `PUBLIC_BUT_INTERNAL_ACCIDENT` 85, total **335**, 0 signature leaks. All 10 architecture verifier scripts pass.
+- **0.3.0-M3.4 vtl-interpreter Internal Contract Formalization**:
+  - Reclassified 6 `vtl.interpreter.*` types from `PUBLIC_BUT_INTERNAL_ACCIDENT` to `INTERNAL_CROSS_MODULE`: `EvaluationValue`, `EvaluationValue$State`, `ExecutionContext`, `ExecutionFrame`, `EngineInterpreterBridge`, and `ForeachMetadata` (concrete impl of the `language.vtl.semantics.scope.ForeachMetadata` interface).
+  - Registered 6 new cross-module contracts in `config/architecture/cross-module-internal-contracts.json` (56 → 62 total) across edges `vtl-interpreter → viet-template-benchmarks` and `vtl-interpreter → viet-template-tck`.
+  - Extended `scripts/verify-cross-module-contracts.py` to scan `src/test/java` for test-only consumer modules (e.g. `viet-template-tck`), enabling full consumer-reference verification for all contract kinds.
+  - `PUBLIC_BUT_INTERNAL_ACCIDENT` reduced from 146 → 140. All 34 remaining intra-module `vtl.internal.*` types confirmed as requiring intra-module package consolidation (cross-subpackage callers in `VtlTemplateEngine`, `IrInterpreter`, `BytecodeRuntimeBridge`) — deferred to M22.4 (JPMS).
+  - Stable contract unchanged: `STABLE_API` (94) + `STABLE_SPI` (25) = 119. Zero signature leaks.
+- **0.3.0-M3.3 Public Surface Role Classification & Framework/Build Entrypoint Containment**:
+  - Established the nine-category public surface taxonomy: `STABLE_API`, `STABLE_SPI`, `EXPERIMENTAL`, `GENERATED_RUNTIME_ABI`, `FRAMEWORK_ENTRYPOINT`, `BUILD_TOOL_ENTRYPOINT`, `SERVICE_ENTRYPOINT`, `INTERNAL_CROSS_MODULE`, `PUBLIC_BUT_INTERNAL_ACCIDENT`.
+  - Reclassified 4 framework entrypoints (`VietTemplateRuntimeHints`, `VietTemplateSecurityRuntimeHints`, `VietTemplateProducer`, `VietTemplateProcessor`) to `FRAMEWORK_ENTRYPOINT`.
+  - Reclassified 4 build-tool entrypoints (`VietTemplateCompileMojo`, `VietTemplatePlugin`, `VietTemplateCompileTask`, `VietTemplateExtension`) to `BUILD_TOOL_ENTRYPOINT`.
+  - Reclassified 56 production cross-module internal types to `INTERNAL_CROSS_MODULE` across 4 verified module edges (`language-vtl → vtl-interpreter`: 48 types; `runtime → vtl-interpreter`: 7 types; `runtime → spring` and `runtime → quarkus`: 1 shared type).
+  - Reclassified `BytecodeRuntimeBridge` to `GENERATED_RUNTIME_ABI`.
+  - Contained `ModelSchema$Builder` to package-private visibility (C7 resolution), eliminating 1 compiled public type (336 → 335 total). All test callers migrated to `ModelSchema.of(...)` factory.
+  - `Nullability` confirmed C4 (sealed hierarchy `VType` topology, required by JLS 8.1.6); `VTypes` remains C7 (intra-module, deferred to JPMS).
+  - Created `config/architecture/framework-and-tooling-entrypoints.json` (12-entry 10-field machine-readable entrypoint registry) and `config/architecture/cross-module-internal-contracts.json` (56-contract registry across 4 module edges).
+  - Added `scripts/verify-framework-entrypoints.py` (metadata/class/classification parity gate, emits `build/reports/public-framework-entrypoints.json`) and `scripts/verify-cross-module-contracts.py` (zero-unregistered-internal-import gate with direction invariant check).
+  - Recorded ADR-0017 establishing the taxonomy, compatibility guarantees per category, and canonical principle: *Public because a framework must discover it ≠ public Java library API*.
+  - Stable contract total: `STABLE_API` (94) + `STABLE_SPI` (25) = 119. Zero signature leaks. Zero ABI changes.
+- **0.3.0-M2 Internal Package Relocation (Milestone M22.2)**:
+  - Relocated 49 accidental public implementation types across `viet-template-language-vtl` and `viet-template-vtl-interpreter` into dedicated `*.internal.*` packages (`internal.ast`, `internal.ir.plan`, `internal.semantics`, `internal.compiler`, `internal.engine`, `internal.interpreter`).
+  - Preserved 100% binary, source, and behavioral compatibility for all 105 stable public API/SPI types across 5 baselines with 0 signature leaks.
+  - Preserved the 4-type generated bytecode runtime ABI (`BytecodeRuntimeBridge`, `DynamicCallSite`, `LinkerAccessPolicy`, `ForeachMetadata`) with 0 unregistered ABI dependencies.
+  - Reclassified 17 types from Category B to Category C to maintain JLS 8.1.6 sealed hierarchy permits (`IrBranch`, `IrBranchIf`, `IrLoopEnd`, `IrLoopNext`, `IrLoopSetup`), protect frozen stable API signatures (`SpaceGobbler`, `TemplateResource`, `TemplateResourceResolver`, `VtlSecurityPolicy` in `VtlInterpreterOptions`), preserve Spring AOT reflection hints (`VietTemplateRuntimeHints` in `META-INF/spring/aot.factories`), cross-module test/benchmark execution (`EvaluationValue`, `ExecutionFrame`), optimizer pass package boundaries (`AssignVariableSlots`, `OptimizationContext`), and cross-package engine/interpreter bridging (`LinkedReferenceAccess`, `ReferenceAccess`).
+  - Published comprehensive migration and FQCN mapping reference at `docs/migration/0.3.0-internal-package-moves.md`.
+  - Updated `config/api-baseline/accidental-public-types-inventory.json` reflecting 49 relocated internal types, 172 Category C types, 4 Category F types, and 0 Category B types remaining.
 - **0.3.0-M1 Public Surface Containment (Milestone M22.1)**:
   - Completed package-private visibility containment for 34 validated Category-A types across `viet-template-language-vtl`, `viet-template-runtime`, and `viet-template-vtl-interpreter`.
   - Reduced accidental public types count from 259 to 225 (-34 types) with zero package moves or file relocations.

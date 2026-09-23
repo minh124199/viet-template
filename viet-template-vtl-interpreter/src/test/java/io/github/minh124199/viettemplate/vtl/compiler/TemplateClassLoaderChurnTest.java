@@ -14,7 +14,9 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptio
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.runtime.MapRenderContext;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
-import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeTemplateCompiler;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.*;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.*;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.BytecodeTemplateCompiler;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;

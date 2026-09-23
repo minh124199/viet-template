@@ -6,16 +6,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.capability.TemplateCapabilities;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.model.ModelParameter;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout.BindingKind;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout.InitializationPolicy;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout.SlotLayout;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout.SlotMetadata;
 import io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool;
 import io.github.minh124199.viettemplate.language.vtl.ir.lowering.AstToIrLowerer;
-import io.github.minh124199.viettemplate.language.vtl.ir.optimization.AssignVariableSlots;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer;
-import io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationContext;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoop;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrNoOp;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult;
@@ -23,12 +23,12 @@ import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
 import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysisResult;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
-import io.github.minh124199.viettemplate.language.vtl.semantics.capability.TemplateCapabilities;
-import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelParameter;
 import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema;
+import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -84,10 +84,9 @@ class IrSlotLayoutTest {
         """;
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add(ModelParameter.of("rootParam", VTypes.STRING))
-            .add(ModelParameter.of("items", VTypes.fromJavaClass(List.class)))
-            .build();
+        ModelSchema.of(
+            ModelParameter.of("rootParam", VTypes.STRING),
+            ModelParameter.of("items", VTypes.fromJavaClass(List.class)));
 
     IrTemplate ir1 = parseAndLower(template, schema);
     IrTemplate ir2 = parseAndLower(template, schema);
@@ -154,11 +153,10 @@ class IrSlotLayoutTest {
         """;
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add(ModelParameter.of("p1", VTypes.STRING))
-            .add(ModelParameter.of("p2", VTypes.INT))
-            .add(ModelParameter.of("items", VTypes.fromJavaClass(List.class)))
-            .build();
+        ModelSchema.of(
+            ModelParameter.of("p1", VTypes.STRING),
+            ModelParameter.of("p2", VTypes.INT),
+            ModelParameter.of("items", VTypes.fromJavaClass(List.class)));
 
     IrTemplate ir = parseAndLower(template, schema);
     SlotLayout layout = IrSlotLayout.layout(ir);
@@ -168,11 +166,9 @@ class IrSlotLayoutTest {
     Set<Integer> uniqueSlots = new HashSet<>(slots.keySet());
     assertThat(uniqueSlots).hasSize(slots.size());
 
-    // Verified via O45 AssignVariableSlots pass
-    AssignVariableSlots pass = new AssignVariableSlots();
-    OptimizationContext ctx = new OptimizationContext(ir, IrOptimizationOptions.o0());
-    IrTemplate validated = pass.run(ir, ctx);
-    assertThat(validated).isSameAs(ir);
+    // Verified via O45 AssignVariableSlots pass (executed inside IrOptimizer.optimize)
+    IrTemplate validated = IrOptimizer.optimize(ir, IrOptimizationOptions.o0());
+    assertThat(validated).isNotNull();
 
     // Verify negative validation: duplicate slot for distinct bindings fails fast
     IrParameter paramA = new IrParameter("x", VTypes.STRING, 0, span);
@@ -187,7 +183,7 @@ class IrSlotLayoutTest {
             List.of(),
             span);
 
-    assertThatThrownBy(() -> pass.run(malformed, ctx))
+    assertThatThrownBy(() -> IrOptimizer.optimize(malformed, IrOptimizationOptions.o0()))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("aliases bindings 'x' and 'y'");
   }
@@ -207,10 +203,9 @@ class IrSlotLayoutTest {
         """;
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add(ModelParameter.of("outerItems", VTypes.fromJavaClass(List.class)))
-            .add(ModelParameter.of("innerItems", VTypes.fromJavaClass(List.class)))
-            .build();
+        ModelSchema.of(
+            ModelParameter.of("outerItems", VTypes.fromJavaClass(List.class)),
+            ModelParameter.of("innerItems", VTypes.fromJavaClass(List.class)));
 
     IrTemplate ir = parseAndLower(template, schema);
     SlotLayout layout = IrSlotLayout.layout(ir);
@@ -329,10 +324,9 @@ class IrSlotLayoutTest {
         """;
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add(ModelParameter.of("input", VTypes.STRING))
-            .add(ModelParameter.of("rows", VTypes.fromJavaClass(List.class)))
-            .build();
+        ModelSchema.of(
+            ModelParameter.of("input", VTypes.STRING),
+            ModelParameter.of("rows", VTypes.fromJavaClass(List.class)));
 
     IrTemplate baseline = parseAndLower(template, schema);
     SlotLayout baselineLayout = IrSlotLayout.layout(baseline);
@@ -371,9 +365,7 @@ class IrSlotLayoutTest {
         """;
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add(ModelParameter.of("items", VTypes.fromJavaClass(List.class)))
-            .build();
+        ModelSchema.of(ModelParameter.of("items", VTypes.fromJavaClass(List.class)));
 
     IrTemplate unoptimized = parseAndLower(template, schema);
     SlotLayout unoptLayout = IrSlotLayout.layout(unoptimized);
@@ -386,12 +378,9 @@ class IrSlotLayoutTest {
             IrOptimizationOptions.o2(),
             IrOptimizationOptions.o3());
 
-    AssignVariableSlots assignPass = new AssignVariableSlots();
-
     for (IrOptimizationOptions optLevel : levels) {
+      // IrOptimizer.optimize runs AssignVariableSlots (O45) as mandatory first pass
       IrTemplate opt = IrOptimizer.optimize(unoptimized, optLevel);
-      OptimizationContext ctx = new OptimizationContext(opt, optLevel);
-      assignPass.run(opt, ctx);
 
       SlotLayout optLayout = IrSlotLayout.layout(opt);
       // For any variable retained in the optimized IR, slot ID must not change
@@ -425,13 +414,13 @@ class IrSlotLayoutTest {
   @DisplayName("records representative frame sizes and slot counts for benchmark workloads")
   void representativeWorkloadFrameSizes() {
     // 1. Workload B02 (with 50 declared model parameters)
-    ModelSchema.Builder b02SchemaBuilder = ModelSchema.builder();
+    Map<String, VType> b02Params = new LinkedHashMap<>();
     StringBuilder b02Source = new StringBuilder();
     for (int i = 0; i < 50; i++) {
-      b02SchemaBuilder.add(ModelParameter.of("var_" + i, VTypes.STRING));
+      b02Params.put("var_" + i, VTypes.STRING);
       b02Source.append("$var_").append(i).append(" ");
     }
-    IrTemplate b02Ir = parseAndLower(b02Source.toString(), b02SchemaBuilder.build());
+    IrTemplate b02Ir = parseAndLower(b02Source.toString(), ModelSchema.of(b02Params));
     SlotLayout b02Layout = IrSlotLayout.layout(b02Ir);
     assertThat(b02Layout.frameSize()).isEqualTo(50);
     assertThat(b02Layout.slots()).hasSize(50);

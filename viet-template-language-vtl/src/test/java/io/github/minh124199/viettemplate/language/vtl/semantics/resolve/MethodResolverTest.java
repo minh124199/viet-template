@@ -2,6 +2,8 @@ package io.github.minh124199.viettemplate.language.vtl.semantics.resolve;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MethodResolution;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MethodResolver;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;

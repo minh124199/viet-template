@@ -9,6 +9,7 @@ import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.runtime.MapRenderContext;
 import io.github.minh124199.viettemplate.runtime.SafeHtml;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
+import io.github.minh124199.viettemplate.vtl.interpreter.EngineInterpreterBridge;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
@@ -131,7 +132,8 @@ class AotInterpreterEquivalenceTest {
             .build();
     VtlInterpreter astInterpreter = new VtlInterpreter(astOptions);
     StringTemplateOutput astOut = new StringTemplateOutput();
-    astInterpreter.render(source, ast, MapRenderContext.of(scenario.context()), astOut);
+    EngineInterpreterBridge.render(
+        astInterpreter, source, ast, MapRenderContext.of(scenario.context()), astOut);
     String expected = astOut.toString();
 
     // Test across optimization levels
@@ -152,7 +154,8 @@ class AotInterpreterEquivalenceTest {
               .build();
       VtlInterpreter irInterpreter = new VtlInterpreter(irOptions);
       StringTemplateOutput irOut = new StringTemplateOutput();
-      irInterpreter.render(source, ast, MapRenderContext.of(scenario.context()), irOut);
+      EngineInterpreterBridge.render(
+          irInterpreter, source, ast, MapRenderContext.of(scenario.context()), irOut);
 
       assertThat(irOut.toString())
           .as("IR output with %s must match AST for %s", optOptions.level(), scenario.name())
@@ -167,7 +170,8 @@ class AotInterpreterEquivalenceTest {
               .build();
       VtlInterpreter aotInterpreter = new VtlInterpreter(aotOptions);
       StringTemplateOutput aotOut = new StringTemplateOutput();
-      aotInterpreter.render(source, ast, MapRenderContext.of(scenario.context()), aotOut);
+      EngineInterpreterBridge.render(
+          aotInterpreter, source, ast, MapRenderContext.of(scenario.context()), aotOut);
 
       assertThat(aotOut.toString())
           .as(

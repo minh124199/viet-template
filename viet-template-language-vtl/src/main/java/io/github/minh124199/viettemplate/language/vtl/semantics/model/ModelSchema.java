@@ -1,5 +1,6 @@
 package io.github.minh124199.viettemplate.language.vtl.semantics.model;
 
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.model.ModelParameter;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
@@ -150,14 +151,14 @@ public final class ModelSchema {
     return parameters.size();
   }
 
-  public static Builder builder() {
+  static Builder builder() {
     return new Builder();
   }
 
-  public static final class Builder {
+  static final class Builder {
     private final Map<String, ModelParameter> params = new LinkedHashMap<>();
 
-    private Builder() {}
+    Builder() {}
 
     public Builder add(String name, VType type) {
       params.put(name, ModelParameter.of(name, type));

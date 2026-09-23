@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "0.3.0",
+  "description": "Registry of classes required to be public due to external framework, build tooling, or ServiceLoader discovery mechanisms.",
+  "entrypoints": [
+    {
+      "fqcn": "io.github.minh124199.viettemplate.spring.boot.autoconfigure.aot.VietTemplateRuntimeHints",
+      "module": "viet-template-spring-boot-autoconfigure",
+      "entrypointKind": "SPRING_AOT_RUNTIME_HINTS",
+      "metadataSource": "META-INF/spring/aot.factories",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": false,
+      "stableApiClassification": "FRAMEWORK_ENTRYPOINT",
+      "description": "Spring AOT runtime hints registrar configuring native reflection and resource hints."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.spring.security.aot.VietTemplateSecurityRuntimeHints",
+      "module": "viet-template-spring-security",
+      "entrypointKind": "SPRING_AOT_RUNTIME_HINTS",
+      "metadataSource": "META-INF/spring/aot.factories",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": false,
+      "stableApiClassification": "FRAMEWORK_ENTRYPOINT",
+      "description": "Spring Security AOT runtime hints registrar for security context reflection hints in Native Image."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.quarkus.VietTemplateProducer",
+      "module": "viet-template-quarkus",
+      "entrypointKind": "QUARKUS_CDI_PRODUCER",
+      "metadataSource": "ApplicationScoped / Produces annotations",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": false,
+      "userJavaApi": false,
+      "stableApiClassification": "FRAMEWORK_ENTRYPOINT",
+      "description": "Quarkus Arc CDI producer providing TemplateEngine and VietTemplateRenderer beans."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.quarkus.deployment.VietTemplateProcessor",
+      "module": "viet-template-quarkus-deployment",
+      "entrypointKind": "QUARKUS_BUILD_STEP_PROCESSOR",
+      "metadataSource": "Quarkus build-time processor discovered via Jandex and build-step annotations",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": false,
+      "userJavaApi": false,
+      "stableApiClassification": "FRAMEWORK_ENTRYPOINT",
+      "description": "Quarkus build-step processor orchestrating AOT template compilation, index generation, and native image configuration."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.maven.VietTemplateCompileMojo",
+      "module": "viet-template-maven-plugin",
+      "entrypointKind": "MAVEN_MOJO",
+      "metadataSource": "@Mojo(name = \"compile\") / META-INF/maven/plugin.xml",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": false,
+      "userJavaApi": false,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Maven Mojo goal executing ahead-of-time (AOT) template bytecode compilation during process-resources or compile phase."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplatePlugin",
+      "module": "viet-template-gradle-plugin",
+      "entrypointKind": "GRADLE_PLUGIN_IMPLEMENTATION",
+      "metadataSource": "META-INF/gradle-plugins/io.github.minh124199.viet-template.properties",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": false,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Gradle plugin entrypoint registering the 'viettemplate' extension and configuring compileVietTemplate tasks."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateCompileTask",
+      "module": "viet-template-gradle-plugin",
+      "entrypointKind": "GRADLE_TASK",
+      "metadataSource": "Registered by VietTemplatePlugin as compileVietTemplate task",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": true,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Gradle task type executing ahead-of-time (AOT) template compilation into classes directory."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension",
+      "module": "viet-template-gradle-plugin",
+      "entrypointKind": "GRADLE_EXTENSION_DSL",
+      "metadataSource": "Registered by VietTemplatePlugin as 'viettemplate' extension",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": true,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Gradle extension DSL defining user-configurable properties for template compilation."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration",
+      "module": "viet-template-spring-boot-autoconfigure",
+      "entrypointKind": "SPRING_BOOT_AUTOCONFIGURATION",
+      "metadataSource": "META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": false,
+      "stableApiClassification": "STABLE_API",
+      "description": "Spring Boot AutoConfiguration registering Viet Template view resolver and template engine beans."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties",
+      "module": "viet-template-spring-boot-autoconfigure",
+      "entrypointKind": "SPRING_BOOT_CONFIGURATION_PROPERTIES",
+      "metadataSource": "@ConfigurationProperties(prefix = \"viet-template\") / VietTemplateAutoConfiguration",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": true,
+      "stableApiClassification": "STABLE_API",
+      "description": "Spring Boot configuration properties bean bound to application.properties/yaml prefix 'viet-template'."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.quarkus.VietTemplateConfig",
+      "module": "viet-template-quarkus",
+      "entrypointKind": "QUARKUS_CONFIG_ROOT",
+      "metadataSource": "@ConfigRoot / @ConfigMapping(prefix = \"quarkus.viet-template\")",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": false,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": true,
+      "stableApiClassification": "STABLE_API",
+      "description": "Quarkus build- and run-time configuration mapping interface for 'quarkus.viet-template' prefix."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineProvider",
+      "module": "viet-template-vtl-interpreter",
+      "entrypointKind": "SERVICE_LOADER_PROVIDER",
+      "metadataSource": "META-INF/services/io.github.minh124199.viettemplate.api.TemplateEngineProvider",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": false,
+      "stableApiClassification": "STABLE_API",
+      "description": "ServiceLoader provider registering the VTL template engine implementation."
+    }
+  ]
+}

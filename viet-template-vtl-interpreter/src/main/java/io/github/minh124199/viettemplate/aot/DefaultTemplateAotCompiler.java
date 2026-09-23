@@ -14,11 +14,11 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysis
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
-import io.github.minh124199.viettemplate.vtl.compiler.BackendOptions;
-import io.github.minh124199.viettemplate.vtl.compiler.BackendResult;
-import io.github.minh124199.viettemplate.vtl.compiler.CompilationStatus;
-import io.github.minh124199.viettemplate.vtl.compiler.CompiledArtifact;
-import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeTemplateCompiler;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.BackendOptions;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.BackendResult;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.CompilationStatus;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.CompiledArtifact;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.BytecodeTemplateCompiler;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;

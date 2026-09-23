@@ -19,9 +19,10 @@ import io.github.minh124199.viettemplate.tck.velocity.result.ExceptionObservatio
 import io.github.minh124199.viettemplate.tck.velocity.result.ExecutionOutcome;
 import io.github.minh124199.viettemplate.tck.velocity.scenario.CompatibilityConfiguration;
 import io.github.minh124199.viettemplate.tck.velocity.scenario.CompatibilityScenario;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.InterpreterDiagnosticCodes;
+import io.github.minh124199.viettemplate.vtl.interpreter.EngineInterpreterBridge;
 import io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionContext;
-import io.github.minh124199.viettemplate.vtl.interpreter.InterpreterDiagnosticCodes;
 import io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler;
 import io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter;
@@ -120,7 +121,7 @@ public final class VietReferenceEngineAdapter implements EngineAdapter {
 
     Throwable failure = null;
     try {
-      interpreter.render(source, ast, executionContext, output);
+      EngineInterpreterBridge.render(interpreter, source, ast, executionContext, output);
     } catch (Throwable t) {
       failure = t;
     }

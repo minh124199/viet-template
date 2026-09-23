@@ -10,6 +10,7 @@ import io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicLinker;
 import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
 import io.github.minh124199.viettemplate.runtime.linker.MemberKey;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.InterpreterDiagnosticCodes;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -19,36 +20,36 @@ import java.util.Objects;
  * DynamicLinker} and inline-cached {@link DynamicCallSite} instances, with transparent fallback to
  * {@link DefaultReferenceAccess}.
  */
-public final class LinkedReferenceAccess implements ReferenceAccess {
+final class LinkedReferenceAccess implements ReferenceAccess {
 
   private final VtlSecurityPolicy securityPolicy;
   private final LinkerAccessPolicy linkerPolicy;
   private final DefaultReferenceAccess fallback;
   private final CallSiteRegistry registry;
 
-  public LinkedReferenceAccess(VtlSecurityPolicy securityPolicy) {
+  LinkedReferenceAccess(VtlSecurityPolicy securityPolicy) {
     this(
         securityPolicy,
         new CallSiteRegistry(
             4096, new DynamicLinker(new VtlLinkerAccessPolicyAdapter(securityPolicy))));
   }
 
-  public LinkedReferenceAccess(VtlSecurityPolicy securityPolicy, CallSiteRegistry registry) {
+  LinkedReferenceAccess(VtlSecurityPolicy securityPolicy, CallSiteRegistry registry) {
     this.securityPolicy = Objects.requireNonNull(securityPolicy, "securityPolicy must not be null");
     this.linkerPolicy = new VtlLinkerAccessPolicyAdapter(securityPolicy);
     this.fallback = new DefaultReferenceAccess(securityPolicy);
     this.registry = Objects.requireNonNull(registry, "registry must not be null");
   }
 
-  public CallSiteRegistry registry() {
+  CallSiteRegistry registry() {
     return registry;
   }
 
-  public VtlSecurityPolicy securityPolicy() {
+  VtlSecurityPolicy securityPolicy() {
     return securityPolicy;
   }
 
-  public DefaultReferenceAccess fallback() {
+  DefaultReferenceAccess fallback() {
     return fallback;
   }
 

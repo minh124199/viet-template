@@ -1890,20 +1890,6 @@
     "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
   },
   {
-    "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema$Builder",
-    "module": "viet-template-language-vtl",
-    "package": "io.github.minh124199.viettemplate.language.vtl.semantics.model",
-    "simple_name": "Builder",
-    "used_other_prod_mod": true,
-    "used_other_pkg_same_mod": true,
-    "used_tests": true,
-    "used_plugins": true,
-    "used_spring": true,
-    "used_quarkus": false,
-    "used_tck": true,
-    "category": "C \u2014 CROSS_MODULE_INTERNAL_SPI_REQUIRED"
-  },
-  {
     "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.resolve.LevenshteinDistance",
     "module": "viet-template-language-vtl",
     "package": "io.github.minh124199.viettemplate.language.vtl.semantics.resolve",

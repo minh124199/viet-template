@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <p>Tracks mutable compiler state (fresh local slots, call site IDs, metrics, constant pool).
  */
-public final class OptimizationContext {
+final class OptimizationContext {
 
   private final IrOptimizationOptions options;
   private final OptimizationStatistics statistics;
@@ -22,7 +22,7 @@ public final class OptimizationContext {
   private final AtomicInteger nextCallSiteId;
   private final AtomicInteger nextChunkFunctionId;
 
-  public OptimizationContext(IrTemplate template, IrOptimizationOptions options) {
+  OptimizationContext(IrTemplate template, IrOptimizationOptions options) {
     Objects.requireNonNull(template, "template must not be null");
     this.options = Objects.requireNonNull(options, "options must not be null");
     this.statistics = new OptimizationStatistics();
@@ -58,11 +58,11 @@ public final class OptimizationContext {
     this.nextChunkFunctionId = new AtomicInteger(maxChunkId + 1);
   }
 
-  public OptimizationContext(IrOptimizationOptions options, IrConstantPool constantPool) {
+  OptimizationContext(IrOptimizationOptions options, IrConstantPool constantPool) {
     this(options, new OptimizationStatistics(), constantPool, 10, 1000);
   }
 
-  public OptimizationContext(
+  OptimizationContext(
       IrOptimizationOptions options,
       OptimizationStatistics statistics,
       IrConstantPool constantPool,
@@ -76,27 +76,27 @@ public final class OptimizationContext {
     this.nextChunkFunctionId = new AtomicInteger(1);
   }
 
-  public IrOptimizationOptions options() {
+  IrOptimizationOptions options() {
     return options;
   }
 
-  public OptimizationStatistics statistics() {
+  OptimizationStatistics statistics() {
     return statistics;
   }
 
-  public IrConstantPool constantPool() {
+  IrConstantPool constantPool() {
     return constantPool;
   }
 
-  public int allocateLocalSlot() {
+  int allocateLocalSlot() {
     return nextSlot.getAndIncrement();
   }
 
-  public int allocateCallSiteId() {
+  int allocateCallSiteId() {
     return nextCallSiteId.getAndIncrement();
   }
 
-  public String nextChunkFunctionName() {
+  String nextChunkFunctionName() {
     return "__render_chunk_" + nextChunkFunctionId.getAndIncrement();
   }
 }

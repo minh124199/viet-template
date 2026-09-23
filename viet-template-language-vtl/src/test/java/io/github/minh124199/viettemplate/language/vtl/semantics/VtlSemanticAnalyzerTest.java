@@ -11,6 +11,7 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -34,9 +35,7 @@ class VtlSemanticAnalyzerTest {
     assertThat(parsed.hasErrors()).isFalse();
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add("user", VType.ClassType.of(User.class, Nullability.NON_NULL))
-            .build();
+        ModelSchema.of(Map.of("user", VType.ClassType.of(User.class, Nullability.NON_NULL)));
 
     VtlSemanticOptions options =
         VtlSemanticOptions.builder()
@@ -62,9 +61,7 @@ class VtlSemanticAnalyzerTest {
     assertThat(parsed.hasErrors()).isFalse();
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add("user", VType.ClassType.of(User.class, Nullability.NON_NULL))
-            .build();
+        ModelSchema.of(Map.of("user", VType.ClassType.of(User.class, Nullability.NON_NULL)));
 
     VtlSemanticOptions options =
         VtlSemanticOptions.builder()
@@ -92,9 +89,7 @@ class VtlSemanticAnalyzerTest {
     VtlParseResult parsed = parse("Hello $usr.name!");
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add("user", VType.ClassType.of(User.class, Nullability.NON_NULL))
-            .build();
+        ModelSchema.of(Map.of("user", VType.ClassType.of(User.class, Nullability.NON_NULL)));
 
     VtlSemanticOptions options =
         VtlSemanticOptions.builder()
@@ -119,9 +114,7 @@ class VtlSemanticAnalyzerTest {
     VtlParseResult parsed = parse("$user.name.trim()");
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add("user", VType.ClassType.of(User.class, Nullability.NON_NULL))
-            .build();
+        ModelSchema.of(Map.of("user", VType.ClassType.of(User.class, Nullability.NON_NULL)));
 
     VtlSemanticOptions options =
         VtlSemanticOptions.builder().profile(VtlProfile.VTL_SAFE).modelSchema(schema).build();
@@ -141,9 +134,7 @@ class VtlSemanticAnalyzerTest {
     VtlParseResult parsed = parse("$user.getClass()");
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add("user", VType.ClassType.of(User.class, Nullability.NON_NULL))
-            .build();
+        ModelSchema.of(Map.of("user", VType.ClassType.of(User.class, Nullability.NON_NULL)));
 
     VtlSemanticOptions options =
         VtlSemanticOptions.builder().profile(VtlProfile.VTL_DYNAMIC).modelSchema(schema).build();
@@ -179,9 +170,7 @@ class VtlSemanticAnalyzerTest {
         parse("#foreach($item in $catalog.items)$item.title $foreach.index $foreach.hasNext#end");
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add("catalog", VType.ClassType.of(Catalog.class, Nullability.NON_NULL))
-            .build();
+        ModelSchema.of(Map.of("catalog", VType.ClassType.of(Catalog.class, Nullability.NON_NULL)));
 
     VtlSemanticOptions options =
         VtlSemanticOptions.builder()
@@ -202,9 +191,7 @@ class VtlSemanticAnalyzerTest {
     VtlParseResult parsed = parse("#foreach($item in $user.age)$item#end");
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add("user", VType.ClassType.of(User.class, Nullability.NON_NULL))
-            .build();
+        ModelSchema.of(Map.of("user", VType.ClassType.of(User.class, Nullability.NON_NULL)));
 
     VtlSemanticOptions options =
         VtlSemanticOptions.builder()
@@ -226,9 +213,7 @@ class VtlSemanticAnalyzerTest {
     VtlParseResult parsed = parse("#set($user = 'newUser')");
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add("user", VType.ClassType.of(User.class, Nullability.NON_NULL))
-            .build();
+        ModelSchema.of(Map.of("user", VType.ClassType.of(User.class, Nullability.NON_NULL)));
 
     VtlSemanticOptions options =
         VtlSemanticOptions.builder()
@@ -251,9 +236,7 @@ class VtlSemanticAnalyzerTest {
     VtlParseResult parsed = parse("$!user.name");
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add("user", VType.ClassType.of(User.class, Nullability.NON_NULL))
-            .build();
+        ModelSchema.of(Map.of("user", VType.ClassType.of(User.class, Nullability.NON_NULL)));
 
     VtlSemanticOptions options =
         VtlSemanticOptions.builder()

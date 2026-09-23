@@ -425,11 +425,11 @@ TYPE public final class io.github.minh124199.viettemplate.api.TemplateSuffixConf
   MEMBER public final java.lang.String toString()
   MEMBER public io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration(java.lang.String, java.util.List<java.lang.String>, java.util.List<java.lang.String>)
   MEMBER public java.lang.String primarySuffix()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.api.TemplateId> resolveCandidates(java.lang.String)
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.api.TemplateId> resolveCandidates(java.lang.String, java.lang.String)
   MEMBER public java.util.List<java.lang.String> additionalSuffixes()
   MEMBER public java.util.List<java.lang.String> effectiveSuffixes()
   MEMBER public java.util.Optional<java.lang.String> findMatchingSuffix(java.lang.String)
-  MEMBER public java.util.List<io.github.minh124199.viettemplate.api.TemplateId> resolveCandidates(java.lang.String)
-  MEMBER public java.util.List<io.github.minh124199.viettemplate.api.TemplateId> resolveCandidates(java.lang.String, java.lang.String)
   MEMBER public static io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration of(java.lang.String)
   MEMBER public static io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration of(java.lang.String, java.lang.String...)
   MEMBER public static io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration of(java.lang.String, java.util.List<java.lang.String>)
@@ -451,6 +451,79 @@ TYPE public final class io.github.minh124199.viettemplate.api.ValueOrigin extend
   MEMBER public static final io.github.minh124199.viettemplate.api.ValueOrigin MODEL
   MEMBER public static io.github.minh124199.viettemplate.api.ValueOrigin valueOf(java.lang.String)
   MEMBER public static io.github.minh124199.viettemplate.api.ValueOrigin[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.language.vtl.VtlProfile extends java.lang.Enum<io.github.minh124199.viettemplate.language.vtl.VtlProfile>
+  MEMBER public boolean isArbitraryMethodsAllowed()
+  MEMBER public boolean isEvaluateAllowed()
+  MEMBER public boolean isSandboxEnforced()
+  MEMBER public static final io.github.minh124199.viettemplate.language.vtl.VtlProfile VTL_CORE
+  MEMBER public static final io.github.minh124199.viettemplate.language.vtl.VtlProfile VTL_DYNAMIC
+  MEMBER public static final io.github.minh124199.viettemplate.language.vtl.VtlProfile VTL_MIGRATION
+  MEMBER public static final io.github.minh124199.viettemplate.language.vtl.VtlProfile VTL_SAFE
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.VtlProfile defaultProfile()
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.VtlProfile valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.VtlProfile[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions extends java.lang.Record
+  MEMBER public boolean booleanSimplification()
+  MEMBER public boolean constantFolding()
+  MEMBER public boolean deadCodeElimination()
+  MEMBER public boolean directAccessorBinding()
+  MEMBER public boolean escapeSpecialization()
+  MEMBER public boolean loopSpecialization()
+  MEMBER public boolean macroInlining()
+  MEMBER public boolean mergeTextConstants()
+  MEMBER public boolean methodSizePlanning()
+  MEMBER public boolean preEncodeUtf8()
+  MEMBER public boolean primitiveSpecialization()
+  MEMBER public boolean redundantConversion()
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public int maxInliningDepth()
+  MEMBER public int maxInliningStatements()
+  MEMBER public int methodSplitThreshold()
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder toBuilder()
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions(io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean, int, int, int)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel level()
+  MEMBER public static final int DEFAULT_MAX_INLINING_DEPTH
+  MEMBER public static final int DEFAULT_MAX_INLINING_STATEMENTS
+  MEMBER public static final int DEFAULT_METHOD_SPLIT_THRESHOLD
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions defaultOptions()
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions forLevel(io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel)
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions o0()
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions o1()
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions o2()
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions o3()
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder builder()
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder builder(io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel)
+
+TYPE public final class io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions build()
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder booleanSimplification(boolean)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder constantFolding(boolean)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder deadCodeElimination(boolean)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder directAccessorBinding(boolean)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder escapeSpecialization(boolean)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder level(io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder loopSpecialization(boolean)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder macroInlining(boolean)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder maxInliningDepth(int)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder maxInliningStatements(int)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder mergeTextConstants(boolean)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder methodSizePlanning(boolean)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder methodSplitThreshold(int)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder preEncodeUtf8(boolean)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder primitiveSpecialization(boolean)
+  MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder redundantConversion(boolean)
+
+TYPE public final class io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel extends java.lang.Enum<io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel>
+  MEMBER public static final io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel O0
+  MEMBER public static final io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel O1
+  MEMBER public static final io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel O2
+  MEMBER public static final io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel O3
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel[] values()
 
 TYPE public final class io.github.minh124199.viettemplate.language.vtl.source.SourceText implements java.lang.CharSequence
   MEMBER public char charAt(int)
@@ -656,11 +729,24 @@ TYPE public final class io.github.minh124199.viettemplate.runtime.WriterTemplate
   MEMBER public void writeUtf8(byte[]) throws java.io.IOException
   MEMBER public void writeUtf8(byte[], int, int) throws java.io.IOException
 
+TYPE public interface io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy
+  MEMBER public abstract boolean isClassPermitted(java.lang.Class<?>)
+  MEMBER public abstract boolean isFieldPermitted(java.lang.Class<?>, java.lang.reflect.Field)
+  MEMBER public abstract boolean isMethodPermitted(java.lang.Class<?>, java.lang.reflect.Method)
+  MEMBER public abstract java.lang.String policyId()
+  MEMBER public default boolean isFieldPermitted(java.lang.reflect.Field)
+  MEMBER public default boolean isIndexMutationPermitted(java.lang.Class<?>)
+  MEMBER public default boolean isMethodPermitted(java.lang.reflect.Method)
+  MEMBER public default boolean isPropertyMethodPermitted(java.lang.Class<?>, java.lang.reflect.Method, java.lang.String)
+  MEMBER public default boolean isPropertyMutationPermitted(java.lang.Class<?>, java.lang.String)
+  MEMBER public default boolean isPropertyPermitted(java.lang.Class<?>, java.lang.String)
+  MEMBER public default boolean isSafeProfile()
+  MEMBER public static io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy denyAll()
+  MEMBER public static io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy of(io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public static io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy standard()
 
 TYPE public final class io.github.minh124199.viettemplate.vtl.engine.VtlTemplate implements io.github.minh124199.viettemplate.api.Template
   MEMBER public io.github.minh124199.viettemplate.api.TemplateDescriptor descriptor()
-  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplate(io.github.minh124199.viettemplate.api.TemplateDescriptor, io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle, io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions)
-  MEMBER public io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle handle()
   MEMBER public void render(io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
 
 TYPE public final class io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine implements io.github.minh124199.viettemplate.api.TemplateEngine,java.lang.AutoCloseable
@@ -669,7 +755,6 @@ TYPE public final class io.github.minh124199.viettemplate.vtl.engine.VtlTemplate
   MEMBER public io.github.minh124199.viettemplate.api.Template get(io.github.minh124199.viettemplate.api.TemplateId)
   MEMBER public io.github.minh124199.viettemplate.api.TemplateDependencyGraph dependencyGraph()
   MEMBER public io.github.minh124199.viettemplate.api.TemplateRepository repository()
-  MEMBER public io.github.minh124199.viettemplate.vtl.engine.cache.TemplateCompileCache cache()
   MEMBER public java.util.Set<io.github.minh124199.viettemplate.api.TemplateId> invalidateWithDependents(io.github.minh124199.viettemplate.api.TemplateId)
   MEMBER public static io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder builder()
   MEMBER public void close()
@@ -710,7 +795,6 @@ TYPE public final class io.github.minh124199.viettemplate.vtl.engine.VtlTemplate
   MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder optimizationLevel(io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel)
   MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder rejectRuntimeCompilation(boolean)
   MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder repository(io.github.minh124199.viettemplate.api.TemplateRepository)
-  MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder semanticOptions(io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions)
   MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder watchDebounceMillis(long)
   MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder()
 
@@ -718,18 +802,84 @@ TYPE public final class io.github.minh124199.viettemplate.vtl.engine.VtlTemplate
   MEMBER public io.github.minh124199.viettemplate.api.TemplateEngine$Builder createBuilder()
   MEMBER public io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineProvider()
 
+TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits extends java.lang.Record
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public int maxDynamicSourceLength()
+  MEMBER public int maxEvaluateDepth()
+  MEMBER public int maxLoopIterations()
+  MEMBER public int maxMacroDepth()
+  MEMBER public int maxParseDepth()
+  MEMBER public int maxRangeSize()
+  MEMBER public io.github.minh124199.viettemplate.runtime.RenderBudget createRenderBudget()
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits(int, int, int, int, int, int, long)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits(int, int, int, int, int, int, long, long)
+  MEMBER public long maxExecutionTimeMillis()
+  MEMBER public long maxOutputCharacters()
+  MEMBER public static final int DEFAULT_MAX_DYNAMIC_SOURCE_LENGTH
+  MEMBER public static final int DEFAULT_MAX_EVALUATE_DEPTH
+  MEMBER public static final int DEFAULT_MAX_LOOP_ITERATIONS
+  MEMBER public static final int DEFAULT_MAX_MACRO_DEPTH
+  MEMBER public static final int DEFAULT_MAX_PARSE_DEPTH
+  MEMBER public static final int DEFAULT_MAX_RANGE_SIZE
+  MEMBER public static final io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits DEFAULT
+  MEMBER public static final long DEFAULT_MAX_EXECUTION_TIME_MILLIS
+  MEMBER public static final long DEFAULT_MAX_OUTPUT_CHARACTERS
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits unlimited()
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder builder()
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits build()
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder maxDynamicSourceLength(int)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder maxEvaluateDepth(int)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder maxExecutionTimeMillis(long)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder maxLoopIterations(int)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder maxMacroDepth(int)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder maxOutputCharacters(long)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder maxParseDepth(int)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder maxRangeSize(int)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder()
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier extends java.lang.Enum<io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier>
+  MEMBER public static final io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier AOT_BYTECODE
+  MEMBER public static final io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier AST
+  MEMBER public static final io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier IR
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler
+  MEMBER public static java.util.BitSet computeGobbledIndices(io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode)
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode extends java.lang.Enum<io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode>
+  MEMBER public static final io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode LINES
+  MEMBER public static final io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode NONE
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.TemplateResource extends java.lang.Record
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId templateId()
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.TemplateResource(io.github.minh124199.viettemplate.api.TemplateId, java.lang.String)
+  MEMBER public java.lang.String content()
+
+TYPE public interface io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver
+  MEMBER public abstract java.util.Optional<io.github.minh124199.viettemplate.vtl.interpreter.TemplateResource> resolve(io.github.minh124199.viettemplate.api.TemplateId, java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver empty()
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver$InMemoryBuilder inMemory()
+
+TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver$InMemoryBuilder
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver build()
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver$InMemoryBuilder add(java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver$InMemoryBuilder put(java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver$InMemoryBuilder()
+
 TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter
-  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue evaluateExpression(io.github.minh124199.viettemplate.language.vtl.ast.VtlExpression, io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter$ExecutionState)
-  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue evaluateReference(io.github.minh124199.viettemplate.language.vtl.ast.VtlReference, io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter$ExecutionState)
   MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter()
   MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter(io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions)
   MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions options()
-  MEMBER public void interpret(io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate, io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
-  MEMBER public void render(io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate, io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
-  MEMBER public void render(io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate, io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
-  MEMBER public void render(io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate, io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
-  MEMBER public void render(io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate, io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
-  MEMBER public void render(io.github.minh124199.viettemplate.language.vtl.source.SourceText, io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
 
 TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions extends java.lang.Record
   MEMBER public boolean allowBareNullLiteral()
@@ -739,6 +889,7 @@ TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.VtlInt
   MEMBER public final boolean equals(java.lang.Object)
   MEMBER public final int hashCode()
   MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.UndefinedReferencePolicy undefinedReferencePolicy()
   MEMBER public io.github.minh124199.viettemplate.language.vtl.VtlProfile profile()
   MEMBER public io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions optimizationOptions()
   MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits limits()
@@ -749,6 +900,9 @@ TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.VtlInt
   MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions(io.github.minh124199.viettemplate.language.vtl.VtlProfile, boolean, boolean, boolean, io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode, boolean, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits, io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy, io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver)
   MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions(io.github.minh124199.viettemplate.language.vtl.VtlProfile, boolean, boolean, boolean, io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode, boolean, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits, io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy, io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier)
   MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions(io.github.minh124199.viettemplate.language.vtl.VtlProfile, boolean, boolean, boolean, io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode, boolean, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits, io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy, io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier, io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions(io.github.minh124199.viettemplate.language.vtl.VtlProfile, io.github.minh124199.viettemplate.api.UndefinedReferencePolicy, boolean, boolean, io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode, boolean, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits, io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy, io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions(io.github.minh124199.viettemplate.language.vtl.VtlProfile, io.github.minh124199.viettemplate.api.UndefinedReferencePolicy, boolean, boolean, io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode, boolean, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits, io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy, io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions(io.github.minh124199.viettemplate.language.vtl.VtlProfile, io.github.minh124199.viettemplate.api.UndefinedReferencePolicy, boolean, boolean, io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode, boolean, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits, io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy, io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver, io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier, io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions)
   MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy securityPolicy()
   MEMBER public static final io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions DEFAULT
   MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder builder()
@@ -766,4 +920,21 @@ TYPE public final class io.github.minh124199.viettemplate.vtl.interpreter.VtlInt
   MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder setNullAllowed(boolean)
   MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder spaceGobbling(io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode)
   MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder strictReferences(boolean)
+  MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder undefinedReferencePolicy(io.github.minh124199.viettemplate.api.UndefinedReferencePolicy)
   MEMBER public io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder()
+
+TYPE public interface io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy
+  MEMBER public abstract boolean isClassPermitted(java.lang.Class<?>)
+  MEMBER public abstract boolean isFieldPermitted(java.lang.Class<?>, java.lang.reflect.Field)
+  MEMBER public abstract boolean isMethodPermitted(java.lang.Class<?>, java.lang.reflect.Method)
+  MEMBER public default boolean isIndexMutationPermitted(java.lang.Class<?>)
+  MEMBER public default boolean isPropertyMethodPermitted(java.lang.Class<?>, java.lang.reflect.Method, java.lang.String)
+  MEMBER public default boolean isPropertyMutationPermitted(java.lang.Class<?>, java.lang.String)
+  MEMBER public default boolean isPropertyPermitted(java.lang.Class<?>, java.lang.String)
+  MEMBER public default boolean isSafeProfile()
+  MEMBER public default io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy toLinkerAccessPolicy()
+  MEMBER public default java.lang.String policyFingerprint()
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy enforceSafe(io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy)
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy of(io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy safe()
+  MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy standard()

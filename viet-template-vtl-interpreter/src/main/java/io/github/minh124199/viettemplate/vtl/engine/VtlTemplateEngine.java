@@ -13,20 +13,19 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnaly
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.runtime.linker.CallSiteRegistry;
-import io.github.minh124199.viettemplate.vtl.compiler.*;
-import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeTemplateCompiler;
 import io.github.minh124199.viettemplate.vtl.engine.cache.CompileCacheKey;
 import io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle;
 import io.github.minh124199.viettemplate.vtl.engine.cache.TemplateCompileCache;
-import io.github.minh124199.viettemplate.vtl.engine.context.ContributingContextComposer;
 import io.github.minh124199.viettemplate.vtl.engine.dependency.DefaultTemplateDependencyGraph;
-import io.github.minh124199.viettemplate.vtl.engine.dependency.StaticDependencyExtractor;
-import io.github.minh124199.viettemplate.vtl.engine.layout.DefaultLayoutRenderPlan;
-import io.github.minh124199.viettemplate.vtl.engine.macro.GlobalMacroManager;
-import io.github.minh124199.viettemplate.vtl.engine.watcher.DevelopmentFileWatcher;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.*;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.BytecodeTemplateCompiler;
+import io.github.minh124199.viettemplate.vtl.internal.engine.context.ContributingContextComposer;
+import io.github.minh124199.viettemplate.vtl.internal.engine.dependency.StaticDependencyExtractor;
+import io.github.minh124199.viettemplate.vtl.internal.engine.layout.DefaultLayoutRenderPlan;
+import io.github.minh124199.viettemplate.vtl.internal.engine.macro.GlobalMacroManager;
+import io.github.minh124199.viettemplate.vtl.internal.engine.watcher.DevelopmentFileWatcher;
+import io.github.minh124199.viettemplate.vtl.interpreter.EngineInterpreterBridge;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
-import io.github.minh124199.viettemplate.vtl.interpreter.LinkedReferenceAccess;
-import io.github.minh124199.viettemplate.vtl.interpreter.ReferenceAccess;
 import io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler;
 import io.github.minh124199.viettemplate.vtl.interpreter.TemplateResource;
 import io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver;
@@ -65,7 +64,6 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
   private final VtlSemanticOptions semanticOptions;
   private final VtlInterpreterOptions interpreterOptions;
   private final CallSiteRegistry callSiteRegistry;
-  private final ReferenceAccess referenceAccess;
   private final VtlInterpreter interpreter;
   private final Optional<DevelopmentFileWatcher> fileWatcher;
 
@@ -134,9 +132,8 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
             .toBuilder().executionTier(executionTier).resourceResolver(engineResolver).build();
 
     this.callSiteRegistry = new CallSiteRegistry();
-    this.referenceAccess =
-        new LinkedReferenceAccess(this.interpreterOptions.securityPolicy(), this.callSiteRegistry);
-    this.interpreter = new VtlInterpreter(this.interpreterOptions, this.referenceAccess);
+    this.interpreter =
+        EngineInterpreterBridge.create(this.interpreterOptions, this.callSiteRegistry);
 
     this.dependencyGraph =
         dependencyGraph != null ? dependencyGraph : new DefaultTemplateDependencyGraph();
@@ -291,13 +288,17 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
             Set.of(layoutConfiguration.screenContentKey()),
             Map.of());
 
-    io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput countingOutput =
-        (output
-                instanceof
-                io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput cto)
-            ? cto
-            : new io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput(
-                output, interpreterOptions.limits().createRenderBudget(), request.templateId());
+    io.github.minh124199.viettemplate.vtl.internal.interpreter.CountingTemplateOutput
+        countingOutput =
+            (output
+                    instanceof
+                    io.github.minh124199.viettemplate.vtl.internal.interpreter
+                            .CountingTemplateOutput
+                        cto)
+                ? cto
+                : new io.github.minh124199.viettemplate.vtl.internal.interpreter
+                    .CountingTemplateOutput(
+                    output, interpreterOptions.limits().createRenderBudget(), request.templateId());
 
     Optional<TemplateId> layout =
         layoutConfiguration.resolver().resolveLayout(request.templateId(), composition.context());
@@ -338,7 +339,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     return rejectRuntimeCompilation;
   }
 
-  public TemplateCompileCache cache() {
+  TemplateCompileCache cache() {
     return cache;
   }
 
@@ -469,7 +470,8 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
       CompileCacheKey key,
       SourceText sourceText,
       IrTemplate optimizedIr) {
-    CompiledTemplate preparedTemplate = interpreter.prepareIr(optimizedIr, sourceText);
+    CompiledTemplate preparedTemplate =
+        EngineInterpreterBridge.prepareIr(interpreter, optimizedIr, sourceText);
     return new CompiledTemplateHandle(
         id,
         generation,
@@ -640,3 +642,4 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     }
   }
 }
+

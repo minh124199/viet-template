@@ -5,7 +5,7 @@ import io.github.minh124199.viettemplate.api.TemplateId;
 import java.util.List;
 
 /** Strategy interface defining property, method, and index resolution and assignment semantics. */
-public interface ReferenceAccess {
+interface ReferenceAccess {
 
   EvaluationValue getProperty(Object target, String propertyName, SourceSpan span, TemplateId id);
 

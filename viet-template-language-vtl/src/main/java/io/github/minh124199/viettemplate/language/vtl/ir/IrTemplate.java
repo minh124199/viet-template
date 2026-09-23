@@ -2,8 +2,8 @@ package io.github.minh124199.viettemplate.language.vtl.ir;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.capability.TemplateCapabilities;
 import io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool;
-import io.github.minh124199.viettemplate.language.vtl.semantics.capability.TemplateCapabilities;
 import java.util.List;
 import java.util.Objects;
 

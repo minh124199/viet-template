@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.scope.ScopeKind;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.scope.Symbol;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.scope.SymbolTable;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

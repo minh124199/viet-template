@@ -35,7 +35,7 @@ import io.github.minh124199.viettemplate.runtime.SafeHtml;
 import io.github.minh124199.viettemplate.runtime.SafeUrl;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine;
-import io.github.minh124199.viettemplate.vtl.engine.context.ContributingContextComposer;
+import io.github.minh124199.viettemplate.vtl.internal.engine.context.ContributingContextComposer;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;

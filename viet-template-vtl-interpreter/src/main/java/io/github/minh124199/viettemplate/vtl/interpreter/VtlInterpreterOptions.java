@@ -3,6 +3,7 @@ package io.github.minh124199.viettemplate.vtl.interpreter;
 import io.github.minh124199.viettemplate.api.UndefinedReferencePolicy;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import java.util.Objects;
 
 /** Configuration options controlling reference interpreter execution behavior. */

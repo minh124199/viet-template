@@ -2,6 +2,7 @@ package io.github.minh124199.viettemplate.vtl.interpreter;
 
 import io.github.minh124199.viettemplate.api.TemplateCallable;
 import io.github.minh124199.viettemplate.api.TemplateData;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 
 /** Loop metadata exposed to templates as {@code $foreach}. */
 @TemplateData

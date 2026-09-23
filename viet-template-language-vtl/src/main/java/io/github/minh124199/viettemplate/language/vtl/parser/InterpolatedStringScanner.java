@@ -1,13 +1,13 @@
 package io.github.minh124199.viettemplate.language.vtl.parser;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
-import io.github.minh124199.viettemplate.language.vtl.ast.ReferenceNotation;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlAccessStep;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlExpression;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlInterpolatedStringExpression;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlInterpolatedStringExpression.VtlInterpolatedStringPart;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlReference;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlStringLiteralExpression;
+import io.github.minh124199.viettemplate.language.vtl.internal.ast.ReferenceNotation;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import java.util.ArrayList;
 import java.util.List;

@@ -23,11 +23,11 @@ import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
 import io.github.minh124199.viettemplate.runtime.linker.LinkerStatistics;
 import io.github.minh124199.viettemplate.runtime.linker.MemberKey;
 import io.github.minh124199.viettemplate.runtime.linker.MemberOperation;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.InterpreterDiagnosticCodes;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.VtlComparisonOperations;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.VtlNumericOperations;
 import io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue;
 import io.github.minh124199.viettemplate.vtl.interpreter.ForeachMetadata;
-import io.github.minh124199.viettemplate.vtl.interpreter.InterpreterDiagnosticCodes;
-import io.github.minh124199.viettemplate.vtl.interpreter.VtlComparisonOperations;
-import io.github.minh124199.viettemplate.vtl.interpreter.VtlNumericOperations;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -935,7 +935,8 @@ public final class BytecodeRuntimeBridge {
   /** Increments loop iteration count on the output's render budget if present. */
   public static void countLoopIteration(TemplateOutput output) {
     if (output
-        instanceof io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput cto) {
+        instanceof
+        io.github.minh124199.viettemplate.vtl.internal.interpreter.CountingTemplateOutput cto) {
       cto.budget().countLoopIteration();
     }
   }

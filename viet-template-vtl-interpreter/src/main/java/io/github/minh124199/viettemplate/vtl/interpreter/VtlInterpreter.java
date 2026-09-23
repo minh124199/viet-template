@@ -25,10 +25,11 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptio
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.runtime.SafeHtml;
 import io.github.minh124199.viettemplate.runtime.StandardEscapers;
-import io.github.minh124199.viettemplate.vtl.compiler.BackendOptions;
-import io.github.minh124199.viettemplate.vtl.compiler.BackendResult;
-import io.github.minh124199.viettemplate.vtl.compiler.CompilationStatus;
-import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeTemplateCompiler;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.BackendOptions;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.BackendResult;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.CompilationStatus;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.BytecodeTemplateCompiler;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.*;
@@ -48,7 +49,7 @@ public final class VtlInterpreter {
     this(VtlInterpreterOptions.DEFAULT);
   }
 
-  public VtlInterpreter(VtlInterpreterOptions options, ReferenceAccess referenceAccess) {
+  VtlInterpreter(VtlInterpreterOptions options, ReferenceAccess referenceAccess) {
     this.options = Objects.requireNonNull(options, "options must not be null");
     this.referenceAccess =
         Objects.requireNonNull(referenceAccess, "referenceAccess must not be null");
@@ -72,7 +73,7 @@ public final class VtlInterpreter {
    * <p>This is used by the engine compilation boundary. Raw-IR render methods retain their existing
    * prepare-on-call behavior for compatibility.
    */
-  public CompiledTemplate prepareIr(IrTemplate template, SourceText source) {
+  CompiledTemplate prepareIr(IrTemplate template, SourceText source) {
     Objects.requireNonNull(template, "template must not be null");
     Objects.requireNonNull(source, "source must not be null");
     PreparedIrTemplate prepared = PreparedIrTemplate.prepare(template);
@@ -92,14 +93,14 @@ public final class VtlInterpreter {
     };
   }
 
-  public void render(
+  void render(
       SourceText source, VtlTemplate template, RenderContext renderContext, TemplateOutput output)
       throws IOException {
     Objects.requireNonNull(renderContext, "renderContext must not be null");
     render(source, template, new ExecutionContext(renderContext), output);
   }
 
-  public void render(
+  void render(
       SourceText source, VtlTemplate template, ExecutionContext context, TemplateOutput output)
       throws IOException {
     Objects.requireNonNull(source, "source must not be null");
@@ -204,14 +205,14 @@ public final class VtlInterpreter {
     }
   }
 
-  public void render(
+  void render(
       IrTemplate template, SourceText source, RenderContext renderContext, TemplateOutput output)
       throws IOException {
     Objects.requireNonNull(renderContext, "renderContext must not be null");
     render(template, source, new ExecutionContext(renderContext), output);
   }
 
-  public void render(
+  void render(
       IrTemplate template, SourceText source, ExecutionContext context, TemplateOutput output)
       throws IOException {
     IrTemplate optimizedTemplate = IrOptimizer.optimize(template, options.optimizationOptions());
@@ -260,13 +261,13 @@ public final class VtlInterpreter {
     IrInterpreter.render(optimizedTemplate, source, context, output, options, this.referenceAccess);
   }
 
-  public void render(
+  void render(
       VtlTemplate template, SourceText source, RenderContext renderContext, TemplateOutput output)
       throws IOException {
     render(source, template, renderContext, output);
   }
 
-  public void interpret(
+  void interpret(
       VtlTemplate template, SourceText source, RenderContext renderContext, TemplateOutput output)
       throws IOException {
     render(source, template, renderContext, output);
@@ -875,7 +876,7 @@ public final class VtlInterpreter {
     executeNodes(parseResult.template().children(), subState);
   }
 
-  public EvaluationValue evaluateExpression(VtlExpression expr, ExecutionState state) {
+  private EvaluationValue evaluateExpression(VtlExpression expr, ExecutionState state) {
     if (expr instanceof VtlIntegerLiteralExpression intLit) {
       java.math.BigInteger val = intLit.value();
       if (val.compareTo(java.math.BigInteger.valueOf(Integer.MIN_VALUE)) >= 0
@@ -1089,7 +1090,7 @@ public final class VtlInterpreter {
     };
   }
 
-  public EvaluationValue evaluateReference(VtlReference ref, ExecutionState state) {
+  private EvaluationValue evaluateReference(VtlReference ref, ExecutionState state) {
     EvaluationValue current = state.context.lookup(ref.rootName());
 
     for (VtlAccessStep step : ref.accessSteps()) {

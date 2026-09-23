@@ -17,7 +17,7 @@ import java.util.List;
  * smaller, manageable function chunks to prevent exceeding JVM method bytecode limits (64KB) in
  * downstream code generators.
  */
-public final class MethodSizePlanningPass implements IrOptimizationPass {
+final class MethodSizePlanningPass implements IrOptimizationPass {
 
   public static final String NAME = "MethodSizePlanning";
 

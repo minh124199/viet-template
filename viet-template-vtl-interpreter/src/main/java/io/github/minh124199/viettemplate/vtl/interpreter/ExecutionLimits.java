@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
 import io.github.minh124199.viettemplate.runtime.RenderBudget;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 
 /** Immutable execution limits guarding against resource exhaustion. */
 public record ExecutionLimits(

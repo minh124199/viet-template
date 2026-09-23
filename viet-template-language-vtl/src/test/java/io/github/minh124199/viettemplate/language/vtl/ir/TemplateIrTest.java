@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
+import io.github.minh124199.viettemplate.language.vtl.internal.ir.plan.BudgetKind;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.capability.TemplateCapabilities;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.model.ModelParameter;
 import io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrConst;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrConvert;
@@ -12,7 +15,6 @@ import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrIsNull;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrLoadLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrUnaryOp;
 import io.github.minh124199.viettemplate.language.vtl.ir.lowering.AstToIrLowerer;
-import io.github.minh124199.viettemplate.language.vtl.ir.plan.BudgetKind;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.LoopPlan;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.UnaryOpKind;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBranch;
@@ -32,8 +34,6 @@ import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
 import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysisResult;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
-import io.github.minh124199.viettemplate.language.vtl.semantics.capability.TemplateCapabilities;
-import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelParameter;
 import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
@@ -80,11 +80,9 @@ class TemplateIrTest {
     VtlParseResult parsed = VtlParser.parse(source);
 
     ModelSchema schema =
-        ModelSchema.builder()
-            .add(
-                ModelParameter.of(
-                    "customer", VTypes.fromJavaType(Customer.class, Nullability.NON_NULL)))
-            .build();
+        ModelSchema.of(
+            ModelParameter.of(
+                "customer", VTypes.fromJavaType(Customer.class, Nullability.NON_NULL)));
 
     VtlSemanticOptions options =
         VtlSemanticOptions.builder()

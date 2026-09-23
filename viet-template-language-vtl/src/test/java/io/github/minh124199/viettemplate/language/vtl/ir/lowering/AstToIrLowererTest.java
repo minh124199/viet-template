@@ -3,6 +3,7 @@ package io.github.minh124199.viettemplate.language.vtl.ir.lowering;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.model.ModelParameter;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout;
@@ -29,7 +30,6 @@ import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
 import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysisResult;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
-import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelParameter;
 import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
@@ -84,9 +84,8 @@ class AstToIrLowererTest {
   @DisplayName("lowers model reference with direct record access plan")
   void lowersDirectRecordProperty() {
     ModelSchema schema =
-        ModelSchema.builder()
-            .add(ModelParameter.of("user", VTypes.fromJavaType(User.class, Nullability.NON_NULL)))
-            .build();
+        ModelSchema.of(
+            ModelParameter.of("user", VTypes.fromJavaType(User.class, Nullability.NON_NULL)));
 
     String source = "$user.name";
     IrTemplate ir = parseAndLower(source, schema);
@@ -136,10 +135,9 @@ class AstToIrLowererTest {
   @DisplayName("lowers if-elseif-else to structured IrIf")
   void lowersIfElseifElse() {
     ModelSchema schema =
-        ModelSchema.builder()
-            .add(ModelParameter.of("isAdmin", VTypes.BOOLEAN))
-            .add(ModelParameter.of("isModerator", VTypes.BOOLEAN))
-            .build();
+        ModelSchema.of(
+            ModelParameter.of("isAdmin", VTypes.BOOLEAN),
+            ModelParameter.of("isModerator", VTypes.BOOLEAN));
 
     String source = "#if($isAdmin)Admin#elseif($isModerator)Mod#else User#end";
     IrTemplate ir = parseAndLower(source, schema);
@@ -167,7 +165,7 @@ class AstToIrLowererTest {
   @DisplayName("lowers foreach loop with determined LoopPlan")
   void lowersForeachLoop() {
     VType listType = VTypes.fromJavaType(ItemListHolder.class, Nullability.NON_NULL);
-    ModelSchema schema = ModelSchema.builder().add(ModelParameter.of("holder", listType)).build();
+    ModelSchema schema = ModelSchema.of(ModelParameter.of("holder", listType));
 
     String source = "#foreach($item in $holder.items)$item#else Empty#end";
     IrTemplate ir = parseAndLower(source, schema);
@@ -238,9 +236,9 @@ class AstToIrLowererTest {
   @DisplayName("uses LIST_INDEXED only when the static list type proves RandomAccess")
   void lowersRandomAccessListWithIndexedPlan() {
     ModelSchema schema =
-        ModelSchema.builder()
-            .add("items", VTypes.fromJavaClass(ArrayList.class, Nullability.NON_NULL))
-            .build();
+        ModelSchema.of(
+            ModelParameter.of(
+                "items", VTypes.fromJavaClass(ArrayList.class, Nullability.NON_NULL)));
 
     IrTemplate ir = parseAndLower("#foreach($item in $items)$item#end", schema);
     IrLoop loop = (IrLoop) ir.root().statements().get(0);
@@ -260,7 +258,7 @@ class AstToIrLowererTest {
   @DisplayName("assigns deterministic distinct slots to nested foreach bindings")
   void assignsDeterministicNestedForeachSlots() {
     VType holderType = VTypes.fromJavaType(ItemListHolder.class, Nullability.NON_NULL);
-    ModelSchema schema = ModelSchema.builder().add(ModelParameter.of("holder", holderType)).build();
+    ModelSchema schema = ModelSchema.of(ModelParameter.of("holder", holderType));
     String source =
         "#foreach($item in $holder.items)#foreach($item in"
             + " $holder.items)$item:$foreach.parent.count#end$item#end";

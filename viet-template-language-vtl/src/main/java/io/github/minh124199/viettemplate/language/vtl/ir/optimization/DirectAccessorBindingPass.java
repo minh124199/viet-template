@@ -1,5 +1,6 @@
 package io.github.minh124199.viettemplate.language.vtl.ir.optimization;
 
+import io.github.minh124199.viettemplate.language.vtl.internal.ir.plan.DynamicKind;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
@@ -15,7 +16,6 @@ import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrIsNull;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrTruthiness;
 import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrUnaryOp;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan;
-import io.github.minh124199.viettemplate.language.vtl.ir.plan.DynamicKind;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullAccessMode;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallMacro;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallTemplate;

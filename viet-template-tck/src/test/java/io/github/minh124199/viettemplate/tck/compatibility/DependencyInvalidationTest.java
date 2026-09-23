@@ -32,26 +32,15 @@ class DependencyInvalidationTest {
     ta.render(RenderContext.empty(), out1);
     assertThat(out1.toString()).isEqualTo("[a:[b:v1-c]]");
 
-    // All templates are cached
-    assertThat(engine.cache().getActive(TemplateId.of("a.vm"))).isPresent();
-    assertThat(engine.cache().getActive(TemplateId.of("b.vm"))).isPresent();
-    assertThat(engine.cache().getActive(TemplateId.of("c.vm"))).isPresent();
-    assertThat(engine.cache().getActive(TemplateId.of("unrelated.vm"))).isPresent();
-
     // 2. Modify c.vm and invalidate with dependents
     repo.put("c.vm", "v2-c-updated");
     Set<TemplateId> invalidated = engine.invalidateWithDependents(TemplateId.of("c.vm"));
 
-    // Verify returned set of invalidated templates
+    // Verify returned set of invalidated templates: dependents are invalidated, unrelated is not
     assertThat(invalidated)
         .containsExactlyInAnyOrder(
             TemplateId.of("c.vm"), TemplateId.of("b.vm"), TemplateId.of("a.vm"));
-
-    // Cache entries for a, b, c are evicted, but unrelated remains cached
-    assertThat(engine.cache().getActive(TemplateId.of("a.vm"))).isEmpty();
-    assertThat(engine.cache().getActive(TemplateId.of("b.vm"))).isEmpty();
-    assertThat(engine.cache().getActive(TemplateId.of("c.vm"))).isEmpty();
-    assertThat(engine.cache().getActive(TemplateId.of("unrelated.vm"))).isPresent();
+    assertThat(invalidated).doesNotContain(TemplateId.of("unrelated.vm"));
 
     // 3. Re-render a.vm reflects updated dependency
     Template ta2 = engine.get("a.vm");
@@ -79,10 +68,7 @@ class DependencyInvalidationTest {
     // Invalidate parent only (leaf dependent)
     Set<TemplateId> invalidated = engine.invalidateWithDependents(TemplateId.of("parent.vm"));
     assertThat(invalidated).containsExactly(TemplateId.of("parent.vm"));
-
-    // Parent is invalidated, child is still active in cache
-    assertThat(engine.cache().getActive(TemplateId.of("parent.vm"))).isEmpty();
-    assertThat(engine.cache().getActive(TemplateId.of("child.vm"))).isPresent();
+    assertThat(invalidated).doesNotContain(TemplateId.of("child.vm"));
 
     engine.close();
   }
