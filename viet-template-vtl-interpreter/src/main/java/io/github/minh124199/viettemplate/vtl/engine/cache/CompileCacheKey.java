@@ -11,9 +11,14 @@ import java.util.Objects;
  * Multi-dimensional cache key uniquely capturing every semantic, optimization, and security input
  * that can affect the compiled representation of a template.
  *
+ * <p>Engine-invariant parameters are composed in {@link EngineFingerprint}, which captures compiler
+ * version, optimization level, execution tier, access policy identifier, model schema signature,
+ * and backend options hash.
+ *
  * @param templateId normalized template identifier
  * @param sourceFingerprint SHA-256 hex digest of the template source text
- * @param engineFingerprint precomputed engine-invariant fingerprint
+ * @param engineFingerprint precomputed engine-invariant fingerprint composing compiler version,
+ *     optimization level, execution tier, access policy ID, model signature, and backend hash
  * @param globalMacrosFingerprint cryptographic fingerprint of configured global macro libraries
  */
 public record CompileCacheKey(
@@ -22,6 +27,8 @@ public record CompileCacheKey(
     EngineFingerprint engineFingerprint,
     String globalMacrosFingerprint)
     implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   public CompileCacheKey {
     Objects.requireNonNull(templateId, "templateId must not be null");

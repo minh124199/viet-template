@@ -60,6 +60,16 @@ import java.util.concurrent.locks.ReentrantLock;
  * <p>A thread holding a {@code templateLock} must never attempt to acquire {@link
  * #maintenanceLock}. Conversely, {@link #maintenanceLock} may acquire one or more {@code
  * templateLocks} (for example, during capacity eviction or full cache invalidation).
+ *
+ * <h3>Schema and Cache Versioning Invariants</h3>
+ *
+ * <p>Cache entry identity is uniquely defined by multi-dimensional {@link CompileCacheKey}
+ * instances which incorporate the template source digest, precomputed {@link
+ * io.github.minh124199.viettemplate.vtl.engine.EngineFingerprint} (compiler version, execution
+ * tier, optimization level, security policy, model schema, and backend profile hashes), and global
+ * macro fingerprints. This strict multi-dimensional partitioning guarantees complete isolation
+ * across compiler versions and runtime configurations, preventing cross-version cache pollution and
+ * serialization schema drift.
  */
 public final class TemplateCompileCache {
 

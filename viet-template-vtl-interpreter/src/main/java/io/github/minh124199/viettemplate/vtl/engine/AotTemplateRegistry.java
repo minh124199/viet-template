@@ -114,22 +114,18 @@ final class AotTemplateRegistry {
 
   Template createAotTemplate(TemplateId id, Class<? extends CompiledTemplate> compiledClass) {
     try {
-      String accessPolicyId = interpreterOptions.securityPolicy().policyFingerprint();
-      String modelSignature = semanticOptions.modelSchema().parameters().toString();
-      String backendHash =
-          interpreterOptions.profile().name() + ":" + semanticOptions.profile().name();
       CompiledTemplate compiledTemplate = compiledClass.getDeclaredConstructor().newInstance();
-      CompileCacheKey key =
-          CompileCacheKey.of(
-              id,
-              "aot",
-              fingerprint.compilerVersion(),
-              fingerprint.optimizationLevel(),
-              ExecutionTier.AOT_BYTECODE,
-              accessPolicyId,
-              modelSignature,
-              backendHash,
-              "");
+      EngineFingerprint aotFingerprint =
+          fingerprint.executionTier() == ExecutionTier.AOT_BYTECODE
+              ? fingerprint
+              : new EngineFingerprint(
+                  fingerprint.compilerVersion(),
+                  fingerprint.optimizationLevel(),
+                  ExecutionTier.AOT_BYTECODE,
+                  fingerprint.accessPolicyId(),
+                  fingerprint.modelSignature(),
+                  fingerprint.backendHash());
+      CompileCacheKey key = CompileCacheKey.of(id, "aot", aotFingerprint, "");
       CompiledTemplateHandle handle =
           CompiledTemplateHandle.ofBytecode(id, 0L, key, compiledTemplate, null, null);
       return new VtlTemplate(

@@ -15,7 +15,10 @@ public record EngineFingerprint(
     ExecutionTier executionTier,
     String accessPolicyId,
     String modelSignature,
-    String backendHash) implements Serializable {
+    String backendHash)
+    implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   public EngineFingerprint {
     Objects.requireNonNull(compilerVersion, "compilerVersion must not be null");
