@@ -7,6 +7,7 @@ import io.github.minh124199.viettemplate.api.ClasspathTemplateRepository;
 import io.github.minh124199.viettemplate.api.CompiledTemplate;
 import io.github.minh124199.viettemplate.api.InMemoryTemplateRepository;
 import io.github.minh124199.viettemplate.api.Template;
+import io.github.minh124199.viettemplate.api.TemplateCompilationException;
 import io.github.minh124199.viettemplate.api.TemplateDescriptor;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
@@ -206,7 +207,7 @@ class SelfContainedBytecodeExecutionTest {
       template1.render(MapRenderContext.of(Map.of("user", new User("Bob", 28), "score", 99)), out1);
       assertThat(out1.toString()).isEqualTo("Welcome Bob! Score: 99.");
       assertThatThrownBy(() -> engineWithContextCl.get(TemplateId.of("precompiled/broken.vm")))
-          .isInstanceOf(IllegalStateException.class)
+          .isInstanceOf(TemplateCompilationException.class)
           .hasMessageContaining("Failed to instantiate AOT compiled template");
 
       TemplateId aliasId = TemplateId.of("./precompiled/welcome.vm");

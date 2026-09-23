@@ -5,6 +5,7 @@ import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateDescriptor;
+import io.github.minh124199.viettemplate.api.TemplateException;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
@@ -142,8 +143,8 @@ public final class VtlInterpreter {
                         output, options.limits().createRenderBudget(), template.templateId());
             result.compiledTemplate().get().render(context.rootContext(), wrappedOutput);
             return;
-          } catch (TemplateRenderException tre) {
-            throw tre;
+          } catch (TemplateException te) {
+            throw te;
           } catch (IOException ioe) {
             throw ioe;
           } catch (Exception e) {
@@ -151,7 +152,7 @@ public final class VtlInterpreter {
                 "AOT execution failed: " + e.getMessage(),
                 template.templateId(),
                 SourceSpan.UNKNOWN,
-                InterpreterDiagnosticCodes.SYNTAX_ERROR,
+                InterpreterDiagnosticCodes.INVALID_METHOD,
                 e);
           }
         } else if (result.status() == CompilationStatus.INTERPRETER_REQUIRED_EVALUATE) {
@@ -234,8 +235,8 @@ public final class VtlInterpreter {
                       output, options.limits().createRenderBudget(), template.id());
           result.compiledTemplate().get().render(context.rootContext(), wrappedOutput);
           return;
-        } catch (TemplateRenderException tre) {
-          throw tre;
+        } catch (TemplateException te) {
+          throw te;
         } catch (IOException ioe) {
           throw ioe;
         } catch (Exception e) {
@@ -243,7 +244,7 @@ public final class VtlInterpreter {
               "AOT execution failed: " + e.getMessage(),
               template.id(),
               SourceSpan.UNKNOWN,
-              InterpreterDiagnosticCodes.SYNTAX_ERROR,
+              InterpreterDiagnosticCodes.INVALID_METHOD,
               e);
         }
       } else if (result.status() == CompilationStatus.INTERPRETER_REQUIRED_EVALUATE) {

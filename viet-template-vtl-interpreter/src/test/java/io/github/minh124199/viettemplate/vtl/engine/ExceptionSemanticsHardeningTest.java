@@ -11,13 +11,17 @@ import io.github.minh124199.viettemplate.api.InMemoryTemplateRepository;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.Template;
+import io.github.minh124199.viettemplate.api.TemplateCompilationException;
 import io.github.minh124199.viettemplate.api.TemplateFreshnessProvider;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateRepository;
 import io.github.minh124199.viettemplate.api.TemplateResourceException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
 import io.github.minh124199.viettemplate.api.TemplateSource;
+import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
+import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicLinker;
@@ -25,16 +29,24 @@ import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
 import io.github.minh124199.viettemplate.runtime.linker.MemberKey;
 import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge;
 import io.github.minh124199.viettemplate.vtl.internal.interpreter.InterpreterDiagnosticCodes;
+import io.github.minh124199.viettemplate.vtl.interpreter.EngineInterpreterBridge;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver;
+import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter;
+import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -75,6 +87,14 @@ class ExceptionSemanticsHardeningTest {
           TemplateId.of("faulty.vtl"),
           SourceSpan.UNKNOWN,
           InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+    }
+
+    public String throwLimitException() {
+      throw new TemplateLimitException(
+          "Direct limit exceeded",
+          TemplateId.of("faulty.vtl"),
+          SourceSpan.UNKNOWN,
+          InterpreterDiagnosticCodes.LIMIT_EXCEEDED);
     }
 
     public String throwAppException() {
@@ -642,6 +662,128 @@ class ExceptionSemanticsHardeningTest {
       assertThatThrownBy(() -> engine.get(id))
           .isInstanceOf(TemplateSecurityException.class)
           .hasMessageContaining("Access revoked during freshness verification");
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "AOT template registry fails with TemplateCompilationException when indexed class has"
+          + " LinkageError")
+  void aotRegistryFailsWithTemplateCompilationExceptionOnLinkageError()
+      throws java.net.MalformedURLException {
+    URLStreamHandler indexHandler =
+        new URLStreamHandler() {
+          @Override
+          protected URLConnection openConnection(URL u) {
+            return new URLConnection(u) {
+              @Override
+              public void connect() {}
+
+              @Override
+              public InputStream getInputStream() {
+                return new ByteArrayInputStream(
+                    "corrupt.vm = com.example.CorruptAotClass\n".getBytes(StandardCharsets.UTF_8));
+              }
+            };
+          }
+        };
+
+    URL indexUrl =
+        URL.of(
+            URI.create("classpath-test://localhost/META-INF/viet-template/templates.idx"),
+            indexHandler);
+    ClassLoader cl =
+        new ClassLoader(ClasspathTemplateRepository.class.getClassLoader()) {
+          @Override
+          public Enumeration<URL> getResources(String name) throws IOException {
+            if ("META-INF/viet-template/templates.idx".equals(name)) {
+              return Collections.enumeration(List.of(indexUrl));
+            }
+            return super.getResources(name);
+          }
+
+          @Override
+          public Class<?> loadClass(String name) throws ClassNotFoundException {
+            if ("com.example.CorruptAotClass".equals(name)) {
+              throw new LinkageError("Corrupted bytecode or incompatible class format");
+            }
+            return super.loadClass(name);
+          }
+        };
+
+    ClasspathTemplateRepository repo = new ClasspathTemplateRepository(cl, "templates");
+
+    assertThatThrownBy(() -> VtlTemplateEngine.builder().repository(repo).build())
+        .isInstanceOf(TemplateCompilationException.class)
+        .hasMessageContaining(
+            "Incompatible or corrupt AOT template class in templates.idx:"
+                + " com.example.CorruptAotClass")
+        .hasCauseInstanceOf(LinkageError.class);
+  }
+
+  @Test
+  @DisplayName(
+      "AOT execution in VtlInterpreter propagates TemplateSecurityException and"
+          + " TemplateLimitException directly without wrapping in"
+          + " TemplateRenderException(SYNTAX_ERROR)")
+  void aotExecutionPropagatesDomainExceptionsDirectly() throws IOException {
+    VtlInterpreter interpreter =
+        new VtlInterpreter(
+            VtlInterpreterOptions.builder().executionTier(ExecutionTier.AOT_BYTECODE).build());
+    RenderContext ctx = RenderContext.builder().put("target", new FaultyTarget()).build();
+
+    SourceText secSource =
+        SourceText.of(TemplateId.of("secAot.vm"), "$target.throwSecurityException()");
+    var secAst = VtlParser.parse(secSource).template();
+
+    assertThatThrownBy(
+            () ->
+                EngineInterpreterBridge.render(
+                    interpreter, secSource, secAst, ctx, new StringTemplateOutput()))
+        .isInstanceOf(TemplateSecurityException.class)
+        .isNotInstanceOf(TemplateRenderException.class)
+        .hasMessageContaining("Direct security denial");
+
+    SourceText limSource =
+        SourceText.of(TemplateId.of("limAot.vm"), "$target.throwLimitException()");
+    var limAst = VtlParser.parse(limSource).template();
+
+    assertThatThrownBy(
+            () ->
+                EngineInterpreterBridge.render(
+                    interpreter, limSource, limAst, ctx, new StringTemplateOutput()))
+        .isInstanceOf(TemplateLimitException.class)
+        .isNotInstanceOf(TemplateRenderException.class)
+        .hasMessageContaining("Direct limit exceeded");
+  }
+
+  @Test
+  @DisplayName(
+      "AOT execution via VtlTemplateEngine propagates TemplateSecurityException and"
+          + " TemplateLimitException directly")
+  void aotEngineExecutionPropagatesDomainExceptionsDirectly() throws IOException {
+    InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
+    repo.put("secEngineAot.vm", "$target.throwSecurityException()");
+    repo.put("limEngineAot.vm", "$target.throwLimitException()");
+
+    try (VtlTemplateEngine engine =
+        VtlTemplateEngine.builder()
+            .repository(repo)
+            .executionTier(ExecutionTier.AOT_BYTECODE)
+            .build()) {
+      RenderContext ctx = RenderContext.builder().put("target", new FaultyTarget()).build();
+
+      Template secTmpl = engine.get("secEngineAot.vm");
+      assertThatThrownBy(() -> secTmpl.render(ctx, new StringTemplateOutput()))
+          .isInstanceOf(TemplateSecurityException.class)
+          .isNotInstanceOf(TemplateRenderException.class)
+          .hasMessageContaining("Direct security denial");
+
+      Template limTmpl = engine.get("limEngineAot.vm");
+      assertThatThrownBy(() -> limTmpl.render(ctx, new StringTemplateOutput()))
+          .isInstanceOf(TemplateLimitException.class)
+          .isNotInstanceOf(TemplateRenderException.class)
+          .hasMessageContaining("Direct limit exceeded");
     }
   }
 }

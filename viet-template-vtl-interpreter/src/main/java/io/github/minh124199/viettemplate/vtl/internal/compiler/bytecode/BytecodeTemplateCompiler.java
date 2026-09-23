@@ -4,6 +4,8 @@ import io.github.minh124199.viettemplate.api.CompiledTemplate;
 import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.DiagnosticCode;
 import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.api.TemplateCompilationException;
+import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrLocal;
@@ -379,8 +381,13 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     CompiledTemplate instance;
     try {
       instance = clazz.getDeclaredConstructor().newInstance();
-    } catch (Exception e) {
-      throw new IllegalStateException("Failed to instantiate compiled template: " + fqcn, e);
+    } catch (ReflectiveOperationException e) {
+      throw new TemplateCompilationException(
+          "Failed to instantiate compiled template: " + fqcn,
+          TemplateId.of(context.templateId),
+          SourceSpan.UNKNOWN,
+          null,
+          e);
     }
 
     return BackendResult.success(status, artifact, clazz, instance);
@@ -415,8 +422,13 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       // 3. SECURITY_POLICY
       Field secField = clazz.getDeclaredField("SECURITY_POLICY");
       secField.set(null, options.securityPolicy());
-    } catch (Exception e) {
-      throw new IllegalStateException("Failed to initialize static fields on compiled class", e);
+    } catch (ReflectiveOperationException e) {
+      throw new TemplateCompilationException(
+          "Failed to initialize static fields on compiled class: " + clazz.getName(),
+          TemplateId.of(context.templateId),
+          SourceSpan.UNKNOWN,
+          null,
+          e);
     }
   }
 
@@ -1312,6 +1324,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
   private static final class CompilerContext {
     final IrTemplate template;
+    final String templateId;
     final BackendOptions options;
     final String internalName;
     final String fqcn;
@@ -1334,6 +1347,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         int baseTempSlot,
         int scratchSlot) {
       this.template = template;
+      this.templateId = template.id().value();
       this.options = options;
       this.internalName = internalName;
       this.fqcn = fqcn;

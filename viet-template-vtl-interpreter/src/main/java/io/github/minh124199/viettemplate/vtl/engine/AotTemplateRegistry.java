@@ -2,7 +2,9 @@ package io.github.minh124199.viettemplate.vtl.engine;
 
 import io.github.minh124199.viettemplate.api.ClasspathTemplateRepository;
 import io.github.minh124199.viettemplate.api.CompiledTemplate;
+import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.Template;
+import io.github.minh124199.viettemplate.api.TemplateCompilationException;
 import io.github.minh124199.viettemplate.api.TemplateDescriptor;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateRepository;
@@ -74,7 +76,7 @@ final class AotTemplateRegistry {
     if (!canonicalLookup) {
       try {
         aotTemplate = currentAotTemplates.get(TemplateId.normalize(id.value()));
-      } catch (Exception ignored) {
+      } catch (IllegalArgumentException ignored) {
       }
     }
     if (aotTemplate != null) {
@@ -95,7 +97,7 @@ final class AotTemplateRegistry {
     }
     try {
       return currentAotTemplates.containsKey(TemplateId.normalize(id.value()));
-    } catch (Exception ignored) {
+    } catch (IllegalArgumentException ignored) {
       return false;
     }
   }
@@ -134,9 +136,13 @@ final class AotTemplateRegistry {
           SourceText.of(id, ""),
           interpreterOptions,
           interpreter);
-    } catch (Exception e) {
-      throw new IllegalStateException(
-          "Failed to instantiate AOT compiled template: " + id.value(), e);
+    } catch (ReflectiveOperationException e) {
+      throw new TemplateCompilationException(
+          "Failed to instantiate AOT compiled template: " + id.value(),
+          id,
+          SourceSpan.UNKNOWN,
+          null,
+          e);
     }
   }
 
@@ -191,7 +197,7 @@ final class AotTemplateRegistry {
         if (repoCl != null) {
           classLoaders.add(repoCl);
         }
-      } catch (Exception ignored) {
+      } catch (ReflectiveOperationException | SecurityException ignored) {
       }
     }
     ClassLoader engineCl = AotTemplateRegistry.class.getClassLoader();
@@ -247,7 +253,7 @@ final class AotTemplateRegistry {
             TemplateId templateId;
             try {
               templateId = TemplateId.normalize(idStr);
-            } catch (Exception e) {
+            } catch (IllegalArgumentException e) {
               templateId = TemplateId.of(idStr);
             }
             try {
@@ -258,7 +264,15 @@ final class AotTemplateRegistry {
                     (Class<? extends CompiledTemplate>) loaded;
                 registry.putIfAbsent(templateId, compiledClass);
               }
-            } catch (ClassNotFoundException | LinkageError ignored) {
+            } catch (ClassNotFoundException ignored) {
+              // Class not found on this classLoader - probe continues
+            } catch (LinkageError err) {
+              throw new TemplateCompilationException(
+                  "Incompatible or corrupt AOT template class in templates.idx: " + fqcn,
+                  templateId,
+                  SourceSpan.UNKNOWN,
+                  null,
+                  err);
             }
           }
         }
