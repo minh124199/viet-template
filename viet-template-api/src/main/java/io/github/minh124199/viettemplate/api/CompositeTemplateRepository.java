@@ -9,7 +9,8 @@ import java.util.Optional;
  * Composite {@link TemplateRepository} that delegates to an ordered list of repositories with
  * deterministic first-match precedence.
  */
-public final class CompositeTemplateRepository implements TemplateRepository {
+public final class CompositeTemplateRepository
+    implements TemplateRepository, TemplateFreshnessProvider {
 
   private final List<TemplateRepository> repositories;
 
@@ -42,7 +43,42 @@ public final class CompositeTemplateRepository implements TemplateRepository {
     return Optional.empty();
   }
 
+  @Override
+  public Optional<FreshnessToken> freshnessToken(TemplateId id) {
+    Objects.requireNonNull(id, "id must not be null");
+    for (TemplateRepository repository : repositories) {
+      if (!(repository instanceof TemplateFreshnessProvider)) {
+        return Optional.empty();
+      }
+    }
+    for (int i = 0; i < repositories.size(); i++) {
+      TemplateFreshnessProvider provider = (TemplateFreshnessProvider) repositories.get(i);
+      Optional<FreshnessToken> token = provider.freshnessToken(id);
+      if (token.isPresent()) {
+        return Optional.of(new CompositeFreshnessToken(i, token.get()));
+      }
+    }
+    return Optional.empty();
+  }
+
   public List<TemplateRepository> repositories() {
     return repositories;
+  }
+
+  private record CompositeFreshnessToken(int repositoryIndex, FreshnessToken delegateToken)
+      implements FreshnessToken {
+
+    CompositeFreshnessToken {
+      Objects.requireNonNull(delegateToken, "delegateToken must not be null");
+    }
+
+    @Override
+    public String toString() {
+      return "FreshnessToken[repositoryIndex="
+          + repositoryIndex
+          + ", delegate="
+          + delegateToken
+          + "]";
+    }
   }
 }

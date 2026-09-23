@@ -7,14 +7,18 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * In-memory {@link TemplateRepository} designed for unit testing, dynamic string template
  * registration, and fixtures.
  */
-public final class InMemoryTemplateRepository implements TemplateRepository {
+public final class InMemoryTemplateRepository
+    implements TemplateRepository, TemplateFreshnessProvider {
 
   private final ConcurrentMap<TemplateId, TemplateSource> templates = new ConcurrentHashMap<>();
+  private final ConcurrentMap<TemplateId, Long> versions = new ConcurrentHashMap<>();
+  private final AtomicLong globalVersion = new AtomicLong(1);
 
   public InMemoryTemplateRepository() {}
 
@@ -40,6 +44,8 @@ public final class InMemoryTemplateRepository implements TemplateRepository {
             content,
             System.currentTimeMillis());
     templates.put(id, source);
+    long v = globalVersion.incrementAndGet();
+    versions.put(id, v);
     return this;
   }
 
@@ -50,11 +56,22 @@ public final class InMemoryTemplateRepository implements TemplateRepository {
   public InMemoryTemplateRepository remove(TemplateId id) {
     Objects.requireNonNull(id, "id must not be null");
     templates.remove(id);
+    globalVersion.incrementAndGet();
+    versions.remove(id);
     return this;
   }
 
   public void clear() {
     templates.clear();
+    globalVersion.incrementAndGet();
+    versions.clear();
+  }
+
+  @Override
+  public Optional<FreshnessToken> freshnessToken(TemplateId id) {
+    Objects.requireNonNull(id, "id must not be null");
+    Long v = versions.get(id);
+    return v != null ? Optional.of(FreshnessToken.ofVersion(v)) : Optional.empty();
   }
 
   @Override

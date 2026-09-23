@@ -1,7 +1,7 @@
 # Viet Template Public Surface Classification Baseline
-# Total Types: 336
+# Total Types: 338
 # STABLE_API: 94
-# STABLE_SPI: 25
+# STABLE_SPI: 27
 # EXPERIMENTAL: 5
 # FRAMEWORK_ENTRYPOINT: 4
 # BUILD_TOOL_ENTRYPOINT: 4
@@ -43,6 +43,7 @@ io.github.minh124199.viettemplate.api.Diagnostic STABLE_API
 io.github.minh124199.viettemplate.api.DiagnosticCode STABLE_API
 io.github.minh124199.viettemplate.api.DiagnosticSeverity STABLE_API
 io.github.minh124199.viettemplate.api.FilesystemTemplateRepository STABLE_API
+io.github.minh124199.viettemplate.api.FreshnessToken STABLE_SPI
 io.github.minh124199.viettemplate.api.GlobalMacroPrecedence STABLE_API
 io.github.minh124199.viettemplate.api.InMemoryTemplateRepository STABLE_API
 io.github.minh124199.viettemplate.api.LayoutConfiguration STABLE_API
@@ -72,6 +73,7 @@ io.github.minh124199.viettemplate.api.TemplateEngine STABLE_API
 io.github.minh124199.viettemplate.api.TemplateEngine$Builder STABLE_API
 io.github.minh124199.viettemplate.api.TemplateEngineProvider STABLE_SPI
 io.github.minh124199.viettemplate.api.TemplateException STABLE_API
+io.github.minh124199.viettemplate.api.TemplateFreshnessProvider STABLE_SPI
 io.github.minh124199.viettemplate.api.TemplateId STABLE_API
 io.github.minh124199.viettemplate.api.TemplateLayoutException STABLE_API
 io.github.minh124199.viettemplate.api.TemplateLimitException STABLE_API

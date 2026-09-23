@@ -3,11 +3,12 @@
 # Format: TYPE <class-header>
 #         MEMBER <member-signature>
 
-TYPE public final class io.github.minh124199.viettemplate.api.ClasspathTemplateRepository implements io.github.minh124199.viettemplate.api.TemplateRepository
+TYPE public final class io.github.minh124199.viettemplate.api.ClasspathTemplateRepository implements io.github.minh124199.viettemplate.api.TemplateRepository,io.github.minh124199.viettemplate.api.TemplateFreshnessProvider
   MEMBER public io.github.minh124199.viettemplate.api.ClasspathTemplateRepository(java.lang.ClassLoader, java.lang.String)
   MEMBER public io.github.minh124199.viettemplate.api.ClasspathTemplateRepository(java.lang.ClassLoader, java.lang.String, java.nio.charset.Charset)
   MEMBER public java.lang.String prefix()
   MEMBER public java.nio.charset.Charset charset()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.FreshnessToken> freshnessToken(io.github.minh124199.viettemplate.api.TemplateId)
   MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateSource> find(io.github.minh124199.viettemplate.api.TemplateId)
   MEMBER public static io.github.minh124199.viettemplate.api.ClasspathTemplateRepository of(java.lang.ClassLoader, java.lang.String)
   MEMBER public static io.github.minh124199.viettemplate.api.ClasspathTemplateRepository of(java.lang.ClassLoader, java.lang.String, java.nio.charset.Charset)
@@ -16,9 +17,10 @@ TYPE public final class io.github.minh124199.viettemplate.api.ClasspathTemplateR
 TYPE public interface io.github.minh124199.viettemplate.api.CompiledTemplate extends io.github.minh124199.viettemplate.api.Template
   MEMBER public abstract void render(io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput) throws java.io.IOException
 
-TYPE public final class io.github.minh124199.viettemplate.api.CompositeTemplateRepository implements io.github.minh124199.viettemplate.api.TemplateRepository
+TYPE public final class io.github.minh124199.viettemplate.api.CompositeTemplateRepository implements io.github.minh124199.viettemplate.api.TemplateRepository,io.github.minh124199.viettemplate.api.TemplateFreshnessProvider
   MEMBER public io.github.minh124199.viettemplate.api.CompositeTemplateRepository(java.util.List<io.github.minh124199.viettemplate.api.TemplateRepository>)
   MEMBER public java.util.List<io.github.minh124199.viettemplate.api.TemplateRepository> repositories()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.FreshnessToken> freshnessToken(io.github.minh124199.viettemplate.api.TemplateId)
   MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateSource> find(io.github.minh124199.viettemplate.api.TemplateId)
   MEMBER public static io.github.minh124199.viettemplate.api.CompositeTemplateRepository of(io.github.minh124199.viettemplate.api.TemplateRepository...)
   MEMBER public static io.github.minh124199.viettemplate.api.CompositeTemplateRepository of(java.util.List<io.github.minh124199.viettemplate.api.TemplateRepository>)
@@ -72,16 +74,22 @@ TYPE public final class io.github.minh124199.viettemplate.api.DiagnosticSeverity
   MEMBER public static io.github.minh124199.viettemplate.api.DiagnosticSeverity valueOf(java.lang.String)
   MEMBER public static io.github.minh124199.viettemplate.api.DiagnosticSeverity[] values()
 
-TYPE public final class io.github.minh124199.viettemplate.api.FilesystemTemplateRepository implements io.github.minh124199.viettemplate.api.TemplateRepository
+TYPE public final class io.github.minh124199.viettemplate.api.FilesystemTemplateRepository implements io.github.minh124199.viettemplate.api.TemplateRepository,io.github.minh124199.viettemplate.api.TemplateFreshnessProvider
   MEMBER public boolean followSymlinks()
   MEMBER public io.github.minh124199.viettemplate.api.FilesystemTemplateRepository(java.nio.file.Path)
   MEMBER public io.github.minh124199.viettemplate.api.FilesystemTemplateRepository(java.nio.file.Path, java.nio.charset.Charset, boolean)
   MEMBER public java.nio.charset.Charset charset()
   MEMBER public java.nio.file.Path rootDirectory()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.FreshnessToken> freshnessToken(io.github.minh124199.viettemplate.api.TemplateId)
   MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateSource> find(io.github.minh124199.viettemplate.api.TemplateId)
   MEMBER public static io.github.minh124199.viettemplate.api.FilesystemTemplateRepository of(java.nio.file.Path)
   MEMBER public static io.github.minh124199.viettemplate.api.FilesystemTemplateRepository of(java.nio.file.Path, java.nio.charset.Charset)
   MEMBER public static io.github.minh124199.viettemplate.api.FilesystemTemplateRepository of(java.nio.file.Path, java.nio.charset.Charset, boolean)
+
+TYPE public interface io.github.minh124199.viettemplate.api.FreshnessToken
+  MEMBER public static io.github.minh124199.viettemplate.api.FreshnessToken immutable()
+  MEMBER public static io.github.minh124199.viettemplate.api.FreshnessToken ofFile(long, long)
+  MEMBER public static io.github.minh124199.viettemplate.api.FreshnessToken ofVersion(long)
 
 TYPE public final class io.github.minh124199.viettemplate.api.GlobalMacroPrecedence extends java.lang.Enum<io.github.minh124199.viettemplate.api.GlobalMacroPrecedence>
   MEMBER public static final io.github.minh124199.viettemplate.api.GlobalMacroPrecedence FIRST_WINS
@@ -89,12 +97,13 @@ TYPE public final class io.github.minh124199.viettemplate.api.GlobalMacroPrecede
   MEMBER public static io.github.minh124199.viettemplate.api.GlobalMacroPrecedence valueOf(java.lang.String)
   MEMBER public static io.github.minh124199.viettemplate.api.GlobalMacroPrecedence[] values()
 
-TYPE public final class io.github.minh124199.viettemplate.api.InMemoryTemplateRepository implements io.github.minh124199.viettemplate.api.TemplateRepository
+TYPE public final class io.github.minh124199.viettemplate.api.InMemoryTemplateRepository implements io.github.minh124199.viettemplate.api.TemplateRepository,io.github.minh124199.viettemplate.api.TemplateFreshnessProvider
   MEMBER public int size()
   MEMBER public io.github.minh124199.viettemplate.api.InMemoryTemplateRepository put(io.github.minh124199.viettemplate.api.TemplateId, java.lang.String)
   MEMBER public io.github.minh124199.viettemplate.api.InMemoryTemplateRepository put(java.lang.String, java.lang.String)
   MEMBER public io.github.minh124199.viettemplate.api.InMemoryTemplateRepository remove(io.github.minh124199.viettemplate.api.TemplateId)
   MEMBER public io.github.minh124199.viettemplate.api.InMemoryTemplateRepository()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.FreshnessToken> freshnessToken(io.github.minh124199.viettemplate.api.TemplateId)
   MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateSource> find(io.github.minh124199.viettemplate.api.TemplateId)
   MEMBER public static io.github.minh124199.viettemplate.api.InMemoryTemplateRepository create()
   MEMBER public static io.github.minh124199.viettemplate.api.InMemoryTemplateRepository of(java.util.Map<io.github.minh124199.viettemplate.api.TemplateId, java.lang.String>)
@@ -342,6 +351,9 @@ TYPE public abstract class io.github.minh124199.viettemplate.api.TemplateExcepti
   MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.DiagnosticCode> code()
   MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateId> templateId()
 
+TYPE public interface io.github.minh124199.viettemplate.api.TemplateFreshnessProvider
+  MEMBER public abstract java.util.Optional<io.github.minh124199.viettemplate.api.FreshnessToken> freshnessToken(io.github.minh124199.viettemplate.api.TemplateId)
+
 TYPE public final class io.github.minh124199.viettemplate.api.TemplateId extends java.lang.Record implements java.io.Serializable, java.lang.Comparable<io.github.minh124199.viettemplate.api.TemplateId>
   MEMBER public final boolean equals(java.lang.Object)
   MEMBER public final int hashCode()
@@ -383,6 +395,7 @@ TYPE public class io.github.minh124199.viettemplate.api.TemplateRenderException 
 
 TYPE public interface io.github.minh124199.viettemplate.api.TemplateRepository
   MEMBER public abstract java.util.Optional<io.github.minh124199.viettemplate.api.TemplateSource> find(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public default java.util.Optional<io.github.minh124199.viettemplate.api.FreshnessToken> freshnessToken(io.github.minh124199.viettemplate.api.TemplateId)
   MEMBER public static io.github.minh124199.viettemplate.api.InMemoryTemplateRepository inMemory()
   MEMBER public static io.github.minh124199.viettemplate.api.InMemoryTemplateRepository inMemory(java.util.Map<io.github.minh124199.viettemplate.api.TemplateId, java.lang.String>)
   MEMBER public static io.github.minh124199.viettemplate.api.TemplateRepository classpath(java.lang.ClassLoader, java.lang.String)

@@ -5,6 +5,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -27,7 +28,8 @@ import java.util.Optional;
  * symlink escape resistance, true race-free filesystem operations against hostile local users
  * require that the repository directory is not writable by untrusted concurrent actors.
  */
-public final class FilesystemTemplateRepository implements TemplateRepository {
+public final class FilesystemTemplateRepository
+    implements TemplateRepository, TemplateFreshnessProvider {
 
   private final Path rootDir;
   private final Charset charset;
@@ -116,6 +118,33 @@ public final class FilesystemTemplateRepository implements TemplateRepository {
       String content = Files.readString(realCandidate, charset);
       long lastModified = Files.getLastModifiedTime(realCandidate).toMillis();
       return Optional.of(TemplateSource.of(id, candidate.toUri(), charset, content, lastModified));
+    } catch (IOException e) {
+      return Optional.empty();
+    }
+  }
+
+  @Override
+  public Optional<FreshnessToken> freshnessToken(TemplateId id) {
+    Objects.requireNonNull(id, "id must not be null");
+
+    TemplateId normalized = TemplateId.normalize(id.value());
+    Path candidate = rootDir.resolve(normalized.value()).normalize();
+
+    // Confinement check: Candidate path must start with root directory
+    if (!candidate.startsWith(rootDir)) {
+      throw new TemplateSecurityException(
+          "Path traversal outside root directory is forbidden: " + id.value(),
+          id,
+          SourceSpan.UNKNOWN);
+    }
+
+    try {
+      BasicFileAttributes attrs = Files.readAttributes(candidate, BasicFileAttributes.class);
+      if (attrs.isRegularFile()) {
+        return Optional.of(
+            FreshnessToken.ofFile(attrs.lastModifiedTime().toMillis(), attrs.size()));
+      }
+      return Optional.empty();
     } catch (IOException e) {
       return Optional.empty();
     }
