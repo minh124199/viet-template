@@ -159,22 +159,25 @@ class RuntimeLifecycleAuditTest {
     io.github.minh124199.viettemplate.language.vtl.source.SourceText source =
         io.github.minh124199.viettemplate.language.vtl.source.SourceText.of(id, "Val: $x");
 
-    // Create a CompiledTemplateHandle with empty compiledTemplate (simulating AST fallback handle)
+    VtlInterpreterOptions options =
+        VtlInterpreterOptions.builder().executionTier(ExecutionTier.AST).build();
+
+    // Create a CompiledTemplateHandle with PreparedAstExecutionTarget without pre-parsed AST
     CompiledTemplateHandle emptyCompiledHandle =
-        new CompiledTemplateHandle(
+        CompiledTemplateHandle.ofAst(
             id,
             1L,
             io.github.minh124199.viettemplate.vtl.engine.cache.CompileCacheKey.of(
-                id, "hash", "0.2.0",
+                id,
+                "hash",
+                "0.2.0",
                 io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel.O0,
-                ExecutionTier.AST, "policy", "schema", "backend"),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            System.currentTimeMillis());
-
-    VtlInterpreterOptions options =
-        VtlInterpreterOptions.builder().executionTier(ExecutionTier.AST).build();
+                ExecutionTier.AST,
+                "policy",
+                "schema",
+                "backend"),
+            new io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter(options),
+            source);
     VtlTemplate directTemplate =
         new VtlTemplate(TemplateDescriptor.of(id, "AST"), emptyCompiledHandle, source, options);
 

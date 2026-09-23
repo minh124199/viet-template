@@ -483,14 +483,8 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
       IrTemplate optimizedIr) {
     CompiledTemplate preparedTemplate =
         EngineInterpreterBridge.prepareIr(interpreter, optimizedIr, sourceText);
-    return new CompiledTemplateHandle(
-        id,
-        generation,
-        key,
-        Optional.of(preparedTemplate),
-        Optional.of(optimizedIr),
-        Optional.empty(),
-        System.currentTimeMillis());
+    return CompiledTemplateHandle.ofPreparedIr(
+        id, generation, key, preparedTemplate, optimizedIr);
   }
 
   private static Map<TemplateId, Class<? extends CompiledTemplate>> discoverAotTemplates(

@@ -4,21 +4,9 @@ import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.Template;
 import io.github.minh124199.viettemplate.api.TemplateDescriptor;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
-import io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult;
-import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle;
-import io.github.minh124199.viettemplate.vtl.internal.compiler.*;
-import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.*;
-import io.github.minh124199.viettemplate.vtl.internal.engine.context.*;
-import io.github.minh124199.viettemplate.vtl.internal.engine.dependency.*;
-import io.github.minh124199.viettemplate.vtl.internal.engine.layout.*;
-import io.github.minh124199.viettemplate.vtl.internal.engine.macro.*;
-import io.github.minh124199.viettemplate.vtl.internal.engine.watcher.*;
-import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import io.github.minh124199.viettemplate.vtl.internal.interpreter.CountingTemplateOutput;
-import io.github.minh124199.viettemplate.vtl.interpreter.EngineInterpreterBridge;
-import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
 import java.io.IOException;
@@ -75,18 +63,7 @@ public final class VtlTemplate implements Template {
             : new CountingTemplateOutput(
                 output, interpreterOptions.limits().createRenderBudget(), descriptor.id());
 
-    if (handle.compiledTemplate().isPresent()) {
-      handle.compiledTemplate().get().render(context, wrappedOutput);
-    } else if (interpreterOptions.executionTier() == ExecutionTier.AST) {
-      VtlParseResult parseResult = VtlParser.parse(sourceText);
-      EngineInterpreterBridge.render(
-          interpreter, sourceText, parseResult.template(), context, wrappedOutput);
-    } else if (handle.irTemplate().isPresent()) {
-      EngineInterpreterBridge.render(
-          interpreter, handle.irTemplate().get(), sourceText, context, wrappedOutput);
-    } else {
-      throw new IllegalStateException("Compiled template handle contains no executable target");
-    }
+    handle.render(context, wrappedOutput);
   }
 
   CompiledTemplateHandle handle() {
