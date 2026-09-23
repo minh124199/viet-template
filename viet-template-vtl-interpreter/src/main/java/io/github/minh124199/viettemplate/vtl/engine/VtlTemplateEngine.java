@@ -218,11 +218,16 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
 
     // 1. Negative cache check
     if (cache.isNegativelyCached(id)) {
-      throw new TemplateResourceException(
-          "Template not found (cached negative lookup): " + id.value(),
-          id,
-          SourceSpan.UNKNOWN,
-          DiagnosticCode.of("RESOURCE", "NOT_FOUND"));
+      Optional<FreshnessToken> currentToken = repository.freshnessToken(id);
+      if (currentToken.isPresent()) {
+        cache.clearNegative(id);
+      } else {
+        throw new TemplateResourceException(
+            "Template not found (cached negative lookup): " + id.value(),
+            id,
+            SourceSpan.UNKNOWN,
+            DiagnosticCode.of("RESOURCE", "NOT_FOUND"));
+      }
     }
 
     // 2. Repository lookup

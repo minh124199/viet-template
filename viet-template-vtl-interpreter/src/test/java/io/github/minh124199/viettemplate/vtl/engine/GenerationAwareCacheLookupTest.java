@@ -243,6 +243,30 @@ class GenerationAwareCacheLookupTest {
     }
   }
 
+  @Test
+  @DisplayName("InMemoryTemplateRepository: negative cache entry is invalidated when template is added to repository")
+  void negativeCacheInvalidatesWhenTemplateAddedToRepository() throws IOException {
+    InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
+    TemplateId id = TemplateId.of("dynamic_added.vm");
+
+    try (VtlTemplateEngine engine = VtlTemplateEngine.builder().repository(repo).build()) {
+      assertThatThrownBy(() -> engine.get(id))
+          .isInstanceOf(TemplateResourceException.class);
+      assertThat(engine.cache().isNegativelyCached(id)).isTrue();
+
+      repo.put("dynamic_added.vm", "Hello Newly Added!");
+
+      Template template = engine.get(id);
+      assertThat(template).isNotNull();
+
+      StringTemplateOutput output = new StringTemplateOutput();
+      template.render(RenderContext.empty(), output);
+      assertThat(output.toString()).isEqualTo("Hello Newly Added!");
+
+      assertThat(engine.cache().isNegativelyCached(id)).isFalse();
+    }
+  }
+
   /** Wrapper implementing TemplateFreshnessProvider that counts find() and freshnessToken() invocations. */
   private static final class CountingFreshnessProviderWrapper
       implements TemplateRepository, TemplateFreshnessProvider {

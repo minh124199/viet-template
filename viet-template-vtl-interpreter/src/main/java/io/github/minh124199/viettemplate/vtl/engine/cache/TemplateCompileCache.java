@@ -333,6 +333,12 @@ public final class TemplateCompileCache {
     negativeEntries.put(id, new NegativeCacheEntry(id, reason, expiresAt));
   }
 
+  /** Clears any negative cache entry for the specified template. */
+  public void clearNegative(TemplateId id) {
+    Objects.requireNonNull(id, "id must not be null");
+    negativeEntries.remove(id);
+  }
+
   /**
    * Invalidates all cache entries (positive and negative) for the specified template.
    *
