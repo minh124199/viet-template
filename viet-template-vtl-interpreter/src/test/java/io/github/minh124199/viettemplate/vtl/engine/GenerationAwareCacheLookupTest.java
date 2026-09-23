@@ -7,13 +7,13 @@ import io.github.minh124199.viettemplate.api.ClasspathTemplateRepository;
 import io.github.minh124199.viettemplate.api.FreshnessToken;
 import io.github.minh124199.viettemplate.api.InMemoryTemplateRepository;
 import io.github.minh124199.viettemplate.api.RenderContext;
-import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.api.Template;
 import io.github.minh124199.viettemplate.api.TemplateFreshnessProvider;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateRepository;
 import io.github.minh124199.viettemplate.api.TemplateResourceException;
 import io.github.minh124199.viettemplate.api.TemplateSource;
+import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -31,13 +31,17 @@ import org.junit.jupiter.api.io.TempDir;
 class GenerationAwareCacheLookupTest {
 
   @Test
-  @DisplayName("ClasspathTemplateRepository: multiple get() calls return canonical instance without repeated find()")
-  void classpathRepositoryUsesFreshnessTokenForCanonicalFastPath(@TempDir Path tempDir) throws Exception {
+  @DisplayName(
+      "ClasspathTemplateRepository: multiple get() calls return canonical instance without repeated"
+          + " find()")
+  void classpathRepositoryUsesFreshnessTokenForCanonicalFastPath(@TempDir Path tempDir)
+      throws Exception {
     Path templateFile = tempDir.resolve("hello.vm");
     Files.writeString(templateFile, "Hello $name!");
 
     URLClassLoader cl =
-        new URLClassLoader(new URL[] {tempDir.toUri().toURL()}, ClassLoader.getPlatformClassLoader());
+        new URLClassLoader(
+            new URL[] {tempDir.toUri().toURL()}, ClassLoader.getPlatformClassLoader());
     ClasspathTemplateRepository classpathRepo = ClasspathTemplateRepository.of(cl, "");
 
     CountingFreshnessProviderWrapper wrapper = new CountingFreshnessProviderWrapper(classpathRepo);
@@ -97,7 +101,9 @@ class GenerationAwareCacheLookupTest {
   }
 
   @Test
-  @DisplayName("InMemoryTemplateRepository: updated template detects freshness version change and renders updated content")
+  @DisplayName(
+      "InMemoryTemplateRepository: updated template detects freshness version change and renders"
+          + " updated content")
   void inMemoryRepositoryDetectsVersionChange() throws IOException {
     InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
     TemplateId id = TemplateId.of("dynamic.vm");
@@ -130,7 +136,9 @@ class GenerationAwareCacheLookupTest {
   }
 
   @Test
-  @DisplayName("InMemoryTemplateRepository: removed template falls through to repository lookup and throws TemplateResourceException")
+  @DisplayName(
+      "InMemoryTemplateRepository: removed template falls through to repository lookup and throws"
+          + " TemplateResourceException")
   void inMemoryRepositoryRemovalFallsThroughAndThrows() {
     InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
     TemplateId id = TemplateId.of("ephemeral.vm");
@@ -143,7 +151,8 @@ class GenerationAwareCacheLookupTest {
       // Remove from repository
       repo.remove(id);
 
-      // Next engine.get() must fail because freshnessToken is empty and repository.find() returns empty
+      // Next engine.get() must fail because freshnessToken is empty and repository.find() returns
+      // empty
       assertThatThrownBy(() -> engine.get(id))
           .isInstanceOf(TemplateResourceException.class)
           .hasMessageContaining("Template not found in repository");
@@ -156,13 +165,15 @@ class GenerationAwareCacheLookupTest {
   }
 
   @Test
-  @DisplayName("engine.invalidate(id) and invalidateAll() clear active entries and force fresh load")
+  @DisplayName(
+      "engine.invalidate(id) and invalidateAll() clear active entries and force fresh load")
   void invalidationForcesFreshLoad(@TempDir Path tempDir) throws Exception {
     Path templateFile = tempDir.resolve("inval.vm");
     Files.writeString(templateFile, "Content: $val");
 
     URLClassLoader cl =
-        new URLClassLoader(new URL[] {tempDir.toUri().toURL()}, ClassLoader.getPlatformClassLoader());
+        new URLClassLoader(
+            new URL[] {tempDir.toUri().toURL()}, ClassLoader.getPlatformClassLoader());
     ClasspathTemplateRepository classpathRepo = ClasspathTemplateRepository.of(cl, "");
     CountingFreshnessProviderWrapper wrapper = new CountingFreshnessProviderWrapper(classpathRepo);
     TemplateId id = TemplateId.of("inval.vm");
@@ -190,7 +201,9 @@ class GenerationAwareCacheLookupTest {
   }
 
   @Test
-  @DisplayName("Global macro invalidation bumps macro generation, bypassing fast path and recompiling template")
+  @DisplayName(
+      "Global macro invalidation bumps macro generation, bypassing fast path and recompiling"
+          + " template")
   void globalMacroInvalidationBypassesFastPathAndRecompiles() throws IOException {
     InMemoryTemplateRepository memoryRepo = InMemoryTemplateRepository.create();
     TemplateId macroId = TemplateId.of("macros.vm");
@@ -228,7 +241,8 @@ class GenerationAwareCacheLookupTest {
       long nextGen = engine.globalMacroManager().generation();
       assertThat(nextGen).isGreaterThan(initialGen);
 
-      // 4. Subsequent retrieval: fast-path is bypassed because macroGeneration changed, recompiling template
+      // 4. Subsequent retrieval: fast-path is bypassed because macroGeneration changed, recompiling
+      // template
       Template t3 = engine.get(templateId);
       assertThat(t3).isNotSameAs(t1);
       assertThat(wrapper.findCallCount()).isGreaterThan(initialFindCount);
@@ -244,14 +258,15 @@ class GenerationAwareCacheLookupTest {
   }
 
   @Test
-  @DisplayName("InMemoryTemplateRepository: negative cache entry is invalidated when template is added to repository")
+  @DisplayName(
+      "InMemoryTemplateRepository: negative cache entry is invalidated when template is added to"
+          + " repository")
   void negativeCacheInvalidatesWhenTemplateAddedToRepository() throws IOException {
     InMemoryTemplateRepository repo = InMemoryTemplateRepository.create();
     TemplateId id = TemplateId.of("dynamic_added.vm");
 
     try (VtlTemplateEngine engine = VtlTemplateEngine.builder().repository(repo).build()) {
-      assertThatThrownBy(() -> engine.get(id))
-          .isInstanceOf(TemplateResourceException.class);
+      assertThatThrownBy(() -> engine.get(id)).isInstanceOf(TemplateResourceException.class);
       assertThat(engine.cache().isNegativelyCached(id)).isTrue();
 
       repo.put("dynamic_added.vm", "Hello Newly Added!");
@@ -267,16 +282,22 @@ class GenerationAwareCacheLookupTest {
     }
   }
 
-  /** Wrapper implementing TemplateFreshnessProvider that counts find() and freshnessToken() invocations. */
+  /**
+   * Wrapper implementing TemplateFreshnessProvider that counts find() and freshnessToken()
+   * invocations.
+   */
   private static final class CountingFreshnessProviderWrapper
       implements TemplateRepository, TemplateFreshnessProvider {
 
     private final TemplateRepository delegate;
+    private final TemplateFreshnessProvider freshnessDelegate;
     private final AtomicInteger findCalls = new AtomicInteger();
     private final AtomicInteger freshnessCalls = new AtomicInteger();
 
-    CountingFreshnessProviderWrapper(TemplateRepository delegate) {
+    <T extends TemplateRepository & TemplateFreshnessProvider> CountingFreshnessProviderWrapper(
+        T delegate) {
       this.delegate = delegate;
+      this.freshnessDelegate = delegate;
     }
 
     @Override
@@ -288,7 +309,7 @@ class GenerationAwareCacheLookupTest {
     @Override
     public Optional<FreshnessToken> freshnessToken(TemplateId id) {
       freshnessCalls.incrementAndGet();
-      return delegate.freshnessToken(id);
+      return freshnessDelegate.freshnessToken(id);
     }
 
     int findCallCount() {

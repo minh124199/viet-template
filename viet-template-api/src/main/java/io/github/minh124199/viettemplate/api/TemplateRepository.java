@@ -20,23 +20,6 @@ public interface TemplateRepository {
    */
   Optional<TemplateSource> find(TemplateId id);
 
-  /**
-   * Returns a freshness token for the template identified by {@code id} if supported and present.
-   *
-   * <p>If this repository implements {@link TemplateFreshnessProvider}, delegates to its {@link
-   * TemplateFreshnessProvider#freshnessToken(TemplateId)} method; otherwise returns {@link
-   * Optional#empty()}.
-   *
-   * @param id the normalized template identifier
-   * @return an {@link Optional} containing the freshness token if available, or empty if unsupported or not found
-   */
-  default Optional<FreshnessToken> freshnessToken(TemplateId id) {
-    if (this instanceof TemplateFreshnessProvider provider) {
-      return provider.freshnessToken(id);
-    }
-    return Optional.empty();
-  }
-
   /** Creates a classpath-backed {@link TemplateRepository} scanning the default classloader. */
   static TemplateRepository classpath(String resourcePrefix) {
     return ClasspathTemplateRepository.of(resourcePrefix);

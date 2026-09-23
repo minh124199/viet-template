@@ -59,6 +59,10 @@ record VersionToken(long version) implements FreshnessToken {
 record FileToken(long lastModifiedMillis, long sizeBytes) implements FreshnessToken {
   @Override
   public String toString() {
-    return "FreshnessToken[lastModifiedMillis=" + lastModifiedMillis + ", sizeBytes=" + sizeBytes + "]";
+    return "FreshnessToken[lastModifiedMillis="
+        + lastModifiedMillis
+        + ", sizeBytes="
+        + sizeBytes
+        + "]";
   }
 }

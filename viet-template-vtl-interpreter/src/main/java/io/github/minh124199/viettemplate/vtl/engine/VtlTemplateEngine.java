@@ -208,8 +208,9 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     Optional<PreparedTemplateEntry> activeOpt = cache.getActiveEntry(id);
     if (activeOpt.isPresent()) {
       PreparedTemplateEntry active = activeOpt.get();
-      if (active.freshnessToken() != null && active.macroGeneration() == globalMacroManager.generation()) {
-        Optional<FreshnessToken> currentToken = repository.freshnessToken(id);
+      if (active.freshnessToken() != null
+          && active.macroGeneration() == globalMacroManager.generation()) {
+        Optional<FreshnessToken> currentToken = repositoryFreshnessToken(id);
         if (currentToken.isPresent() && currentToken.get().equals(active.freshnessToken())) {
           return active.templateInstance();
         }
@@ -218,7 +219,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
 
     // 1. Negative cache check
     if (cache.isNegativelyCached(id)) {
-      Optional<FreshnessToken> currentToken = repository.freshnessToken(id);
+      Optional<FreshnessToken> currentToken = repositoryFreshnessToken(id);
       if (currentToken.isPresent()) {
         cache.clearNegative(id);
       } else {
@@ -272,7 +273,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     TemplateDescriptor descriptor = TemplateDescriptor.of(id, executionTier.name());
     VtlTemplate template =
         new VtlTemplate(descriptor, compiledHandle, sourceText, interpreterOptions, interpreter);
-    Optional<FreshnessToken> freshness = repository.freshnessToken(id);
+    Optional<FreshnessToken> freshness = repositoryFreshnessToken(id);
     PreparedTemplateEntry entry =
         new PreparedTemplateEntry(
             id,
@@ -286,6 +287,13 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     cache.put(entry);
 
     return template;
+  }
+
+  private Optional<FreshnessToken> repositoryFreshnessToken(TemplateId id) {
+    if (repository instanceof TemplateFreshnessProvider provider) {
+      return provider.freshnessToken(id);
+    }
+    return Optional.empty();
   }
 
   @Override

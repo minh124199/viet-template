@@ -8,9 +8,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 
-record PreparedIrExecutionTarget(
-    CompiledTemplate preparedIr,
-    Optional<IrTemplate> irTemplate)
+record PreparedIrExecutionTarget(CompiledTemplate preparedIr, Optional<IrTemplate> irTemplate)
     implements ExecutionTarget {
 
   PreparedIrExecutionTarget {

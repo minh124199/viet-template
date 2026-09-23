@@ -70,4 +70,3 @@ public final class VtlTemplate implements Template {
     return handle;
   }
 }
-

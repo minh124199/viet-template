@@ -1,14 +1,9 @@
 package io.github.minh124199.viettemplate.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.FileTime;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -40,7 +35,8 @@ class TemplateFreshnessProviderTest {
     assertThat(file1).isNotEqualTo(file3);
     assertThat(file1).isNotEqualTo(file4);
     assertThat(file1.hashCode()).isEqualTo(file2.hashCode());
-    assertThat(file1.toString()).isEqualTo("FreshnessToken[lastModifiedMillis=1000, sizeBytes=500]");
+    assertThat(file1.toString())
+        .isEqualTo("FreshnessToken[lastModifiedMillis=1000, sizeBytes=500]");
 
     assertThat(imm1).isNotEqualTo(ver1);
     assertThat(ver1).isNotEqualTo(file1);
@@ -119,43 +115,26 @@ class TemplateFreshnessProviderTest {
   }
 
   @Test
-  void filesystemTemplateRepositoryFreshnessAndTraversal(@TempDir Path tempDir) throws IOException {
-    Path templatesDir = tempDir.resolve("templates");
-    Files.createDirectories(templatesDir);
-    Path file = templatesDir.resolve("view.vtl");
-    Files.writeString(file, "content v1");
+  void repositoryImplementationsFreshnessCapabilityDeclaration(@TempDir Path tempDir) {
+    // 1. Providers that implement TemplateFreshnessProvider
+    TemplateRepository inMemory = InMemoryTemplateRepository.create();
+    TemplateRepository classpath = ClasspathTemplateRepository.of("templates");
+    TemplateRepository composite = CompositeTemplateRepository.of(inMemory);
 
-    FilesystemTemplateRepository repo = FilesystemTemplateRepository.of(templatesDir);
-    TemplateId id = TemplateId.of("view.vtl");
+    assertThat(inMemory).isInstanceOf(TemplateFreshnessProvider.class);
+    assertThat(classpath).isInstanceOf(TemplateFreshnessProvider.class);
+    assertThat(composite).isInstanceOf(TemplateFreshnessProvider.class);
 
-    // 1. Valid file returns ofFile token
-    Optional<FreshnessToken> token1 = repo.freshnessToken(id);
-    assertThat(token1).isPresent();
+    // 2. Repositories that do NOT implement TemplateFreshnessProvider (falling back safely)
+    TemplateRepository filesystem = FilesystemTemplateRepository.of(tempDir);
+    TemplateRepository customRepo = id -> Optional.empty();
 
-    long initialModified = Files.getLastModifiedTime(file).toMillis();
-    long initialSize = Files.size(file);
-    assertThat(token1.get()).isEqualTo(FreshnessToken.ofFile(initialModified, initialSize));
-
-    // 2. Absent file returns empty
-    assertThat(repo.freshnessToken(TemplateId.of("absent.vtl"))).isEmpty();
-
-    // 3. Modification detection via timestamp or size change
-    Files.writeString(file, "content v2 - longer content");
-    Files.setLastModifiedTime(file, FileTime.from(Instant.ofEpochMilli(initialModified + 5000)));
-
-    Optional<FreshnessToken> token2 = repo.freshnessToken(id);
-    assertThat(token2).isPresent();
-    assertThat(token2.get()).isNotEqualTo(token1.get());
-
-    // 4. Path traversal rejection
-    assertThatThrownBy(() -> repo.freshnessToken(TemplateId.of("../secret.txt")))
-        .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> repo.freshnessToken(TemplateId.normalize("../secret.txt")))
-        .isInstanceOf(IllegalArgumentException.class);
+    assertThat(filesystem).isNotInstanceOf(TemplateFreshnessProvider.class);
+    assertThat(customRepo).isNotInstanceOf(TemplateFreshnessProvider.class);
   }
 
   @Test
-  void compositeTemplateRepositoryMultiTierResolutionAndFallback() {
+  void compositeTemplateRepositoryMultiTierResolutionAndFallback(@TempDir Path tempDir) {
     InMemoryTemplateRepository tier1 = InMemoryTemplateRepository.create();
     InMemoryTemplateRepository tier2 = InMemoryTemplateRepository.create();
 
@@ -188,19 +167,15 @@ class TemplateFreshnessProviderTest {
     // 4. Absent template returns empty
     assertThat(composite.freshnessToken(absentId)).isEmpty();
 
-    // 5. Fallback when any delegate does NOT implement TemplateFreshnessProvider
+    // 5. Fallback when any delegate does NOT implement TemplateFreshnessProvider (custom repo)
     TemplateRepository nonProviderRepo = id -> Optional.empty();
     CompositeTemplateRepository compositeWithNonProvider =
         new CompositeTemplateRepository(List.of(tier1, nonProviderRepo));
-
     assertThat(compositeWithNonProvider.freshnessToken(sharedId)).isEmpty();
-  }
 
-  @Test
-  void repositoryWithoutTemplateFreshnessProviderReturnsEmpty() {
-    TemplateRepository customRepo = id -> Optional.empty();
-    TemplateId id = TemplateId.of("sample.vm");
-
-    assertThat(customRepo.freshnessToken(id)).isEmpty();
+    // 6. Fallback when delegate is FilesystemTemplateRepository
+    FilesystemTemplateRepository fsRepo = FilesystemTemplateRepository.of(tempDir);
+    CompositeTemplateRepository compositeWithFs = CompositeTemplateRepository.of(tier1, fsRepo);
+    assertThat(compositeWithFs.freshnessToken(sharedId)).isEmpty();
   }
 }

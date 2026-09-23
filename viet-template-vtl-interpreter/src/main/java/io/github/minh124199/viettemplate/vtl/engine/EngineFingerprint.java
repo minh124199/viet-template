@@ -2,7 +2,6 @@ package io.github.minh124199.viettemplate.vtl.engine;
 
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
-import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -15,10 +14,7 @@ public record EngineFingerprint(
     ExecutionTier executionTier,
     String accessPolicyId,
     String modelSignature,
-    String backendHash)
-    implements Serializable {
-
-  private static final long serialVersionUID = 1L;
+    String backendHash) {
 
   public EngineFingerprint {
     Objects.requireNonNull(compilerVersion, "compilerVersion must not be null");

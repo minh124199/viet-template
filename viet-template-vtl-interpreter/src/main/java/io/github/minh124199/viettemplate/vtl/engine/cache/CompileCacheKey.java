@@ -4,7 +4,6 @@ import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel;
 import io.github.minh124199.viettemplate.vtl.engine.EngineFingerprint;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
-import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -25,10 +24,7 @@ public record CompileCacheKey(
     TemplateId templateId,
     String sourceFingerprint,
     EngineFingerprint engineFingerprint,
-    String globalMacrosFingerprint)
-    implements Serializable {
-
-  private static final long serialVersionUID = 1L;
+    String globalMacrosFingerprint) {
 
   public CompileCacheKey {
     Objects.requireNonNull(templateId, "templateId must not be null");

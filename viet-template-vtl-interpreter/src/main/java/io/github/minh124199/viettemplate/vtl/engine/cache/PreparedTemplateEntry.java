@@ -49,4 +49,3 @@ public record PreparedTemplateEntry(
     this(templateId, generation, key, handle, templateInstance, descriptor, freshnessToken, 0L);
   }
 }
-
