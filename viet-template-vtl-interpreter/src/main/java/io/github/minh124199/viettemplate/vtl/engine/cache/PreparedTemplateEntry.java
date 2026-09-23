@@ -1,5 +1,6 @@
 package io.github.minh124199.viettemplate.vtl.engine.cache;
 
+import io.github.minh124199.viettemplate.api.FreshnessToken;
 import io.github.minh124199.viettemplate.api.Template;
 import io.github.minh124199.viettemplate.api.TemplateDescriptor;
 import io.github.minh124199.viettemplate.api.TemplateId;
@@ -7,7 +8,7 @@ import java.util.Objects;
 
 /**
  * Cached prepared template entry bundling the canonical {@link Template} instance, its execution
- * handle, generation metadata, and descriptor.
+ * handle, generation metadata, descriptor, and optional freshness token.
  */
 public record PreparedTemplateEntry(
     TemplateId templateId,
@@ -15,7 +16,8 @@ public record PreparedTemplateEntry(
     CompileCacheKey key,
     CompiledTemplateHandle handle,
     Template templateInstance,
-    TemplateDescriptor descriptor) {
+    TemplateDescriptor descriptor,
+    FreshnessToken freshnessToken) {
 
   public PreparedTemplateEntry {
     Objects.requireNonNull(templateId, "templateId must not be null");
@@ -24,4 +26,15 @@ public record PreparedTemplateEntry(
     Objects.requireNonNull(templateInstance, "templateInstance must not be null");
     Objects.requireNonNull(descriptor, "descriptor must not be null");
   }
+
+  public PreparedTemplateEntry(
+      TemplateId templateId,
+      long generation,
+      CompileCacheKey key,
+      CompiledTemplateHandle handle,
+      Template templateInstance,
+      TemplateDescriptor descriptor) {
+    this(templateId, generation, key, handle, templateInstance, descriptor, null);
+  }
 }
+

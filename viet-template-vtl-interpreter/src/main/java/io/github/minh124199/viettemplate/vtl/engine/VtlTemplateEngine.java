@@ -204,6 +204,20 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
       return aotTemplate.get();
     }
 
+    // Fast-path generation-aware cache check
+    Optional<PreparedTemplateEntry> activeOpt = cache.getActiveEntry(id);
+    if (activeOpt.isPresent()) {
+      PreparedTemplateEntry active = activeOpt.get();
+      if (active.freshnessToken() != null) {
+        Optional<FreshnessToken> currentToken = repository.freshnessToken(id);
+        if (currentToken.isPresent() && currentToken.get().equals(active.freshnessToken())) {
+          if (active.key().globalMacrosFingerprint().equals(globalMacroManager.computeFingerprint())) {
+            return active.templateInstance();
+          }
+        }
+      }
+    }
+
     // 1. Negative cache check
     if (cache.isNegativelyCached(id)) {
       throw new TemplateResourceException(
@@ -264,9 +278,16 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     TemplateDescriptor descriptor = TemplateDescriptor.of(id, executionTier.name());
     VtlTemplate template =
         new VtlTemplate(descriptor, compiledHandle, sourceText, interpreterOptions, interpreter);
+    Optional<FreshnessToken> freshness = repository.freshnessToken(id);
     PreparedTemplateEntry entry =
         new PreparedTemplateEntry(
-            id, compiledHandle.generation(), key, compiledHandle, template, descriptor);
+            id,
+            compiledHandle.generation(),
+            key,
+            compiledHandle,
+            template,
+            descriptor,
+            freshness.orElse(null));
     cache.put(entry);
 
     return template;
