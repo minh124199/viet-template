@@ -242,7 +242,7 @@ annotation. The count is tracked and must not increase without a documented reas
 - The public surface is now fully explained. Every public type has a documented reason for
   being public.
 - Automated CI gates prevent regressions in each category independently.
-- The stable contract count (STABLE_API 94 + STABLE_SPI 25 = 119) is enforced mechanically.
+- The stable contract count (STABLE_API 94 + STABLE_SPI 27 = 121 as of M5/M6; originally 94 + 25 = 119 prior to freshness SPI additions) is enforced mechanically.
 - Framework/build-tool entrypoints are documented with their discovery mechanism, enabling
   future authors to assess FQCN rename risk before making changes.
 - `PUBLIC_BUT_INTERNAL_ACCIDENT` count reduced from 213 (pre-M3.x) to 146.
