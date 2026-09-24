@@ -694,82 +694,94 @@ class ExceptionSemanticsHardeningTest {
   }
 
   @Test
-  @DisplayName(
-      "FilesystemTemplateRepository distinguishes not found, access denied, and I/O error on"
-          + " unreadable file")
-  void filesystemRepositoryDistinguishesNotFoundFromAccessDeniedAndIoError(@TempDir Path tempDir)
-      throws IOException {
+  @DisplayName("FilesystemTemplateRepository returns empty for missing template")
+  void filesystemRepositoryReturnsEmptyForMissingTemplate(@TempDir Path tempDir) {
     FilesystemTemplateRepository repo = FilesystemTemplateRepository.of(tempDir);
-
-    // 1. Genuinely absent file returns Optional.empty()
     TemplateId missingId = TemplateId.of("missing.vm");
     assertThat(repo.find(missingId)).isEmpty();
+  }
 
-    // 2. Directory accessed as template file triggers I/O read failure ->
-    // TemplateResourceException,
-    // never Optional.empty()
+  @Test
+  @DisplayName(
+      "FilesystemTemplateRepository maps ordinary I/O failure to TemplateResourceException")
+  void filesystemRepositoryMapsOrdinaryIoFailureToTemplateResourceException(@TempDir Path tempDir)
+      throws IOException {
+    FilesystemTemplateRepository repo = FilesystemTemplateRepository.of(tempDir);
     Path dirAsFile = tempDir.resolve("dir_as_file.vm");
     Files.createDirectory(dirAsFile);
     TemplateId dirId = TemplateId.of("dir_as_file.vm");
     assertThatThrownBy(() -> repo.find(dirId))
         .isInstanceOf(TemplateResourceException.class)
         .hasMessageContaining("Failed to read template file: dir_as_file.vm");
+  }
 
-    // 3. Permission-based tests with POSIX capabilities
-    boolean supportsPosix =
-        Files.getFileStore(tempDir).supportsFileAttributeView(PosixFileAttributeView.class);
-    if (supportsPosix) {
-      Path unreadableFile = tempDir.resolve("unreadable.vm");
-      Files.writeString(unreadableFile, "confidential payload");
-      TemplateId unreadableId = TemplateId.of("unreadable.vm");
+  @Test
+  @DisplayName("FilesystemTemplateRepository maps access denied to TemplateSecurityException")
+  void filesystemRepositoryMapsAccessDeniedToTemplateSecurityException(@TempDir Path tempDir)
+      throws IOException {
+    Assumptions.assumeTrue(
+        Files.getFileStore(tempDir).supportsFileAttributeView(PosixFileAttributeView.class),
+        "Filesystem does not support POSIX file attributes");
+
+    FilesystemTemplateRepository repo = FilesystemTemplateRepository.of(tempDir);
+    Path unreadableFile = tempDir.resolve("unreadable.vm");
+    Files.writeString(unreadableFile, "confidential payload");
+    TemplateId unreadableId = TemplateId.of("unreadable.vm");
+    try {
+      Files.setPosixFilePermissions(unreadableFile, Collections.emptySet());
+      boolean readDenied = false;
       try {
-        Files.setPosixFilePermissions(unreadableFile, Collections.emptySet());
-        boolean readDenied = false;
-        try {
-          Files.readString(unreadableFile);
-        } catch (java.nio.file.AccessDeniedException e) {
-          readDenied = true;
-        } catch (IOException ignored) {
-        }
-        Assumptions.assumeTrue(
-            readDenied, "Filesystem did not deny read access after removing POSIX permissions");
-        assertThatThrownBy(() -> repo.find(unreadableId))
-            .isInstanceOf(TemplateSecurityException.class)
-            .hasMessageContaining("Access denied reading template file: unreadable.vm");
-      } finally {
-        try {
-          Files.setPosixFilePermissions(
-              unreadableFile, PosixFilePermissions.fromString("rw-r--r--"));
-        } catch (IOException ignored) {
-        }
+        Files.readString(unreadableFile);
+      } catch (java.nio.file.AccessDeniedException e) {
+        readDenied = true;
+      } catch (IOException ignored) {
       }
-
-      Path restrictedDir = tempDir.resolve("restricted_dir");
-      Files.createDirectory(restrictedDir);
-      Path secretFile = restrictedDir.resolve("secret.vm");
-      Files.writeString(secretFile, "secret under restricted dir");
-      TemplateId restrictedId = TemplateId.of("restricted_dir/secret.vm");
+      Assumptions.assumeTrue(
+          readDenied, "Filesystem did not deny read access after removing POSIX permissions");
+      assertThatThrownBy(() -> repo.find(unreadableId))
+          .isInstanceOf(TemplateSecurityException.class)
+          .hasMessageContaining("Access denied reading template file: unreadable.vm");
+    } finally {
       try {
-        Files.setPosixFilePermissions(restrictedDir, Collections.emptySet());
-        boolean accessDenied = false;
-        try {
-          restrictedDir.resolve("secret.vm").toRealPath();
-        } catch (java.nio.file.AccessDeniedException e) {
-          accessDenied = true;
-        } catch (IOException ignored) {
-        }
-        Assumptions.assumeTrue(
-            accessDenied,
-            "Filesystem did not deny path traversal after removing POSIX permissions");
-        assertThatThrownBy(() -> repo.find(restrictedId))
-            .isInstanceOf(TemplateSecurityException.class)
-            .hasMessageContaining("Access denied resolving real path: restricted_dir/secret.vm");
-      } finally {
-        try {
-          Files.setPosixFilePermissions(
-              restrictedDir, PosixFilePermissions.fromString("rwxr-xr-x"));
-        } catch (IOException ignored) {
-        }
+        Files.setPosixFilePermissions(unreadableFile, PosixFilePermissions.fromString("rw-r--r--"));
+      } catch (IOException ignored) {
+      }
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "FilesystemTemplateRepository maps real path access denied to TemplateSecurityException")
+  void filesystemRepositoryMapsRealPathAccessDeniedToTemplateSecurityException(
+      @TempDir Path tempDir) throws IOException {
+    Assumptions.assumeTrue(
+        Files.getFileStore(tempDir).supportsFileAttributeView(PosixFileAttributeView.class),
+        "Filesystem does not support POSIX file attributes");
+
+    FilesystemTemplateRepository repo = FilesystemTemplateRepository.of(tempDir);
+    Path restrictedDir = tempDir.resolve("restricted_dir");
+    Files.createDirectory(restrictedDir);
+    Path secretFile = restrictedDir.resolve("secret.vm");
+    Files.writeString(secretFile, "secret under restricted dir");
+    TemplateId restrictedId = TemplateId.of("restricted_dir/secret.vm");
+    try {
+      Files.setPosixFilePermissions(restrictedDir, Collections.emptySet());
+      boolean accessDenied = false;
+      try {
+        restrictedDir.resolve("secret.vm").toRealPath();
+      } catch (java.nio.file.AccessDeniedException e) {
+        accessDenied = true;
+      } catch (IOException ignored) {
+      }
+      Assumptions.assumeTrue(
+          accessDenied, "Filesystem did not deny path traversal after removing POSIX permissions");
+      assertThatThrownBy(() -> repo.find(restrictedId))
+          .isInstanceOf(TemplateSecurityException.class)
+          .hasMessageContaining("Access denied resolving real path: restricted_dir/secret.vm");
+    } finally {
+      try {
+        Files.setPosixFilePermissions(restrictedDir, PosixFilePermissions.fromString("rwxr-xr-x"));
+      } catch (IOException ignored) {
       }
     }
   }
