@@ -1,13 +1,15 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
+import io.github.minh124199.viettemplate.api.UndefinedReferencePolicy;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import java.util.Objects;
 
 /** Configuration options controlling reference interpreter execution behavior. */
 public record VtlInterpreterOptions(
     VtlProfile profile,
-    boolean strictReferences,
+    UndefinedReferencePolicy undefinedReferencePolicy,
     boolean setNullAllowed,
     boolean emptyCheck,
     SpaceGobbler.Mode spaceGobbling,
@@ -21,7 +23,7 @@ public record VtlInterpreterOptions(
   public static final VtlInterpreterOptions DEFAULT =
       new VtlInterpreterOptions(
           VtlProfile.VTL_CORE,
-          false,
+          UndefinedReferencePolicy.SILENT,
           true,
           true,
           SpaceGobbler.Mode.LINES,
@@ -34,6 +36,7 @@ public record VtlInterpreterOptions(
 
   public VtlInterpreterOptions {
     Objects.requireNonNull(profile, "profile must not be null");
+    Objects.requireNonNull(undefinedReferencePolicy, "undefinedReferencePolicy must not be null");
     Objects.requireNonNull(spaceGobbling, "spaceGobbling must not be null");
     Objects.requireNonNull(limits, "limits must not be null");
     Objects.requireNonNull(securityPolicy, "securityPolicy must not be null");
@@ -44,6 +47,40 @@ public record VtlInterpreterOptions(
     if (profile == VtlProfile.VTL_SAFE) {
       securityPolicy = VtlSecurityPolicy.enforceSafe(securityPolicy);
     }
+  }
+
+  /**
+   * Compatibility accessor returning {@code true} if {@link #undefinedReferencePolicy()} is {@link
+   * UndefinedReferencePolicy#ERROR}.
+   */
+  public boolean strictReferences() {
+    return this.undefinedReferencePolicy == UndefinedReferencePolicy.ERROR;
+  }
+
+  public VtlInterpreterOptions(
+      VtlProfile profile,
+      boolean strictReferences,
+      boolean setNullAllowed,
+      boolean emptyCheck,
+      SpaceGobbler.Mode spaceGobbling,
+      boolean allowBareNullLiteral,
+      ExecutionLimits limits,
+      VtlSecurityPolicy securityPolicy,
+      TemplateResourceResolver resourceResolver,
+      ExecutionTier executionTier,
+      IrOptimizationOptions optimizationOptions) {
+    this(
+        profile,
+        strictReferences ? UndefinedReferencePolicy.ERROR : UndefinedReferencePolicy.SILENT,
+        setNullAllowed,
+        emptyCheck,
+        spaceGobbling,
+        allowBareNullLiteral,
+        limits,
+        securityPolicy,
+        resourceResolver,
+        executionTier,
+        optimizationOptions);
   }
 
   public VtlInterpreterOptions(
@@ -94,6 +131,54 @@ public record VtlInterpreterOptions(
         ExecutionTier.AST);
   }
 
+  public VtlInterpreterOptions(
+      VtlProfile profile,
+      UndefinedReferencePolicy undefinedReferencePolicy,
+      boolean setNullAllowed,
+      boolean emptyCheck,
+      SpaceGobbler.Mode spaceGobbling,
+      boolean allowBareNullLiteral,
+      ExecutionLimits limits,
+      VtlSecurityPolicy securityPolicy,
+      TemplateResourceResolver resourceResolver,
+      ExecutionTier executionTier) {
+    this(
+        profile,
+        undefinedReferencePolicy,
+        setNullAllowed,
+        emptyCheck,
+        spaceGobbling,
+        allowBareNullLiteral,
+        limits,
+        securityPolicy,
+        resourceResolver,
+        executionTier,
+        IrOptimizationOptions.defaultOptions());
+  }
+
+  public VtlInterpreterOptions(
+      VtlProfile profile,
+      UndefinedReferencePolicy undefinedReferencePolicy,
+      boolean setNullAllowed,
+      boolean emptyCheck,
+      SpaceGobbler.Mode spaceGobbling,
+      boolean allowBareNullLiteral,
+      ExecutionLimits limits,
+      VtlSecurityPolicy securityPolicy,
+      TemplateResourceResolver resourceResolver) {
+    this(
+        profile,
+        undefinedReferencePolicy,
+        setNullAllowed,
+        emptyCheck,
+        spaceGobbling,
+        allowBareNullLiteral,
+        limits,
+        securityPolicy,
+        resourceResolver,
+        ExecutionTier.AST);
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -101,7 +186,7 @@ public record VtlInterpreterOptions(
   public Builder toBuilder() {
     return new Builder()
         .profile(profile)
-        .strictReferences(strictReferences)
+        .undefinedReferencePolicy(undefinedReferencePolicy)
         .setNullAllowed(setNullAllowed)
         .emptyCheck(emptyCheck)
         .spaceGobbling(spaceGobbling)
@@ -115,6 +200,7 @@ public record VtlInterpreterOptions(
 
   public static final class Builder {
     private VtlProfile profile = VtlProfile.VTL_CORE;
+    private UndefinedReferencePolicy undefinedReferencePolicy = UndefinedReferencePolicy.SILENT;
     private boolean strictReferences = false;
     private boolean setNullAllowed = true;
     private boolean emptyCheck = true;
@@ -131,8 +217,18 @@ public record VtlInterpreterOptions(
       return this;
     }
 
+    public Builder undefinedReferencePolicy(UndefinedReferencePolicy undefinedReferencePolicy) {
+      this.undefinedReferencePolicy =
+          Objects.requireNonNull(
+              undefinedReferencePolicy, "undefinedReferencePolicy must not be null");
+      this.strictReferences = (undefinedReferencePolicy == UndefinedReferencePolicy.ERROR);
+      return this;
+    }
+
     public Builder strictReferences(boolean strictReferences) {
       this.strictReferences = strictReferences;
+      this.undefinedReferencePolicy =
+          strictReferences ? UndefinedReferencePolicy.ERROR : UndefinedReferencePolicy.SILENT;
       return this;
     }
 
@@ -187,7 +283,7 @@ public record VtlInterpreterOptions(
     public VtlInterpreterOptions build() {
       return new VtlInterpreterOptions(
           profile,
-          strictReferences,
+          undefinedReferencePolicy,
           setNullAllowed,
           emptyCheck,
           spaceGobbling,

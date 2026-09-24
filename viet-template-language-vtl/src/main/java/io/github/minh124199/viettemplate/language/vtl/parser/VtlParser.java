@@ -3,7 +3,6 @@ package io.github.minh124199.viettemplate.language.vtl.parser;
 import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.DiagnosticCode;
 import io.github.minh124199.viettemplate.api.SourceSpan;
-import io.github.minh124199.viettemplate.language.vtl.ast.ReferenceNotation;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlAccessStep;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlAssignmentTarget;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlBinaryExpression;
@@ -43,7 +42,8 @@ import io.github.minh124199.viettemplate.language.vtl.ast.VtlStringLiteralExpres
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlTextNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlUnaryExpression;
-import io.github.minh124199.viettemplate.language.vtl.ast.VtlUnaryOperator;
+import io.github.minh124199.viettemplate.language.vtl.internal.ast.ReferenceNotation;
+import io.github.minh124199.viettemplate.language.vtl.internal.ast.VtlUnaryOperator;
 import io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexResult;
 import io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexer;
 import io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexerOptions;

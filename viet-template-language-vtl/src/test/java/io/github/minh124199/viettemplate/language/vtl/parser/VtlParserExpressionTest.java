@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.language.vtl.ast.*;
+import io.github.minh124199.viettemplate.language.vtl.internal.ast.VtlUnaryOperator;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import java.math.BigDecimal;
 import java.math.BigInteger;

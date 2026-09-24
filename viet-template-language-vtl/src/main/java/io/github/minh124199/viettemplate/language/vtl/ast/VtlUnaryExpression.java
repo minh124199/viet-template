@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.language.vtl.ast;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.language.vtl.internal.ast.VtlUnaryOperator;
 import java.util.Objects;
 
 /** Unary operation expression, e.g. {@code !$enabled}, {@code not $enabled}, or {@code -42}. */

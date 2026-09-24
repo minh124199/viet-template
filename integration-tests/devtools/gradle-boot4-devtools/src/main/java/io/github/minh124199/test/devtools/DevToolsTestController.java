@@ -98,6 +98,9 @@ public class DevToolsTestController {
   @GetMapping("/dynamic-page")
   public String dynamicPage() {
     trackCurrentClassLoader();
+    if (engine != null) {
+      engine.invalidateWithDependents(io.github.minh124199.viettemplate.api.TemplateId.of("dynamic-page.vtl"));
+    }
     return "dynamic-page";
   }
 

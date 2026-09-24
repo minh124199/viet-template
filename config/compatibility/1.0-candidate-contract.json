@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0",
+  "contractName": "Viet Template 1.0 Candidate Release Contract",
+  "description": "Authoritative machine-readable 1.0 candidate release contract defining compatibility invariants, public surface classifications, generated runtime ABI, diagnostic codes, framework matrix, publication topology, and blocker dispositions.",
+  "targetRelease": "1.0.0-RC1",
+  "targetVerdict": "READY_FOR_1_0_API_FREEZE_AND_RC_PREPARATION",
+  "publicSurface": {
+    "totalCompiledPublicTypes": 339,
+    "categories": {
+      "STABLE_API": 94,
+      "STABLE_SPI": 27,
+      "TOTAL_STABLE": 121,
+      "EXPERIMENTAL": 5,
+      "FRAMEWORK_ENTRYPOINT": 4,
+      "BUILD_TOOL_ENTRYPOINT": 4,
+      "SERVICE_ENTRYPOINT": 0,
+      "GENERATED_RUNTIME_ABI": 1,
+      "INTERNAL_CROSS_MODULE": 59,
+      "INTERNAL_CROSS_PACKAGE": 57,
+      "BENCHMARK_SUPPORT_INTERNAL": 3,
+      "PUBLIC_BUT_INTERNAL_ACCIDENT": 85
+    },
+    "pbciaBreakdown": {
+      "ast": 41,
+      "ir": 33,
+      "semantics": 11,
+      "total": 85
+    },
+    "signatureLeaksAllowed": 0,
+    "baselineParity": {
+      "enforceDisjoint": true,
+      "enforceBijection": true,
+      "baselines": [
+        "1.0-core-public-api.txt",
+        "1.0-aot-public-api.txt",
+        "1.0-spring-public-api.txt",
+        "1.0-spring-security-public-api.txt",
+        "1.0-quarkus-public-api.txt"
+      ]
+    }
+  },
+  "generatedRuntimeAbi": {
+    "typesCount": 7,
+    "methodsCount": 22,
+    "fieldsCount": 0,
+    "unregisteredDependenciesAllowed": 0,
+    "types": [
+      "io.github.minh124199.viettemplate.api.CompiledTemplate",
+      "io.github.minh124199.viettemplate.api.RenderContext",
+      "io.github.minh124199.viettemplate.api.TemplateId",
+      "io.github.minh124199.viettemplate.api.TemplateOutput",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata",
+      "io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge"
+    ]
+  },
+  "diagnosticCodes": {
+    "canonicalCodesCount": 31,
+    "unregisteredCodesAllowed": 0,
+    "baselineFile": "config/api-baseline/diagnostic-codes-1.0.txt",
+    "codes": [
+      "COMPILER:CODEGEN_ERROR",
+      "CONTEXT:COLLISION",
+      "INTERPRETER:ERROR",
+      "INTERPRETER:INVALID_METHOD",
+      "INTERPRETER:INVALID_PROPERTY",
+      "INTERPRETER:VARIABLE_UNDEFINED",
+      "LAYOUT:CYCLE_DETECTED",
+      "LAYOUT:DEPTH_EXCEEDED",
+      "LIMIT:AST_NODE_LIMIT",
+      "LIMIT:LIMIT_EXCEEDED",
+      "LIMIT:SOURCE_TOO_LARGE",
+      "LIMIT:TIME_LIMIT_EXCEEDED",
+      "RENDER:IO_ERROR",
+      "RESOURCE:NOT_FOUND",
+      "SECURITY:ACCESS_DENIED",
+      "SECURITY:COMPILATION_REJECTED",
+      "SECURITY:MALFORMED_GLOBAL_MACRO_LIBRARY",
+      "SECURITY:PROTECTED_VARIABLE",
+      "SECURITY:VIOLATION",
+      "SYNTAX:PARSE_ERROR",
+      "VTLAOT:1001",
+      "VTLAOT:1101",
+      "VTLAOT:1102",
+      "VTLAOT:1201",
+      "VTLS:2101",
+      "VTLS:2102",
+      "VTLS:2103",
+      "VTLS:2104",
+      "VTLS:2105",
+      "VTLS:2106",
+      "VTLSEC:2401"
+    ]
+  },
+  "frameworkSupport": {
+    "springBoot": {
+      "declaredMinimum": "3.3.0",
+      "testedVersions": ["3.3.5", "4.1.1"],
+      "canonicalCi": "4.1.1",
+      "latestQualified": "4.1.1"
+    },
+    "springFramework": {
+      "declaredMinimum": "6.1.0",
+      "testedVersions": ["6.1.14", "7.0.9"],
+      "canonicalCi": "7.0.9",
+      "latestQualified": "7.0.9"
+    },
+    "springSecurity": {
+      "declaredMinimum": "6.3.0",
+      "testedVersions": ["6.3.4", "6.5.11", "7.0.7", "7.1.1"],
+      "canonicalCi": "7.1.1",
+      "latestQualified": "7.1.1"
+    },
+    "quarkus": {
+      "declaredMinimum": "3.33.0",
+      "testedVersions": ["3.33.3", "3.39.4"],
+      "canonicalCi": "3.39.4",
+      "latestQualified": "3.39.4"
+    },
+    "buildTooling": {
+      "maven": {
+        "declaredMinimum": "3.8.0",
+        "canonicalWrapper": "3.9.9",
+        "testedVersions": ["3.9.9"]
+      },
+      "gradle": {
+        "declaredMinimum": "8.5",
+        "canonicalWrapper": "9.7.1",
+        "testedVersions": ["9.7.1"]
+      }
+    },
+    "jakartaEeAndCdi": {
+      "standaloneIntegration": false,
+      "status": "NO_STANDALONE_JAKARTA_INTEGRATION"
+    }
+  },
+  "publicationTopology": {
+    "groupId": "io.github.minh124199",
+    "parentPomIncluded": true,
+    "productionModulesCount": 12,
+    "totalPublishedArtifactsIntended": 13,
+    "nonPublishedModulesCount": 2,
+    "nonPublishedModules": [
+      "viet-template-tck",
+      "viet-template-benchmarks"
+    ],
+    "currentSnapshot": "0.3.0-SNAPSHOT",
+    "currentSnapshotPublished": false,
+    "automaticModuleName": {
+      "declared": false,
+      "status": "NO_AUTOMATIC_MODULE_NAME_HEADER"
+    }
+  },
+  "blockerDisposition": {
+    "p0BlockerCount": 0,
+    "p1BlockerCount": 0,
+    "signatureLeaks": 0,
+    "pbciaDebt": {
+      "totalTypes": 85,
+      "status": "NON_BLOCKING_P2",
+      "targetMilestone": "M22",
+      "rationale": "All 85 PBCIA types have 0 signature leaks into STABLE_API or STABLE_SPI, cannot be reached by public consumers, ForeachMetadata is frozen under the generated ABI baseline, and structural module realignment is deferred to M22."
+    },
+    "verdict": "READY_FOR_1_0_API_FREEZE_AND_RC_PREPARATION"
+  }
+}

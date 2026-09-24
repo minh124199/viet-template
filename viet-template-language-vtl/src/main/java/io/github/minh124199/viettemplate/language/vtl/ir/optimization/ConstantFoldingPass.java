@@ -41,7 +41,7 @@ import java.util.Optional;
  * Optimization pass that evaluates pure compile-time constant expressions (arithmetic, comparisons,
  * string concatenations, logical operations, unary negations, and truthiness).
  */
-public final class ConstantFoldingPass implements IrOptimizationPass {
+final class ConstantFoldingPass implements IrOptimizationPass {
 
   public static final String NAME = "ConstantFolding";
 

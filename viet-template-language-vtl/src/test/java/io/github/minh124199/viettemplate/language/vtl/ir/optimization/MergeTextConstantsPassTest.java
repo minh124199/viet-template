@@ -4,12 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.capability.TemplateCapabilities;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrNoOp;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteConst;
-import io.github.minh124199.viettemplate.language.vtl.semantics.capability.TemplateCapabilities;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

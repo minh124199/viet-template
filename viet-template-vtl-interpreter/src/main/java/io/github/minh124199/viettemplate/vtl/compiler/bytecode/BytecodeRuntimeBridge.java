@@ -3,11 +3,13 @@ package io.github.minh124199.viettemplate.vtl.compiler.bytecode;
 import io.github.minh124199.viettemplate.api.MutableRenderContext;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.api.TemplateException;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
+import io.github.minh124199.viettemplate.api.UndefinedReferencePolicy;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.UnaryOpKind;
@@ -22,13 +24,14 @@ import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
 import io.github.minh124199.viettemplate.runtime.linker.LinkerStatistics;
 import io.github.minh124199.viettemplate.runtime.linker.MemberKey;
 import io.github.minh124199.viettemplate.runtime.linker.MemberOperation;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.InterpreterDiagnosticCodes;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.VtlComparisonOperations;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.VtlNumericOperations;
 import io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue;
 import io.github.minh124199.viettemplate.vtl.interpreter.ForeachMetadata;
-import io.github.minh124199.viettemplate.vtl.interpreter.InterpreterDiagnosticCodes;
-import io.github.minh124199.viettemplate.vtl.interpreter.VtlComparisonOperations;
-import io.github.minh124199.viettemplate.vtl.interpreter.VtlNumericOperations;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -44,6 +47,9 @@ import java.util.NoSuchElementException;
  */
 public final class BytecodeRuntimeBridge {
 
+  private static final System.Logger LOGGER =
+      System.getLogger(BytecodeRuntimeBridge.class.getName());
+
   private BytecodeRuntimeBridge() {}
 
   /** Writes a value expression to output, applying escaping and null rendering semantics. */
@@ -53,7 +59,7 @@ public final class BytecodeRuntimeBridge {
       int escapeModeOrdinal,
       int nullModeOrdinal,
       String literal,
-      boolean strict,
+      UndefinedReferencePolicy policy,
       String templateIdStr,
       int startLine,
       int startCol,
@@ -66,7 +72,7 @@ public final class BytecodeRuntimeBridge {
         escapeModeOrdinal,
         nullModeOrdinal,
         literal,
-        strict,
+        policy,
         templateIdStr,
         startLine,
         startCol,
@@ -81,7 +87,7 @@ public final class BytecodeRuntimeBridge {
       int escapeModeOrdinal,
       int nullModeOrdinal,
       String literal,
-      boolean strict,
+      UndefinedReferencePolicy policy,
       String templateIdStr,
       int startLine,
       int startCol,
@@ -107,7 +113,10 @@ public final class BytecodeRuntimeBridge {
     boolean isNullOrUndef =
         (val == null) || (val instanceof EvaluationValue ev && (ev.isNull() || ev.isUndefined()));
 
-    if (strict) {
+    UndefinedReferencePolicy effectivePolicy =
+        policy != null ? policy : UndefinedReferencePolicy.SILENT;
+
+    if (effectivePolicy == UndefinedReferencePolicy.ERROR) {
       if (val instanceof EvaluationValue ev && ev.isUndefined()) {
         throw new TemplateRenderException(
             "Variable '" + (literal != null ? literal : "$ref") + "' has not been set",
@@ -127,6 +136,22 @@ public final class BytecodeRuntimeBridge {
             span,
             InterpreterDiagnosticCodes.VARIABLE_UNDEFINED);
       }
+    } else if (effectivePolicy == UndefinedReferencePolicy.WARN) {
+      if (val instanceof EvaluationValue ev && ev.isUndefined()) {
+        LOGGER.log(
+            System.Logger.Level.WARNING,
+            "Variable ''{0}'' has not been set at {1}:{2}",
+            (literal != null ? literal : "$ref"),
+            templateId,
+            span);
+      } else if (isNullOrUndef && nullMode != NullRenderMode.EMPTY_STRING) {
+        LOGGER.log(
+            System.Logger.Level.WARNING,
+            "Reference ''{0}'' evaluated to null when attempting to render at {1}:{2}",
+            (literal != null ? literal : "$ref"),
+            templateId,
+            span);
+      }
     }
 
     if (nullMode == NullRenderMode.EMPTY_STRING) {
@@ -142,6 +167,83 @@ public final class BytecodeRuntimeBridge {
       }
     } else {
       renderEscaped(unwrapped, output, escapeMode, securityPolicy, templateId, span);
+    }
+  }
+
+  public static void writeValue(
+      Object val,
+      TemplateOutput output,
+      int escapeModeOrdinal,
+      int nullModeOrdinal,
+      String literal,
+      boolean strict,
+      String templateIdStr,
+      int startLine,
+      int startCol,
+      int endLine,
+      int endCol)
+      throws IOException {
+    writeValue(
+        val,
+        output,
+        escapeModeOrdinal,
+        nullModeOrdinal,
+        literal,
+        strict ? UndefinedReferencePolicy.ERROR : UndefinedReferencePolicy.SILENT,
+        templateIdStr,
+        startLine,
+        startCol,
+        endLine,
+        endCol,
+        null);
+  }
+
+  public static void writeValue(
+      Object val,
+      TemplateOutput output,
+      int escapeModeOrdinal,
+      int nullModeOrdinal,
+      String literal,
+      boolean strict,
+      String templateIdStr,
+      int startLine,
+      int startCol,
+      int endLine,
+      int endCol,
+      LinkerAccessPolicy securityPolicy)
+      throws IOException {
+    writeValue(
+        val,
+        output,
+        escapeModeOrdinal,
+        nullModeOrdinal,
+        literal,
+        strict ? UndefinedReferencePolicy.ERROR : UndefinedReferencePolicy.SILENT,
+        templateIdStr,
+        startLine,
+        startCol,
+        endLine,
+        endCol,
+        securityPolicy);
+  }
+
+  public static void handleUndefinedReference(
+      String literal, TemplateId templateId, SourceSpan span, UndefinedReferencePolicy policy) {
+    UndefinedReferencePolicy effective = policy != null ? policy : UndefinedReferencePolicy.SILENT;
+    if (effective == UndefinedReferencePolicy.ERROR) {
+      throw new TemplateRenderException(
+          "Variable '" + (literal != null ? literal : "$ref") + "' has not been set",
+          templateId,
+          span,
+          InterpreterDiagnosticCodes.VARIABLE_UNDEFINED);
+    }
+    if (effective == UndefinedReferencePolicy.WARN) {
+      LOGGER.log(
+          System.Logger.Level.WARNING,
+          "Variable ''{0}'' has not been set at {1}:{2}",
+          literal != null ? literal : "$ref",
+          templateId,
+          span);
     }
   }
 
@@ -650,6 +752,7 @@ public final class BytecodeRuntimeBridge {
   }
 
   /** Dispatches dynamic property read through M9 {@link DynamicCallSite}. */
+  @SuppressWarnings("removal")
   public static Object dynamicGetProperty(DynamicCallSite site, Object target) {
     if (target == null) {
       return null;
@@ -660,15 +763,42 @@ public final class BytecodeRuntimeBridge {
     }
     try {
       return site.invoke(unwrapped);
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateException te) {
+      throw te;
     } catch (Throwable t) {
-      if (t instanceof RuntimeException re) {
-        throw re;
+      Throwable cause = t;
+      while (cause instanceof InvocationTargetException ite) {
+        Throwable targetEx = ite.getCause() != null ? ite.getCause() : ite.getTargetException();
+        if (targetEx == null) {
+          break;
+        }
+        cause = targetEx;
       }
-      throw new RuntimeException(t);
+      if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+        throw (Error) cause;
+      }
+      if (cause instanceof TemplateException te) {
+        throw te;
+      }
+      String memberName = site.memberKey().name();
+      throw new TemplateRenderException(
+          "Property '"
+              + memberName
+              + "' evaluation threw an exception: "
+              + (cause.getMessage() != null
+                  ? cause.getMessage()
+                  : cause.getClass().getSimpleName()),
+          TemplateId.of("<generated>"),
+          SourceSpan.UNKNOWN,
+          InterpreterDiagnosticCodes.INVALID_METHOD,
+          cause);
     }
   }
 
   /** Dispatches dynamic property write through M9 {@link DynamicCallSite}. */
+  @SuppressWarnings("removal")
   public static void dynamicSetProperty(DynamicCallSite site, Object target, Object value) {
     if (target == null) {
       return;
@@ -679,15 +809,42 @@ public final class BytecodeRuntimeBridge {
     }
     try {
       site.invoke(unwrapped, value);
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateException te) {
+      throw te;
     } catch (Throwable t) {
-      if (t instanceof RuntimeException re) {
-        throw re;
+      Throwable cause = t;
+      while (cause instanceof InvocationTargetException ite) {
+        Throwable targetEx = ite.getCause() != null ? ite.getCause() : ite.getTargetException();
+        if (targetEx == null) {
+          break;
+        }
+        cause = targetEx;
       }
-      throw new RuntimeException(t);
+      if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+        throw (Error) cause;
+      }
+      if (cause instanceof TemplateException te) {
+        throw te;
+      }
+      String memberName = site.memberKey().name();
+      throw new TemplateRenderException(
+          "Property '"
+              + memberName
+              + "' assignment threw an exception: "
+              + (cause.getMessage() != null
+                  ? cause.getMessage()
+                  : cause.getClass().getSimpleName()),
+          TemplateId.of("<generated>"),
+          SourceSpan.UNKNOWN,
+          InterpreterDiagnosticCodes.INVALID_METHOD,
+          cause);
     }
   }
 
   /** Dispatches dynamic indexed read through M9 {@link DynamicCallSite}. */
+  @SuppressWarnings("removal")
   public static Object dynamicGetIndex(DynamicCallSite site, Object target, Object index) {
     if (target == null) {
       return null;
@@ -698,15 +855,42 @@ public final class BytecodeRuntimeBridge {
     }
     try {
       return site.invoke(unwrapped, index);
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateException te) {
+      throw te;
     } catch (Throwable t) {
-      if (t instanceof RuntimeException re) {
-        throw re;
+      Throwable cause = t;
+      while (cause instanceof InvocationTargetException ite) {
+        Throwable targetEx = ite.getCause() != null ? ite.getCause() : ite.getTargetException();
+        if (targetEx == null) {
+          break;
+        }
+        cause = targetEx;
       }
-      throw new RuntimeException(t);
+      if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+        throw (Error) cause;
+      }
+      if (cause instanceof TemplateException te) {
+        throw te;
+      }
+      String memberName = site.memberKey().name();
+      throw new TemplateRenderException(
+          "Index read '"
+              + memberName
+              + "' threw an exception: "
+              + (cause.getMessage() != null
+                  ? cause.getMessage()
+                  : cause.getClass().getSimpleName()),
+          TemplateId.of("<generated>"),
+          SourceSpan.UNKNOWN,
+          InterpreterDiagnosticCodes.INVALID_METHOD,
+          cause);
     }
   }
 
   /** Dispatches dynamic indexed write through M9 {@link DynamicCallSite}. */
+  @SuppressWarnings("removal")
   public static void dynamicSetIndex(
       DynamicCallSite site, Object target, Object index, Object value) {
     if (target == null) {
@@ -718,15 +902,42 @@ public final class BytecodeRuntimeBridge {
     }
     try {
       site.invoke(unwrapped, index, value);
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateException te) {
+      throw te;
     } catch (Throwable t) {
-      if (t instanceof RuntimeException re) {
-        throw re;
+      Throwable cause = t;
+      while (cause instanceof InvocationTargetException ite) {
+        Throwable targetEx = ite.getCause() != null ? ite.getCause() : ite.getTargetException();
+        if (targetEx == null) {
+          break;
+        }
+        cause = targetEx;
       }
-      throw new RuntimeException(t);
+      if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+        throw (Error) cause;
+      }
+      if (cause instanceof TemplateException te) {
+        throw te;
+      }
+      String memberName = site.memberKey().name();
+      throw new TemplateRenderException(
+          "Index write '"
+              + memberName
+              + "' threw an exception: "
+              + (cause.getMessage() != null
+                  ? cause.getMessage()
+                  : cause.getClass().getSimpleName()),
+          TemplateId.of("<generated>"),
+          SourceSpan.UNKNOWN,
+          InterpreterDiagnosticCodes.INVALID_METHOD,
+          cause);
     }
   }
 
   /** Dispatches dynamic method invocation through M9 {@link DynamicCallSite}. */
+  @SuppressWarnings("removal")
   public static Object dynamicInvokeMethod(DynamicCallSite site, Object target, Object[] args) {
     if (target == null) {
       return null;
@@ -769,6 +980,15 @@ public final class BytecodeRuntimeBridge {
             try {
               m.setAccessible(true);
               return m.invoke(unwrapped, args);
+            } catch (InvocationTargetException ite) {
+              Throwable targetEx = ite.getTargetException();
+              if (targetEx instanceof Error err) {
+                throw err;
+              }
+              if (targetEx instanceof RuntimeException re) {
+                throw re;
+              }
+              throw new RuntimeException(targetEx);
             } catch (Exception ex) {
               throw new RuntimeException(ex);
             }
@@ -776,11 +996,37 @@ public final class BytecodeRuntimeBridge {
         }
       }
       throw cce;
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateException te) {
+      throw te;
     } catch (Throwable t) {
-      if (t instanceof RuntimeException re) {
-        throw re;
+      Throwable cause = t;
+      while (cause instanceof InvocationTargetException ite) {
+        Throwable targetEx = ite.getCause() != null ? ite.getCause() : ite.getTargetException();
+        if (targetEx == null) {
+          break;
+        }
+        cause = targetEx;
       }
-      throw new RuntimeException(t);
+      if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+        throw (Error) cause;
+      }
+      if (cause instanceof TemplateException te) {
+        throw te;
+      }
+      String methodName = site.memberKey().name();
+      throw new TemplateRenderException(
+          "Method '"
+              + methodName
+              + "' threw an exception: "
+              + (cause.getMessage() != null
+                  ? cause.getMessage()
+                  : cause.getClass().getSimpleName()),
+          TemplateId.of("<generated>"),
+          SourceSpan.UNKNOWN,
+          InterpreterDiagnosticCodes.INVALID_METHOD,
+          cause);
     }
   }
 
@@ -835,7 +1081,8 @@ public final class BytecodeRuntimeBridge {
   /** Increments loop iteration count on the output's render budget if present. */
   public static void countLoopIteration(TemplateOutput output) {
     if (output
-        instanceof io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput cto) {
+        instanceof
+        io.github.minh124199.viettemplate.vtl.internal.interpreter.CountingTemplateOutput cto) {
       cto.budget().countLoopIteration();
     }
   }

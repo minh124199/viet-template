@@ -1,13 +1,21 @@
 package io.github.minh124199.viettemplate.vtl.engine.cache;
 
 import io.github.minh124199.viettemplate.api.TemplateId;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.*;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.context.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.dependency.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.layout.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.macro.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.watcher.*;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import java.util.Objects;
 
 /**
  * Record representing a negatively cached lookup (e.g. missing template or fatal syntax error) to
  * protect against repeated disk/classpath misses.
  */
-public record NegativeCacheEntry(TemplateId templateId, String reason, long expirationEpochMillis) {
+record NegativeCacheEntry(TemplateId templateId, String reason, long expirationEpochMillis) {
 
   public NegativeCacheEntry {
     Objects.requireNonNull(templateId, "templateId must not be null");

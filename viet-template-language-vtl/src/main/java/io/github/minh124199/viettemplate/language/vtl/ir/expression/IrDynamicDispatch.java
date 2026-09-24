@@ -1,7 +1,7 @@
 package io.github.minh124199.viettemplate.language.vtl.ir.expression;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
-import io.github.minh124199.viettemplate.language.vtl.ir.plan.DynamicAccessSite;
+import io.github.minh124199.viettemplate.language.vtl.internal.ir.plan.DynamicAccessSite;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import java.util.List;
 import java.util.Objects;

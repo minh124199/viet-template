@@ -42,7 +42,7 @@ import java.util.Set;
  * Optimization pass inlining small, non-recursive macro function bodies directly at their call
  * sites within configured depth and statement count budgets.
  */
-public final class MacroInliningPass implements IrOptimizationPass {
+final class MacroInliningPass implements IrOptimizationPass {
 
   public static final String NAME = "MacroInlining";
 

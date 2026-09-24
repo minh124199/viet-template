@@ -10,6 +10,7 @@ import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.runtime.MapRenderContext;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
+import io.github.minh124199.viettemplate.vtl.interpreter.EngineInterpreterBridge;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
 import java.math.BigDecimal;
@@ -55,7 +56,8 @@ class SemanticCompatibilityDifferentialTest {
     StringTemplateOutput output = new StringTemplateOutput();
     RenderContext renderContext = MapRenderContext.of(context);
     try {
-      interpreter.interpret(parseResult.template(), source, renderContext, output);
+      EngineInterpreterBridge.interpret(
+          interpreter, parseResult.template(), source, renderContext, output);
     } catch (Exception e) {
       if (e instanceof RuntimeException re) {
         throw re;

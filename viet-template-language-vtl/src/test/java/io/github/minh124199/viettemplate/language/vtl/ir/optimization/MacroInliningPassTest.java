@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.capability.TemplateCapabilities;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrParameter;
@@ -13,7 +14,6 @@ import io.github.minh124199.viettemplate.language.vtl.ir.expression.IrConst;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallMacro;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStoreLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteConst;
-import io.github.minh124199.viettemplate.language.vtl.semantics.capability.TemplateCapabilities;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import java.util.List;
 import java.util.Optional;

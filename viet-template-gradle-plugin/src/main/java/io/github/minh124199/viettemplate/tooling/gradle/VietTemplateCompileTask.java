@@ -101,7 +101,7 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
     Charset charset;
     try {
       charset = Charset.forName(enc);
-    } catch (Exception e) {
+    } catch (IllegalArgumentException e) {
       throw new GradleException("Invalid encoding: " + enc, e);
     }
 
@@ -131,7 +131,7 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
     TemplateAotRequest request;
     try {
       request = reqBuilder.build();
-    } catch (Exception e) {
+    } catch (IllegalArgumentException | IllegalStateException e) {
       throw new GradleException("Failed to build AOT compilation request: " + e.getMessage(), e);
     }
 

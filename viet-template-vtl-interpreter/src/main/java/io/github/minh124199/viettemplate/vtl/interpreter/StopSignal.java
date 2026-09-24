@@ -1,7 +1,9 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
+
 /** Signal to stop execution of the current template. */
-public final class StopSignal extends ControlSignal {
+final class StopSignal extends ControlSignal {
   @java.io.Serial private static final long serialVersionUID = 1L;
 
   public static final StopSignal INSTANCE = new StopSignal();

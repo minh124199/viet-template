@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.language.vtl.ast;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.language.vtl.internal.ast.ReferenceNotation;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;

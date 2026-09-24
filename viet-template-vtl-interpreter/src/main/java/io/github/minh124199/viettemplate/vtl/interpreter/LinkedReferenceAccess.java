@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.api.TemplateException;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
@@ -10,6 +11,8 @@ import io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicLinker;
 import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
 import io.github.minh124199.viettemplate.runtime.linker.MemberKey;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.InterpreterDiagnosticCodes;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -19,40 +22,41 @@ import java.util.Objects;
  * DynamicLinker} and inline-cached {@link DynamicCallSite} instances, with transparent fallback to
  * {@link DefaultReferenceAccess}.
  */
-public final class LinkedReferenceAccess implements ReferenceAccess {
+final class LinkedReferenceAccess implements ReferenceAccess {
 
   private final VtlSecurityPolicy securityPolicy;
   private final LinkerAccessPolicy linkerPolicy;
   private final DefaultReferenceAccess fallback;
   private final CallSiteRegistry registry;
 
-  public LinkedReferenceAccess(VtlSecurityPolicy securityPolicy) {
+  LinkedReferenceAccess(VtlSecurityPolicy securityPolicy) {
     this(
         securityPolicy,
         new CallSiteRegistry(
             4096, new DynamicLinker(new VtlLinkerAccessPolicyAdapter(securityPolicy))));
   }
 
-  public LinkedReferenceAccess(VtlSecurityPolicy securityPolicy, CallSiteRegistry registry) {
+  LinkedReferenceAccess(VtlSecurityPolicy securityPolicy, CallSiteRegistry registry) {
     this.securityPolicy = Objects.requireNonNull(securityPolicy, "securityPolicy must not be null");
     this.linkerPolicy = new VtlLinkerAccessPolicyAdapter(securityPolicy);
     this.fallback = new DefaultReferenceAccess(securityPolicy);
     this.registry = Objects.requireNonNull(registry, "registry must not be null");
   }
 
-  public CallSiteRegistry registry() {
+  CallSiteRegistry registry() {
     return registry;
   }
 
-  public VtlSecurityPolicy securityPolicy() {
+  VtlSecurityPolicy securityPolicy() {
     return securityPolicy;
   }
 
-  public DefaultReferenceAccess fallback() {
+  DefaultReferenceAccess fallback() {
     return fallback;
   }
 
   @Override
+  @SuppressWarnings("removal")
   public EvaluationValue getProperty(
       Object target, String propertyName, SourceSpan span, TemplateId id) {
     if (target == null) {
@@ -95,13 +99,30 @@ public final class LinkedReferenceAccess implements ReferenceAccess {
         return EvaluationValue.of(value);
       } catch (ControlSignal cs) {
         throw cs;
+      } catch (VirtualMachineError | ThreadDeath fatal) {
+        throw fatal;
+      } catch (TemplateException te) {
+        throw te;
       } catch (Throwable t) {
+        Throwable cause =
+            (t instanceof InvocationTargetException ite) ? ite.getTargetException() : t;
+        if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+          throw (Error) cause;
+        }
+        if (cause instanceof TemplateException te) {
+          throw te;
+        }
         throw new TemplateRenderException(
-            "Property '" + propertyName + "' evaluation threw an exception: " + t.getMessage(),
+            "Property '"
+                + propertyName
+                + "' evaluation threw an exception: "
+                + (cause.getMessage() != null
+                    ? cause.getMessage()
+                    : cause.getClass().getSimpleName()),
             id,
             span,
-            InterpreterDiagnosticCodes.SYNTAX_ERROR,
-            t);
+            InterpreterDiagnosticCodes.INVALID_METHOD,
+            cause);
       }
     }
 
@@ -109,6 +130,7 @@ public final class LinkedReferenceAccess implements ReferenceAccess {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public EvaluationValue invokeMethod(
       Object target,
       String methodName,
@@ -156,13 +178,30 @@ public final class LinkedReferenceAccess implements ReferenceAccess {
           return EvaluationValue.of(result);
         } catch (ControlSignal cs) {
           throw cs;
+        } catch (VirtualMachineError | ThreadDeath fatal) {
+          throw fatal;
+        } catch (TemplateException te) {
+          throw te;
         } catch (Throwable t) {
+          Throwable cause =
+              (t instanceof InvocationTargetException ite) ? ite.getTargetException() : t;
+          if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+            throw (Error) cause;
+          }
+          if (cause instanceof TemplateException te) {
+            throw te;
+          }
           throw new TemplateRenderException(
-              "Method '" + methodName + "' threw an exception: " + t.getMessage(),
+              "Method '"
+                  + methodName
+                  + "' threw an exception: "
+                  + (cause.getMessage() != null
+                      ? cause.getMessage()
+                      : cause.getClass().getSimpleName()),
               id,
               span,
-              InterpreterDiagnosticCodes.SYNTAX_ERROR,
-              t);
+              InterpreterDiagnosticCodes.INVALID_METHOD,
+              cause);
         }
       }
     }

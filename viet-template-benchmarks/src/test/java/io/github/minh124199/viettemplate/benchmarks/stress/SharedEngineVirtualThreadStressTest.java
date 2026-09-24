@@ -10,7 +10,7 @@ import io.github.minh124199.viettemplate.runtime.RenderBudget;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.runtime.linker.CallSiteRegistry;
 import io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine;
-import io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.CountingTemplateOutput;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import java.lang.reflect.Method;
 import java.util.ArrayList;

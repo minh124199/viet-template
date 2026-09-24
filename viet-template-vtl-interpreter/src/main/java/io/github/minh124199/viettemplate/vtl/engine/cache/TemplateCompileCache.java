@@ -1,7 +1,20 @@
 package io.github.minh124199.viettemplate.vtl.engine.cache;
 
+import io.github.minh124199.viettemplate.api.RenderContext;
+import io.github.minh124199.viettemplate.api.Template;
 import io.github.minh124199.viettemplate.api.TemplateDependencyGraph;
+import io.github.minh124199.viettemplate.api.TemplateDescriptor;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import io.github.minh124199.viettemplate.api.TemplateOutput;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.*;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.context.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.dependency.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.layout.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.macro.*;
+import io.github.minh124199.viettemplate.vtl.internal.engine.watcher.*;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -47,6 +60,16 @@ import java.util.concurrent.locks.ReentrantLock;
  * <p>A thread holding a {@code templateLock} must never attempt to acquire {@link
  * #maintenanceLock}. Conversely, {@link #maintenanceLock} may acquire one or more {@code
  * templateLocks} (for example, during capacity eviction or full cache invalidation).
+ *
+ * <h3>Schema and Cache Versioning Invariants</h3>
+ *
+ * <p>Cache entry identity is uniquely defined by multi-dimensional {@link CompileCacheKey}
+ * instances which incorporate the template source digest, precomputed {@link
+ * io.github.minh124199.viettemplate.vtl.engine.EngineFingerprint} (compiler version, execution
+ * tier, optimization level, security policy, model schema, and backend profile hashes), and global
+ * macro fingerprints. This strict multi-dimensional partitioning guarantees complete isolation
+ * across compiler versions and runtime configurations, preventing cross-version cache pollution and
+ * serialization schema drift.
  */
 public final class TemplateCompileCache {
 
@@ -61,7 +84,7 @@ public final class TemplateCompileCache {
   private final long negativeCacheTtlMillis;
   private final int maxNegativeEntries;
 
-  private final ConcurrentMap<CompileCacheKey, CompiledTemplateHandle> entries =
+  private final ConcurrentMap<CompileCacheKey, PreparedTemplateEntry> entries =
       new ConcurrentHashMap<>();
   private final ConcurrentMap<TemplateId, CompileCacheKey> activeKeys = new ConcurrentHashMap<>();
 
@@ -179,55 +202,68 @@ public final class TemplateCompileCache {
   }
 
   /**
-   * Retrieves a cached {@link CompiledTemplateHandle} by its exact multi-dimensional {@link
+   * Retrieves a cached {@link PreparedTemplateEntry} by its exact multi-dimensional {@link
    * CompileCacheKey}.
    *
    * <p>On hit, records recency into the current thread's stripe buffer without acquiring locks. If
    * the stripe's read threshold is reached, maintenance draining is opportunistically attempted.
    */
-  public Optional<CompiledTemplateHandle> get(CompileCacheKey key) {
+  public Optional<PreparedTemplateEntry> getEntry(CompileCacheKey key) {
     Objects.requireNonNull(key, "key must not be null");
-    CompiledTemplateHandle handle = entries.get(key);
-    if (handle != null) {
+    PreparedTemplateEntry entry = entries.get(key);
+    if (entry != null) {
       int stripe = (int) (Thread.currentThread().threadId() & RECENCY_STRIPE_MASK);
       boolean shouldDrain = recencyStripes[stripe].record(key);
       if (shouldDrain) {
         tryDrainMaintenance();
       }
-      return Optional.of(handle);
+      return Optional.of(entry);
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Retrieves a cached {@link CompiledTemplateHandle} by its exact multi-dimensional {@link
+   * CompileCacheKey}.
+   */
+  public Optional<CompiledTemplateHandle> get(CompileCacheKey key) {
+    return getEntry(key).map(PreparedTemplateEntry::handle);
+  }
+
+  /** Retrieves the currently active prepared template entry for a given {@link TemplateId}. */
+  public Optional<PreparedTemplateEntry> getActiveEntry(TemplateId id) {
+    Objects.requireNonNull(id, "id must not be null");
+    CompileCacheKey activeKey = activeKeys.get(id);
+    if (activeKey != null) {
+      return getEntry(activeKey);
     }
     return Optional.empty();
   }
 
   /** Retrieves the currently active handle for a given {@link TemplateId}. */
   public Optional<CompiledTemplateHandle> getActive(TemplateId id) {
-    Objects.requireNonNull(id, "id must not be null");
-    CompileCacheKey activeKey = activeKeys.get(id);
-    if (activeKey != null) {
-      return get(activeKey);
-    }
-    return Optional.empty();
+    return getActiveEntry(id).map(PreparedTemplateEntry::handle);
   }
 
   /**
-   * Atomically stores a compiled template handle and sets it as the active version.
+   * Atomically stores a prepared template entry and sets it as the active version.
    *
    * <p>Enforces maximum capacity eviction under {@link #maintenanceLock} if entries exceed {@link
    * #maxEntries}.
    */
-  public void put(CompileCacheKey key, CompiledTemplateHandle handle) {
-    Objects.requireNonNull(key, "key must not be null");
-    Objects.requireNonNull(handle, "handle must not be null");
+  public void put(PreparedTemplateEntry entry) {
+    Objects.requireNonNull(entry, "entry must not be null");
+    CompileCacheKey key = entry.key();
 
-    synchronized (templateLock(key.templateId())) {
-      CompiledTemplateHandle previous = entries.put(key, handle);
+    synchronized (templateLock(entry.templateId())) {
+      PreparedTemplateEntry previous = entries.put(key, entry);
       if (previous == null) {
         keysByTemplate
-            .computeIfAbsent(key.templateId(), ignored -> ConcurrentHashMap.newKeySet())
+            .computeIfAbsent(entry.templateId(), ignored -> ConcurrentHashMap.newKeySet())
             .add(key);
       }
-      activeKeys.put(key.templateId(), key);
-      negativeEntries.remove(key.templateId());
+      activeKeys.put(entry.templateId(), key);
+      negativeEntries.remove(entry.templateId());
     }
 
     maintenanceLock.lock();
@@ -238,6 +274,33 @@ public final class TemplateCompileCache {
     } finally {
       maintenanceLock.unlock();
     }
+  }
+
+  /**
+   * Atomically stores a compiled template handle wrapped in a default {@link PreparedTemplateEntry}
+   * and sets it as the active version.
+   */
+  public void put(CompileCacheKey key, CompiledTemplateHandle handle) {
+    Objects.requireNonNull(key, "key must not be null");
+    Objects.requireNonNull(handle, "handle must not be null");
+
+    TemplateDescriptor descriptor = TemplateDescriptor.of(key.templateId(), "FALLBACK");
+    Template fallbackTemplate =
+        new Template() {
+          @Override
+          public TemplateDescriptor descriptor() {
+            return descriptor;
+          }
+
+          @Override
+          public void render(RenderContext context, TemplateOutput output) throws IOException {
+            handle.render(context, output);
+          }
+        };
+
+    put(
+        new PreparedTemplateEntry(
+            key.templateId(), handle.generation(), key, handle, fallbackTemplate, descriptor));
   }
 
   /**
@@ -278,6 +341,12 @@ public final class TemplateCompileCache {
 
     long expiresAt = System.currentTimeMillis() + negativeCacheTtlMillis;
     negativeEntries.put(id, new NegativeCacheEntry(id, reason, expiresAt));
+  }
+
+  /** Clears any negative cache entry for the specified template. */
+  public void clearNegative(TemplateId id) {
+    Objects.requireNonNull(id, "id must not be null");
+    negativeEntries.remove(id);
   }
 
   /**
@@ -413,7 +482,7 @@ public final class TemplateCompileCache {
 
   private void evictEntry(CompileCacheKey key) {
     synchronized (templateLock(key.templateId())) {
-      CompiledTemplateHandle removed = entries.remove(key);
+      PreparedTemplateEntry removed = entries.remove(key);
       if (removed != null) {
         activeKeys.remove(key.templateId(), key);
         keysByTemplate.computeIfPresent(

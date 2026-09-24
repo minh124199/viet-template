@@ -51,7 +51,7 @@ public final class IrSlotLayout {
     MACRO_LOCAL
   }
 
-  public enum InitializationPolicy {
+  enum InitializationPolicy {
     SEEDED_FROM_CONTEXT,
     FRESH_UNDEFINED,
     ITERATION_MANAGED,

@@ -1,0 +1,250 @@
+[
+  {
+    "class": "io.github.minh124199.viettemplate.api.TemplateEngineProvider",
+    "method": "load",
+    "caughtType": "Exception",
+    "category": "FRAMEWORK",
+    "owner": "api",
+    "reason": "Fallback reflection probe to instantiate default VtlTemplateEngineProvider when ServiceLoader discovers no registered provider implementations; wraps reflective instantiation failure into clear IllegalStateException."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.interpreter.IrInterpreter",
+    "method": "evaluateGetProperty",
+    "caughtType": "Exception",
+    "category": "EVALUATION",
+    "owner": "engine",
+    "reason": "DirectRecord accessor MethodHandle invocation fallback in evaluateGetProperty; rethrows fatal errors, ControlSignal, and TemplateException before falling back to dynamic reference access."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.interpreter.IrInterpreter",
+    "method": "evaluateGetProperty",
+    "caughtType": "Exception",
+    "category": "EVALUATION",
+    "owner": "engine",
+    "reason": "DirectGetter MethodHandle invocation fallback in evaluateGetProperty; rethrows fatal errors, unwraps InvocationTargetException, and rethrows ControlSignal before falling back to dynamic reference access."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.interpreter.IrInterpreter",
+    "method": "evaluateGetProperty",
+    "caughtType": "Exception",
+    "category": "EVALUATION",
+    "owner": "engine",
+    "reason": "DirectField field read fallback in evaluateGetProperty; rethrows fatal errors, ControlSignal, and TemplateException before falling back to dynamic reference access."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.interpreter.IrInterpreter",
+    "method": "evaluateGetProperty",
+    "caughtType": "Exception",
+    "category": "EVALUATION",
+    "owner": "engine",
+    "reason": "ExtensionCall static method invocation fallback in evaluateGetProperty; rethrows fatal errors, unwraps InvocationTargetException, and rethrows ControlSignal before falling back to dynamic reference access."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.interpreter.IrInterpreter",
+    "method": "evaluateInvokeAllowedMethod",
+    "caughtType": "Exception",
+    "category": "EVALUATION",
+    "owner": "engine",
+    "reason": "Invokes permitted reflective method in IR interpreter; rethrows fatal errors, ControlSignal, and TemplateException, unwrapping InvocationTargetException before wrapping reflective call errors in TemplateRenderException."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.interpreter.LinkedReferenceAccess",
+    "method": "getProperty",
+    "caughtType": "Throwable",
+    "category": "EVALUATION",
+    "owner": "engine",
+    "reason": "Dynamic call site getter invocation via MethodHandle; catches Throwable to rethrow fatal errors, unwraps InvocationTargetException, and wraps user application failure in TemplateRenderException."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.interpreter.LinkedReferenceAccess",
+    "method": "invokeMethod",
+    "caughtType": "Throwable",
+    "category": "EVALUATION",
+    "owner": "engine",
+    "reason": "Dynamic call site zero-arg method invocation via MethodHandle; catches Throwable to rethrow fatal errors, unwraps InvocationTargetException, and wraps user application failure in TemplateRenderException."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter",
+    "method": "render",
+    "caughtType": "Exception",
+    "category": "EVALUATION",
+    "owner": "engine",
+    "reason": "AOT compiled template execution for AST-based VtlTemplate; propagates TemplateException and IOException directly, wrapping unexpected execution failures in TemplateRenderException."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter",
+    "method": "render",
+    "caughtType": "Exception",
+    "category": "EVALUATION",
+    "owner": "engine",
+    "reason": "AOT compiled template execution for IrTemplate; propagates TemplateException and IOException directly, wrapping unexpected execution failures in TemplateRenderException."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge",
+    "method": "dynamicGetProperty",
+    "caughtType": "Throwable",
+    "category": "EVALUATION",
+    "owner": "compiler",
+    "reason": "Dispatches dynamic property read through MethodHandle / DynamicCallSite; catches Throwable to immediately rethrow Error/VirtualMachineError and RuntimeException without suppression."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge",
+    "method": "dynamicSetProperty",
+    "caughtType": "Throwable",
+    "category": "EVALUATION",
+    "owner": "compiler",
+    "reason": "Dispatches dynamic property write through MethodHandle / DynamicCallSite; catches Throwable to immediately rethrow Error/VirtualMachineError and RuntimeException without suppression."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge",
+    "method": "dynamicGetIndex",
+    "caughtType": "Throwable",
+    "category": "EVALUATION",
+    "owner": "compiler",
+    "reason": "Dispatches dynamic indexed read through MethodHandle / DynamicCallSite; catches Throwable to immediately rethrow Error/VirtualMachineError and RuntimeException without suppression."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge",
+    "method": "dynamicSetIndex",
+    "caughtType": "Throwable",
+    "category": "EVALUATION",
+    "owner": "compiler",
+    "reason": "Dispatches dynamic indexed write through MethodHandle / DynamicCallSite; catches Throwable to immediately rethrow Error/VirtualMachineError and RuntimeException without suppression."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge",
+    "method": "dynamicInvokeMethod",
+    "caughtType": "Exception",
+    "category": "EVALUATION",
+    "owner": "compiler",
+    "reason": "Reflective method invocation fallback when MethodHandle call site types mismatch; wraps reflection invocation failure in RuntimeException after checking security policy."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge",
+    "method": "dynamicInvokeMethod",
+    "caughtType": "Throwable",
+    "category": "EVALUATION",
+    "owner": "compiler",
+    "reason": "Dispatches dynamic method invocation through DynamicCallSite; catches Throwable to immediately rethrow Error/VirtualMachineError and RuntimeException."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine",
+    "method": "VtlTemplateEngine",
+    "caughtType": "Exception",
+    "category": "RESOLUTION",
+    "owner": "engine",
+    "reason": "Warming template cache via get(targetId) inside resource resolver fallback; rethrows security and compilation exceptions, ignoring other lookup failures before direct repository resolution."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine",
+    "method": "VtlTemplateEngine",
+    "caughtType": "Exception",
+    "category": "LIFECYCLE",
+    "owner": "engine",
+    "reason": "Filesystem watcher event callback invalidating template cache on file change; catches non-fatal exceptions during path relativization and cache invalidation."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine",
+    "method": "repositoryFreshnessToken",
+    "caughtType": "Exception",
+    "category": "LIFECYCLE",
+    "owner": "engine",
+    "reason": "Probing TemplateFreshnessProvider for template cache freshness token; propagates security violations while returning empty token on unexpected provider failure."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.internal.engine.watcher.DevelopmentFileWatcher",
+    "method": "drainDebouncedEvents",
+    "caughtType": "Exception",
+    "category": "LIFECYCLE",
+    "owner": "engine",
+    "reason": "Notifies file change listener during watcher debounce event drain; isolates listener exceptions to prevent background event thread termination."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.vtl.internal.engine.watcher.DevelopmentFileWatcher",
+    "method": "close",
+    "caughtType": "Exception",
+    "category": "LIFECYCLE",
+    "owner": "engine",
+    "reason": "Suppresses non-fatal close failures from WatchService during development file watcher shutdown."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver",
+    "method": "templateExists",
+    "caughtType": "Exception",
+    "category": "RESOLUTION",
+    "owner": "spring",
+    "reason": "Probing repository for template existence in Spring ViewResolver; rethrows fatal errors and security exceptions before falling through to engine probe."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver",
+    "method": "templateExists",
+    "caughtType": "Exception",
+    "category": "RESOLUTION",
+    "owner": "spring",
+    "reason": "Probing engine for template resolution in Spring ViewResolver; rethrows fatal and security exceptions, treating compilation/syntax failures as indication that template exists."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration",
+    "method": "hasAotTemplates",
+    "caughtType": "Exception",
+    "category": "OPTIONAL_CAPABILITY_PROBE",
+    "owner": "spring",
+    "reason": "Probing ApplicationContext and ClassLoader for presence of AOT templates index during Spring Boot auto-configuration; returns false if index is absent or unreadable."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.tck.conformance.runner.TckRunner",
+    "method": "executeScenario",
+    "caughtType": "Throwable",
+    "category": "FRAMEWORK",
+    "owner": "tck",
+    "reason": "TCK scenario execution harness capturing thrown exceptions to assert expected error codes; rethrows VirtualMachineError and ThreadDeath immediately."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.quarkus.VietTemplateProducer",
+    "method": "produceTemplateEngine",
+    "caughtType": "Throwable",
+    "category": "OPTIONAL_CAPABILITY_PROBE",
+    "owner": "quarkus",
+    "reason": "Probing Arc container for optional Quarkus SecurityIdentity bean; rethrows fatal errors, gracefully skipping security contributor when security extension is absent."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer",
+    "method": "templateExists",
+    "caughtType": "Exception",
+    "category": "RESOLUTION",
+    "owner": "quarkus",
+    "reason": "Probing repository for template existence in Quarkus renderer; rethrows fatal errors and security exceptions before falling through to engine probe."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer",
+    "method": "templateExists",
+    "caughtType": "Exception",
+    "category": "RESOLUTION",
+    "owner": "quarkus",
+    "reason": "Probing engine for template resolution in Quarkus renderer; rethrows fatal and security exceptions, treating compilation/syntax failures as indication that template exists."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor",
+    "method": "resolveIdentity",
+    "caughtType": "Throwable",
+    "category": "SECURITY",
+    "owner": "quarkus",
+    "reason": "Invokes custom SecurityIdentity supplier; rethrows VirtualMachineError and ThreadDeath before returning null fallback."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor",
+    "method": "resolveIdentity",
+    "caughtType": "Throwable",
+    "category": "OPTIONAL_CAPABILITY_PROBE",
+    "owner": "quarkus",
+    "reason": "Resolves SecurityIdentity bean from Arc container in Quarkus security contributor; rethrows fatal errors and returns null if container or bean is unavailable."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView",
+    "method": "from",
+    "caughtType": "Throwable",
+    "category": "SECURITY",
+    "owner": "quarkus",
+    "reason": "Extracts principal and roles from Quarkus SecurityIdentity; rethrows fatal errors before returning ANONYMOUS view snapshot on unexpected failure."
+  }
+]

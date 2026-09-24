@@ -3,6 +3,7 @@ package io.github.minh124199.viettemplate.vtl.interpreter;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlNode;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import java.util.List;
 import java.util.Objects;
 
@@ -10,7 +11,7 @@ import java.util.Objects;
  * Represents a lazily executed template block, used for {@code #define} and block macro bodies
  * ({@code $bodyContent}).
  */
-public final class RenderableBlock {
+final class RenderableBlock {
 
   private final List<VtlNode> body;
   private final ExecutionContext capturedContext;

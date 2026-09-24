@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Thread-safe metrics collector tracking optimization actions performed across all compiler passes.
  */
-public final class OptimizationStatistics {
+final class OptimizationStatistics {
 
   private final AtomicInteger deadCodeRemoved = new AtomicInteger();
   private final AtomicInteger constantsFolded = new AtomicInteger();

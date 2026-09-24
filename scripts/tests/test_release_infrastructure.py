@@ -248,6 +248,102 @@ class WorkflowContractTests(unittest.TestCase):
             self.assertTrue(any("skipped upload ancestors" in error for error in errors))
             self.assertTrue(any("full fingerprint" in error for error in errors))
 
+    def test_detects_missing_reactor_bootstrap_before_gradle_check(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.fixture(directory)
+            workflow = root / ".github/workflows/release.yml"
+            text = workflow.read_text()
+            bootstrap_step = (
+                "      - name: Bootstrap reactor artifacts for clean-room verification\n"
+                "        run: ./mvnw install -DskipTests -Dspotless.check.skip=true -B\n"
+            )
+            self.assertIn(bootstrap_step, text)
+            workflow.write_text(text.replace(bootstrap_step, ""))
+            errors = self.validate(root)
+            self.assertTrue(
+                any(
+                    "verify-builds must bootstrap reactor artifacts with './mvnw install -DskipTests' before running Gradle check"
+                    in error
+                    for error in errors
+                )
+            )
+
+            # Also verify that placing bootstrap step after Gradle check is detected as out-of-order
+            reordered = text.replace(bootstrap_step, "")
+            gradle_step = (
+                "      - name: Run Gradle check\n"
+                "        run: ./gradlew check --no-daemon -Dspotless.check.skip=true\n"
+            )
+            self.assertIn(gradle_step, reordered)
+            reordered = reordered.replace(gradle_step, gradle_step + bootstrap_step)
+            workflow.write_text(reordered)
+            reordered_errors = self.validate(root)
+            self.assertTrue(
+                any(
+                    "verify-builds must bootstrap reactor artifacts with './mvnw install -DskipTests' before running Gradle check"
+                    in error
+                    for error in reordered_errors
+                )
+            )
+
+    def test_detects_missing_workflow_dispatch_release_tag_input(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.fixture(directory)
+            workflow = root / ".github/workflows/release.yml"
+            text = workflow.read_text()
+            self.assertIn("release_tag:", text)
+            text = re.sub(
+                r"      release_tag:\n        description:.*?\n        type:.*?\n        required:.*?\n        default:.*?\n",
+                "",
+                text,
+            )
+            workflow.write_text(text)
+            errors = self.validate(root)
+            self.assertTrue(
+                any("release workflow must define release_tag input under workflow_dispatch" in error for error in errors)
+            )
+
+    def test_detects_missing_validate_metadata_outputs(self):
+        for out in ("artifact_source_tag", "artifact_source_sha", "orchestration_sha"):
+            with self.subTest(output=out), tempfile.TemporaryDirectory() as directory:
+                root = self.fixture(directory)
+                workflow = root / ".github/workflows/release.yml"
+                text = workflow.read_text()
+                self.assertIn(f"{out}:", text)
+                text = re.sub(rf"^\s+{out}:.*?\n", "", text, flags=re.MULTILINE)
+                workflow.write_text(text)
+                errors = self.validate(root)
+                self.assertTrue(
+                    any(f"validate-metadata job must export {out}" in error for error in errors)
+                )
+
+    def test_detects_checkout_ref_missing_artifact_source_sha(self):
+        for job_name in (
+            "verify-builds",
+            "m18-release-qualification",
+            "package-and-validate-bundle",
+            "publish-to-central",
+        ):
+            with self.subTest(job=job_name), tempfile.TemporaryDirectory() as directory:
+                root = self.fixture(directory)
+                workflow = root / ".github/workflows/release.yml"
+                text = workflow.read_text()
+                job_idx = text.index(f"  {job_name}:")
+                next_job_match = re.search(r"\n  [a-z0-9-]+:", text[job_idx + 10:])
+                job_end = job_idx + 10 + next_job_match.start() if next_job_match else len(text)
+                job_section = text[job_idx:job_end]
+                bad_job_section = job_section.replace(
+                    "ref: ${{ needs.validate-metadata.outputs.artifact_source_sha || github.ref }}",
+                    "ref: ${{ github.ref }}",
+                )
+                self.assertNotEqual(job_section, bad_job_section)
+                modified_text = text[:job_idx] + bad_job_section + text[job_end:]
+                workflow.write_text(modified_text)
+                errors = self.validate(root)
+                self.assertTrue(
+                    any(f"{job_name} must use artifact_source_sha in checkout ref" in error for error in errors)
+                )
+
 
 class MetadataTagSelectionTests(unittest.TestCase):
     def test_explicit_empty_release_tag_does_not_become_branch_name(self):
@@ -259,6 +355,19 @@ class MetadataTagSelectionTests(unittest.TestCase):
             with self.assertRaises(SystemExit) as result:
                 metadata.main()
             self.assertEqual(0, result.exception.code)
+
+    def test_dispatch_release_tag_selection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            gh_output = Path(directory) / "gh_output"
+            with mock.patch.dict(
+                metadata.os.environ,
+                {"RELEASE_TAG": "v1.0.0-RC1", "GITHUB_OUTPUT": str(gh_output)},
+                clear=True,
+            ), mock.patch.object(metadata.sys, "argv", ["verify-release-metadata.py"]):
+                with self.assertRaises(SystemExit) as result:
+                    metadata.main()
+                self.assertEqual(0, result.exception.code)
+            self.assertIn("tag_name=v1.0.0-RC1\n", gh_output.read_text())
 
 
 class PublicationMetadataTests(unittest.TestCase):
@@ -474,6 +583,11 @@ class PublicationMetadataTests(unittest.TestCase):
             self.assertTrue(any("Malformed appended url" in e for e in bad_errors))
             self.assertTrue(any("Malformed appended scm connection" in e for e in bad_errors))
 
+
+def __getattr__(name):
+    if name == "ReleaseWorkflowContractTests":
+        return WorkflowContractTests
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 if __name__ == "__main__":

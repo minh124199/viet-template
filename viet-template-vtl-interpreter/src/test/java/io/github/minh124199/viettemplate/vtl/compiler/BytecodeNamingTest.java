@@ -4,7 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.minh124199.viettemplate.api.TemplateId;
-import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeNaming;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.*;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.BytecodeNaming;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

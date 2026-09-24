@@ -2,7 +2,9 @@ package io.github.minh124199.viettemplate.vtl.compiler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.minh124199.viettemplate.vtl.compiler.bytecode.ClassFileWriter;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.*;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.*;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.ClassFileWriter;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;

@@ -196,4 +196,26 @@ class TemplateRepositoryTest {
     assertThat(repo.prefix()).isEqualTo("test-templates");
     assertThat(repo.find(TemplateId.of("nonexistent.vm"))).isEmpty();
   }
+
+  @Test
+  void classpathRepositoryFallbackLookup() {
+    ClassLoader cl =
+        new ClassLoader(ClasspathTemplateRepository.class.getClassLoader()) {
+          @Override
+          public java.net.URL getResource(String name) {
+            if ("templates/hello.vtl".equals(name)) {
+              return super.getResource(
+                  "io/github/minh124199/viettemplate/api/TemplateRepository.class");
+            }
+            return null;
+          }
+        };
+    ClasspathTemplateRepository repo = new ClasspathTemplateRepository(cl, "templates");
+    // When looking up "templates/hello.vtl", direct lookup attempts "templates/templates/hello.vtl"
+    // (null),
+    // and fallback queries "templates/hello.vtl", which succeeds!
+    Optional<TemplateSource> source = repo.find(TemplateId.of("templates/hello.vtl"));
+    assertThat(source).isPresent();
+    assertThat(source.get().origin().toString()).isEqualTo("classpath:/templates/hello.vtl");
+  }
 }

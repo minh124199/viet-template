@@ -3,10 +3,6 @@ package io.github.minh124199.viettemplate.benchmarks;
 import io.github.minh124199.viettemplate.api.InMemoryTemplateRepository;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.Template;
-import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
-import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema;
-import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability;
-import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge;
 import io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine;
@@ -81,20 +77,10 @@ public class LoopAlgorithmBenchmark {
 
     InMemoryTemplateRepository repository = InMemoryTemplateRepository.create();
     repository.put("loop-algorithm.vm", templateSource);
-    VtlSemanticOptions semanticOptions =
-        VtlSemanticOptions.builder()
-            .modelSchema(
-                source.startsWith("RANGE_")
-                    ? ModelSchema.empty()
-                    : ModelSchema.builder()
-                        .add("items", VTypes.fromJavaClass(input.getClass(), Nullability.NON_NULL))
-                        .build())
-            .build();
     engine =
         VtlTemplateEngine.builder()
             .repository(repository)
             .executionTier(ExecutionTier.valueOf(tier))
-            .semanticOptions(semanticOptions)
             .build();
     template = engine.get("loop-algorithm.vm");
     context =

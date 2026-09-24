@@ -24,7 +24,7 @@ import java.util.Optional;
  * <p>Implements {@code docs/06-optimization-pipeline.md §19} output explaining bound access plans,
  * specialized loops, dynamic dispatches, and constant chunks.
  */
-public final class IrExplainPlan {
+final class IrExplainPlan {
 
   private IrExplainPlan() {}
 

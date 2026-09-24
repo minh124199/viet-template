@@ -5,6 +5,7 @@ import io.github.minh124199.viettemplate.api.RenderRequest;
 import io.github.minh124199.viettemplate.api.TemplateEngine;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.runtime.Utf8OutputStreamTemplateOutput;
+import io.github.minh124199.viettemplate.runtime.stream.NonClosingOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.OutputStream;

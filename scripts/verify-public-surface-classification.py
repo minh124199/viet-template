@@ -3,14 +3,15 @@
 verify-public-surface-classification.py
 
 Automated CI verification script enforcing public surface containment and stability:
-- Check 1: 0 unclassified public types (every compiled public/protected type in production modules must be classified).
+- Check 1: 0 unclassified public types (every compiled public/protected type across all 11 production modules must be classified).
 - Check 2: No stale classified types (every type in classification file must exist and be public/protected).
 - Check 3: Compatibility baseline parity and bijection:
-           - Every type in any 1.0 baseline (core, aot, spring, spring-security) must be STABLE_API or STABLE_SPI.
+           - Every type in any 1.0 baseline (core, aot, spring, spring-security, quarkus) must be STABLE_API or STABLE_SPI.
            - Every type classified as STABLE_API or STABLE_SPI must be covered by a baseline.
            - Baselines must be strictly disjoint (0 duplicate ownership).
-- Check 4: Signature leak check: STABLE_API and STABLE_SPI in viet-template-api, viet-template-runtime,
-           viet-template-aot, and viet-template-spring must not leak any PUBLIC_BUT_INTERNAL_ACCIDENT or EXPERIMENTAL types into public signatures.
+- Check 4: Signature leak check: STABLE_API and STABLE_SPI across all packages/modules must not leak ANY non-stable types
+           (PUBLIC_BUT_INTERNAL_ACCIDENT, EXPERIMENTAL, FRAMEWORK_ENTRYPOINT, BUILD_TOOL_ENTRYPOINT,
+            SERVICE_ENTRYPOINT, INTERNAL_CROSS_MODULE, GENERATED_RUNTIME_ABI) into public signatures.
 """
 
 import os
@@ -29,6 +30,7 @@ BASELINE_LEGACY_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-public-a
 BASELINE_AOT_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-aot-public-api.txt")
 BASELINE_SPRING_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-spring-public-api.txt")
 BASELINE_SECURITY_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-spring-security-public-api.txt")
+BASELINE_QUARKUS_FILE = os.path.join(REPO_ROOT, "config/api-baseline/1.0-quarkus-public-api.txt")
 CLASSIFICATION_FILE = os.path.join(REPO_ROOT, "config/api-baseline/public-surface-classification.txt")
 
 DEFAULT_BASELINES = [
@@ -36,6 +38,7 @@ DEFAULT_BASELINES = [
     ("aot", BASELINE_AOT_FILE),
     ("spring", BASELINE_SPRING_FILE),
     ("spring-security", BASELINE_SECURITY_FILE),
+    ("quarkus", BASELINE_QUARKUS_FILE),
 ]
 
 JAVAP = os.environ.get("JAVAP_BIN")
@@ -66,6 +69,10 @@ MODULES = [
     "viet-template-spring",
     "viet-template-spring-boot-autoconfigure",
     "viet-template-spring-security",
+    "viet-template-quarkus",
+    "viet-template-quarkus-deployment",
+    "viet-template-maven-plugin",
+    "viet-template-gradle-plugin",
 ]
 
 FULL_CP = ":".join([os.path.join(REPO_ROOT, m, "build/classes/java/main") for m in MODULES])
@@ -146,25 +153,43 @@ def get_compiled_public_types():
     return pub_types
 
 
+def build_leak_pattern(internal_and_exp_types):
+    if not internal_and_exp_types:
+        return None
+    targets = sorted(list(internal_and_exp_types), key=len, reverse=True)
+    pattern_str = r"(?<![a-zA-Z0-9_$])(" + "|".join(re.escape(t) for t in targets) + r")(?![a-zA-Z0-9_$])"
+    return re.compile(pattern_str)
+
+
+def scan_signature_lines(cls, lines, pattern):
+    leaks = []
+    if pattern is None:
+        return leaks
+    for line in lines:
+        l = line.strip()
+        if not l or l.startswith("Compiled"):
+            continue
+        matches = pattern.findall(l)
+        if matches:
+            for m in set(matches):
+                if m != cls:
+                    leaks.append((cls, l, m))
+    return leaks
+
+
 def check_signature_leaks(api_types, internal_and_exp_types):
     leaks = []
-    targets = sorted(list(internal_and_exp_types), key=len, reverse=True)
-    pattern = re.compile(r"\b(" + "|".join(re.escape(t) for t in targets) + r")\b")
+    pattern = build_leak_pattern(internal_and_exp_types)
+    if pattern is None:
+        return leaks
 
     for cls in sorted(api_types):
         cmd = [JAVAP, "-protected", "-cp", FULL_CP, cls]
         proc = subprocess.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0:
             continue
-        for line in proc.stdout.splitlines():
-            l = line.strip()
-            if not l or l.startswith("Compiled"):
-                continue
-            matches = pattern.findall(l)
-            if matches:
-                for m in set(matches):
-                    if m != cls:
-                        leaks.append((cls, l, m))
+        cls_leaks = scan_signature_lines(cls, proc.stdout.splitlines(), pattern)
+        leaks.extend(cls_leaks)
     return leaks
 
 
@@ -264,18 +289,22 @@ def main():
     # --------------------------------------------------------------------------
     internal_and_exp = {
         cls for cls, cat in classification.items()
-        if cat in ("PUBLIC_BUT_INTERNAL_ACCIDENT", "EXPERIMENTAL")
+        if cat in (
+            "PUBLIC_BUT_INTERNAL_ACCIDENT",
+            "EXPERIMENTAL",
+            "FRAMEWORK_ENTRYPOINT",
+            "BUILD_TOOL_ENTRYPOINT",
+            "SERVICE_ENTRYPOINT",
+            "INTERNAL_CROSS_MODULE",
+            "INTERNAL_CROSS_PACKAGE",
+            "BENCHMARK_SUPPORT_INTERNAL",
+            "GENERATED_RUNTIME_ABI",
+        )
     }
 
     api_and_spi_to_check = {
         cls for cls, cat in classification.items()
         if cat in ("STABLE_API", "STABLE_SPI")
-        and (
-            cls.startswith("io.github.minh124199.viettemplate.api.")
-            or cls.startswith("io.github.minh124199.viettemplate.runtime.")
-            or cls.startswith("io.github.minh124199.viettemplate.aot.")
-            or cls.startswith("io.github.minh124199.viettemplate.spring.")
-        )
     }
 
     leaks = check_signature_leaks(api_and_spi_to_check, internal_and_exp)
@@ -298,6 +327,13 @@ def main():
     print(f"  STABLE_API:                  {counts.get('STABLE_API', 0)}")
     print(f"  STABLE_SPI:                  {counts.get('STABLE_SPI', 0)}")
     print(f"  EXPERIMENTAL:                {counts.get('EXPERIMENTAL', 0)}")
+    print(f"  FRAMEWORK_ENTRYPOINT:        {counts.get('FRAMEWORK_ENTRYPOINT', 0)}")
+    print(f"  BUILD_TOOL_ENTRYPOINT:       {counts.get('BUILD_TOOL_ENTRYPOINT', 0)}")
+    print(f"  SERVICE_ENTRYPOINT:          {counts.get('SERVICE_ENTRYPOINT', 0)}")
+    print(f"  GENERATED_RUNTIME_ABI:       {counts.get('GENERATED_RUNTIME_ABI', 0)}")
+    print(f"  INTERNAL_CROSS_MODULE:       {counts.get('INTERNAL_CROSS_MODULE', 0)}")
+    print(f"  INTERNAL_CROSS_PACKAGE:      {counts.get('INTERNAL_CROSS_PACKAGE', 0)}")
+    print(f"  BENCHMARK_SUPPORT_INTERNAL:  {counts.get('BENCHMARK_SUPPORT_INTERNAL', 0)}")
     print(f"  PUBLIC_BUT_INTERNAL_ACCIDENT:{counts.get('PUBLIC_BUT_INTERNAL_ACCIDENT', 0)}")
     print("--------------------------------------------------------------------------------")
 

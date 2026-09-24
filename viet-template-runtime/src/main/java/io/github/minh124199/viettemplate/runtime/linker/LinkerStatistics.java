@@ -13,7 +13,7 @@ public final class LinkerStatistics {
   private final AtomicLong denied = new AtomicLong();
 
   /** Immutable snapshot of current statistics. */
-  public record Snapshot(
+  record Snapshot(
       long links,
       long picHits,
       long picMisses,
@@ -79,7 +79,7 @@ public final class LinkerStatistics {
     return denied.get();
   }
 
-  public Snapshot snapshot() {
+  Snapshot snapshot() {
     return new Snapshot(
         links.get(),
         picHits.get(),

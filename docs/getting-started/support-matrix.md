@@ -1,6 +1,6 @@
 # Support Matrix & Compatibility
 
-This document outlines the official environment support matrix for **Viet Template 0.2.x**, including JDK runtimes, build tooling, framework integrations, and execution environments.
+This document outlines the official environment support matrix for **Viet Template 1.0.0-RC1**, including JDK runtimes, build tooling, framework integrations, and execution environments.
 
 ---
 
@@ -21,24 +21,40 @@ Viet Template enforces a hard baseline of **Java 21**. All production classes an
 
 Both Apache Maven and Gradle are supported as first-class build tools with verified build parity.
 
-| Build Tool | Supported Versions | Plugin Artifact ID / Gradle Plugin ID |
-|---|---|---|
-| **Apache Maven** | `3.9.0` and newer | `io.github.minh124199:viet-template-maven-plugin` |
-| **Gradle** | `8.5` and newer (including `8.10+`) | `io.github.minh124199.viet-template` |
+| Build Tool | Declared Minimum | RC-Tested Versions | Canonical RC Version | Plugin Coordinates |
+|---|---|---|---|---|
+| **Apache Maven** | `3.8.0` | `3.9.9` | `3.9.9` (wrapper) | `io.github.minh124199:viet-template-maven-plugin:1.0.0-RC1` |
+| **Gradle** | `8.5` | `9.7.1` | `9.7.1` (wrapper) | `io.github.minh124199.viet-template:1.0.0-RC1` |
 
 ---
 
-## 3. Spring Ecosystem
+## 3. Framework Integrations & Compatibility Matrix
 
-Viet Template is built natively for next-generation Spring Framework and Spring Boot releases:
+Viet Template specifies exact compatibility boundaries with explicit Declared Minimum, RC-Tested, and Canonical RC versions:
 
-| Framework | Supported Versions | Integration Module |
-|---|---|---|
-| **Spring Boot** | `4.0.0` and newer | `viet-template-spring-boot-starter`, `viet-template-spring-boot-autoconfigure` |
-| **Spring Framework** | `7.0.0` and newer | `viet-template-spring-web-servlet`, `viet-template-spring-web-reactive` |
-| **Spring Security** | `7.0.0` and newer | `viet-template-spring-security` |
+| Framework / Tool | Declared Minimum | RC-Tested Versions | Canonical RC Version | Native Image Status | Integration Modules |
+|---|---|---|---|---|---|
+| **Spring Boot** | `3.3.0` | `3.3.5`, `4.1.1` | `4.1.1` | Supported (Oracle GraalVM 25.0.4+7.1) | `viet-template-spring-boot-starter`, `viet-template-spring-boot-autoconfigure` |
+| **Spring Framework** | `6.1.0` | `6.1.14`, `7.0.9` | `7.0.9` | Supported (Oracle GraalVM 25.0.4+7.1) | `viet-template-spring` |
+| **Spring Security** | `6.3.0` | `6.3.4`, `6.5.11`, `7.0.7`, `7.1.1` | `7.1.1` | Supported (Oracle GraalVM 25.0.4+7.1) | `viet-template-spring-security` |
+| **Quarkus** | `3.33.0` | `3.33.3` (LTS), `3.39.4` | `3.39.4` | Supported (Mandrel 25.0.4.1-Final) | `viet-template-quarkus`, `viet-template-quarkus-deployment` |
 
-*Note: For Spring Boot 3.x / Spring Framework 6.x applications, contact the maintainers or evaluate migration prerequisites, as the default starter targets the Spring 7 baseline.*
+### 3.1 Quarkus Ecosystem Details
+- **Canonical Modern**: Quarkus `3.39.4` tested across Maven and Gradle fixtures.
+- **LTS Tested**: Quarkus `3.33.3` LTS line verified in continuous integration.
+- **Declared Minimum**: Quarkus `3.33.0` (requires Jakarta EE 10, CDI 4.0, SmallRye Config). Versions `< 3.33.0` are unsupported.
+
+### 3.2 Spring Ecosystem Details
+- **Canonical Modern**: Spring Boot `4.1.1` / Spring Framework `7.0.9` / Spring Security `7.1.1` (Jakarta Servlet 6.1.0, Tomcat 11.0.24).
+- **LTS Generation 1**: Spring Boot `3.3.5` / Spring Framework `6.1.14` / Spring Security `6.3.4` verified by dedicated multi-generation consumer fixtures.
+- **Additional Security Tested**: Spring Security `6.5.11` and `7.0.7` verified by single-artifact compatibility suite.
+
+*Note: The canonical starter targets Spring Framework 7 / Spring Boot 4. For Spring Boot 3.x applications, multi-generation consumer fixtures verify compatibility against Spring Boot 3.3.5 and Spring Security 6.3.4.*
+
+### 3.3 Standalone Jakarta EE & CDI Integration
+
+- **Status**: `NO_STANDALONE_JAKARTA_INTEGRATION`
+- **Scope**: Viet Template does not provide standalone Jakarta Servlet or CDI consumer modules. Jakarta Servlet (`6.1.0` canonical / `6.0.0` minimum) and CDI (`4.1.0`) are utilized strictly as transitive runtime dependencies of the Spring MVC (`viet-template-spring`) and Quarkus (`viet-template-quarkus`) integrations. Support claims for Jakarta EE and CDI apply solely within those framework contexts.
 
 ---
 
@@ -48,21 +64,30 @@ Viet Template is built natively for next-generation Spring Framework and Spring 
 |---|---|---|
 | **HotSpot JVM** | **Supported** | Validated on OpenJDK, Eclipse Temurin, Azul Zulu, Amazon Corretto, and GraalVM JDK. |
 | **Virtual Threads (Loom)** | **Supported** | Completely thread-safe and non-pinning. Viet Template avoids `synchronized` blocks on hot rendering paths, using `ReentrantLock` and fine-grained concurrent data structures to eliminate carrier-thread pinning. |
-| **GraalVM Native Image** | **Supported** | Ahead-of-Time native image compilation supported via `VietTemplateRuntimeHints`. In AOT mode (`viet-template.runtime-compilation-enabled=false`), rendering is completely reflection-free. |
-| **Spring AOT Processing** | **Supported** | Automatic contribution of GraalVM reflection and resource hints during `processAot` build phase. |
+| **GraalVM Native Image** | **Supported** | Ahead-of-Time native image compilation supported via `VietTemplateRuntimeHints` (Spring) and `VietTemplateProcessor` (Quarkus). In AOT mode (`runtime-compilation-enabled=false`), rendering is completely reflection-free. Quarkus native binary executables empirically qualified on Linux x86_64 (Mandrel 25.0.4.1-Final, Java 25). |
+| **Spring AOT Processing** | **JVM_AOT_QUALIFIED** | Automatic contribution of GraalVM reflection and resource hints during `processAot` build phase. Packaged executable JARs verified under JVM AOT execution (`scripts/verify-spring-integration-parity.sh`); Spring native-image binary compilation remains separate. |
 | **Spring Boot DevTools** | **Supported** | Restart-safe classloader handling. Compile cache isolates and tracks restart classloaders to prevent memory leaks or stale template definitions. |
+| **Quarkus Dev Mode** | **Supported** | Live reload with transitive `#parse` dependency invalidation and zero static ClassLoader leakage. |
 
 ---
 
-## 5. Operating Systems & Architectures
+## 5. Operating Systems & Native Image Hosts
 
-Viet Template is 100% pure Java and contains no JNI or OS-specific native bindings:
+Viet Template differentiates JVM runtime execution from GraalVM native binary compilation:
 
-| Operating System | Architecture | Verification Status |
-|---|---|---|
-| **Linux** | `x86_64` (AMD64), `aarch64` (ARM64) | Tested continuously in CI (Ubuntu 22.04 / 24.04). |
-| **macOS** | `aarch64` (Apple Silicon M1/M2/M3/M4), `x86_64` (Intel) | Verified. |
-| **Windows** | `x86_64` (Windows Server 2022, Windows 11) | Verified. |
+### 5.1 Standard JVM Execution
+| Operating System | Architecture | Support Status | Evidence |
+|---|---|---|---|
+| **Linux** | `x86_64`, `aarch64` | **Qualified** | Tested continuously in CI (Ubuntu 22.04 / 24.04). |
+| **macOS** | `aarch64` (Apple Silicon), `x86_64` | **Qualified** | Tested in CI (`macos-latest`). |
+| **Windows** | `x86_64` | **Qualified** | Tested in CI (`windows-latest`). |
+
+### 5.2 GraalVM Native Executable Compilation & Execution
+| Host Platform | Native Build Status | Native Execution Status | Evidence & Toolchain |
+|---|---|---|---|
+| **Linux x86_64** | **Empirically Qualified** | **PASS** | Spring Boot 3/4: Oracle GraalVM 25.0.4+7.1 (build 25.0.4+7-LTS). Quarkus: Mandrel 25.0.4.1-Final (Java 25), GCC 16.2.1; verified HTTP 200 on ports 18095/18097. |
+| **macOS aarch64** | **Experimental** | **Unverified** | JVM qualified; host native compilation not verified in CI. |
+| **Windows x86_64** | **Experimental** | **Unverified** | JVM qualified; host native compilation not verified in CI. |
 
 ---
 

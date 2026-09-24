@@ -169,6 +169,14 @@ def check_dependency_versions(errors):
     if gjf_ver != pom_gjf_ver:
         errors.append(f"google-java-format mismatch: Gradle={gjf_ver}, POM={pom_gjf_ver}")
 
+    # Quarkus
+    quarkus_toml = re.search(r'quarkus\s*=\s*["\']([^"\']+)["\']', libs_toml)
+    quarkus_ver = quarkus_toml.group(1) if quarkus_toml else None
+    pom_quarkus_ver = properties.get("quarkus.version")
+    print(f"[CHECK] Quarkus version: TOML={quarkus_ver}, POM={pom_quarkus_ver}")
+    if quarkus_ver != pom_quarkus_ver:
+        errors.append(f"Quarkus version mismatch: TOML={quarkus_ver}, POM={pom_quarkus_ver}")
+
     if not errors:
         print("[PASS] Core dependency versions are fully aligned.")
 
@@ -191,6 +199,8 @@ def check_jar_contents(errors):
         "viet-template-spring-boot-starter",
         "viet-template-maven-plugin",
         "viet-template-gradle-plugin",
+        "viet-template-quarkus",
+        "viet-template-quarkus-deployment",
     ]
     checked = 0
     for mod in modules:
@@ -306,6 +316,8 @@ def check_publication_metadata(errors):
             "viet-template-spring-boot-starter",
             "viet-template-maven-plugin",
             "viet-template-gradle-plugin",
+            "viet-template-quarkus",
+            "viet-template-quarkus-deployment",
         ]
     for mod in published_modules:
         mod_pom = ROOT_DIR / mod / "pom.xml"

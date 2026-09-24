@@ -168,6 +168,7 @@ public final class TckRunner {
     }
   }
 
+  @SuppressWarnings("removal")
   public static TckResult executeScenario(
       TckScenario scenario, ExecutionTier backend, VtlProfile defaultProfile) {
     long start = System.nanoTime();
@@ -228,6 +229,9 @@ public final class TckRunner {
 
       return TckResult.success(scenario.id(), scenario.featureId(), backend, actual, duration);
     } catch (Throwable t) {
+      if (t instanceof VirtualMachineError || t instanceof ThreadDeath) {
+        throw (Error) t;
+      }
       long duration = System.nanoTime() - start;
       if (scenario.expectsError()) {
         if (scenario.expectedExceptionClass().isInstance(t)) {

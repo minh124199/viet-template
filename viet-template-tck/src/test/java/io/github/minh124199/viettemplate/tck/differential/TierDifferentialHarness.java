@@ -15,6 +15,7 @@ import io.github.minh124199.viettemplate.language.vtl.parser.VtlParserOptions;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.runtime.MapRenderContext;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
+import io.github.minh124199.viettemplate.vtl.interpreter.EngineInterpreterBridge;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
@@ -183,7 +184,7 @@ public final class TierDifferentialHarness {
     VtlInterpreter interpreter = new VtlInterpreter(tierOptions);
 
     try {
-      interpreter.render(source, template, renderContext, output);
+      EngineInterpreterBridge.render(interpreter, source, template, renderContext, output);
       return new TierResult(tier, output.toString(), null, null, null, freshContext);
     } catch (Throwable t) {
       Throwable semantic = unwrapSemanticException(t);

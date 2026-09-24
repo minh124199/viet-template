@@ -1,0 +1,880 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "0.3.0-M3.5",
+  "description": "Registry of cross-module internal contracts between Viet Template modules, with consumer scope (MAIN/TEST/BENCHMARK) and publication status annotations. Production contracts are those with consumerScope=[\"MAIN\"] only.",
+  "contracts": [
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlBinaryOperator",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "AST",
+      "rationale": "Binary operator enum used by interpreter during AST-level expression evaluation.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlExpression",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "AST",
+      "rationale": "AST expression node interface evaluated directly by interpreter Tier 1.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlIfBranch",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "AST",
+      "rationale": "AST branch structure traversed by interpreter conditional execution.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlMacroParameter",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "AST",
+      "rationale": "AST parameter representation for macro definitions and calls.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlMapEntry",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "AST",
+      "rationale": "AST map literal entry representation used during map evaluation.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlNode",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "AST",
+      "rationale": "Root AST node interface traversed by interpreter visitors.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlReference",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "AST",
+      "rationale": "AST reference node resolved and evaluated in runtime context.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrBlock",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "IR instruction block executed by Tier 2 IrInterpreter.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrFunction",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "IR function unit representing macro or compiled sub-template.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrLocal",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "IR local variable slot representation in stack frames.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrParameter",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "IR parameter binding in interpreter frames.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Slot assignment and variable layout metadata used for stack allocation.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout$BindingKind",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Classification of slot binding (parameter, local, iterator).",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout$SlotLayout",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Immutable layout record passed to execution frame setup.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout$SlotMetadata",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Slot descriptor with type and lifetime bounds.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Top-level intermediate representation consumed by bytecode compiler and IrInterpreter.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Constant pool tables accessed during interpretation and bytecode generation.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.constant.IrTextConstant",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Pre-encoded static text chunks streamed during template execution.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrExpression",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "IR expression hierarchy evaluated by IrInterpreter.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.lowering.AstToIrLowerer",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Lowers AST to IR within engine compilation pipeline.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Multi-pass optimizer invoked prior to bytecode generation and interpretation.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Member and property access dispatch strategy executed at runtime.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$DirectField",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Direct field access plan variant.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$DirectGetter",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Direct getter invocation plan variant.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$DirectRecord",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Direct record component access plan variant.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$DynamicCallSite",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Polymorphic dynamic call site plan variant.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$ExtensionCall",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Extension method invocation plan variant.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$MapLookup",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Map key lookup plan variant.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Classification of binary operations in IR execution plans.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.IrEscapeMode",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Contextual escaping mode applied during value rendering.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.LoopPlan",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Loop execution and iteration unwinding plan.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.NullAccessMode",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Policy for navigating null references during member access.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Policy for rendering null values to output stream.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.UnaryOpKind",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Classification of unary operations in IR execution plans.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStatement",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "IR statement hierarchy executed sequentially by IrInterpreter.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.verifier.IrVerifier",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "IR",
+      "rationale": "Structural IR integrity verifier executed prior to execution.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexResult",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "LEXER",
+      "rationale": "Token stream and diagnostic output of lexical analysis.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexer",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "LEXER",
+      "rationale": "Lexer instance invoked by engine and template compilation.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexerOptions",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "LEXER",
+      "rationale": "Lexer configuration options passed during engine initialization.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexerOptions$Builder",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "LEXER",
+      "rationale": "Builder for lexer configuration options.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.lexer.VtlToken",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "LEXER",
+      "rationale": "Token data structure passed between lexer and AST parser.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.lexer.VtlTokenKind",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "LEXER",
+      "rationale": "Token classification enum inspected during parsing.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysisResult",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "SEMANTICS",
+      "rationale": "Symbol tables and typed AST output from semantic analysis.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "SEMANTICS",
+      "rationale": "Semantic analyzer validating AST against model schema.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "SEMANTICS",
+      "rationale": "Analysis configuration options.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions$Builder",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "SEMANTICS",
+      "rationale": "Builder for semantic analysis configuration.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "SEMANTICS",
+      "rationale": "Root model schema passed from engine to semantic analyzer.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.type.PrimitiveKind",
+      "owningModule": "viet-template-language-vtl",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "SEMANTICS",
+      "rationale": "Primitive type enum used during type checking and binary ops.",
+      "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.runtime.linker.AccessLink",
+      "owningModule": "viet-template-runtime",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "RUNTIME_LINKER",
+      "rationale": "Polymorphic call site link target for dynamic member resolution.",
+      "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.runtime.linker.CallSiteRegistry",
+      "owningModule": "viet-template-runtime",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "RUNTIME_LINKER",
+      "rationale": "Shared registry holding dynamic call sites across templates in an engine instance.",
+      "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite$State",
+      "owningModule": "viet-template-runtime",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "RUNTIME_LINKER",
+      "rationale": "Monomorphic / bimorphic / polymorphic inline cache state enum.",
+      "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.runtime.linker.DynamicLinker",
+      "owningModule": "viet-template-runtime",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "RUNTIME_LINKER",
+      "rationale": "Reflective dynamic linker executing property and method resolution with inline caching.",
+      "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.runtime.linker.LinkerStatistics",
+      "owningModule": "viet-template-runtime",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "RUNTIME_LINKER",
+      "rationale": "Metrics and diagnostics tracking inline cache hit/miss rates.",
+      "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.runtime.linker.MemberKey",
+      "owningModule": "viet-template-runtime",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "RUNTIME_LINKER",
+      "rationale": "Cache key encapsulating target class, member name, and invocation args.",
+      "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.runtime.linker.MemberOperation",
+      "owningModule": "viet-template-runtime",
+      "consumingModules": [
+        "viet-template-vtl-interpreter"
+      ],
+      "layer": "RUNTIME_LINKER",
+      "rationale": "Operation descriptor for property get, method invocation, and index lookup.",
+      "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.runtime.stream.NonClosingOutputStream",
+      "owningModule": "viet-template-runtime",
+      "consumingModules": [
+        "viet-template-quarkus",
+        "viet-template-spring"
+      ],
+      "layer": "RUNTIME_STREAM",
+      "rationale": "Wrapper preventing framework servlet and REST response streams from premature closure during template rendering.",
+      "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+      "consumerScope": [
+        "MAIN"
+      ],
+      "publicationStatus": "PUBLISHED"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue",
+      "owningModule": "viet-template-vtl-interpreter",
+      "consumingModules": [
+        "viet-template-benchmarks",
+        "viet-template-tck"
+      ],
+      "layer": "Interpreter",
+      "rationale": "Core 3-state (UNDEFINED/DEFINED_NULL/DEFINED_VALUE) evaluation value type accessed directly by benchmarks for slot-level performance measurement and by the TCK differential harness for semantic parity verification.",
+      "planned1_0Action": "ENCAPSULATE_BEHIND_PUBLIC_API",
+      "consumerScope": [
+        "BENCHMARK",
+        "TEST"
+      ],
+      "publicationStatus": "BENCHMARK_ONLY"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue$State",
+      "owningModule": "viet-template-vtl-interpreter",
+      "consumingModules": [
+        "viet-template-benchmarks"
+      ],
+      "layer": "Interpreter",
+      "rationale": "UNDEFINED/DEFINED_NULL/DEFINED_VALUE enum accessed via the outer EvaluationValue class from benchmarks. Tck accesses it via qualified EvaluationValue.State reference, covered by the EvaluationValue contract.",
+      "planned1_0Action": "ENCAPSULATE_BEHIND_PUBLIC_API",
+      "consumerScope": [
+        "BENCHMARK"
+      ],
+      "publicationStatus": "BENCHMARK_ONLY"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionContext",
+      "owningModule": "viet-template-vtl-interpreter",
+      "consumingModules": [
+        "viet-template-benchmarks",
+        "viet-template-tck"
+      ],
+      "layer": "Interpreter",
+      "rationale": "Lexical scope chain used directly by benchmarks to set up warm execution state for slot-level assignment measurements and by TCK for differential harness context construction.",
+      "planned1_0Action": "ENCAPSULATE_BEHIND_PUBLIC_API",
+      "consumerScope": [
+        "BENCHMARK",
+        "TEST"
+      ],
+      "publicationStatus": "BENCHMARK_ONLY"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionFrame",
+      "owningModule": "viet-template-vtl-interpreter",
+      "consumingModules": [
+        "viet-template-benchmarks"
+      ],
+      "layer": "Interpreter",
+      "rationale": "Array-backed variable slot frame accessed directly by benchmarks to measure pre-warmed slot read/write throughput without template engine overhead.",
+      "planned1_0Action": "ENCAPSULATE_BEHIND_PUBLIC_API",
+      "consumerScope": [
+        "BENCHMARK"
+      ],
+      "publicationStatus": "BENCHMARK_ONLY"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.EngineInterpreterBridge",
+      "owningModule": "viet-template-vtl-interpreter",
+      "consumingModules": [
+        "viet-template-tck"
+      ],
+      "layer": "Interpreter",
+      "rationale": "Internal bridge exposing interpreter entry points to the TCK differential harness for AST-tier and IR-tier side-by-side semantic parity verification (SemanticCompatibilityDifferentialTest, TierDifferentialHarness, VietReferenceEngineAdapter).",
+      "planned1_0Action": "ENCAPSULATE_BEHIND_PUBLIC_API",
+      "consumerScope": [
+        "TEST"
+      ],
+      "publicationStatus": "TEST_ONLY"
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.ForeachMetadata",
+      "owningModule": "viet-template-vtl-interpreter",
+      "consumingModules": [
+        "viet-template-benchmarks"
+      ],
+      "layer": "Interpreter",
+      "rationale": "Concrete implementation of the language.vtl.semantics.scope.ForeachMetadata interface; accessed directly by benchmarks (VariableAssignmentBenchmark, NestedScopeBenchmark) to construct pre-initialized foreach state for scope-assignment measurements.",
+      "planned1_0Action": "ENCAPSULATE_BEHIND_PUBLIC_API",
+      "consumerScope": [
+        "BENCHMARK"
+      ],
+      "publicationStatus": "BENCHMARK_ONLY"
+    }
+  ]
+}

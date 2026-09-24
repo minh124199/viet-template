@@ -22,7 +22,7 @@ import java.util.RandomAccess;
  * LoopPlan#ITERABLE}, {@link LoopPlan#ITERATOR}, {@link LoopPlan#RANGE}) when collection types are
  * statically known.
  */
-public final class LoopSpecializationPass implements IrOptimizationPass {
+final class LoopSpecializationPass implements IrOptimizationPass {
 
   public static final String NAME = "LoopSpecialization";
 

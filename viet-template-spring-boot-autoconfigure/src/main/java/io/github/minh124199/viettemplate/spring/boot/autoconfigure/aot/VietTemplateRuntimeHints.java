@@ -65,7 +65,7 @@ public class VietTemplateRuntimeHints implements RuntimeHintsRegistrar {
               TypeReference.of(VTL_PROVIDER_CLASS),
               MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
               MemberCategory.INVOKE_PUBLIC_METHODS);
-    } catch (Exception ignored) {
+    } catch (IllegalArgumentException | IllegalStateException ignored) {
     }
 
     // 4. Discover and register all generated template classes from templates.idx on the AOT
@@ -80,7 +80,7 @@ public class VietTemplateRuntimeHints implements RuntimeHintsRegistrar {
                   TypeReference.of(className),
                   MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
                   MemberCategory.INVOKE_PUBLIC_METHODS);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
           if (logger.isDebugEnabled()) {
             logger.debug("Could not register reflection hint for template class: " + className, e);
           }
@@ -122,7 +122,7 @@ public class VietTemplateRuntimeHints implements RuntimeHintsRegistrar {
           }
         }
       }
-    } catch (Exception e) {
+    } catch (IOException | IllegalArgumentException e) {
       if (logger.isDebugEnabled()) {
         logger.debug("Failed to parse index at " + url, e);
       }

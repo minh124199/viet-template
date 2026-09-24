@@ -35,6 +35,8 @@ PUBLISHED_MODULES = [
     "viet-template-spring-boot-starter",
     "viet-template-maven-plugin",
     "viet-template-gradle-plugin",
+    "viet-template-quarkus",
+    "viet-template-quarkus-deployment",
 ]
 
 NON_PUBLISHED_MODULES = [
@@ -440,6 +442,67 @@ def validate_workflow_contract(errors):
     if missing:
         errors.append(f"release workflow missing jobs: {', '.join(sorted(missing))}")
         return
+
+    on_trigger = workflow.get("on") or workflow.get(True) or {}
+    dispatch_inputs = on_trigger.get("workflow_dispatch", {}).get("inputs", {}) if isinstance(on_trigger, dict) else {}
+    if "release_tag" not in dispatch_inputs:
+        errors.append("release workflow must define release_tag input under workflow_dispatch")
+
+    val_outputs = jobs.get("validate-metadata", {}).get("outputs", {}) if isinstance(jobs.get("validate-metadata"), dict) else {}
+    for required_out in ("artifact_source_tag", "artifact_source_sha", "orchestration_sha"):
+        if required_out not in val_outputs:
+            errors.append(f"validate-metadata job must export {required_out}")
+
+    for job_name in (
+        "verify-builds",
+        "m18-release-qualification",
+        "package-and-validate-bundle",
+        "publish-to-central",
+    ):
+        job = jobs.get(job_name, {})
+        steps = job.get("steps", []) if isinstance(job, dict) else []
+        checkout_step = next(
+            (s for s in steps if isinstance(s, dict) and "actions/checkout" in s.get("uses", "")),
+            None,
+        )
+        checkout_ref = (
+            str(checkout_step.get("with", {}).get("ref", ""))
+            if checkout_step and isinstance(checkout_step.get("with"), dict)
+            else ""
+        )
+        if "artifact_source_sha" not in checkout_ref:
+            errors.append(f"{job_name} must use artifact_source_sha in checkout ref")
+
+    verify_steps = jobs["verify-builds"].get("steps", []) if isinstance(jobs["verify-builds"], dict) else []
+    bootstrap_idx = next(
+        (
+            idx
+            for idx, step in enumerate(verify_steps)
+            if isinstance(step, dict)
+            and (
+                "./mvnw install -DskipTests" in step.get("run", "")
+                or "mvn install -DskipTests" in step.get("run", "")
+            )
+        ),
+        None,
+    )
+    gradle_check_idx = next(
+        (
+            idx
+            for idx, step in enumerate(verify_steps)
+            if isinstance(step, dict)
+            and (
+                "./gradlew check" in step.get("run", "")
+                or "gradlew check" in step.get("run", "")
+            )
+        ),
+        None,
+    )
+    if bootstrap_idx is None or gradle_check_idx is None or bootstrap_idx >= gradle_check_idx:
+        errors.append(
+            "verify-builds must bootstrap reactor artifacts with './mvnw install -DskipTests' before running Gradle check"
+        )
+
     m18_needs = as_needs(jobs["m18-release-qualification"])
     if not {"validate-metadata", "verify-builds"} <= m18_needs:
         errors.append("M18 release qualification must depend on metadata and verified builds")

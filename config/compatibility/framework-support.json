@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0",
+  "description": "Authoritative machine-readable framework support and compatibility matrix for Viet Template 1.0 candidate",
+  "springBoot": {
+    "declaredMinimum": "3.3.0",
+    "testedVersions": ["3.3.5", "4.1.1"],
+    "canonicalCi": "4.1.1",
+    "latestQualified": "4.1.1",
+    "integrationModules": [
+      "viet-template-spring-boot-starter",
+      "viet-template-spring-boot-autoconfigure"
+    ]
+  },
+  "springFramework": {
+    "declaredMinimum": "6.1.0",
+    "testedVersions": ["6.1.14", "7.0.9"],
+    "canonicalCi": "7.0.9",
+    "latestQualified": "7.0.9",
+    "integrationModules": [
+      "viet-template-spring"
+    ]
+  },
+  "springSecurity": {
+    "declaredMinimum": "6.3.0",
+    "testedVersions": ["6.3.4", "6.5.11", "7.0.7", "7.1.1"],
+    "canonicalCi": "7.1.1",
+    "latestQualified": "7.1.1",
+    "integrationModules": [
+      "viet-template-spring-security"
+    ]
+  },
+  "quarkus": {
+    "declaredMinimum": "3.33.0",
+    "testedLts": "3.33.3",
+    "testedVersions": ["3.33.3", "3.39.4"],
+    "canonicalCi": "3.39.4",
+    "latestQualified": "3.39.4",
+    "integrationModules": [
+      "viet-template-quarkus",
+      "viet-template-quarkus-deployment"
+    ]
+  },
+  "jakartaEeAndCdi": {
+    "standaloneIntegration": false,
+    "status": "NO_STANDALONE_JAKARTA_INTEGRATION",
+    "notes": "Jakarta Servlet and CDI are consumed strictly as transitive implementation dependencies of Spring Boot / Spring MVC and Quarkus; no standalone consumer integration fixtures exist."
+  },
+  "buildTooling": {
+    "maven": {
+      "declaredMinimum": "3.8.0",
+      "canonicalWrapper": "3.9.9",
+      "testedVersions": ["3.9.9"],
+      "pluginArtifactId": "io.github.minh124199:viet-template-maven-plugin",
+      "defaultGoal": "compile",
+      "defaultPhase": "process-classes"
+    },
+    "gradle": {
+      "declaredMinimum": "8.5",
+      "canonicalWrapper": "9.7.1",
+      "testedVersions": ["9.7.1"],
+      "pluginId": "io.github.minh124199.viet-template",
+      "defaultTask": "compileVietTemplates",
+      "taskGraph": "compileVietTemplates.dependsOn(compileJava); classes.dependsOn(compileVietTemplates)"
+    }
+  }
+}

@@ -1,10 +1,11 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** Implements Velocity 2.4.x compatible backslash escaping rules for references and directives. */
-public final class VtlEscaping {
+final class VtlEscaping {
 
   // Pattern matching backslashes preceding $ or # followed by an identifier or formal ref
   private static final Pattern ESCAPED_VTL_PATTERN =

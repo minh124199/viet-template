@@ -2,46 +2,91 @@ package io.github.minh124199.viettemplate.vtl.engine.cache;
 
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel;
+import io.github.minh124199.viettemplate.vtl.engine.EngineFingerprint;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
-import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * Multi-dimensional cache key uniquely capturing every semantic, optimization, and security input
  * that can affect the compiled representation of a template.
  *
+ * <p>Engine-invariant parameters are composed in {@link EngineFingerprint}, which captures compiler
+ * version, optimization level, execution tier, access policy identifier, model schema signature,
+ * and backend options hash.
+ *
  * @param templateId normalized template identifier
  * @param sourceFingerprint SHA-256 hex digest of the template source text
- * @param compilerVersion compiler engine version (e.g. 0.2.0)
- * @param optimizationLevel intermediate representation optimization level (O0..O3)
- * @param executionTier target execution tier (AOT_BYTECODE, IR, AST)
- * @param accessPolicyId unique identifier for the active linker access policy
- * @param modelSignature cryptographic signature or schema descriptor of the typed model
- * @param backendOptionsHash hash capturing backend compiler options
+ * @param engineFingerprint precomputed engine-invariant fingerprint composing compiler version,
+ *     optimization level, execution tier, access policy ID, model signature, and backend hash
  * @param globalMacrosFingerprint cryptographic fingerprint of configured global macro libraries
  */
 public record CompileCacheKey(
     TemplateId templateId,
     String sourceFingerprint,
-    String compilerVersion,
-    OptimizationLevel optimizationLevel,
-    ExecutionTier executionTier,
-    String accessPolicyId,
-    String modelSignature,
-    String backendOptionsHash,
-    String globalMacrosFingerprint)
-    implements Serializable {
+    EngineFingerprint engineFingerprint,
+    String globalMacrosFingerprint) {
 
   public CompileCacheKey {
     Objects.requireNonNull(templateId, "templateId must not be null");
     Objects.requireNonNull(sourceFingerprint, "sourceFingerprint must not be null");
-    Objects.requireNonNull(compilerVersion, "compilerVersion must not be null");
-    Objects.requireNonNull(optimizationLevel, "optimizationLevel must not be null");
-    Objects.requireNonNull(executionTier, "executionTier must not be null");
-    Objects.requireNonNull(accessPolicyId, "accessPolicyId must not be null");
-    Objects.requireNonNull(modelSignature, "modelSignature must not be null");
-    Objects.requireNonNull(backendOptionsHash, "backendOptionsHash must not be null");
+    Objects.requireNonNull(engineFingerprint, "engineFingerprint must not be null");
     Objects.requireNonNull(globalMacrosFingerprint, "globalMacrosFingerprint must not be null");
+  }
+
+  public CompileCacheKey(
+      TemplateId templateId,
+      String sourceFingerprint,
+      String compilerVersion,
+      OptimizationLevel optimizationLevel,
+      ExecutionTier executionTier,
+      String accessPolicyId,
+      String modelSignature,
+      String backendOptionsHash,
+      String globalMacrosFingerprint) {
+    this(
+        templateId,
+        sourceFingerprint,
+        new EngineFingerprint(
+            compilerVersion,
+            optimizationLevel,
+            executionTier,
+            accessPolicyId,
+            modelSignature,
+            backendOptionsHash),
+        globalMacrosFingerprint);
+  }
+
+  public String compilerVersion() {
+    return engineFingerprint.compilerVersion();
+  }
+
+  public OptimizationLevel optimizationLevel() {
+    return engineFingerprint.optimizationLevel();
+  }
+
+  public ExecutionTier executionTier() {
+    return engineFingerprint.executionTier();
+  }
+
+  public String accessPolicyId() {
+    return engineFingerprint.accessPolicyId();
+  }
+
+  public String modelSignature() {
+    return engineFingerprint.modelSignature();
+  }
+
+  public String backendOptionsHash() {
+    return engineFingerprint.backendHash();
+  }
+
+  public static CompileCacheKey of(
+      TemplateId templateId,
+      String sourceFingerprint,
+      EngineFingerprint engineFingerprint,
+      String globalMacrosFingerprint) {
+    return new CompileCacheKey(
+        templateId, sourceFingerprint, engineFingerprint, globalMacrosFingerprint);
   }
 
   public static CompileCacheKey of(

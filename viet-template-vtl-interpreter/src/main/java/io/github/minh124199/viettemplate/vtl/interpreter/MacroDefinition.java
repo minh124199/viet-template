@@ -4,11 +4,12 @@ import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlMacroParameter;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlNode;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import java.util.List;
 import java.util.Objects;
 
 /** Registered macro definition in the render-local macro registry. */
-public record MacroDefinition(
+record MacroDefinition(
     String name,
     List<VtlMacroParameter> parameters,
     List<VtlNode> body,

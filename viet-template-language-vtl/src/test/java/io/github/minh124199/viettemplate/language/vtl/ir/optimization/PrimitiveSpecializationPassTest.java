@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.capability.TemplateCapabilities;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool;
@@ -14,7 +15,6 @@ import io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.IrEscapeMode;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteValue;
-import io.github.minh124199.viettemplate.language.vtl.semantics.capability.TemplateCapabilities;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;

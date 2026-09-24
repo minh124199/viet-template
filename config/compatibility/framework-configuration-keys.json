@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0",
+  "contractName": "Viet Template 1.0 Framework Configuration Keys Contract",
+  "description": "Authoritative machine-readable inventory of frozen public configuration keys for Spring Boot and Quarkus framework integrations.",
+  "status": "FROZEN_1_0_CONFIG_KEYS",
+  "springBoot": {
+    "sourceClass": "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties",
+    "prefix": "viet-template",
+    "propertiesCount": 15,
+    "properties": [
+      {
+        "name": "viet-template.enabled",
+        "type": "boolean",
+        "defaultValue": true,
+        "description": "Whether to enable Viet Template auto-configuration."
+      },
+      {
+        "name": "viet-template.prefix",
+        "type": "java.lang.String",
+        "defaultValue": "",
+        "description": "Prefix that gets prepended to view names when building a template identifier."
+      },
+      {
+        "name": "viet-template.suffix",
+        "type": "java.lang.String",
+        "defaultValue": "",
+        "description": "Suffix that gets appended to view names when building a template identifier."
+      },
+      {
+        "name": "viet-template.suffixes",
+        "type": "java.util.List<java.lang.String>",
+        "defaultValue": [],
+        "description": "Ordered list of suffixes appended to view names when resolving template identifiers. Takes precedence over suffix when non-empty."
+      },
+      {
+        "name": "viet-template.content-type",
+        "type": "java.lang.String",
+        "defaultValue": "text/html;charset=UTF-8",
+        "description": "Content-Type value for template views."
+      },
+      {
+        "name": "viet-template.charset",
+        "type": "java.nio.charset.Charset",
+        "defaultValue": "UTF-8",
+        "description": "Character encoding used for template rendering and output encoding."
+      },
+      {
+        "name": "viet-template.cache",
+        "type": "boolean",
+        "defaultValue": true,
+        "description": "Whether to enable caching of resolved view instances."
+      },
+      {
+        "name": "viet-template.check-template-location",
+        "type": "boolean",
+        "defaultValue": true,
+        "description": "Whether to check that the template location exists."
+      },
+      {
+        "name": "viet-template.runtime-compilation-enabled",
+        "type": "boolean",
+        "defaultValue": true,
+        "description": "Whether dynamic runtime compilation of templates is permitted. If false, only precompiled AOT templates are allowed."
+      },
+      {
+        "name": "viet-template.max-cache-entries",
+        "type": "int",
+        "defaultValue": 500,
+        "description": "Maximum number of entries retained in the template engine compilation cache."
+      },
+      {
+        "name": "viet-template.negative-cache-ttl-millis",
+        "type": "long",
+        "defaultValue": 5000,
+        "description": "Time-to-live in milliseconds for negative cache entries (non-existent template lookups)."
+      },
+      {
+        "name": "viet-template.hot-reload",
+        "type": "boolean",
+        "defaultValue": false,
+        "description": "Whether filesystem watching and hot reload are enabled for template source changes."
+      },
+      {
+        "name": "viet-template.watch-debounce-millis",
+        "type": "long",
+        "defaultValue": 50,
+        "description": "Debounce delay in milliseconds for filesystem watch events during hot reload."
+      },
+      {
+        "name": "viet-template.order",
+        "type": "int",
+        "defaultValue": 2147483647,
+        "description": "ViewResolver order in the Spring MVC resolver chain."
+      },
+      {
+        "name": "viet-template.security.enabled",
+        "type": "boolean",
+        "defaultValue": true,
+        "description": "Whether to enable Spring Security integration for Viet Template."
+      }
+    ]
+  },
+  "quarkus": {
+    "sourceClass": "io.github.minh124199.viettemplate.quarkus.VietTemplateConfig",
+    "prefix": "quarkus.viet-template",
+    "propertiesCount": 8,
+    "properties": [
+      {
+        "name": "quarkus.viet-template.path",
+        "type": "java.lang.String",
+        "defaultValue": "templates",
+        "description": "Base path within the classpath where templates are located."
+      },
+      {
+        "name": "quarkus.viet-template.suffix",
+        "type": "java.lang.String",
+        "defaultValue": ".vtl",
+        "description": "Primary file suffix for templates."
+      },
+      {
+        "name": "quarkus.viet-template.additional-suffixes",
+        "type": "java.util.List<java.lang.String>",
+        "defaultValue": [],
+        "description": "Additional file suffixes for templates."
+      },
+      {
+        "name": "quarkus.viet-template.runtime-compilation-enabled",
+        "type": "boolean",
+        "defaultValue": false,
+        "description": "Whether runtime template compilation is allowed. Defaults to false in production, true in development mode."
+      },
+      {
+        "name": "quarkus.viet-template.cache-max-entries",
+        "type": "int",
+        "defaultValue": 500,
+        "description": "Maximum number of entries in the template compilation cache."
+      },
+      {
+        "name": "quarkus.viet-template.negative-cache-ttl-millis",
+        "type": "long",
+        "defaultValue": 5000,
+        "description": "Negative cache time-to-live in milliseconds."
+      },
+      {
+        "name": "quarkus.viet-template.undefined-reference-policy",
+        "type": "java.lang.String",
+        "defaultValue": "SILENT",
+        "description": "Policy governing evaluation behavior on undefined references (SILENT, WARN, ERROR)."
+      },
+      {
+        "name": "quarkus.viet-template.encoding",
+        "type": "java.lang.String",
+        "defaultValue": "UTF-8",
+        "description": "Character encoding for reading templates."
+      }
+    ]
+  }
+}

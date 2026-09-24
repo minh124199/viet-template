@@ -1,6 +1,8 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -8,7 +10,7 @@ import java.util.Collection;
 import java.util.Map;
 
 /** Centralized truthiness evaluator implementing Apache Velocity 2.4.x compatible rules. */
-public final class VtlTruthiness {
+final class VtlTruthiness {
 
   private VtlTruthiness() {}
 
@@ -28,6 +30,7 @@ public final class VtlTruthiness {
     return isTruthyObject(obj, emptyCheck, VtlSecurityPolicy.standard());
   }
 
+  @SuppressWarnings("removal")
   public static boolean isTruthyObject(
       Object obj, boolean emptyCheck, VtlSecurityPolicy securityPolicy) {
     if (obj == null) {
@@ -54,7 +57,16 @@ public final class VtlTruthiness {
             return b;
           }
         }
-      } catch (Exception ignored) {
+      } catch (InvocationTargetException ite) {
+        Throwable cause = ite.getTargetException();
+        if (cause instanceof VirtualMachineError fatal) {
+          throw fatal;
+        }
+        if (cause instanceof ThreadDeath td) {
+          throw td;
+        }
+        // fall through
+      } catch (ReflectiveOperationException ignored) {
         // Fall through
       }
     }
@@ -70,6 +82,7 @@ public final class VtlTruthiness {
     return asEmpty(obj, VtlSecurityPolicy.standard());
   }
 
+  @SuppressWarnings("removal")
   public static boolean asEmpty(Object obj, VtlSecurityPolicy securityPolicy) {
     if (obj == null) {
       return true;
@@ -107,7 +120,16 @@ public final class VtlTruthiness {
             return b;
           }
         }
-      } catch (Exception ignored) {
+      } catch (InvocationTargetException ite) {
+        Throwable cause = ite.getTargetException();
+        if (cause instanceof VirtualMachineError fatal) {
+          throw fatal;
+        }
+        if (cause instanceof ThreadDeath td) {
+          throw td;
+        }
+        // fall through
+      } catch (ReflectiveOperationException ignored) {
         // Fall through
       }
     }
@@ -124,7 +146,16 @@ public final class VtlTruthiness {
             return isZero(n);
           }
         }
-      } catch (Exception ignored) {
+      } catch (InvocationTargetException ite) {
+        Throwable cause = ite.getTargetException();
+        if (cause instanceof VirtualMachineError fatal) {
+          throw fatal;
+        }
+        if (cause instanceof ThreadDeath td) {
+          throw td;
+        }
+        // fall through
+      } catch (ReflectiveOperationException ignored) {
         // Fall through
       }
     }
@@ -141,7 +172,16 @@ public final class VtlTruthiness {
             return isZero(n);
           }
         }
-      } catch (Exception ignored) {
+      } catch (InvocationTargetException ite) {
+        Throwable cause = ite.getTargetException();
+        if (cause instanceof VirtualMachineError fatal) {
+          throw fatal;
+        }
+        if (cause instanceof ThreadDeath td) {
+          throw td;
+        }
+        // fall through
+      } catch (ReflectiveOperationException ignored) {
         // Fall through
       }
     }
@@ -161,7 +201,16 @@ public final class VtlTruthiness {
           Object res = getAsString.invoke(obj);
           return res == null || ((String) res).isEmpty();
         }
-      } catch (Exception ignored) {
+      } catch (InvocationTargetException ite) {
+        Throwable cause = ite.getTargetException();
+        if (cause instanceof VirtualMachineError fatal) {
+          throw fatal;
+        }
+        if (cause instanceof ThreadDeath td) {
+          throw td;
+        }
+        // fall through
+      } catch (ReflectiveOperationException ignored) {
         // Fall through
       }
     }
@@ -176,7 +225,16 @@ public final class VtlTruthiness {
           Object res = getAsNumber.invoke(obj);
           return res == null || isZero((Number) res);
         }
-      } catch (Exception ignored) {
+      } catch (InvocationTargetException ite) {
+        Throwable cause = ite.getTargetException();
+        if (cause instanceof VirtualMachineError fatal) {
+          throw fatal;
+        }
+        if (cause instanceof ThreadDeath td) {
+          throw td;
+        }
+        // fall through
+      } catch (ReflectiveOperationException ignored) {
         // Fall through
       }
     }

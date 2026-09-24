@@ -15,7 +15,11 @@ import java.util.Optional;
  *
  * <p>Resource lookups are traversal-safe and confined under the configured base prefix.
  */
-public final class ClasspathTemplateRepository implements TemplateRepository {
+public final class ClasspathTemplateRepository
+    implements TemplateRepository, TemplateFreshnessProvider {
+
+  private static final Optional<FreshnessToken> IMMUTABLE_TOKEN =
+      Optional.of(FreshnessToken.immutable());
 
   private final ClassLoader classLoader;
   private final String prefix;
@@ -59,6 +63,10 @@ public final class ClasspathTemplateRepository implements TemplateRepository {
     String resourcePath = prefix.isEmpty() ? normalizedPath : prefix + "/" + normalizedPath;
 
     URL resourceUrl = classLoader.getResource(resourcePath);
+    if (resourceUrl == null && !prefix.isEmpty() && normalizedPath.startsWith(prefix + "/")) {
+      resourcePath = normalizedPath;
+      resourceUrl = classLoader.getResource(resourcePath);
+    }
     if (resourceUrl == null) {
       return Optional.empty();
     }
@@ -72,13 +80,32 @@ public final class ClasspathTemplateRepository implements TemplateRepository {
       long lastModified = 0L;
       try {
         lastModified = resourceUrl.openConnection().getLastModified();
-      } catch (Exception ignored) {
+      } catch (IOException ignored) {
       }
       URI uri = URI.create("classpath:/" + resourcePath);
       return Optional.of(TemplateSource.of(id, uri, charset, content, lastModified));
     } catch (IOException e) {
+      throw new TemplateResourceException(
+          "Failed to read classpath resource: " + resourcePath, id, SourceSpan.UNKNOWN, null, e);
+    }
+  }
+
+  @Override
+  public Optional<FreshnessToken> freshnessToken(TemplateId id) {
+    Objects.requireNonNull(id, "id must not be null");
+
+    String normalizedPath = TemplateId.normalize(id.value()).value();
+    String resourcePath = prefix.isEmpty() ? normalizedPath : prefix + "/" + normalizedPath;
+
+    URL resourceUrl = classLoader.getResource(resourcePath);
+    if (resourceUrl == null && !prefix.isEmpty() && normalizedPath.startsWith(prefix + "/")) {
+      resourcePath = normalizedPath;
+      resourceUrl = classLoader.getResource(resourcePath);
+    }
+    if (resourceUrl == null) {
       return Optional.empty();
     }
+    return IMMUTABLE_TOKEN;
   }
 
   public String prefix() {

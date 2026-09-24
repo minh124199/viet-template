@@ -38,6 +38,7 @@ BASELINE_LEGACY = os.path.join(REPO_ROOT, "config/api-baseline/1.0-public-api.tx
 BASELINE_AOT = os.path.join(REPO_ROOT, "config/api-baseline/1.0-aot-public-api.txt")
 BASELINE_SPRING = os.path.join(REPO_ROOT, "config/api-baseline/1.0-spring-public-api.txt")
 BASELINE_SPRING_SECURITY = os.path.join(REPO_ROOT, "config/api-baseline/1.0-spring-security-public-api.txt")
+BASELINE_QUARKUS = os.path.join(REPO_ROOT, "config/api-baseline/1.0-quarkus-public-api.txt")
 CLASSIFICATION_FILE = os.path.join(REPO_ROOT, "config/api-baseline/public-surface-classification.txt")
 
 DEFAULT_BASELINES = [
@@ -45,6 +46,7 @@ DEFAULT_BASELINES = [
     ("aot", BASELINE_AOT),
     ("spring", BASELINE_SPRING),
     ("spring-security", BASELINE_SPRING_SECURITY),
+    ("quarkus", BASELINE_QUARKUS),
 ]
 
 JAVAP = os.environ.get("JAVAP_BIN")
@@ -75,6 +77,7 @@ MODULES = [
     "viet-template-spring",
     "viet-template-spring-boot-autoconfigure",
     "viet-template-spring-security",
+    "viet-template-quarkus",
 ]
 
 FULL_CP = ":".join([os.path.join(REPO_ROOT, m, "build/classes/java/main") for m in MODULES])
@@ -86,6 +89,7 @@ STABLE_PACKAGES = [
     "io.github.minh124199.viettemplate.spring.web.servlet",
     "io.github.minh124199.viettemplate.spring.boot.autoconfigure",
     "io.github.minh124199.viettemplate.spring.security",
+    "io.github.minh124199.viettemplate.quarkus",
 ]
 
 STABLE_EXPLICIT_CLASSES = [
@@ -96,7 +100,21 @@ STABLE_EXPLICIT_CLASSES = [
     "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter",
     "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions",
     "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder",
+    "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier",
+    "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits",
+    "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder",
+    "io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler",
+    "io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode",
+    "io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy",
+    "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver",
+    "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver$InMemoryBuilder",
+    "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResource",
     "io.github.minh124199.viettemplate.language.vtl.source.SourceText",
+    "io.github.minh124199.viettemplate.language.vtl.VtlProfile",
+    "io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel",
+    "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions",
+    "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder",
+    "io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy",
 ]
 
 EXCLUDED_PACKAGES = [
@@ -107,6 +125,8 @@ EXCLUDED_PACKAGES = [
 def is_stable_class(cls_name, known_baseline_classes=None):
     if known_baseline_classes and cls_name in known_baseline_classes:
         return True
+    if cls_name in STABLE_EXPLICIT_CLASSES:
+        return True
     for exc in EXCLUDED_PACKAGES:
         if cls_name.startswith(exc + "."):
             return False
@@ -114,8 +134,6 @@ def is_stable_class(cls_name, known_baseline_classes=None):
         parent_pkg = ".".join(cls_name.split(".")[:-1])
         if parent_pkg == pkg or parent_pkg.startswith(pkg + "$"):
             return True
-    if cls_name in STABLE_EXPLICIT_CLASSES:
-        return True
     return False
 
 

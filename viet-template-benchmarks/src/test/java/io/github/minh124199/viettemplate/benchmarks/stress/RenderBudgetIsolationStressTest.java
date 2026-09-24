@@ -11,7 +11,7 @@ import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.runtime.RenderBudget;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine;
-import io.github.minh124199.viettemplate.vtl.interpreter.CountingTemplateOutput;
+import io.github.minh124199.viettemplate.vtl.internal.interpreter.CountingTemplateOutput;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import java.util.ArrayList;
 import java.util.List;

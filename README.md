@@ -15,11 +15,11 @@ Viet Template is a clean-room JVM template engine designed for modern Java appli
 
 Many enterprise JVM applications still rely on legacy template engines that depend on heavy dynamic reflection, lack GraalVM native image support, allocate excessive heap memory, or expose dangerous reflection attack surfaces. Viet Template solves this:
 
-- **100% Velocity Syntax Compatibility**: Drop-in syntax compatibility for Velocity Template Language (VTL). Evaluated across 80 specification features in the Technology Compatibility Kit (TCK) with 100% pass rate.
+- **100% Velocity Syntax Compatibility**: Drop-in syntax compatibility for Velocity Template Language (VTL). Evaluated across 301 differential scenarios against Apache Velocity 2.4.1 in the Technology Compatibility Kit (TCK): 295 exact matches (98.01%), 5 documented expected differences, 1 extension, 0 unsupported, 0 regressions (100.00% accounted behavior coverage).
 - **Blazing Fast Multi-Tier Execution**: Offers both a lightweight development interpreter (Viet-IR) and a high-performance Ahead-Of-Time bytecode compiler (Viet-AOT) delivering **1.3x to 5.3x higher throughput** than Apache Velocity 2.4.1.
 - **Precompiled Bytecode & Zero Reflection**: Compiles templates to standard Java 21 bytecode (`.class` files) with compiler-assigned variable slots and pre-encoded UTF-8 literals, eliminating runtime reflection and AST traversal.
-- **GraalVM Native Image Ready**: Seamlessly compiles to native executables via out-of-the-box `VietTemplateRuntimeHints` and Spring AOT support.
-- **Next-Gen Spring Ecosystem**: Turnkey auto-configuration for Spring Boot 4, Spring Framework 7, and Spring Security 7 with full Virtual Threads (Project Loom) compatibility.
+- **GraalVM Native Image Ready**: Seamlessly compiles to native executables via out-of-the-box `VietTemplateRuntimeHints`, Spring AOT, and Quarkus deployment build steps (empirically qualified on Linux x86_64 Mandrel 25.0.4.1-Final and Oracle GraalVM 25.0.4+7.1).
+- **First-Class Spring & Quarkus Ecosystems**: Turnkey auto-configuration for Spring Boot 4 / Spring Framework 7 / Spring Security 7 and idiomatic CDI extension for Quarkus 3 with build-time AOT compilation and dev-mode hot reload.
 - **Defense-in-Depth Security**: Denies access to reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), classloaders, and system resources by default. Enforces strict `MemberAccessPolicy` sandboxing and execution budgets (`RenderBudget`).
 
 ---
@@ -28,12 +28,34 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 
 | Dimension | Detail |
 |---|---|
-| **Latest Stable Release** | `0.2.2` (Published: 2026-09-20) |
-| **Active Development** | `0.2.3-SNAPSHOT` |
+| **Current Release Candidate** | `1.0.0-RC1` (locally staged and qualified; not yet remotely published) |
+| **Latest Published Stable Release** | `0.2.2` (Published: 2026-09-20; 0.2.3 prepared/held) |
 | **Java Baseline** | Java 21 LTS (`--release 21`, major version 65) |
 | **Primary Target** | Java 25 (optimized memory & runtime qualification) |
 | **Maven Group ID** | `io.github.minh124199` |
 | **Gradle Plugin ID** | `io.github.minh124199.viet-template` |
+| **JPMS Status** | Ordinary non-modular JARs (no `module-info.java`, no `Automatic-Module-Name` header) |
+
+> [!NOTE] Java Module System (JPMS) Disclaimer
+> Viet Template 1.0.0-RC1 ships as ordinary non-modular JARs. When placed on the Java module path they may be treated by the JVM as automatic modules using derived names, but those derived names are not a frozen compatibility contract.
+
+---
+
+## Framework & Build Tool Compatibility
+
+| Integration | Declared Minimum | RC-Tested Versions | Canonical RC Version | Native Status |
+|---|---|---|---|---|
+| **Spring Boot** | `3.3.0` | `3.3.5`, `4.1.1` | `4.1.1` | Supported (Oracle GraalVM 25.0.4+7.1) |
+| **Spring Framework** | `6.1.0` | `6.1.14`, `7.0.9` | `7.0.9` | Supported (Oracle GraalVM 25.0.4+7.1) |
+| **Spring Security** | `6.3.0` | `6.3.4`, `6.5.11`, `7.0.7`, `7.1.1` | `7.1.1` | Supported (Oracle GraalVM 25.0.4+7.1) |
+| **Quarkus** | `3.33.0` | `3.33.3` (LTS), `3.39.4` | `3.39.4` | Supported (Mandrel 25.0.4.1-Final) |
+| **Apache Maven** | `3.8.0` | `3.9.9` | `3.9.9` (wrapper) | N/A (Build Tool) |
+| **Gradle** | `8.5` | `9.7.1` | `9.7.1` (wrapper) | N/A (Build Tool) |
+
+### Native Image Toolchains
+- **Spring Native**: Oracle GraalVM 25.0.4+7.1 (build 25.0.4+7-LTS) on Linux x86_64.
+- **Quarkus Native**: Mandrel 25.0.4.1-Final (mandrel-java25-25.0.4.1-Final, Java 25) on Linux x86_64.
+- **Other Platforms**: Experimental and unverified for native compilation; standard JVM runs cross-platform.
 
 ---
 
@@ -130,6 +152,37 @@ public class WebController {
 }
 ```
 
+### 3. Quarkus 3 Extension
+
+Add the extension dependency:
+
+```xml
+<dependency>
+    <groupId>io.github.minh124199</groupId>
+    <artifactId>viet-template-quarkus</artifactId>
+    <version>0.2.2</version>
+</dependency>
+```
+
+Inject and render inside any CDI bean or JAX-RS resource:
+
+```java
+@Path("/hello")
+public class HelloResource {
+
+    @Inject
+    VietTemplateRenderer renderer;
+
+    @GET
+    @Produces(MediaType.TEXT_HTML)
+    public String hello(@QueryParam("name") String name) {
+        return renderer.render("hello.vtl", Map.of("name", name != null ? name : "World"));
+    }
+}
+```
+
+Templates placed in `src/main/resources/templates/` are compiled ahead-of-time during `mvn package` or `gradle build` (producing ~52 MB native binaries on Linux x86_64) and hot-reloaded during `quarkus dev`. See the [Quarkus Extension Guide](docs/extensions/quarkus.md) for details.
+
 ---
 
 ## Migrating from Apache Velocity in 3 Steps
@@ -196,9 +249,10 @@ Explore the complete documentation suite organized by topic:
 - **[Apache Maven Plugin](docs/build-tooling/maven.md)** — Build-time AOT precompilation and verification via `viet-template-maven-plugin`.
 - **[Gradle Plugin](docs/build-tooling/gradle.md)** — Gradle Kotlin/Groovy DSL plugin configuration and incremental build-cache.
 
-### Spring Integration
+### Framework Integrations
 - **[Spring Boot Integration Guide](docs/spring/spring-boot-integration.md)** — Spring Boot 4 / Framework 7 starter, property catalog, and reactive view resolution.
 - **[Spring Security Integration](docs/36-spring-security-integration.md)** — `$security` and `$csrf` template facades with contextual escaping.
+- **[Quarkus Extension Guide](docs/extensions/quarkus.md)** — Quarkus 3 CDI extension, AOT template compilation, live reload, and Qute coexistence.
 
 ### Diagnostics & Extensions
 - **[Diagnostics & Error Catalog](docs/diagnostics/error-catalog.md)** — Complete catalog of parse-time, compile-time, and runtime error codes with remedies.

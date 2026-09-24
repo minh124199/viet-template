@@ -16,7 +16,7 @@ import java.util.Map;
  * declarations before optional optimizations can reach an execution backend. Slots are stable and
  * are intentionally not reused or lifetime-packed.
  */
-public final class AssignVariableSlots implements IrOptimizationPass {
+final class AssignVariableSlots implements IrOptimizationPass {
 
   @Override
   public String name() {

@@ -6,6 +6,7 @@ import io.github.minh124199.viettemplate.api.InMemoryTemplateRepository;
 import io.github.minh124199.viettemplate.api.Template;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle;
+import io.github.minh124199.viettemplate.vtl.internal.compiler.*;
 import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
 import java.lang.ref.WeakReference;
 import org.junit.jupiter.api.Test;

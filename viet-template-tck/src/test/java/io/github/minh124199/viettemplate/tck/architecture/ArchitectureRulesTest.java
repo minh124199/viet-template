@@ -114,6 +114,24 @@ public class ArchitectureRulesTest {
           .resideInAnyPackage("org.springframework..", "jakarta.servlet..", "javax.servlet..");
 
   @ArchTest
+  public static final ArchRule core_modules_must_not_depend_on_quarkus_or_cdi =
+      noClasses()
+          .that()
+          .resideInAnyPackage(
+              "..viettemplate.api..",
+              "..viettemplate.runtime..",
+              "..viettemplate.language.vtl..",
+              "..viettemplate.vtl..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              "io.quarkus..",
+              "jakarta.enterprise..",
+              "jakarta.inject..",
+              "jakarta.ws.rs..",
+              "jakarta.rest..");
+
+  @ArchTest
   public static final ArchRule packages_must_be_free_of_cycles =
       slices().matching("io.github.minh124199.viettemplate.(*)..").should().beFreeOfCycles();
 }

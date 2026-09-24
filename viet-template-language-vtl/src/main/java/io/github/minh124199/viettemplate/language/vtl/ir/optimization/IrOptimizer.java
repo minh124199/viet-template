@@ -14,7 +14,7 @@ import java.util.Objects;
  */
 public final class IrOptimizer {
 
-  public record OptimizationResult(IrTemplate template, OptimizationStatistics statistics) {
+  record OptimizationResult(IrTemplate template, OptimizationStatistics statistics) {
     public OptimizationResult {
       Objects.requireNonNull(template, "template must not be null");
       Objects.requireNonNull(statistics, "statistics must not be null");
@@ -42,8 +42,7 @@ public final class IrOptimizer {
    * Optimizes the given template and returns both the transformed {@link IrTemplate} and collected
    * {@link OptimizationStatistics}.
    */
-  public static OptimizationResult optimizeWithStats(
-      IrTemplate template, IrOptimizationOptions options) {
+  static OptimizationResult optimizeWithStats(IrTemplate template, IrOptimizationOptions options) {
     Objects.requireNonNull(template, "template must not be null");
     Objects.requireNonNull(options, "options must not be null");
 

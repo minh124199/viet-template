@@ -1,0 +1,47 @@
+# Viet Template Generated AOT Template Runtime ABI Baseline
+# Defines the exact set of types, fields, and methods that generated AOT template classfiles may link against at runtime.
+#
+# Note: Parameter/return types such as LinkerAccessPolicy and UndefinedReferencePolicy are referenced
+# solely within method signatures and are not direct constant-pool type dependencies of generated templates.
+#
+# Format:
+#   TYPE <fully-qualified-class-name>
+#   MEMBER <member-signature>
+
+TYPE io.github.minh124199.viettemplate.api.CompiledTemplate
+  MEMBER public abstract io.github.minh124199.viettemplate.api.TemplateId id()
+  MEMBER public abstract void render(io.github.minh124199.viettemplate.api.RenderContext, io.github.minh124199.viettemplate.api.TemplateOutput)
+
+TYPE io.github.minh124199.viettemplate.api.RenderContext
+  MEMBER public abstract java.lang.Object get(java.lang.String)
+
+TYPE io.github.minh124199.viettemplate.api.TemplateId
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateId of(java.lang.String)
+
+TYPE io.github.minh124199.viettemplate.api.TemplateOutput
+
+TYPE io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata
+  MEMBER public abstract int getCount()
+  MEMBER public abstract int getIndex()
+  MEMBER public abstract boolean isFirst()
+  MEMBER public abstract boolean isLast()
+
+TYPE io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite
+
+TYPE io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge
+  MEMBER public static java.lang.Object binaryOp(java.lang.Object, java.lang.Object, int, java.lang.String, int, int, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)
+  MEMBER public static void countLoopIteration(io.github.minh124199.viettemplate.api.TemplateOutput)
+  MEMBER public static io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite createCallSite(int, java.lang.String, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)
+  MEMBER public static io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata createForeachMetadata(java.lang.Object, boolean, java.lang.Object)
+  MEMBER public static java.lang.Object createLoopState()
+  MEMBER public static java.lang.Object dynamicGetIndex(io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite, java.lang.Object, java.lang.Object)
+  MEMBER public static java.lang.Object dynamicGetProperty(io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite, java.lang.Object)
+  MEMBER public static java.lang.Object dynamicInvokeMethod(io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite, java.lang.Object, java.lang.Object[])
+  MEMBER public static boolean isTruthy(java.lang.Object, boolean)
+  MEMBER public static java.util.Iterator rangeIterator(java.lang.Object, java.lang.Object, int, java.lang.String, int, int, int, int)
+  MEMBER public static void recordContextVariable(io.github.minh124199.viettemplate.api.RenderContext, java.lang.String, java.lang.Object)
+  MEMBER public static java.util.Iterator toIterator(java.lang.Object, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy, java.lang.String, int, int, int, int)
+  MEMBER public static byte[] toUtf8Bytes(java.lang.String)
+  MEMBER public static java.lang.Object unaryOp(java.lang.Object, int, java.lang.String, int, int, int, int)
+  MEMBER public static void writeConst(io.github.minh124199.viettemplate.api.TemplateOutput, java.lang.String, byte[])
+  MEMBER public static void writeValue(java.lang.Object, io.github.minh124199.viettemplate.api.TemplateOutput, int, int, java.lang.String, boolean, java.lang.String, int, int, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)
