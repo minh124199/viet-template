@@ -206,7 +206,7 @@ public final class DefaultLayoutRenderPlan implements LayoutRenderPlan {
             "Screen output exceeded maximum character limit (" + maxChars + ")",
             templateId(),
             SourceSpan.UNKNOWN,
-            DiagnosticCode.of("LIMIT", "EXCEEDED"));
+            RenderBudget.CODE_LIMIT_EXCEEDED);
       }
     }
   }
