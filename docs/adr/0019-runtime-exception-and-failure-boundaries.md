@@ -73,7 +73,7 @@ In `BytecodeRuntimeBridge`, `LinkedReferenceAccess`, and `IrInterpreter`:
 
 ### 8. Machine-Readable Allowlist and Automated CI Verification
 - Every allowable broad catch block in production code is cataloged in `config/architecture/exception-boundary-allowlist.json` with its enclosing method, caught type, classification category, subsystem owner, and rationale.
-- The CI verifier `scripts/verify-exception-semantics.py` enforces zero unallowlisted broad catches and zero stale allowlist entries across all 13 production modules.
+- The CI verifier `scripts/verify-exception-semantics.py` enforces zero unallowlisted broad catches and zero stale allowlist entries across all 13 physical build submodules (including 11 published production modules and 2 unpublished verification modules).
 
 ---
 
