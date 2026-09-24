@@ -442,6 +442,37 @@ def validate_workflow_contract(errors):
     if missing:
         errors.append(f"release workflow missing jobs: {', '.join(sorted(missing))}")
         return
+
+    verify_steps = jobs["verify-builds"].get("steps", []) if isinstance(jobs["verify-builds"], dict) else []
+    bootstrap_idx = next(
+        (
+            idx
+            for idx, step in enumerate(verify_steps)
+            if isinstance(step, dict)
+            and (
+                "./mvnw install -DskipTests" in step.get("run", "")
+                or "mvn install -DskipTests" in step.get("run", "")
+            )
+        ),
+        None,
+    )
+    gradle_check_idx = next(
+        (
+            idx
+            for idx, step in enumerate(verify_steps)
+            if isinstance(step, dict)
+            and (
+                "./gradlew check" in step.get("run", "")
+                or "gradlew check" in step.get("run", "")
+            )
+        ),
+        None,
+    )
+    if bootstrap_idx is None or gradle_check_idx is None or bootstrap_idx >= gradle_check_idx:
+        errors.append(
+            "verify-builds must bootstrap reactor artifacts with './mvnw install -DskipTests' before running Gradle check"
+        )
+
     m18_needs = as_needs(jobs["m18-release-qualification"])
     if not {"validate-metadata", "verify-builds"} <= m18_needs:
         errors.append("M18 release qualification must depend on metadata and verified builds")

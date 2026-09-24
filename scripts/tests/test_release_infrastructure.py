@@ -248,6 +248,44 @@ class WorkflowContractTests(unittest.TestCase):
             self.assertTrue(any("skipped upload ancestors" in error for error in errors))
             self.assertTrue(any("full fingerprint" in error for error in errors))
 
+    def test_detects_missing_reactor_bootstrap_before_gradle_check(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.fixture(directory)
+            workflow = root / ".github/workflows/release.yml"
+            text = workflow.read_text()
+            bootstrap_step = (
+                "      - name: Bootstrap reactor artifacts for clean-room verification\n"
+                "        run: ./mvnw install -DskipTests -Dspotless.check.skip=true -B\n"
+            )
+            self.assertIn(bootstrap_step, text)
+            workflow.write_text(text.replace(bootstrap_step, ""))
+            errors = self.validate(root)
+            self.assertTrue(
+                any(
+                    "verify-builds must bootstrap reactor artifacts with './mvnw install -DskipTests' before running Gradle check"
+                    in error
+                    for error in errors
+                )
+            )
+
+            # Also verify that placing bootstrap step after Gradle check is detected as out-of-order
+            reordered = text.replace(bootstrap_step, "")
+            gradle_step = (
+                "      - name: Run Gradle check\n"
+                "        run: ./gradlew check --no-daemon -Dspotless.check.skip=true\n"
+            )
+            self.assertIn(gradle_step, reordered)
+            reordered = reordered.replace(gradle_step, gradle_step + bootstrap_step)
+            workflow.write_text(reordered)
+            reordered_errors = self.validate(root)
+            self.assertTrue(
+                any(
+                    "verify-builds must bootstrap reactor artifacts with './mvnw install -DskipTests' before running Gradle check"
+                    in error
+                    for error in reordered_errors
+                )
+            )
+
 
 class MetadataTagSelectionTests(unittest.TestCase):
     def test_explicit_empty_release_tag_does_not_become_branch_name(self):
@@ -474,6 +512,11 @@ class PublicationMetadataTests(unittest.TestCase):
             self.assertTrue(any("Malformed appended url" in e for e in bad_errors))
             self.assertTrue(any("Malformed appended scm connection" in e for e in bad_errors))
 
+
+def __getattr__(name):
+    if name == "ReleaseWorkflowContractTests":
+        return WorkflowContractTests
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 if __name__ == "__main__":

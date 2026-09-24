@@ -110,6 +110,8 @@ jobs:
           python-version: '3.x'
       - name: Install release test dependencies
         run: python3 -m pip install --disable-pip-version-check -r scripts/requirements-release.txt
+      - name: Bootstrap reactor artifacts for clean-room verification
+        run: ./mvnw install -DskipTests -Dspotless.check.skip=true -B
       - name: Run Gradle check
         run: ./gradlew check --no-daemon -Dspotless.check.skip=true
       - name: Run Maven verify
