@@ -13,6 +13,8 @@
       "targetMilestone": "M22",
       "candidateResolution": "Candidate remedies: module consolidation, ownership restructuring, narrow internal compiler facade, representation relocation, or retained intentional cross-module contract",
       "riskIfEarlyRemoval": "HIGH — changes published coordinates and cross-module API contract",
+      "blockerDisposition": "NON_BLOCKING_P2_FOR_1_0",
+      "blockerRationale": "Concrete AST nodes have 0 signature leaks into STABLE_API or STABLE_SPI and cannot be reached by public consumers. They exist exclusively as permitted subtypes of sealed hierarchies across internal modules; structural realignment is deferred to M22.",
       "types": [
         "io.github.minh124199.viettemplate.language.vtl.ast.VtlAccessStep",
         "io.github.minh124199.viettemplate.language.vtl.ast.VtlAccessStep$IndexAccess",
@@ -67,6 +69,8 @@
       "targetMilestone": "M22",
       "candidateResolution": "Candidate remedies: module consolidation, ownership restructuring, narrow internal compiler facade, representation relocation, or retained intentional cross-module contract",
       "riskIfEarlyRemoval": "HIGH",
+      "blockerDisposition": "NON_BLOCKING_P2_FOR_1_0",
+      "blockerRationale": "Concrete IR implementations (13 expressions + 20 statements = 33 types) have 0 signature leaks into STABLE_API or STABLE_SPI and cannot be reached by public consumers. They serve exclusively as cross-module representations consumed by vtl-interpreter; structural realignment is deferred to M22.",
       "types": [
         "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrAlternateValue",
         "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrBinaryOp",
@@ -113,6 +117,8 @@
       "targetMilestone": "M22",
       "candidateResolution": "Evaluate whether ForeachMetadata interface can be promoted to api or runtime module; evaluate VType sealed hierarchy inlining into optimizer package for package-private containment",
       "riskIfEarlyRemoval": "MEDIUM — ForeachMetadata is a cross-module SPI boundary",
+      "blockerDisposition": "NON_BLOCKING_P2_FOR_1_0",
+      "blockerRationale": "Semantics internal types (10 VType/Nullability types + 1 ForeachMetadata = 11 types) have 0 signature leaks into STABLE_API or STABLE_SPI. ForeachMetadata is frozen under the generated ABI baseline, and the internal VType hierarchy cannot be reached by public consumers; structural realignment is deferred to M22.",
       "types": [
         "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata",
         "io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability",
@@ -150,6 +156,10 @@
     "totalDebtTypes": 88,
     "totalPublicButInternalAccident": 85,
     "totalInternalCrossModuleDebt": 3,
+    "blockerDisposition1_0": "NON_BLOCKING_P2",
+    "blockerCountFor1_0": 0,
+    "signatureLeaks": 0,
+    "blockerRationale": "All 85 PBCIA types have 0 signature leaks into STABLE_API or STABLE_SPI, cannot be reached by public consumers, ForeachMetadata is frozen under the generated ABI baseline, and structural module realignment is deferred to M22.",
     "byMilestone": {
       "M4.5": 3,
       "M22": 85
