@@ -66,10 +66,11 @@ Every failure condition across the repository is classified into one of 16 canon
 ### 3.3 Dynamic Dispatch and Interpreter (`viet-template-vtl-interpreter`)
 
 - **`BytecodeRuntimeBridge`**:
-  - Polymorphic inline cache (PIC) and reflection fallback catches `Throwable`:
-    - Rethrows `Error` (including `VirtualMachineError`, `ThreadDeath`).
-    - Rethrows `RuntimeException`.
-    - Unwraps `InvocationTargetException` to expose true cause before rethrowing.
+  - Dynamic member, property, and index dispatch:
+    - Rethrows `VirtualMachineError` and `ThreadDeath` immediately.
+    - Rethrows `TemplateException` directly without double wrapping.
+    - Unwraps `InvocationTargetException` to extract the true target cause.
+    - Maps user application exceptions to `TemplateRenderException` with diagnostic code `INVALID_METHOD`, member context, and original cause intact, achieving semantic parity with AST and IR backends.
 - **`LinkedReferenceAccess`**:
   - Dynamic member and property access:
     - Rethrows `ControlSignal` (`#stop`, `#return`) immediately.
@@ -144,12 +145,13 @@ The AST interpreter, IR interpreter, and AOT compiled bytecode share identical e
 
 | Scenario | AST Backend | IR Backend | AOT Bytecode Backend | Parity Status |
 |---|---|---|---|---|
-| Undefined variable in strict mode | `TemplateRenderException` (`VARIABLE_UNDEFINED`) | `TemplateRenderException` (`VARIABLE_UNDEFINED`) | `TemplateRenderException` (`VARIABLE_UNDEFINED`) | **EXACT MATCH** |
-| Access forbidden member (`.getClass()`) | `TemplateSecurityException` (`SECURITY_VIOLATION`) | `TemplateSecurityException` (`SECURITY_VIOLATION`) | `TemplateSecurityException` (`SECURITY_VIOLATION`) | **EXACT MATCH** |
-| User application method throws exception | `TemplateRenderException` (`INVALID_METHOD`, cause) | `TemplateRenderException` (`INVALID_METHOD`, cause) | `RuntimeException` wrapping unmasked cause | **EXACT MATCH** |
-| Maximum output length exceeded | `TemplateLimitException` (`LIMIT_EXCEEDED`) | `TemplateLimitException` (`LIMIT_EXCEEDED`) | `TemplateLimitException` (`LIMIT_EXCEEDED`) | **EXACT MATCH** |
-| Dynamic `#parse` missing resource | `TemplateResourceException` (`RESOURCE_NOT_FOUND`) | `TemplateResourceException` (`RESOURCE_NOT_FOUND`) | `TemplateResourceException` (`RESOURCE_NOT_FOUND`) | **EXACT MATCH** |
-| Fatal JVM Error (`OutOfMemoryError`) | Rethrown unmasked | Rethrown unmasked | Rethrown unmasked | **EXACT MATCH** |
+| Undefined variable in strict mode | `TemplateRenderException` (`VARIABLE_UNDEFINED`) | `TemplateRenderException` (`VARIABLE_UNDEFINED`) | `TemplateRenderException` (`VARIABLE_UNDEFINED`) | **EXACT_SEMANTIC_MATCH** |
+| Access forbidden member (`.getClass()`) | `TemplateSecurityException` (`SECURITY_VIOLATION`) | `TemplateSecurityException` (`SECURITY_VIOLATION`) | `TemplateSecurityException` (`SECURITY_VIOLATION`) | **EXACT_SEMANTIC_MATCH** |
+| User application method throws exception | `TemplateRenderException` (`INVALID_METHOD`, cause) | `TemplateRenderException` (`INVALID_METHOD`, cause) | `TemplateRenderException` (`INVALID_METHOD`, cause) | **EXACT_SEMANTIC_MATCH** |
+| User property read throws exception | `TemplateRenderException` (`INVALID_METHOD`, cause) | `TemplateRenderException` (`INVALID_METHOD`, cause) | `TemplateRenderException` (`INVALID_METHOD`, cause) | **EXACT_SEMANTIC_MATCH** |
+| Maximum output length exceeded | `TemplateLimitException` (`LIMIT_EXCEEDED`) | `TemplateLimitException` (`LIMIT_EXCEEDED`) | `TemplateLimitException` (`LIMIT_EXCEEDED`) | **EXACT_SEMANTIC_MATCH** |
+| Dynamic `#parse` missing resource | `TemplateResourceException` (`RESOURCE_NOT_FOUND`) | `TemplateResourceException` (`RESOURCE_NOT_FOUND`) | `TemplateResourceException` (`RESOURCE_NOT_FOUND`) | **EXACT_SEMANTIC_MATCH** |
+| Fatal JVM Error (`OutOfMemoryError`) | Rethrown unmasked | Rethrown unmasked | Rethrown unmasked | **EXACT_SEMANTIC_MATCH** |
 
 ---
 
