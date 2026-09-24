@@ -75,6 +75,8 @@ echo "[STEP 1] Ensuring staged reactor artifacts in local repository..."
 if [ -d "${ROOT_DIR}/build/rc-repository/io/github/minh124199" ]; then
     mkdir -p "${HOME}/.m2/repository/io/github"
     cp -rn "${ROOT_DIR}/build/rc-repository/io/github/minh124199" "${HOME}/.m2/repository/io/github/" 2>/dev/null || cp -r "${ROOT_DIR}/build/rc-repository/io/github/minh124199" "${HOME}/.m2/repository/io/github/"
+else
+    "${ROOT_DIR}/mvnw" install -DskipTests -Dspotless.check.skip=true --no-transfer-progress -B
 fi
 echo "[PASS] Reactor artifacts available locally."
 
