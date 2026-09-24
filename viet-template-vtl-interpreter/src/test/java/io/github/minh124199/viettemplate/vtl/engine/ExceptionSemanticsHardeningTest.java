@@ -111,19 +111,53 @@ class ExceptionSemanticsHardeningTest {
 
   public static class OverloadedTarget {
     public String run(Integer i) {
+      if (i < 0) {
+        throw new IllegalStateException("Simulated failure in overloaded integer method: " + i);
+      }
       return "int:" + i;
     }
 
     public String run(String s) {
-      throw new IllegalStateException("Simulated failure in overloaded string method: " + s);
+      if ("error".equals(s)) {
+        throw new IllegalStateException("Simulated failure in overloaded string method: " + s);
+      }
+      return "str:" + s;
     }
 
     public String runFatal(Integer i) {
+      if (i < 0) {
+        throw new OutOfMemoryError("Simulated OOM in overloaded integer method: " + i);
+      }
       return "int:" + i;
     }
 
     public String runFatal(String s) {
-      throw new OutOfMemoryError("Simulated OOM in overloaded string method: " + s);
+      if ("error".equals(s)) {
+        throw new OutOfMemoryError("Simulated OOM in overloaded string method: " + s);
+      }
+      return "str:" + s;
+    }
+
+    public String runStackOverflow(Integer i) {
+      if (i < 0) {
+        throw new StackOverflowError("Simulated StackOverflow in overloaded integer method: " + i);
+      }
+      return "int:" + i;
+    }
+
+    public String runStackOverflow(String s) {
+      if ("error".equals(s)) {
+        throw new StackOverflowError("Simulated StackOverflow in overloaded string method: " + s);
+      }
+      return "str:" + s;
+    }
+
+    public String runSuccess(Integer i) {
+      return "int:" + i;
+    }
+
+    public String runSuccess(String s) {
+      return "str:" + s;
     }
   }
 
@@ -206,10 +240,10 @@ class ExceptionSemanticsHardeningTest {
   }
 
   @Test
-  @DisplayName("OutOfMemoryError escapes from BytecodeRuntimeBridge direct dynamic dispatch")
+  @DisplayName("Fatal JVM errors escape from BytecodeRuntimeBridge direct dynamic dispatch")
   void fatalErrorsEscapeDirectBytecodeBridgeCalls() {
     FaultyTarget target = new FaultyTarget();
-    DynamicCallSite methodSite =
+    DynamicCallSite methodSiteOom =
         new DynamicCallSite(
             101,
             MemberKey.methodCall("throwOom", 0),
@@ -218,11 +252,11 @@ class ExceptionSemanticsHardeningTest {
             null);
 
     assertThatThrownBy(
-            () -> BytecodeRuntimeBridge.dynamicInvokeMethod(methodSite, target, new Object[0]))
+            () -> BytecodeRuntimeBridge.dynamicInvokeMethod(methodSiteOom, target, new Object[0]))
         .isInstanceOf(OutOfMemoryError.class)
         .hasMessage("Simulated OOM in method");
 
-    DynamicCallSite propSite =
+    DynamicCallSite propSiteOom =
         new DynamicCallSite(
             102,
             MemberKey.propertyGet("oomProperty"),
@@ -230,9 +264,62 @@ class ExceptionSemanticsHardeningTest {
             new DynamicLinker(),
             null);
 
-    assertThatThrownBy(() -> BytecodeRuntimeBridge.dynamicGetProperty(propSite, target))
+    assertThatThrownBy(() -> BytecodeRuntimeBridge.dynamicGetProperty(propSiteOom, target))
         .isInstanceOf(OutOfMemoryError.class)
         .hasMessage("Simulated OOM in property getter");
+
+    DynamicCallSite methodSiteSoe =
+        new DynamicCallSite(
+            103,
+            MemberKey.methodCall("throwStackOverflow", 0),
+            LinkerAccessPolicy.standard(),
+            new DynamicLinker(),
+            null);
+
+    assertThatThrownBy(
+            () -> BytecodeRuntimeBridge.dynamicInvokeMethod(methodSiteSoe, target, new Object[0]))
+        .isInstanceOf(StackOverflowError.class)
+        .hasMessage("Simulated StackOverflow in method");
+
+    DynamicCallSite propSiteSoe =
+        new DynamicCallSite(
+            104,
+            MemberKey.propertyGet("stackOverflowProperty"),
+            LinkerAccessPolicy.standard(),
+            new DynamicLinker(),
+            null);
+
+    assertThatThrownBy(() -> BytecodeRuntimeBridge.dynamicGetProperty(propSiteSoe, target))
+        .isInstanceOf(StackOverflowError.class)
+        .hasMessage("Simulated StackOverflow in property getter");
+  }
+
+  @Test
+  @DisplayName(
+      "BytecodeRuntimeBridge direct MethodHandle dispatch wraps RuntimeException in"
+          + " TemplateRenderException")
+  void bytecodeBridgeDirectMethodHandleDispatchWrapsRuntimeExceptionInTemplateRenderException() {
+    FaultyTarget target = new FaultyTarget();
+    DynamicCallSite appSite =
+        new DynamicCallSite(
+            105,
+            MemberKey.methodCall("throwAppException", 0),
+            LinkerAccessPolicy.standard(),
+            new DynamicLinker(),
+            null);
+
+    assertThatThrownBy(
+            () -> BytecodeRuntimeBridge.dynamicInvokeMethod(appSite, target, new Object[0]))
+        .isInstanceOf(TemplateRenderException.class)
+        .hasCauseInstanceOf(IllegalStateException.class)
+        .satisfies(
+            e -> {
+              TemplateRenderException tre = (TemplateRenderException) e;
+              assertThat(tre.code())
+                  .isPresent()
+                  .contains(InterpreterDiagnosticCodes.INVALID_METHOD);
+              assertThat(tre.getCause()).hasMessage("Business logic failed");
+            });
   }
 
   @Test
@@ -249,33 +336,42 @@ class ExceptionSemanticsHardeningTest {
             new DynamicLinker(),
             null);
 
-    // First invoke monomorphically with Integer argument to cache (Integer) signature
-    Object intResult =
-        BytecodeRuntimeBridge.dynamicInvokeMethod(site, target, new Object[] {Integer.valueOf(10)});
-    assertThat(intResult).isEqualTo("int:10");
+    // Determine the overload linked initially by DynamicLinker
+    Class<?> linkedType = site.resolveLink(target.getClass()).handle().type().parameterType(1);
+    Object mhArg = linkedType == Integer.class ? Integer.valueOf(10) : "test";
+    String expectedMhResult = linkedType == Integer.class ? "int:10" : "str:test";
+    Object fallbackFailArg = linkedType == Integer.class ? "error" : Integer.valueOf(-1);
+    String expectedFallbackError =
+        linkedType == Integer.class
+            ? "Simulated failure in overloaded string method: error"
+            : "Simulated failure in overloaded integer method: -1";
 
-    // Second invoke with String argument triggers ClassCastException/WrongMethodTypeException in
-    // call site,
-    // which falls back to reflection and must unwrap InvocationTargetException directly to
-    // IllegalStateException
+    // 1. Initial invoke matches cached signature (MethodHandle path)
+    Object initialResult =
+        BytecodeRuntimeBridge.dynamicInvokeMethod(site, target, new Object[] {mhArg});
+    assertThat(initialResult).isEqualTo(expectedMhResult);
+
+    // 2. Invoke with incompatible argument type triggers ClassCastException in call site,
+    // which falls back to reflection and normalizes InvocationTargetException into
+    // TemplateRenderException
     assertThatThrownBy(
             () ->
                 BytecodeRuntimeBridge.dynamicInvokeMethod(
-                    site, target, new Object[] {"test-value"}))
+                    site, target, new Object[] {fallbackFailArg}))
         .isInstanceOf(TemplateRenderException.class)
         .hasCauseInstanceOf(IllegalStateException.class)
         .satisfies(
             e -> {
               TemplateRenderException tre = (TemplateRenderException) e;
               assertThat(tre.code()).contains(InterpreterDiagnosticCodes.INVALID_METHOD);
-              assertThat(tre.getCause())
-                  .hasMessage("Simulated failure in overloaded string method: test-value");
+              assertThat(tre.getCause()).hasMessage(expectedFallbackError);
             });
   }
 
   @Test
   @DisplayName(
-      "BytecodeRuntimeBridge reflection fallback unwraps InvocationTargetException for fatal Error")
+      "BytecodeRuntimeBridge reflection fallback unwraps InvocationTargetException for fatal"
+          + " Errors")
   void bytecodeBridgeReflectionFallbackUnwrapsInvocationTargetExceptionForFatalError() {
     OverloadedTarget target = new OverloadedTarget();
     DynamicCallSite site =
@@ -286,18 +382,88 @@ class ExceptionSemanticsHardeningTest {
             new DynamicLinker(),
             null);
 
-    // Pre-link monomorphically with Integer
-    Object intResult =
-        BytecodeRuntimeBridge.dynamicInvokeMethod(site, target, new Object[] {Integer.valueOf(10)});
-    assertThat(intResult).isEqualTo("int:10");
+    Class<?> linkedType = site.resolveLink(target.getClass()).handle().type().parameterType(1);
+    Object mhArg = linkedType == Integer.class ? Integer.valueOf(10) : "test";
+    String expectedMhResult = linkedType == Integer.class ? "int:10" : "str:test";
+    Object fallbackFatalArg = linkedType == Integer.class ? "error" : Integer.valueOf(-1);
+    String expectedOomMessage =
+        linkedType == Integer.class
+            ? "Simulated OOM in overloaded string method: error"
+            : "Simulated OOM in overloaded integer method: -1";
 
-    // Dynamic invoke with String falls back to reflection and unwraps OutOfMemoryError
+    // Pre-link monomorphically with initial argument type
+    Object initialResult =
+        BytecodeRuntimeBridge.dynamicInvokeMethod(site, target, new Object[] {mhArg});
+    assertThat(initialResult).isEqualTo(expectedMhResult);
+
+    // Dynamic invoke with incompatible type falls back to reflection and unwraps OutOfMemoryError
     assertThatThrownBy(
             () ->
                 BytecodeRuntimeBridge.dynamicInvokeMethod(
-                    site, target, new Object[] {"test-value"}))
+                    site, target, new Object[] {fallbackFatalArg}))
         .isInstanceOf(OutOfMemoryError.class)
-        .hasMessage("Simulated OOM in overloaded string method: test-value");
+        .hasMessage(expectedOomMessage);
+
+    DynamicCallSite soeSite =
+        new DynamicCallSite(
+            203,
+            MemberKey.methodCall("runStackOverflow", 1),
+            LinkerAccessPolicy.standard(),
+            new DynamicLinker(),
+            null);
+
+    Class<?> soeLinkedType =
+        soeSite.resolveLink(target.getClass()).handle().type().parameterType(1);
+    Object soeMhArg = soeLinkedType == Integer.class ? Integer.valueOf(10) : "test";
+    String expectedSoeMhResult = soeLinkedType == Integer.class ? "int:10" : "str:test";
+    Object soeFallbackArg = soeLinkedType == Integer.class ? "error" : Integer.valueOf(-1);
+    String expectedSoeMessage =
+        soeLinkedType == Integer.class
+            ? "Simulated StackOverflow in overloaded string method: error"
+            : "Simulated StackOverflow in overloaded integer method: -1";
+
+    // Pre-link monomorphically
+    Object soeInitialResult =
+        BytecodeRuntimeBridge.dynamicInvokeMethod(soeSite, target, new Object[] {soeMhArg});
+    assertThat(soeInitialResult).isEqualTo(expectedSoeMhResult);
+
+    // Dynamic invoke with incompatible type falls back to reflection and unwraps StackOverflowError
+    assertThatThrownBy(
+            () ->
+                BytecodeRuntimeBridge.dynamicInvokeMethod(
+                    soeSite, target, new Object[] {soeFallbackArg}))
+        .isInstanceOf(StackOverflowError.class)
+        .hasMessage(expectedSoeMessage);
+  }
+
+  @Test
+  @DisplayName("BytecodeRuntimeBridge reflection fallback selects valid overload correctly")
+  void bytecodeBridgeReflectionFallbackSelectsValidOverloadCorrectly() {
+    OverloadedTarget target = new OverloadedTarget();
+    DynamicCallSite site =
+        new DynamicCallSite(
+            204,
+            MemberKey.methodCall("runSuccess", 1),
+            LinkerAccessPolicy.standard(),
+            new DynamicLinker(),
+            null);
+
+    Class<?> linkedType = site.resolveLink(target.getClass()).handle().type().parameterType(1);
+    Object mhArg = linkedType == Integer.class ? Integer.valueOf(42) : "first";
+    String expectedMhResult = linkedType == Integer.class ? "int:42" : "str:first";
+    Object fallbackArg = linkedType == Integer.class ? "fallback-value" : Integer.valueOf(99);
+    String expectedFallbackResult = linkedType == Integer.class ? "str:fallback-value" : "int:99";
+
+    // Pre-link monomorphically
+    Object initialResult =
+        BytecodeRuntimeBridge.dynamicInvokeMethod(site, target, new Object[] {mhArg});
+    assertThat(initialResult).isEqualTo(expectedMhResult);
+
+    // Dynamic invoke with incompatible argument type falls back to reflection and executes valid
+    // overload
+    Object fallbackResult =
+        BytecodeRuntimeBridge.dynamicInvokeMethod(site, target, new Object[] {fallbackArg});
+    assertThat(fallbackResult).isEqualTo(expectedFallbackResult);
   }
 
   @Test

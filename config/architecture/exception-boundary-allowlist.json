@@ -114,18 +114,10 @@
   {
     "class": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge",
     "method": "dynamicInvokeMethod",
-    "caughtType": "Exception",
-    "category": "EVALUATION",
-    "owner": "compiler",
-    "reason": "Reflective method invocation fallback when MethodHandle call site types mismatch; wraps reflection invocation failure in RuntimeException after checking security policy."
-  },
-  {
-    "class": "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge",
-    "method": "dynamicInvokeMethod",
     "caughtType": "Throwable",
     "category": "EVALUATION",
     "owner": "compiler",
-    "reason": "Dispatches dynamic method invocation through DynamicCallSite; catches Throwable to immediately rethrow Error/VirtualMachineError and RuntimeException."
+    "reason": "Dispatches dynamic method invocation through DynamicCallSite and reflective fallback; catches Throwable to immediately rethrow fatal errors and TemplateException, unwrapping InvocationTargetException and wrapping application exceptions in TemplateRenderException."
   },
   {
     "class": "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine",
