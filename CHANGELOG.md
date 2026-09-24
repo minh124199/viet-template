@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-RC1] - Prepared / Locally Qualified (2026-09-24)
+
+### Added
+- **1.0 Release Candidate Preparation & Artifact Provenance Verification (Milestones M8 / M8.9)**:
+  - Formally froze candidate public API and SPI surface to exactly 121 stable types (94 `STABLE_API` + 27 `STABLE_SPI`) across 5 baselines.
+  - Locked generated template runtime ABI baseline to 7 types, 22 invoked methods, and 0 fields (`config/api-baseline/generated-template-runtime-abi.txt`).
+  - Froze diagnostic code candidate baseline to 31 canonical codes; documented `PARSER:*` codes as internal parser recovery details.
+  - Reconciled authoritative framework support matrix across Spring Boot 3/4, Spring Framework 6/7, Spring Security 6/7, Quarkus 3.33/3.39, Maven 3.8/3.9, and Gradle 8.5/9.7.
+  - Established single-SHA release provenance invariant: locally staged release artifacts, checksum manifests, and external consumer verification derive from a single authoritative commit SHA.
+  - Verified publication topology: 13 primary publication coordinates (12 production modules + parent POM) and 1 generated Gradle plugin marker publication.
+  - Verified empirical native-image compilation and execution on Linux x86_64 across Spring Boot 3/4 (Oracle GraalVM 25.0.4+7.1) and Quarkus (Mandrel 25.0.4.1-Final).
+
 - **0.3.0-M6.9 Evidence Reconciliation, Backend Exception-Parity Closure, API/ABI Accounting Correction & M6 Freeze**:
   - Normalized AOT dynamic method, property, and index invocation failures in `BytecodeRuntimeBridge` to `TemplateRenderException` with diagnostic code `INVALID_METHOD`, member context, and original application cause preserved.
   - Enriched template ID placeholder in `AotExecutionTarget` while preserving zero generated runtime ABI descriptor changes and 100% monomorphic execution performance.

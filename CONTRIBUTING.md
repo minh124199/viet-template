@@ -31,6 +31,13 @@ Before starting work or proposing architectural changes, please review the relev
    - Production modules (`api`, `runtime`, `language-vtl`, `vtl-interpreter`) must remain lightweight, fast, and free of external runtime frameworks (no Spring, Quarkus, Micronaut, ASM, or ByteBuddy dependencies in core).
    - Java baseline is strictly **Java 21** (`options.release.set(21)` / `<release>21</release>`), with Java 25 as the primary development and CI toolchain.
 
+5. **Freeze-Era Change Control & Release Candidate Policy**:
+   - **No New Stable APIs**: During the Release Candidate (RC) line, no new `STABLE_API` or `STABLE_SPI` types or methods may be introduced unless required to resolve a proven P0/P1 release blocker.
+   - **Freeze Exceptions Required**: Any modification to frozen descriptors (public API/SPI, generated ABI, diagnostic codes, framework configuration keys) requires an explicit, documented `FREEZE_EXCEPTION`.
+   - **Generated ABI Invariance**: Modifications to the generated runtime ABI baseline (the 7 types and 22 methods in `config/api-baseline/generated-template-runtime-abi.txt`) require updating the ABI verifier and executing full RC requalification across all external consumers and native fixtures.
+   - **Diagnostic Code Review**: Changes to externally observable diagnostic codes require formal review against `config/api-baseline/diagnostic-codes-1.0.txt`; non-stable parser tokens must remain classified as internal details.
+   - **One-SHA Provenance Invariant**: Release-related contributions, artifact staging, and external qualification must derive strictly from one authoritative commit SHA.
+
 ## Development Workflow & Dual-Build Parity
 
 Viet Template maintains **first-class dual-build parity** between Gradle 9.7.1 (Kotlin DSL) and Apache Maven 3.9.9. Every pull request must pass cleanly under both build systems.

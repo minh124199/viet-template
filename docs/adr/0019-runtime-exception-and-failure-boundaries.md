@@ -40,7 +40,7 @@ To establish deterministic failure boundaries and eliminate bug-masking risks, V
 A complete redesign of the exception hierarchy is rejected. The existing standard hierarchy is sufficient, stable, and expressive when applied consistently:
 - `TemplateException` (base checked/unchecked root)
   - `TemplateResourceException` (template not found, I/O failure during stream read)
-  - `TemplateParseException` (lexical or syntactic grammar violations)
+  - `TemplateSyntaxException` (lexical or syntactic grammar violations)
   - `TemplateCompilationException` (semantic analysis, IR lowering, AOT compilation, or linkage errors)
   - `TemplateRenderException` (runtime evaluation, invocation errors, stream I/O)
   - `TemplateSecurityException` (access policy violations, forbidden members, path traversal)

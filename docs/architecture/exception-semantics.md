@@ -22,7 +22,7 @@ Every failure condition across the repository is classified into one of 16 canon
 | `OPTIONAL_CAPABILITY_PROBE` | Probing optional integration (e.g. Quarkus Security, Arc CDI) | Checked class lookup, safe fallback |
 | `USER_INPUT_ERROR` | Malformed parameters, invalid encoding name, null arguments | `IllegalArgumentException` |
 | `RESOLUTION` | Failure locating or reading template source bytes | `TemplateResourceException` (`VTLR01`) |
-| `PARSE` | Syntax error during tokenization or parsing | `TemplateParseException` (`VTLP01`) |
+| `PARSE` | Syntax error during tokenization or parsing | `TemplateSyntaxException` (`SYNTAX:PARSE_ERROR`) |
 | `SEMANTIC` | Invalid directive structure, malformed macro definition | `TemplateCompilationException` (`VTLS01`) |
 | `COMPILATION` | Error lowering IR, generating bytecode, or compiling AOT class | `TemplateCompilationException` (`VTLC01`) |
 | `EVALUATION` | Runtime error evaluating expression, property, or method | `TemplateRenderException` (`VTLR02`) |

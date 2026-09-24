@@ -2,17 +2,27 @@
 
 ## Supported Versions
 
-Only the latest active development line is supported with security updates.
+Only the latest active release line is supported with security updates.
 
 | Version | Supported | Notes |
 | :--- | :--- | :--- |
-| `0.2.x` | :white_check_mark: | Current active development line |
-| `0.1.x` | :x: | Superseded by 0.2.x; upgrade recommended |
-| `< 0.1.0` | :x: | Pre-release snapshots / unsupported |
+| `0.2.2` | :white_check_mark: | Latest published stable release |
+| `1.0.0-RC1` | :hourglass_flowing_sand: | Release candidate (locally staged and qualified; remote publication pending authorization) |
+| `0.2.3` | :x: | Prepared/held, not released |
+| `< 0.2.2` | :x: | Superseded / unsupported |
 
 ## Security Model and Boundaries
 
 Viet Template is designed to execute templates across different trust environments. To constrain execution capabilities, resource consumption, and sensitive data leakage, Viet Template provides distinct execution profiles with explicit boundaries.
+
+### Core Security Invariants
+
+1. **Default Fail-Closed Member Access**: By default, `MemberAccessPolicy` operates in a strict fail-closed posture. Core denied classes (`ClassLoader`, `Runtime`, `ProcessBuilder`, `System`, `Thread`), reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), and dangerous methods (`getClass`, `wait`, `notify`) cannot be accessed. `TemplateSecurityException` is thrown immediately and never converted to fallback misses or empty output.
+2. **Velocity Compatibility vs. Reflection Permissiveness**: While Viet Template provides high-fidelity syntax compatibility with Apache Velocity 2.4.1 (295/301 scenarios exact, 100% accounted coverage), Velocity compatibility does **not** imply Velocity reflection permissiveness. Access to `.class` and `getClass()` is deliberately denied by default (`security.denial.class-property` and `security.denial.get-class-method`, ADR-0004).
+3. **Spring Security Integration Scope**: `viet-template-spring-security` provides presentation-safe `$security` and `$csrf` template facades with contextual auto-escaping. Authorization checks fail closed and propagate security denials without masking.
+4. **Quarkus Security Integration Scope**: `viet-template-quarkus` integrates optionally with Quarkus Security via `QuarkusSecurityView` without hard runtime dependencies, maintaining fail-closed authorization semantics and clean exception propagation.
+5. **Native-Image Security Qualification Scope**: AOT-compiled templates and GraalVM native binaries enforce the identical `LinkerAccessPolicy` and sandbox invariants. Substrate VM native image execution does not bypass access checks.
+6. **Unsupported and Experimental APIs Caveat**: APIs marked `@Experimental` or residing in internal packages (`*.internal.*`) or classified as public-but-internal debt (PBCIA) do not constitute stable security boundaries and must not be relied upon for security-critical access controls.
 
 ### Security Terminology Definitions
 

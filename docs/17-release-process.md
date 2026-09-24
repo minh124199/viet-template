@@ -267,3 +267,55 @@ last observed state. Timeout is intentionally finite and does not imply that Cen
 GitHub Release finalization is idempotent: an existing non-draft release for the immutable tag is
 verified and accepted; an absent release is created with generated notes. It never creates a
 duplicate and only runs after public-coordinate and consumer verification.
+
+---
+
+## 7. Release Candidate (RC) Staging, One-SHA Provenance, and Manifest Invariants
+
+Milestones M8 and M8.9 formalize the multi-stage candidate release qualification workflow:
+
+```text
+Contract Freeze (ADR-0020)
+        ↓
+RC Version Preparation (1.0.0-RC1 across build files)
+        ↓
+Full Clean Builds (Gradle check + Maven verify)
+        ↓
+Authoritative Commit Finalization (Commit SHA locked)
+        ↓
+Clean-Room Local Staging (build/rc-repository/)
+        ↓
+Artifact Manifest Generation (build/reports/rc-artifacts.json with SHA-256 and source_commit_sha)
+        ↓
+External Consumer Matrix Qualification (Plain Maven/Gradle, TCK, AOT parity, Spring, Quarkus)
+        ↓
+Native-Image Qualification (Spring Boot 3/4 Native on GraalVM 25, Quarkus Native on Mandrel 25)
+        ↓
+Explicit Remote Publication Authorization
+        ↓
+Automated Remote Release Workflow (.github/workflows/release.yml, prerelease=true)
+        ↓
+Central Post-Publication Smoke Verification
+        ↓
+Release Candidate Soak Period
+        ↓
+1.0.0 GA Promotion
+```
+
+### 7.1 The One-SHA Release Provenance Invariant
+
+A remotely published Release Candidate must correspond **exactly** to the final locally qualified RC commit SHA and artifact checksum manifest. Staging artifacts before a commit, modifying code or tests, and then claiming qualification without rebuilding staged artifacts introduces a provenance gap. The repository strictly enforces:
+
+$$\text{One SHA} \implies \text{One Artifact Set} \implies \text{One Checksum Manifest} \implies \text{One Qualification Pass} \implies \text{Publication Readiness}$$
+
+Any tracked commit made after an artifact build invalidates release evidence and requires rebuilding the staged repository and rerunning all artifact-consuming qualification gates.
+
+### 7.2 The Release Artifact Manifest Rule
+
+Before remote publication, the release engineer must generate `build/reports/rc-artifacts.json` capturing:
+- `version`: Canonical release candidate version (`1.0.0-RC1`).
+- `source_commit_sha`: Exact git commit SHA from which artifacts were built.
+- `publishedCoordinatesCount`: 13 primary published coordinates.
+- `generatedPluginMarkerCount`: 1 generated Gradle plugin marker publication.
+- `totalStagedCoordinatesCount`: 14 staged Maven coordinates.
+- For each staged file: `groupId`, `artifactId`, `version`, `packaging`, `filename`, `sizeBytes`, `sha256`, and verification flags.

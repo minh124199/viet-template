@@ -12,7 +12,10 @@ public record DiagnosticCode(String category, String id) implements Serializable
 
 Every compilation, semantic, security, resource, and runtime exception in the engine inherits from `TemplateException` and associates a structured `DiagnosticCode`, source template identifier (`TemplateId`), and source position span (`SourceSpan`).
 
-This catalog provides an authoritative reference for all stable diagnostic codes emitted by Viet Template.
+This catalog provides an authoritative reference for all 31 stable diagnostic codes locked in the 1.0 candidate baseline (`config/api-baseline/diagnostic-codes-1.0.txt`).
+
+> [!NOTE] Internal Parser Diagnostics Classification
+> During parsing and AST generation, internal parser diagnostic tags (such as `[PARSER:UNCLOSED_DIRECTIVE]` or `[PARSER:INVALID_SYNTAX]`) may be emitted internally by `VtlParser` and adapted by `TemplateAotCompiler` for build-tool logging. These are classified as `INTERNAL_DETAIL` (internal implementation details) rather than public stable API/tooling codes, and are surfaced to users wrapped under the canonical `SYNTAX:PARSE_ERROR` diagnostic code. Only the 31 codes documented below are part of the frozen 1.0 tooling diagnostic contract.
 
 ---
 

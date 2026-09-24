@@ -292,13 +292,29 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
     - **M6.7 (Documentation & ADR-0019)**: Formulated comprehensive architecture guide (`docs/architecture/exception-semantics.md`) and recorded ADR-0019 (`docs/adr/0019-runtime-exception-and-failure-boundaries.md`).
     - **M6.9 (Evidence Reconciliation, Backend Exception-Parity Closure, API/ABI Accounting Correction & M6 Freeze) — COMPLETE & FROZEN**: Reconciled backend parity evidence table to `EXACT_SEMANTIC_MATCH`; reconciled stable public surface count to 121 (94 `STABLE_API` + 27 `STABLE_SPI`); disambiguated primary `GENERATED_RUNTIME_ABI = 1` taxonomy category from the 7 Viet-owned bytecode runtime dependencies; corrected module classification (14 physical build modules, 12 published artifacts, 2 unpublished verification modules); verified AOT tooling parity and negative build failure diagnostics across Maven and Gradle; confirmed zero unallowlisted catches, zero stale entries, fail-closed security, and fatal JVM error escape. M6 runtime exception semantics are frozen.
 
-- **Milestone M8 (1.0 Candidate Contract Freeze & Release Candidate Preparation) — IN PROGRESS**:
+- **Milestone M8 (1.0 Candidate Contract Freeze & Local RC Staging) — COMPLETE**:
     - **M8.0 (Pre-Freeze Wording & Evidence Reconciliation) — COMPLETE**: Reconciled candidate baseline terminology to `1.0 Candidate Baseline` (`READY_TO_FREEZE`), refined native qualification claims to exact tested toolchain (`Linux x86_64 Mandrel 25.0.4.1-Final, Java 25`), reconciled Quarkus publication history to `Never published. First intended release: 0.3.0+ / 1.0 candidate line`, removed stale `M4.5` references in favor of `POST_1_0_MAINTENANCE`, and classified Spring AOT as `JVM_AOT_QUALIFIED`.
     - **M8.1 (1.0 API, SPI, Generated ABI, Diagnostics & Tooling Freeze) — COMPLETE & FROZEN**: Formally froze 121 stable types (94 `STABLE_API` + 27 `STABLE_SPI`), 7 generated runtime ABI types (22 invoked methods, 0 fields), 31 canonical diagnostic codes, 23 framework configuration keys, and build-tool contracts (Maven Mojo & Gradle plugin tasks/wiring). Recorded ADR-0020 and established machine-readable `config/compatibility/framework-configuration-keys.json`. Evaluated Velocity differential suite (295/301 exact, 5 expected differences, 1 extension, 100% accounted).
-    - **M8.2–M8.7 (RC Version Bump, Artifact Staging & External Consumer Qualification)**: Upcoming release engineering stages for 1.0.0-RC1.
+    - **M8.2–M8.8 (RC Version Preparation, Artifact Assembly, Local Staging & Consumer Qualification) — COMPLETE**: Prepared 1.0.0-RC1, validated release bundles, staged local repository, and qualified external consumers across Spring Boot 3/4 and Quarkus JVM/native.
+- **Milestone M8.9 (RC1 Artifact Provenance Rebuild, Contract Evidence Reconciliation, Documentation Convergence, and Public-RC Publication Readiness) — COMPLETE**:
+    - Rebuilt exact 1.0.0-RC1 artifact set from one authoritative final qualification commit SHA.
+    - Resolved provenance gap between test fixture updates and staged release artifacts.
+    - Mechanically reconciled diagnostic baseline: confirmed 31 canonical `STABLE_TOOLING_CODE` entries and classified `PARSER:*` codes (such as `[PARSER:UNCLOSED_DIRECTIVE]`) as `INTERNAL_DETAIL`.
+    - Mechanically regenerated Velocity differential compatibility evidence from `StandardExpectations` (301 scenarios: 295 exact, 5 expected differences, 1 extension, 100% accounted coverage).
+    - Reconciled exception hierarchy documentation to match actual public classes in `viet-template-api` (corrected `TemplateParseException` to `TemplateSyntaxException`).
+    - Reconciled framework support matrix to explicit Declared Minimum, RC-Tested, and Canonical RC versions (avoiding unverified continuous range claims).
+    - Reconciled native-image toolchain evidence: Spring Boot 3/4 Native on Oracle GraalVM 25.0.4+7.1 (build 25.0.4+7-LTS), Quarkus Native on Mandrel 25.0.4.1-Final.
+    - Updated release workflow to ensure GitHub Release sets `prerelease=true` for release candidates.
+    - Enforced one-SHA release provenance invariant and artifact manifest rule across documentation and tooling.
+    - Reached verdict: `RC1_READY_FOR_AUTHORIZED_PUBLICATION`.
+- **Milestone M9 (Public RC Publication, External Soak, Final Compatibility Reconfirmation, and 1.0 GA Promotion Readiness) — PLANNED**:
+    - Execute authorized remote publication of 1.0.0-RC1 to Maven Central.
+    - Post-publication smoke verification using `scripts/smoke-central-consumers.sh`.
+    - Multi-week public RC soak evaluating real-world downstream adoption, public plugin resolution, and external migration feedback.
+    - Final compatibility reconfirmation and 1.0.0 GA promotion readiness decision.
 
 - **Roadmap Sequence Towards 1.0 GA**:
   - **0.2.3 Status**: Historical release prepared across POMs but held without tagging or publication (`PREPARED_HELD`).
   - **0.3.0 Development Line**: Completed public surface encapsulation (M1–M3.5), runtime architecture (M4), warmed-lookup simplification (M5), exception semantics hardening (M6), 1.0 candidate contract reconciliation (M7.9), and 1.0 candidate contract freeze (M8.1).
-  - **1.0.0-RC1 (Release Candidate)**: Staged artifact qualification and external consumer verification.
-  - **1.0.0 GA**: General Availability release locking permanent SemVer binary backwards compatibility.
+  - **1.0.0-RC1 (Release Candidate)**: Staged artifact provenance rebuild, contract evidence reconciliation, documentation convergence, and publication qualification (M8 / M8.9).
+  - **1.0.0 GA**: General Availability release locking permanent SemVer binary backwards compatibility following RC soak (M9).

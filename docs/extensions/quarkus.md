@@ -7,7 +7,7 @@ Viet Template provides first-class, idiomatic integration with [Quarkus](https:/
 - **Architecture**: Separated into a lightweight runtime module (`viet-template-quarkus`) and an ahead-of-time build step module (`viet-template-quarkus-deployment`).
 - **Framework-Neutral Invariant**: The core engine (`viet-template-api`, `runtime`, `language-vtl`, `vtl-interpreter`) contains zero Quarkus dependencies. The extension adapts the framework-neutral contracts to Quarkus CDI, SmallRye Config, GraalVM native image build items, and dev-mode hot reload.
 - **Qute Coexistence**: Viet Template runs harmoniously alongside Quarkus Qute within the same application without bean ambiguity or template path conflicts.
-- **Public API Surface**: `viet-template-quarkus` exports 4 stable types (3 API + 1 SPI: `VietTemplateConfig`, `VietTemplateRenderer`, `QuarkusSecurityView` as `STABLE_API`, and `QuarkusSecurityRenderContextContributor` as `STABLE_SPI`), tracked in `config/api-baseline/1.0-quarkus-public-api.txt`. Total stable types across the repository: 105 types (85 API + 20 SPI).
+- **Public API Surface**: `viet-template-quarkus` exports 4 stable types (3 API + 1 SPI: `VietTemplateConfig`, `VietTemplateRenderer`, `QuarkusSecurityView` as `STABLE_API`, and `QuarkusSecurityRenderContextContributor` as `STABLE_SPI`), tracked in `config/api-baseline/1.0-quarkus-public-api.txt`. Total stable types across the repository: 121 types (94 API + 27 SPI).
 
 ---
 

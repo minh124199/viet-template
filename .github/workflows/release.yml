@@ -367,5 +367,9 @@ jobs:
             [[ "$(jq -r .isDraft /tmp/release.json)" == "false" ]] || { echo "::error::Existing release is still a draft."; exit 1; }
             echo "GitHub Release already exists and matches immutable tag $TAG_NAME."
           else
-            gh release create "$TAG_NAME" --title "Viet Template $VERSION" --generate-notes --verify-tag
+            PRERELEASE_FLAG=""
+            if [[ "$VERSION" =~ -[A-Za-z0-9] ]]; then
+              PRERELEASE_FLAG="--prerelease"
+            fi
+            gh release create "$TAG_NAME" --title "Viet Template $VERSION" --generate-notes --verify-tag $PRERELEASE_FLAG
           fi

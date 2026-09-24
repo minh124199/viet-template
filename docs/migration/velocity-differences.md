@@ -2,19 +2,28 @@
 
 ## Overview
 
-Viet Template delivers near-complete semantic parity with **Apache Velocity 2.4.1** across 80 Technology Compatibility Kit (TCK) feature scenarios. However, to guarantee robust production security, predictable fault diagnosis, and high-throughput thread concurrency, Viet Template intentionally diverges from legacy Velocity in **three documented areas** (`DIFF-001`, `DIFF-002`, `DIFF-003`) and enforces hardened architectural invariants regarding security sandboxing, output escaping, and context immutability.
+Viet Template delivers near-complete semantic parity with **Apache Velocity 2.4.1** across 301 differential test scenarios in the Technology Compatibility Kit (TCK). Evaluated against the authoritative expectation registry (`StandardExpectations.java`), Viet Template achieves:
+- **Exact Parity**: 295 scenarios (98.01%)
+- **Documented Expected Differences**: 5 scenarios (1.66%)
+- **Viet Extensions**: 1 scenario (0.33%)
+- **Unsupported Features**: 0 scenarios (0.00%)
+- **Unexpected Regressions**: 0 scenarios (0.00%)
+- **Total Accounted Behavior Coverage**: 301 / 301 scenarios (100.00%)
 
-This document serves as the authoritative, canonical specification of all behavioral differences.
+To guarantee production security, predictable fault diagnosis, and thread concurrency, Viet Template intentionally diverges from legacy Velocity in **five documented scenarios** (across arithmetic, security sandboxing, and null-assignment) and provides **one extension**.
 
 ---
 
-## 1. Summary of Documented TCK Differences
+## 1. Summary of Documented TCK Differences & Extensions
 
-| TCK Feature ID | Feature Name | Velocity 2.4.1 Behavior | Viet Template Behavior | Architectural Justification |
+| Scenario Key / TCK ID | Classification | Velocity 2.4.1 Behavior | Viet Template Behavior | Architectural Justification |
 |---|---|---|---|---|
-| `DIFF-001` | Fail-fast division by zero | Returns `null`, logs warning, continues rendering silently | Immediately fails fast with `TemplateRenderException` (`[RENDER:FAILURE] Division by zero`) | Arithmetic errors in business templates indicate calculation bugs that must not produce corrupt rendered output. |
-| `DIFF-002` | Default reflection & class access | Permits calling `$obj.getClass()`, `.class`, and reflective methods | Denies access to `getClass()`, `.class`, and classloaders under `MemberAccessPolicy.standard()`, throwing `TemplateSecurityException` | Prevents remote code execution (RCE) and reflection-based sandbox breakouts in multi-tenant or user-facing templates. |
-| `DIFF-003` | Legacy `#set` null RHS preservation | Velocity 2.0+ overwrites existing variable with `null`. Velocity 1.x preserved existing variable value. | Supports configurable `setNullAllowed` option; defaults to Velocity 2.x null-assignment while allowing legacy 1.x preservation. | Enables seamless migration from legacy Velocity 1.7 installations without changing template source code. |
+| `arithmetic.divide-by-zero` (`DIFF-001`) | `EXPECTED_DIFFERENCE` | Returns `null`, logs warning, continues rendering silently | Immediately fails fast with `TemplateRenderException` (`[RENDER:FAILURE] Division by zero`) | Arithmetic errors in business templates indicate calculation bugs that must not produce corrupt rendered output. |
+| `security.denial.class-property` (`DIFF-002a`) | `EXPECTED_DIFFERENCE` | Permits accessing `$obj.class` | Denies access to `.class` under `MemberAccessPolicy.standard()`, throwing `TemplateSecurityException` | Prevents reflection-based sandbox breakouts and information disclosure. |
+| `security.denial.get-class-method` (`DIFF-002b`) | `EXPECTED_DIFFERENCE` | Permits calling `$obj.getClass()` | Denies access to `getClass()` under `MemberAccessPolicy.standard()`, throwing `TemplateSecurityException` | Prevents remote code execution (RCE) and reflection-based sandbox escapes. |
+| `set.null-rhs.legacy-preserved.method-null` (`DIFF-003a`) | `EXPECTED_DIFFERENCE` | Velocity 2.x overwrites variable with `null`. Velocity 1.x preserved existing value. | Supports configurable `setNullAllowed` option; defaults to Velocity 2.x null-assignment while allowing legacy 1.x preservation. | Enables seamless migration from legacy Velocity 1.7 installations without changing template source code. |
+| `set.null-rhs.legacy-preserved.undefined` (`DIFF-003b`) | `EXPECTED_DIFFERENCE` | Velocity 2.x overwrites variable with `null`. Velocity 1.x preserved existing value. | Supports configurable `setNullAllowed` option; defaults to Velocity 2.x null-assignment while allowing legacy 1.x preservation. | Enables seamless migration from legacy Velocity 1.7 installations without changing template source code. |
+| `foreach.control.stop-method` | `VIET_EXTENSION` | `$foreach` does not expose `.stop()` method | Exposes `$foreach.stop()` to cleanly terminate loop iteration | Modern idiomatic loop control extension complementing `#break`. |
 
 ---
 

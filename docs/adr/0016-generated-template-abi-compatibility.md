@@ -31,8 +31,9 @@ Adopt **Model D**:
    - To enable aggressive optimization of bytecode generation, slot lifetime management, and encapsulation of internal packages throughout the `0.3.x` milestones, cross-minor runtime ABI compatibility is not guaranteed prior to `1.0.0 GA`.
    - Upgrading between minor versions before 1.0 (e.g. from `0.2.3` to `0.3.0`) may require recompilation of templates (`mvn clean compile` or `./gradlew clean build`).
 
-3. **Strict ABI Freeze at 1.0.0 GA**:
-   - Beginning with `1.0.0 GA`, the generated template runtime ABI is permanently frozen and version-stable across all `1.x` releases.
+3. **Strict ABI Freeze at 1.0.0-RC1 and 1.0.0 GA**:
+   - Beginning with `1.0.0-RC1`, the candidate generated template runtime ABI is frozen at exactly 7 types and 22 methods (0 fields) and locked for candidate qualification.
+   - At `1.0.0 GA`, the generated template runtime ABI becomes permanently frozen and forward-compatible across all `1.x` releases.
    - The runtime ABI baseline (`config/api-baseline/generated-template-runtime-abi.txt`) and automated mechanical audit script (`scripts/verify-generated-abi.py`) enforce that any breaking signature change to runtime bridge methods will fail continuous integration.
 
 ## Consequences

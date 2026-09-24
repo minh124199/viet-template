@@ -15,10 +15,10 @@ Viet Template is a clean-room JVM template engine designed for modern Java appli
 
 Many enterprise JVM applications still rely on legacy template engines that depend on heavy dynamic reflection, lack GraalVM native image support, allocate excessive heap memory, or expose dangerous reflection attack surfaces. Viet Template solves this:
 
-- **100% Velocity Syntax Compatibility**: Drop-in syntax compatibility for Velocity Template Language (VTL). Evaluated across 80 specification features in the Technology Compatibility Kit (TCK) with 100% pass rate.
+- **100% Velocity Syntax Compatibility**: Drop-in syntax compatibility for Velocity Template Language (VTL). Evaluated across 301 differential scenarios against Apache Velocity 2.4.1 in the Technology Compatibility Kit (TCK): 295 exact matches (98.01%), 5 documented expected differences, 1 extension, 0 unsupported, 0 regressions (100.00% accounted behavior coverage).
 - **Blazing Fast Multi-Tier Execution**: Offers both a lightweight development interpreter (Viet-IR) and a high-performance Ahead-Of-Time bytecode compiler (Viet-AOT) delivering **1.3x to 5.3x higher throughput** than Apache Velocity 2.4.1.
 - **Precompiled Bytecode & Zero Reflection**: Compiles templates to standard Java 21 bytecode (`.class` files) with compiler-assigned variable slots and pre-encoded UTF-8 literals, eliminating runtime reflection and AST traversal.
-- **GraalVM Native Image Ready**: Seamlessly compiles to native executables via out-of-the-box `VietTemplateRuntimeHints`, Spring AOT, and Quarkus deployment build steps (empirically qualified on Linux x86_64 Mandrel 25.0.4.1-Final, Java 25).
+- **GraalVM Native Image Ready**: Seamlessly compiles to native executables via out-of-the-box `VietTemplateRuntimeHints`, Spring AOT, and Quarkus deployment build steps (empirically qualified on Linux x86_64 Mandrel 25.0.4.1-Final and Oracle GraalVM 25.0.4+7.1).
 - **First-Class Spring & Quarkus Ecosystems**: Turnkey auto-configuration for Spring Boot 4 / Spring Framework 7 / Spring Security 7 and idiomatic CDI extension for Quarkus 3 with build-time AOT compilation and dev-mode hot reload.
 - **Defense-in-Depth Security**: Denies access to reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), classloaders, and system resources by default. Enforces strict `MemberAccessPolicy` sandboxing and execution budgets (`RenderBudget`).
 
@@ -28,12 +28,34 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 
 | Dimension | Detail |
 |---|---|
-| **Latest Stable Release** | `0.2.2` (Published: 2026-09-20; 0.2.3 prepared/held) |
-| **Active Development** | `1.0.0-RC1` |
+| **Current Release Candidate** | `1.0.0-RC1` (locally staged and qualified; not yet remotely published) |
+| **Latest Published Stable Release** | `0.2.2` (Published: 2026-09-20; 0.2.3 prepared/held) |
 | **Java Baseline** | Java 21 LTS (`--release 21`, major version 65) |
 | **Primary Target** | Java 25 (optimized memory & runtime qualification) |
 | **Maven Group ID** | `io.github.minh124199` |
 | **Gradle Plugin ID** | `io.github.minh124199.viet-template` |
+| **JPMS Status** | Ordinary non-modular JARs (no `module-info.java`, no `Automatic-Module-Name` header) |
+
+> [!NOTE] Java Module System (JPMS) Disclaimer
+> Viet Template 1.0.0-RC1 ships as ordinary non-modular JARs. When placed on the Java module path they may be treated by the JVM as automatic modules using derived names, but those derived names are not a frozen compatibility contract.
+
+---
+
+## Framework & Build Tool Compatibility
+
+| Integration | Declared Minimum | RC-Tested Versions | Canonical RC Version | Native Status |
+|---|---|---|---|---|
+| **Spring Boot** | `3.3.0` | `3.3.5`, `4.1.1` | `4.1.1` | Supported (Oracle GraalVM 25.0.4+7.1) |
+| **Spring Framework** | `6.1.0` | `6.1.14`, `7.0.9` | `7.0.9` | Supported (Oracle GraalVM 25.0.4+7.1) |
+| **Spring Security** | `6.3.0` | `6.3.4`, `6.5.11`, `7.0.7`, `7.1.1` | `7.1.1` | Supported (Oracle GraalVM 25.0.4+7.1) |
+| **Quarkus** | `3.33.0` | `3.33.3` (LTS), `3.39.4` | `3.39.4` | Supported (Mandrel 25.0.4.1-Final) |
+| **Apache Maven** | `3.8.0` | `3.9.9` | `3.9.9` (wrapper) | N/A (Build Tool) |
+| **Gradle** | `8.5` | `9.7.1` | `9.7.1` (wrapper) | N/A (Build Tool) |
+
+### Native Image Toolchains
+- **Spring Native**: Oracle GraalVM 25.0.4+7.1 (build 25.0.4+7-LTS) on Linux x86_64.
+- **Quarkus Native**: Mandrel 25.0.4.1-Final (mandrel-java25-25.0.4.1-Final, Java 25) on Linux x86_64.
+- **Other Platforms**: Experimental and unverified for native compilation; standard JVM runs cross-platform.
 
 ---
 
