@@ -169,30 +169,15 @@ class BackendParityExceptionSemanticsTest {
         RenderContext.builder().put("service", new ApplicationExceptionBean()).build();
 
     Template tmpl = engine.get("userMethod.vm");
-    if (tier == ExecutionTier.AOT_BYTECODE) {
-      assertThatThrownBy(() -> tmpl.render(ctx, new StringTemplateOutput()))
-          .satisfies(
-              e -> {
-                if (e instanceof TemplateRenderException tre) {
-                  assertThat(tre.code()).contains(InterpreterDiagnosticCodes.INVALID_METHOD);
-                  assertThat(tre.getCause()).hasMessage("Business calculation error");
-                } else {
-                  assertThat(e)
-                      .isInstanceOf(IllegalStateException.class)
-                      .hasMessage("Business calculation error");
-                }
-              });
-    } else {
-      assertThatThrownBy(() -> tmpl.render(ctx, new StringTemplateOutput()))
-          .isInstanceOf(TemplateRenderException.class)
-          .hasCauseInstanceOf(IllegalStateException.class)
-          .satisfies(
-              e -> {
-                TemplateRenderException tre = (TemplateRenderException) e;
-                assertThat(tre.code()).contains(InterpreterDiagnosticCodes.INVALID_METHOD);
-                assertThat(tre.getCause()).hasMessage("Business calculation error");
-              });
-    }
+    assertThatThrownBy(() -> tmpl.render(ctx, new StringTemplateOutput()))
+        .isInstanceOf(TemplateRenderException.class)
+        .hasCauseInstanceOf(IllegalStateException.class)
+        .satisfies(
+            e -> {
+              TemplateRenderException tre = (TemplateRenderException) e;
+              assertThat(tre.code()).contains(InterpreterDiagnosticCodes.INVALID_METHOD);
+              assertThat(tre.getCause()).hasMessage("Business calculation error");
+            });
 
     engine.close();
   }
@@ -211,30 +196,15 @@ class BackendParityExceptionSemanticsTest {
         RenderContext.builder().put("service", new ApplicationExceptionBean()).build();
 
     Template tmpl = engine.get("userProp.vm");
-    if (tier == ExecutionTier.AOT_BYTECODE) {
-      assertThatThrownBy(() -> tmpl.render(ctx, new StringTemplateOutput()))
-          .satisfies(
-              e -> {
-                if (e instanceof TemplateRenderException tre) {
-                  assertThat(tre.code()).contains(InterpreterDiagnosticCodes.INVALID_METHOD);
-                  assertThat(tre.getCause()).hasMessage("Invalid property value");
-                } else {
-                  assertThat(e)
-                      .isInstanceOf(IllegalArgumentException.class)
-                      .hasMessage("Invalid property value");
-                }
-              });
-    } else {
-      assertThatThrownBy(() -> tmpl.render(ctx, new StringTemplateOutput()))
-          .isInstanceOf(TemplateRenderException.class)
-          .hasCauseInstanceOf(IllegalArgumentException.class)
-          .satisfies(
-              e -> {
-                TemplateRenderException tre = (TemplateRenderException) e;
-                assertThat(tre.code()).contains(InterpreterDiagnosticCodes.INVALID_METHOD);
-                assertThat(tre.getCause()).hasMessage("Invalid property value");
-              });
-    }
+    assertThatThrownBy(() -> tmpl.render(ctx, new StringTemplateOutput()))
+        .isInstanceOf(TemplateRenderException.class)
+        .hasCauseInstanceOf(IllegalArgumentException.class)
+        .satisfies(
+            e -> {
+              TemplateRenderException tre = (TemplateRenderException) e;
+              assertThat(tre.code()).contains(InterpreterDiagnosticCodes.INVALID_METHOD);
+              assertThat(tre.getCause()).hasMessage("Invalid property value");
+            });
 
     engine.close();
   }

@@ -259,8 +259,15 @@ class ExceptionSemanticsHardeningTest {
             () ->
                 BytecodeRuntimeBridge.dynamicInvokeMethod(
                     site, target, new Object[] {"test-value"}))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessage("Simulated failure in overloaded string method: test-value");
+        .isInstanceOf(TemplateRenderException.class)
+        .hasCauseInstanceOf(IllegalStateException.class)
+        .satisfies(
+            e -> {
+              TemplateRenderException tre = (TemplateRenderException) e;
+              assertThat(tre.code()).contains(InterpreterDiagnosticCodes.INVALID_METHOD);
+              assertThat(tre.getCause())
+                  .hasMessage("Simulated failure in overloaded string method: test-value");
+            });
   }
 
   @Test

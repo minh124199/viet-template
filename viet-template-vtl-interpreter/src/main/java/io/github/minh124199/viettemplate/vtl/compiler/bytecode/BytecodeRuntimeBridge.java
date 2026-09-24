@@ -3,6 +3,7 @@ package io.github.minh124199.viettemplate.vtl.compiler.bytecode;
 import io.github.minh124199.viettemplate.api.MutableRenderContext;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.api.TemplateException;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateLimitException;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
@@ -751,6 +752,7 @@ public final class BytecodeRuntimeBridge {
   }
 
   /** Dispatches dynamic property read through M9 {@link DynamicCallSite}. */
+  @SuppressWarnings("removal")
   public static Object dynamicGetProperty(DynamicCallSite site, Object target) {
     if (target == null) {
       return null;
@@ -761,18 +763,42 @@ public final class BytecodeRuntimeBridge {
     }
     try {
       return site.invoke(unwrapped);
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateException te) {
+      throw te;
     } catch (Throwable t) {
-      if (t instanceof Error err) {
-        throw err;
+      Throwable cause = t;
+      while (cause instanceof InvocationTargetException ite) {
+        Throwable targetEx = ite.getCause() != null ? ite.getCause() : ite.getTargetException();
+        if (targetEx == null) {
+          break;
+        }
+        cause = targetEx;
       }
-      if (t instanceof RuntimeException re) {
-        throw re;
+      if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+        throw (Error) cause;
       }
-      throw new RuntimeException(t);
+      if (cause instanceof TemplateException te) {
+        throw te;
+      }
+      String memberName = site.memberKey().name();
+      throw new TemplateRenderException(
+          "Property '"
+              + memberName
+              + "' evaluation threw an exception: "
+              + (cause.getMessage() != null
+                  ? cause.getMessage()
+                  : cause.getClass().getSimpleName()),
+          TemplateId.of("<generated>"),
+          SourceSpan.UNKNOWN,
+          InterpreterDiagnosticCodes.INVALID_METHOD,
+          cause);
     }
   }
 
   /** Dispatches dynamic property write through M9 {@link DynamicCallSite}. */
+  @SuppressWarnings("removal")
   public static void dynamicSetProperty(DynamicCallSite site, Object target, Object value) {
     if (target == null) {
       return;
@@ -783,18 +809,42 @@ public final class BytecodeRuntimeBridge {
     }
     try {
       site.invoke(unwrapped, value);
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateException te) {
+      throw te;
     } catch (Throwable t) {
-      if (t instanceof Error err) {
-        throw err;
+      Throwable cause = t;
+      while (cause instanceof InvocationTargetException ite) {
+        Throwable targetEx = ite.getCause() != null ? ite.getCause() : ite.getTargetException();
+        if (targetEx == null) {
+          break;
+        }
+        cause = targetEx;
       }
-      if (t instanceof RuntimeException re) {
-        throw re;
+      if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+        throw (Error) cause;
       }
-      throw new RuntimeException(t);
+      if (cause instanceof TemplateException te) {
+        throw te;
+      }
+      String memberName = site.memberKey().name();
+      throw new TemplateRenderException(
+          "Property '"
+              + memberName
+              + "' assignment threw an exception: "
+              + (cause.getMessage() != null
+                  ? cause.getMessage()
+                  : cause.getClass().getSimpleName()),
+          TemplateId.of("<generated>"),
+          SourceSpan.UNKNOWN,
+          InterpreterDiagnosticCodes.INVALID_METHOD,
+          cause);
     }
   }
 
   /** Dispatches dynamic indexed read through M9 {@link DynamicCallSite}. */
+  @SuppressWarnings("removal")
   public static Object dynamicGetIndex(DynamicCallSite site, Object target, Object index) {
     if (target == null) {
       return null;
@@ -805,18 +855,42 @@ public final class BytecodeRuntimeBridge {
     }
     try {
       return site.invoke(unwrapped, index);
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateException te) {
+      throw te;
     } catch (Throwable t) {
-      if (t instanceof Error err) {
-        throw err;
+      Throwable cause = t;
+      while (cause instanceof InvocationTargetException ite) {
+        Throwable targetEx = ite.getCause() != null ? ite.getCause() : ite.getTargetException();
+        if (targetEx == null) {
+          break;
+        }
+        cause = targetEx;
       }
-      if (t instanceof RuntimeException re) {
-        throw re;
+      if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+        throw (Error) cause;
       }
-      throw new RuntimeException(t);
+      if (cause instanceof TemplateException te) {
+        throw te;
+      }
+      String memberName = site.memberKey().name();
+      throw new TemplateRenderException(
+          "Index read '"
+              + memberName
+              + "' threw an exception: "
+              + (cause.getMessage() != null
+                  ? cause.getMessage()
+                  : cause.getClass().getSimpleName()),
+          TemplateId.of("<generated>"),
+          SourceSpan.UNKNOWN,
+          InterpreterDiagnosticCodes.INVALID_METHOD,
+          cause);
     }
   }
 
   /** Dispatches dynamic indexed write through M9 {@link DynamicCallSite}. */
+  @SuppressWarnings("removal")
   public static void dynamicSetIndex(
       DynamicCallSite site, Object target, Object index, Object value) {
     if (target == null) {
@@ -828,18 +902,42 @@ public final class BytecodeRuntimeBridge {
     }
     try {
       site.invoke(unwrapped, index, value);
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateException te) {
+      throw te;
     } catch (Throwable t) {
-      if (t instanceof Error err) {
-        throw err;
+      Throwable cause = t;
+      while (cause instanceof InvocationTargetException ite) {
+        Throwable targetEx = ite.getCause() != null ? ite.getCause() : ite.getTargetException();
+        if (targetEx == null) {
+          break;
+        }
+        cause = targetEx;
       }
-      if (t instanceof RuntimeException re) {
-        throw re;
+      if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+        throw (Error) cause;
       }
-      throw new RuntimeException(t);
+      if (cause instanceof TemplateException te) {
+        throw te;
+      }
+      String memberName = site.memberKey().name();
+      throw new TemplateRenderException(
+          "Index write '"
+              + memberName
+              + "' threw an exception: "
+              + (cause.getMessage() != null
+                  ? cause.getMessage()
+                  : cause.getClass().getSimpleName()),
+          TemplateId.of("<generated>"),
+          SourceSpan.UNKNOWN,
+          InterpreterDiagnosticCodes.INVALID_METHOD,
+          cause);
     }
   }
 
   /** Dispatches dynamic method invocation through M9 {@link DynamicCallSite}. */
+  @SuppressWarnings("removal")
   public static Object dynamicInvokeMethod(DynamicCallSite site, Object target, Object[] args) {
     if (target == null) {
       return null;
@@ -898,14 +996,37 @@ public final class BytecodeRuntimeBridge {
         }
       }
       throw cce;
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (TemplateException te) {
+      throw te;
     } catch (Throwable t) {
-      if (t instanceof Error err) {
-        throw err;
+      Throwable cause = t;
+      while (cause instanceof InvocationTargetException ite) {
+        Throwable targetEx = ite.getCause() != null ? ite.getCause() : ite.getTargetException();
+        if (targetEx == null) {
+          break;
+        }
+        cause = targetEx;
       }
-      if (t instanceof RuntimeException re) {
-        throw re;
+      if (cause instanceof VirtualMachineError || cause instanceof ThreadDeath) {
+        throw (Error) cause;
       }
-      throw new RuntimeException(t);
+      if (cause instanceof TemplateException te) {
+        throw te;
+      }
+      String methodName = site.memberKey().name();
+      throw new TemplateRenderException(
+          "Method '"
+              + methodName
+              + "' threw an exception: "
+              + (cause.getMessage() != null
+                  ? cause.getMessage()
+                  : cause.getClass().getSimpleName()),
+          TemplateId.of("<generated>"),
+          SourceSpan.UNKNOWN,
+          InterpreterDiagnosticCodes.INVALID_METHOD,
+          cause);
     }
   }
 

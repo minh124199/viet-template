@@ -107,6 +107,7 @@ public final class DevelopmentFileWatcher implements AutoCloseable {
       try {
         key = watchService.poll(500, TimeUnit.MILLISECONDS);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         break;
       } catch (ClosedWatchServiceException e) {
         break;
