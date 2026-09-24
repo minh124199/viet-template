@@ -443,6 +443,36 @@ def validate_workflow_contract(errors):
         errors.append(f"release workflow missing jobs: {', '.join(sorted(missing))}")
         return
 
+    on_trigger = workflow.get("on") or workflow.get(True) or {}
+    dispatch_inputs = on_trigger.get("workflow_dispatch", {}).get("inputs", {}) if isinstance(on_trigger, dict) else {}
+    if "release_tag" not in dispatch_inputs:
+        errors.append("release workflow must define release_tag input under workflow_dispatch")
+
+    val_outputs = jobs.get("validate-metadata", {}).get("outputs", {}) if isinstance(jobs.get("validate-metadata"), dict) else {}
+    for required_out in ("artifact_source_tag", "artifact_source_sha", "orchestration_sha"):
+        if required_out not in val_outputs:
+            errors.append(f"validate-metadata job must export {required_out}")
+
+    for job_name in (
+        "verify-builds",
+        "m18-release-qualification",
+        "package-and-validate-bundle",
+        "publish-to-central",
+    ):
+        job = jobs.get(job_name, {})
+        steps = job.get("steps", []) if isinstance(job, dict) else []
+        checkout_step = next(
+            (s for s in steps if isinstance(s, dict) and "actions/checkout" in s.get("uses", "")),
+            None,
+        )
+        checkout_ref = (
+            str(checkout_step.get("with", {}).get("ref", ""))
+            if checkout_step and isinstance(checkout_step.get("with"), dict)
+            else ""
+        )
+        if "artifact_source_sha" not in checkout_ref:
+            errors.append(f"{job_name} must use artifact_source_sha in checkout ref")
+
     verify_steps = jobs["verify-builds"].get("steps", []) if isinstance(jobs["verify-builds"], dict) else []
     bootstrap_idx = next(
         (
