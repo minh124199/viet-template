@@ -17,7 +17,7 @@
 
     <properties>
         <java.version>21</java.version>
-        <viet-template.version>0.3.0-SNAPSHOT</viet-template.version>
+        <viet-template.version>1.0.0-RC1</viet-template.version>
     </properties>
 
     <dependencies>

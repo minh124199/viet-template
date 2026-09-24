@@ -20,7 +20,7 @@ java {
 dependencies {
     implementation(enforcedPlatform("io.quarkus:quarkus-bom:3.39.4"))
     implementation("io.quarkus:quarkus-rest")
-    implementation("io.github.minh124199:viet-template-quarkus:0.3.0-SNAPSHOT")
+    implementation("io.github.minh124199:viet-template-quarkus:1.0.0-RC1")
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
 }

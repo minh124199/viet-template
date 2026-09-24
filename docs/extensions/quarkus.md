@@ -18,11 +18,11 @@ Viet Template provides first-class, idiomatic integration with [Quarkus](https:/
 Add the `viet-template-quarkus` extension dependency to your `pom.xml`:
 
 ```xml
-<!-- Development / Snapshot Build -->
+<!-- Development / Release Candidate Build -->
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-quarkus</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>1.0.0-RC1</version>
 </dependency>
 ```
 
@@ -42,8 +42,8 @@ The Quarkus Maven plugin automatically discovers the deployment artifact `viet-t
 In `build.gradle.kts`:
 
 ```kotlin
-// Development / Snapshot Build
-implementation("io.github.minh124199:viet-template-quarkus:0.3.0-SNAPSHOT")
+// Development / Release Candidate Build
+implementation("io.github.minh124199:viet-template-quarkus:1.0.0-RC1")
 
 // Release Build
 implementation("io.github.minh124199:viet-template-quarkus:0.2.2")
