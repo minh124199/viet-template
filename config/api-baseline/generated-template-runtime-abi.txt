@@ -1,5 +1,9 @@
 # Viet Template Generated AOT Template Runtime ABI Baseline
 # Defines the exact set of types, fields, and methods that generated AOT template classfiles may link against at runtime.
+#
+# Note: Parameter/return types such as LinkerAccessPolicy and UndefinedReferencePolicy are referenced
+# solely within method signatures and are not direct constant-pool type dependencies of generated templates.
+#
 # Format:
 #   TYPE <fully-qualified-class-name>
 #   MEMBER <member-signature>
@@ -16,8 +20,6 @@ TYPE io.github.minh124199.viettemplate.api.TemplateId
 
 TYPE io.github.minh124199.viettemplate.api.TemplateOutput
 
-TYPE io.github.minh124199.viettemplate.api.UndefinedReferencePolicy
-
 TYPE io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata
   MEMBER public abstract int getCount()
   MEMBER public abstract int getIndex()
@@ -26,10 +28,9 @@ TYPE io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetad
 
 TYPE io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite
 
-TYPE io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy
-
 TYPE io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge
   MEMBER public static java.lang.Object binaryOp(java.lang.Object, java.lang.Object, int, java.lang.String, int, int, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)
+  MEMBER public static void countLoopIteration(io.github.minh124199.viettemplate.api.TemplateOutput)
   MEMBER public static io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite createCallSite(int, java.lang.String, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)
   MEMBER public static io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata createForeachMetadata(java.lang.Object, boolean, java.lang.Object)
   MEMBER public static java.lang.Object createLoopState()
