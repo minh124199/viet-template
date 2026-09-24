@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0",
+  "description": "Authoritative machine-readable publication status taxonomy and artifact topology for Viet Template 1.0 candidate",
+  "publicationTaxonomy": {
+    "groupId": "io.github.minh124199",
+    "authoritativePublisher": "Apache Maven (central-publishing-maven-plugin)",
+    "currentSnapshot": "0.3.0-SNAPSHOT",
+    "currentSnapshotPublished": false,
+    "historicalStatus_0_2_3": "PREPARED_HELD",
+    "historicalStatus_0_2_3_commit": "b8b3a8f",
+    "historicalStatus_0_2_3_rationale": "Commit b8b3a8f prepared release 0.2.3 in the workspace, but it was never tagged (git tag v0.2.3 does not exist) or published to Maven Central.",
+    "intendedFor1_0Scope": {
+      "parentPomIncluded": true,
+      "productionModulesCount": 12,
+      "totalPublishedArtifactsIntended": 13,
+      "nonPublishedModulesCount": 2,
+      "totalReactorArtifacts": 15
+    },
+    "automaticModuleName": {
+      "declared": false,
+      "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+      "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+    },
+    "gradlePluginPublishing": {
+      "mavenCentral": true,
+      "gradlePluginPortal": false,
+      "pluginId": "io.github.minh124199.viet-template",
+      "mavenCoordinates": "io.github.minh124199:viet-template-gradle-plugin",
+      "rationale": "Gradle plugin artifacts are published exclusively to Maven Central; publication to the Gradle Plugin Portal is not currently configured."
+    }
+  },
+  "modules": [
+    {
+      "module": "viet-template-parent",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-parent",
+      "packaging": "pom",
+      "description": "Root aggregator and parent POM containing shared plugin management, dependency management, and release configuration",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [
+        "0.1.0",
+        "0.2.0",
+        "0.2.1",
+        "0.2.2"
+      ],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NOT_APPLICABLE_POM",
+        "rationale": "Parent POM does not produce a JAR artifact"
+      }
+    },
+    {
+      "module": "viet-template-api",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-api",
+      "packaging": "jar",
+      "description": "Public API and SPI contracts for Viet Template engine",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [
+        "0.1.0",
+        "0.2.0",
+        "0.2.1",
+        "0.2.2"
+      ],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+      }
+    },
+    {
+      "module": "viet-template-runtime",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-runtime",
+      "packaging": "jar",
+      "description": "Core runtime execution primitives, buffers, and dynamic linker",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [
+        "0.1.0",
+        "0.2.0",
+        "0.2.1",
+        "0.2.2"
+      ],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+      }
+    },
+    {
+      "module": "viet-template-language-vtl",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-language-vtl",
+      "packaging": "jar",
+      "description": "VTL lexer, parser, AST, IR, and semantic model",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [
+        "0.1.0",
+        "0.2.0",
+        "0.2.1",
+        "0.2.2"
+      ],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+      }
+    },
+    {
+      "module": "viet-template-vtl-interpreter",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-vtl-interpreter",
+      "packaging": "jar",
+      "description": "VTL multi-tier execution engine and bytecode compiler",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [
+        "0.1.0",
+        "0.2.0",
+        "0.2.1",
+        "0.2.2"
+      ],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+      }
+    },
+    {
+      "module": "viet-template-spring",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-spring",
+      "packaging": "jar",
+      "description": "Spring Framework integration (View and ViewResolver)",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [
+        "0.2.1",
+        "0.2.2"
+      ],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+      }
+    },
+    {
+      "module": "viet-template-spring-security",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-spring-security",
+      "packaging": "jar",
+      "description": "Spring Security integration (CSRF and authentication context)",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [
+        "0.2.1",
+        "0.2.2"
+      ],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+      }
+    },
+    {
+      "module": "viet-template-spring-boot-autoconfigure",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-spring-boot-autoconfigure",
+      "packaging": "jar",
+      "description": "Spring Boot auto-configuration classes and metadata",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [
+        "0.2.1",
+        "0.2.2"
+      ],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+      }
+    },
+    {
+      "module": "viet-template-spring-boot-starter",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-spring-boot-starter",
+      "packaging": "jar",
+      "description": "Starter dependency for Spring Boot applications",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [
+        "0.2.1",
+        "0.2.2"
+      ],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+      }
+    },
+    {
+      "module": "viet-template-maven-plugin",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-maven-plugin",
+      "packaging": "maven-plugin",
+      "description": "Maven plugin for AOT template precompilation and validation",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [
+        "0.2.1",
+        "0.2.2"
+      ],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+      }
+    },
+    {
+      "module": "viet-template-gradle-plugin",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-gradle-plugin",
+      "packaging": "jar",
+      "description": "Gradle plugin for AOT template precompilation and validation",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [
+        "0.2.1",
+        "0.2.2"
+      ],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+      },
+      "gradlePluginPublishing": {
+        "mavenCentral": true,
+        "gradlePluginPortal": false,
+        "pluginId": "io.github.minh124199.viet-template"
+      }
+    },
+    {
+      "module": "viet-template-quarkus",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-quarkus",
+      "packaging": "jar",
+      "description": "Quarkus runtime extension",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+      }
+    },
+    {
+      "module": "viet-template-quarkus-deployment",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-quarkus-deployment",
+      "packaging": "jar",
+      "description": "Quarkus deployment and build-time extension",
+      "configuredForPublication": true,
+      "historicallyPublishedReleases": [],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": true,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Manifests currently omit Automatic-Module-Name; JPMS modularization is explicitly deferred to post-1.0"
+      }
+    },
+    {
+      "module": "viet-template-tck",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-tck",
+      "packaging": "jar",
+      "description": "Technology Compatibility Kit test suite",
+      "configuredForPublication": false,
+      "historicallyPublishedReleases": [],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": false,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Internal verification module; manifests omit Automatic-Module-Name"
+      },
+      "notes": "Internal verification module; excluded from publication via <maven.deploy.skip>true</maven.deploy.skip>"
+    },
+    {
+      "module": "viet-template-benchmarks",
+      "groupId": "io.github.minh124199",
+      "artifactId": "viet-template-benchmarks",
+      "packaging": "jar",
+      "description": "JMH performance benchmarking suite",
+      "configuredForPublication": false,
+      "historicallyPublishedReleases": [],
+      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "intendedFor1_0": false,
+      "currentSnapshotPublished": false,
+      "automaticModuleName": {
+        "declared": false,
+        "status": "NO_AUTOMATIC_MODULE_NAME_HEADER",
+        "rationale": "Internal verification module; manifests omit Automatic-Module-Name"
+      },
+      "notes": "Internal performance benchmark module; excluded from publication via <maven.deploy.skip>true</maven.deploy.skip>"
+    }
+  ]
+}
