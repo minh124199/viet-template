@@ -344,6 +344,32 @@ class WorkflowContractTests(unittest.TestCase):
                     any(f"{job_name} must use artifact_source_sha in checkout ref" in error for error in errors)
                 )
 
+    def test_detects_package_and_validate_bundle_missing_release_dependencies(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.fixture(directory)
+            workflow = root / ".github/workflows/release.yml"
+            text = workflow.read_text()
+            job_idx = text.index("  package-and-validate-bundle:")
+            next_job_match = re.search(r"\n  [a-z0-9-]+:", text[job_idx + 10:])
+            job_end = job_idx + 10 + next_job_match.start() if next_job_match else len(text)
+            job_section = text[job_idx:job_end]
+            target_step = (
+                "      - name: Install release test dependencies\n"
+                "        run: python3 -m pip install --disable-pip-version-check -r scripts/requirements-release.txt\n"
+            )
+            self.assertIn(target_step, job_section)
+            bad_job_section = job_section.replace(target_step, "")
+            modified_text = text[:job_idx] + bad_job_section + text[job_end:]
+            workflow.write_text(modified_text)
+            errors = self.validate(root)
+            self.assertTrue(
+                any(
+                    "package-and-validate-bundle must install release dependencies from scripts/requirements-release.txt"
+                    in error
+                    for error in errors
+                )
+            )
+
 
 class MetadataTagSelectionTests(unittest.TestCase):
     def test_explicit_empty_release_tag_does_not_become_branch_name(self):

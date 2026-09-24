@@ -512,6 +512,20 @@ def validate_workflow_contract(errors):
     package_needs = as_needs(jobs["package-and-validate-bundle"])
     if "m18-release-qualification" not in package_needs:
         errors.append("publication bundle must depend on M18 release qualification")
+    package_steps = (
+        jobs["package-and-validate-bundle"].get("steps", [])
+        if isinstance(jobs["package-and-validate-bundle"], dict)
+        else []
+    )
+    if not any(
+        isinstance(step, dict)
+        and "pip install" in step.get("run", "")
+        and "scripts/requirements-release.txt" in step.get("run", "")
+        for step in package_steps
+    ):
+        errors.append(
+            "package-and-validate-bundle must install release dependencies from scripts/requirements-release.txt"
+        )
     if "package-and-validate-bundle" not in as_needs(jobs["guard-publication"]):
         errors.append("Central publication guard must depend on the M18-gated publication bundle")
     if "publish-to-central" not in as_needs(jobs["wait-for-central-publication"]):
