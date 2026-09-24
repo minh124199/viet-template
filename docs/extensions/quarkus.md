@@ -148,7 +148,7 @@ During application build (`mvn package` or `gradle build`), `VietTemplateProcess
 | Tool | Version |
 |---|---|
 | **Quarkus Baseline** | `3.39.4` (LTS baseline: `3.33.x`) |
-| **Mandrel / GraalVM** | `Mandrel 25.0.4.1-Final (Java 25 LTS)` / GraalVM 25.0.0+ |
+| **Mandrel / GraalVM** | Empirically qualified: Linux x86_64, Mandrel 25.0.4.1-Final, Java 25 |
 | **Java Target** | Java 21 (`--release 21`, classfile major version 65) |
 | **C Compiler / OS** | GCC 16.2.1 / Linux x86_64 |
 | **Native Binary Size** | ~52 MB executable |

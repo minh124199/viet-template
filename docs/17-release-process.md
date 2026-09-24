@@ -106,6 +106,7 @@ Historical commit logs and documentation contain references to version `0.2.3`. 
 - **0.1.0 and 0.2.0**: Published 5 coordinates (`viet-template-parent`, `viet-template-api`, `viet-template-runtime`, `viet-template-language-vtl`, `viet-template-vtl-interpreter`).
 - **0.2.1 and 0.2.2**: Published 11 coordinates (adding the 4 Spring modules and 2 build plugins).
 - **0.2.3 Status (`PREPARED_HELD`)**: Commit `b8b3a8f` ("release: prepare 0.2.3") updated project descriptors to version `0.2.3` in preparation for a stabilization release. However, this release was **never tagged in Git** (`git tag v0.2.3` does not exist) and was **never uploaded or published to Sonatype / Maven Central**. Its historical status is authoritatively classified as `PREPARED_HELD`.
+- **Quarkus Artifacts Publication History**: `viet-template-quarkus` and `viet-template-quarkus-deployment` were introduced during the 0.3.0 development cycle (commit `40974a7`). They were never tagged, published, or released under 0.2.x (`Never published. First intended release: 0.3.0+ / 1.0 candidate line`).
 - **0.3.0-SNAPSHOT State**: Post-preparation, active development advanced to `0.3.0-SNAPSHOT`. This snapshot stream is strictly internal and **unpublished** (`currentSnapshotPublished: false`).
 
 ### Factual absence of `Automatic-Module-Name` manifest headers

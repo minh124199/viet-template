@@ -140,7 +140,7 @@
       "typeCount": 3,
       "reason": "BENCHMARK_TCK_INDUCED_CROSS_MODULE_VISIBILITY",
       "jpmsRelevance": "None — these are not production module boundaries; they are tooling boundaries.",
-      "targetMilestone": "M4.5",
+      "targetMilestone": "POST_1_0_MAINTENANCE",
       "candidateResolution": "Move slot-level benchmarks (VariableAssignmentBenchmark, NestedScopeBenchmark, VariableLookupBenchmark) to a JMH benchmark source set within viet-template-vtl-interpreter. Prototype class-loading behavior with one benchmark first before adopting broadly. For TCK: move TierDifferentialHarness white-box tests to viet-template-vtl-interpreter test scope.",
       "riskIfEarlyRemoval": "LOW — not published API; only internal tooling depends on these",
       "currentClassification": "INTERNAL_CROSS_MODULE",
@@ -161,7 +161,7 @@
     "signatureLeaks": 0,
     "blockerRationale": "All 85 PBCIA types have 0 signature leaks into STABLE_API or STABLE_SPI, cannot be reached by public consumers, ForeachMetadata is frozen under the generated ABI baseline, and structural module realignment is deferred to M22.",
     "byMilestone": {
-      "M4.5": 3,
+      "POST_1_0_MAINTENANCE": 3,
       "M22": 85
     },
     "byRisk": {
@@ -169,6 +169,6 @@
       "MEDIUM": 11,
       "LOW": 3
     },
-    "note": "PBCIA types in this registry total 85 (AST: 41, IR: 33, Semantics: 11). 3 additional types are non-production INTERNAL_CROSS_MODULE debt targeted for M4.5 benchmark/TCK relocation. Total tracked architectural debt is 88. Types classified INTERNAL_CROSS_PACKAGE (56) are intentional and not considered debt."
+    "note": "PBCIA types in this registry total 85 (AST: 41, IR: 33, Semantics: 11). 3 additional types are non-production INTERNAL_CROSS_MODULE debt targeted for POST_1_0_MAINTENANCE benchmark/TCK relocation. Total tracked architectural debt is 88. Types classified INTERNAL_CROSS_PACKAGE (56) are intentional and not considered debt."
   }
 }

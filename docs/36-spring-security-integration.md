@@ -3,7 +3,7 @@
 ## 1. Executive Summary
 
 - **Module**: `viet-template-spring-security` (Optional Framework Integration)
-- **Status**: **PRODUCTION READY (API FROZEN FOR 1.0)**
+- **Status**: **PRODUCTION READY (1.0 CANDIDATE BASELINE, READY_TO_FREEZE)**
 - **Artifact Strategy**:
   - Exactly **one** `viet-template-spring-security` artifact for all supported Spring Security generations.
   - Java 21 bytecode (`--release 21`, classfile major version 65).
@@ -107,7 +107,7 @@ All public types are formally classified and guarded against binary and source c
 
 ### 3.1 `SecurityView`
 
-The frozen 1.0 API for `SecurityView`:
+The 1.0 candidate baseline for `SecurityView`:
 
 ```java
 @TemplateData

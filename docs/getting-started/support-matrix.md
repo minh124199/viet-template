@@ -73,8 +73,8 @@ Viet Template is built natively for next-generation Spring Framework and Spring 
 |---|---|---|
 | **HotSpot JVM** | **Supported** | Validated on OpenJDK, Eclipse Temurin, Azul Zulu, Amazon Corretto, and GraalVM JDK. |
 | **Virtual Threads (Loom)** | **Supported** | Completely thread-safe and non-pinning. Viet Template avoids `synchronized` blocks on hot rendering paths, using `ReentrantLock` and fine-grained concurrent data structures to eliminate carrier-thread pinning. |
-| **GraalVM Native Image** | **Supported** | Ahead-of-Time native image compilation supported via `VietTemplateRuntimeHints` (Spring) and `VietTemplateProcessor` (Quarkus). In AOT mode (`runtime-compilation-enabled=false`), rendering is completely reflection-free. |
-| **Spring AOT Processing** | **Supported** | Automatic contribution of GraalVM reflection and resource hints during `processAot` build phase. |
+| **GraalVM Native Image** | **Supported** | Ahead-of-Time native image compilation supported via `VietTemplateRuntimeHints` (Spring) and `VietTemplateProcessor` (Quarkus). In AOT mode (`runtime-compilation-enabled=false`), rendering is completely reflection-free. Quarkus native binary executables empirically qualified on Linux x86_64 (Mandrel 25.0.4.1-Final, Java 25). |
+| **Spring AOT Processing** | **JVM_AOT_QUALIFIED** | Automatic contribution of GraalVM reflection and resource hints during `processAot` build phase. Packaged executable JARs verified under JVM AOT execution (`scripts/verify-spring-integration-parity.sh`); Spring native-image binary compilation remains separate. |
 | **Spring Boot DevTools** | **Supported** | Restart-safe classloader handling. Compile cache isolates and tracks restart classloaders to prevent memory leaks or stale template definitions. |
 | **Quarkus Dev Mode** | **Supported** | Live reload with transitive `#parse` dependency invalidation and zero static ClassLoader leakage. |
 

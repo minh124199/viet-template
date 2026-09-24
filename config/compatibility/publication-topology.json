@@ -274,7 +274,7 @@
       "description": "Quarkus runtime extension",
       "configuredForPublication": true,
       "historicallyPublishedReleases": [],
-      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "historicalStatus": "Never published. First intended release: 0.3.0+ / 1.0 candidate line.",
       "intendedFor1_0": true,
       "currentSnapshotPublished": false,
       "automaticModuleName": {
@@ -291,7 +291,7 @@
       "description": "Quarkus deployment and build-time extension",
       "configuredForPublication": true,
       "historicallyPublishedReleases": [],
-      "historicalStatus_0_2_3": "PREPARED_HELD",
+      "historicalStatus": "Never published. First intended release: 0.3.0+ / 1.0 candidate line.",
       "intendedFor1_0": true,
       "currentSnapshotPublished": false,
       "automaticModuleName": {

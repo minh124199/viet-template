@@ -18,7 +18,7 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 - **100% Velocity Syntax Compatibility**: Drop-in syntax compatibility for Velocity Template Language (VTL). Evaluated across 80 specification features in the Technology Compatibility Kit (TCK) with 100% pass rate.
 - **Blazing Fast Multi-Tier Execution**: Offers both a lightweight development interpreter (Viet-IR) and a high-performance Ahead-Of-Time bytecode compiler (Viet-AOT) delivering **1.3x to 5.3x higher throughput** than Apache Velocity 2.4.1.
 - **Precompiled Bytecode & Zero Reflection**: Compiles templates to standard Java 21 bytecode (`.class` files) with compiler-assigned variable slots and pre-encoded UTF-8 literals, eliminating runtime reflection and AST traversal.
-- **GraalVM Native Image Ready**: Seamlessly compiles to native executables via out-of-the-box `VietTemplateRuntimeHints`, Spring AOT, and Quarkus deployment build steps (empirically qualified on Linux x86_64).
+- **GraalVM Native Image Ready**: Seamlessly compiles to native executables via out-of-the-box `VietTemplateRuntimeHints`, Spring AOT, and Quarkus deployment build steps (empirically qualified on Linux x86_64 Mandrel 25.0.4.1-Final, Java 25).
 - **First-Class Spring & Quarkus Ecosystems**: Turnkey auto-configuration for Spring Boot 4 / Spring Framework 7 / Spring Security 7 and idiomatic CDI extension for Quarkus 3 with build-time AOT compilation and dev-mode hot reload.
 - **Defense-in-Depth Security**: Denies access to reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), classloaders, and system resources by default. Enforces strict `MemberAccessPolicy` sandboxing and execution budgets (`RenderBudget`).
 
