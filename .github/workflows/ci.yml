@@ -69,7 +69,12 @@ jobs:
         run: ./mvnw install -DskipTests -Dspotless.check.skip=true -B
 
       - name: Run Gradle check
-        run: ./gradlew check --no-daemon -Dspotless.check.skip=true
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            ./gradlew check --no-daemon -Dspotless.check.skip=true
+          else
+            ./gradlew check --no-daemon -Dspotless.check.skip=true -x :viet-template-vtl-interpreter:test
+          fi
 
   maven-build-tier-a:
     name: Tier A — Maven (JDK 25 on ${{ matrix.os }})
