@@ -23,8 +23,8 @@ Both Apache Maven and Gradle are supported as first-class build tools with verif
 
 | Build Tool | Supported Versions | Plugin Artifact ID / Gradle Plugin ID |
 |---|---|---|
-| **Apache Maven** | `3.9.0` and newer | `io.github.minh124199:viet-template-maven-plugin` |
-| **Gradle** | `8.5` and newer (including `8.10+`) | `io.github.minh124199.viet-template` |
+| **Apache Maven** | `3.8.0` minimum declared (enforced via enforcer); `3.9.9` canonical wrapper (`3.9.0+` recommended) | `io.github.minh124199:viet-template-maven-plugin` |
+| **Gradle** | `8.5` and newer; `9.7.1` canonical wrapper | `io.github.minh124199.viet-template` |
 
 ---
 
@@ -56,9 +56,14 @@ Viet Template is built natively for next-generation Spring Framework and Spring 
 |---|---|---|---|---|
 | **Spring Boot** | `4.1.1` | `3.3.5` | `3.3.0` (Gen 1) / `4.0.0` (Canonical) | `viet-template-spring-boot-starter`, `viet-template-spring-boot-autoconfigure` |
 | **Spring Framework** | `7.0.9` | `6.1.14` | `6.1.0` (Gen 1) / `7.0.0` (Canonical) | `viet-template-spring` |
-| **Spring Security** | `7.1.1` | `6.3.4` | `6.3.0` (Gen 1) / `7.0.0` (Canonical) | `viet-template-spring-security` |
+| **Spring Security** | `7.1.1` | `6.3.4` (also tested: `6.5.11`, `7.0.7`, `7.1.1`) | `6.3.0` (Gen 1) / `7.0.0` (Canonical) | `viet-template-spring-security` |
 
 *Note: The canonical starter targets Spring Framework 7 / Spring Boot 4. For Spring Boot 3.x applications, multi-generation consumer fixtures verify compatibility against Spring Boot 3.3.5 and Spring Security 6.3.4.*
+
+### 3.3 Standalone Jakarta EE & CDI Integration
+
+- **Status**: `NO_STANDALONE_JAKARTA_INTEGRATION`
+- **Scope**: Viet Template does not provide standalone Jakarta Servlet or CDI consumer modules. Jakarta Servlet (`6.1.0` canonical / `6.0.0` minimum) and CDI (`4.1.0`) are utilized strictly as transitive runtime dependencies of the Spring MVC (`viet-template-spring`) and Quarkus (`viet-template-quarkus`) integrations. Support claims for Jakarta EE and CDI apply solely within those framework contexts.
 
 ---
 
