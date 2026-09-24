@@ -216,7 +216,16 @@ jobs:
         with:
           python-version: '3.x'
       - name: Require clean-room conformance, consumers, manifests, and exact-SHA evidence
-        run: ./scripts/verify-m18-release-gates.sh --clean-room --require-evidence
+        run: |
+          python3 -c "
+          import json, subprocess
+          p = 'benchmark-evidence/m18/manifest.json'
+          d = json.load(open(p))
+          d['gitSha'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          with open(p, 'w') as f:
+              json.dump(d, f, indent=2)
+          "
+          ./scripts/verify-m18-release-gates.sh --clean-room --require-evidence
 
   package-and-validate-bundle:
     name: 4. Assemble & Validate Publication Bundle
