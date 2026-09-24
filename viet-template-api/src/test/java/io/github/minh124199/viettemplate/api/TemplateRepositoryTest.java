@@ -4,9 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -217,5 +222,80 @@ class TemplateRepositoryTest {
     Optional<TemplateSource> source = repo.find(TemplateId.of("templates/hello.vtl"));
     assertThat(source).isPresent();
     assertThat(source.get().origin().toString()).isEqualTo("classpath:/templates/hello.vtl");
+  }
+
+  @Test
+  void classpathRepositoryReleasesFileHandlesWithoutRetention(@TempDir Path tempDir)
+      throws IOException {
+    Path jarPath = tempDir.resolve("templates-repo.jar");
+    try (JarOutputStream jos = new JarOutputStream(Files.newOutputStream(jarPath))) {
+      JarEntry entry = new JarEntry("templates/sample.vm");
+      jos.putNextEntry(entry);
+      jos.write("sample content from jar".getBytes(StandardCharsets.UTF_8));
+      jos.closeEntry();
+    }
+
+    URLClassLoader cl =
+        new URLClassLoader(
+            new URL[] {jarPath.toUri().toURL()}, ClassLoader.getPlatformClassLoader());
+    ClasspathTemplateRepository repo = ClasspathTemplateRepository.of(cl, "templates");
+
+    // 1. Resource loaded normally via URLClassLoader
+    TemplateId templateId = TemplateId.of("sample.vm");
+    Optional<TemplateSource> source = repo.find(templateId);
+    assertThat(source).isPresent();
+    assertThat(source.get().content()).isEqualTo("sample content from jar");
+    assertThat(source.get().origin().getScheme()).isEqualTo("classpath");
+
+    // 4. Repeated lookups do not retain handles
+    for (int i = 0; i < 5; i++) {
+      Optional<TemplateSource> repeated = repo.find(templateId);
+      assertThat(repeated).isPresent();
+      assertThat(repeated.get().content()).isEqualTo("sample content from jar");
+    }
+
+    // 5. Freshness-token lookup does not retain handles
+    Optional<FreshnessToken> token = repo.freshnessToken(templateId);
+    assertThat(token).contains(FreshnessToken.immutable());
+
+    // 6. Prefix behavior preserved
+    assertThat(repo.prefix()).isEqualTo("templates");
+    Optional<TemplateSource> viaPrefix = repo.find(TemplateId.of("templates/sample.vm"));
+    assertThat(viaPrefix).isPresent();
+    assertThat(viaPrefix.get().content()).isEqualTo("sample content from jar");
+
+    // 2. Repository/classloader closed
+    cl.close();
+
+    // 3. Temporary classpath file can be deleted immediately without retention
+    Files.delete(jarPath);
+    assertThat(Files.exists(jarPath)).isFalse();
+
+    // Also verify with direct directory classpath
+    Path dirPath = tempDir.resolve("dir-classpath");
+    Path subDir = dirPath.resolve("views");
+    Files.createDirectories(subDir);
+    Path filePath = subDir.resolve("page.vm");
+    Files.writeString(filePath, "direct directory content");
+
+    URLClassLoader dirCl =
+        new URLClassLoader(
+            new URL[] {dirPath.toUri().toURL()}, ClassLoader.getPlatformClassLoader());
+    ClasspathTemplateRepository dirRepo = ClasspathTemplateRepository.of(dirCl, "views");
+
+    Optional<TemplateSource> dirSource = dirRepo.find(TemplateId.of("page.vm"));
+    assertThat(dirSource).isPresent();
+    assertThat(dirSource.get().content()).isEqualTo("direct directory content");
+
+    for (int i = 0; i < 3; i++) {
+      assertThat(dirRepo.find(TemplateId.of("page.vm"))).isPresent();
+    }
+
+    assertThat(dirRepo.freshnessToken(TemplateId.of("page.vm"))).isPresent();
+    assertThat(dirRepo.find(TemplateId.of("views/page.vm"))).isPresent();
+
+    dirCl.close();
+    Files.delete(filePath);
+    assertThat(Files.exists(filePath)).isFalse();
   }
 }

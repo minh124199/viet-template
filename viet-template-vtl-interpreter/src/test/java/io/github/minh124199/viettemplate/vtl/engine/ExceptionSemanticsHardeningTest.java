@@ -44,6 +44,8 @@ import java.net.URLStreamHandler;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
@@ -51,6 +53,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -108,19 +111,53 @@ class ExceptionSemanticsHardeningTest {
 
   public static class OverloadedTarget {
     public String run(Integer i) {
+      if (i < 0) {
+        throw new IllegalStateException("Simulated failure in overloaded integer method: " + i);
+      }
       return "int:" + i;
     }
 
     public String run(String s) {
-      throw new IllegalStateException("Simulated failure in overloaded string method: " + s);
+      if ("error".equals(s)) {
+        throw new IllegalStateException("Simulated failure in overloaded string method: " + s);
+      }
+      return "str:" + s;
     }
 
     public String runFatal(Integer i) {
+      if (i < 0) {
+        throw new OutOfMemoryError("Simulated OOM in overloaded integer method: " + i);
+      }
       return "int:" + i;
     }
 
     public String runFatal(String s) {
-      throw new OutOfMemoryError("Simulated OOM in overloaded string method: " + s);
+      if ("error".equals(s)) {
+        throw new OutOfMemoryError("Simulated OOM in overloaded string method: " + s);
+      }
+      return "str:" + s;
+    }
+
+    public String runStackOverflow(Integer i) {
+      if (i < 0) {
+        throw new StackOverflowError("Simulated StackOverflow in overloaded integer method: " + i);
+      }
+      return "int:" + i;
+    }
+
+    public String runStackOverflow(String s) {
+      if ("error".equals(s)) {
+        throw new StackOverflowError("Simulated StackOverflow in overloaded string method: " + s);
+      }
+      return "str:" + s;
+    }
+
+    public String runSuccess(Integer i) {
+      return "int:" + i;
+    }
+
+    public String runSuccess(String s) {
+      return "str:" + s;
     }
   }
 
@@ -203,10 +240,10 @@ class ExceptionSemanticsHardeningTest {
   }
 
   @Test
-  @DisplayName("OutOfMemoryError escapes from BytecodeRuntimeBridge direct dynamic dispatch")
+  @DisplayName("Fatal JVM errors escape from BytecodeRuntimeBridge direct dynamic dispatch")
   void fatalErrorsEscapeDirectBytecodeBridgeCalls() {
     FaultyTarget target = new FaultyTarget();
-    DynamicCallSite methodSite =
+    DynamicCallSite methodSiteOom =
         new DynamicCallSite(
             101,
             MemberKey.methodCall("throwOom", 0),
@@ -215,11 +252,11 @@ class ExceptionSemanticsHardeningTest {
             null);
 
     assertThatThrownBy(
-            () -> BytecodeRuntimeBridge.dynamicInvokeMethod(methodSite, target, new Object[0]))
+            () -> BytecodeRuntimeBridge.dynamicInvokeMethod(methodSiteOom, target, new Object[0]))
         .isInstanceOf(OutOfMemoryError.class)
         .hasMessage("Simulated OOM in method");
 
-    DynamicCallSite propSite =
+    DynamicCallSite propSiteOom =
         new DynamicCallSite(
             102,
             MemberKey.propertyGet("oomProperty"),
@@ -227,9 +264,62 @@ class ExceptionSemanticsHardeningTest {
             new DynamicLinker(),
             null);
 
-    assertThatThrownBy(() -> BytecodeRuntimeBridge.dynamicGetProperty(propSite, target))
+    assertThatThrownBy(() -> BytecodeRuntimeBridge.dynamicGetProperty(propSiteOom, target))
         .isInstanceOf(OutOfMemoryError.class)
         .hasMessage("Simulated OOM in property getter");
+
+    DynamicCallSite methodSiteSoe =
+        new DynamicCallSite(
+            103,
+            MemberKey.methodCall("throwStackOverflow", 0),
+            LinkerAccessPolicy.standard(),
+            new DynamicLinker(),
+            null);
+
+    assertThatThrownBy(
+            () -> BytecodeRuntimeBridge.dynamicInvokeMethod(methodSiteSoe, target, new Object[0]))
+        .isInstanceOf(StackOverflowError.class)
+        .hasMessage("Simulated StackOverflow in method");
+
+    DynamicCallSite propSiteSoe =
+        new DynamicCallSite(
+            104,
+            MemberKey.propertyGet("stackOverflowProperty"),
+            LinkerAccessPolicy.standard(),
+            new DynamicLinker(),
+            null);
+
+    assertThatThrownBy(() -> BytecodeRuntimeBridge.dynamicGetProperty(propSiteSoe, target))
+        .isInstanceOf(StackOverflowError.class)
+        .hasMessage("Simulated StackOverflow in property getter");
+  }
+
+  @Test
+  @DisplayName(
+      "BytecodeRuntimeBridge direct MethodHandle dispatch wraps RuntimeException in"
+          + " TemplateRenderException")
+  void bytecodeBridgeDirectMethodHandleDispatchWrapsRuntimeExceptionInTemplateRenderException() {
+    FaultyTarget target = new FaultyTarget();
+    DynamicCallSite appSite =
+        new DynamicCallSite(
+            105,
+            MemberKey.methodCall("throwAppException", 0),
+            LinkerAccessPolicy.standard(),
+            new DynamicLinker(),
+            null);
+
+    assertThatThrownBy(
+            () -> BytecodeRuntimeBridge.dynamicInvokeMethod(appSite, target, new Object[0]))
+        .isInstanceOf(TemplateRenderException.class)
+        .hasCauseInstanceOf(IllegalStateException.class)
+        .satisfies(
+            e -> {
+              TemplateRenderException tre = (TemplateRenderException) e;
+              assertThat(tre.code())
+                  .isPresent()
+                  .contains(InterpreterDiagnosticCodes.INVALID_METHOD);
+              assertThat(tre.getCause()).hasMessage("Business logic failed");
+            });
   }
 
   @Test
@@ -246,33 +336,42 @@ class ExceptionSemanticsHardeningTest {
             new DynamicLinker(),
             null);
 
-    // First invoke monomorphically with Integer argument to cache (Integer) signature
-    Object intResult =
-        BytecodeRuntimeBridge.dynamicInvokeMethod(site, target, new Object[] {Integer.valueOf(10)});
-    assertThat(intResult).isEqualTo("int:10");
+    // Determine the overload linked initially by DynamicLinker
+    Class<?> linkedType = site.resolveLink(target.getClass()).handle().type().parameterType(1);
+    Object mhArg = linkedType == Integer.class ? Integer.valueOf(10) : "test";
+    String expectedMhResult = linkedType == Integer.class ? "int:10" : "str:test";
+    Object fallbackFailArg = linkedType == Integer.class ? "error" : Integer.valueOf(-1);
+    String expectedFallbackError =
+        linkedType == Integer.class
+            ? "Simulated failure in overloaded string method: error"
+            : "Simulated failure in overloaded integer method: -1";
 
-    // Second invoke with String argument triggers ClassCastException/WrongMethodTypeException in
-    // call site,
-    // which falls back to reflection and must unwrap InvocationTargetException directly to
-    // IllegalStateException
+    // 1. Initial invoke matches cached signature (MethodHandle path)
+    Object initialResult =
+        BytecodeRuntimeBridge.dynamicInvokeMethod(site, target, new Object[] {mhArg});
+    assertThat(initialResult).isEqualTo(expectedMhResult);
+
+    // 2. Invoke with incompatible argument type triggers ClassCastException in call site,
+    // which falls back to reflection and normalizes InvocationTargetException into
+    // TemplateRenderException
     assertThatThrownBy(
             () ->
                 BytecodeRuntimeBridge.dynamicInvokeMethod(
-                    site, target, new Object[] {"test-value"}))
+                    site, target, new Object[] {fallbackFailArg}))
         .isInstanceOf(TemplateRenderException.class)
         .hasCauseInstanceOf(IllegalStateException.class)
         .satisfies(
             e -> {
               TemplateRenderException tre = (TemplateRenderException) e;
               assertThat(tre.code()).contains(InterpreterDiagnosticCodes.INVALID_METHOD);
-              assertThat(tre.getCause())
-                  .hasMessage("Simulated failure in overloaded string method: test-value");
+              assertThat(tre.getCause()).hasMessage(expectedFallbackError);
             });
   }
 
   @Test
   @DisplayName(
-      "BytecodeRuntimeBridge reflection fallback unwraps InvocationTargetException for fatal Error")
+      "BytecodeRuntimeBridge reflection fallback unwraps InvocationTargetException for fatal"
+          + " Errors")
   void bytecodeBridgeReflectionFallbackUnwrapsInvocationTargetExceptionForFatalError() {
     OverloadedTarget target = new OverloadedTarget();
     DynamicCallSite site =
@@ -283,18 +382,88 @@ class ExceptionSemanticsHardeningTest {
             new DynamicLinker(),
             null);
 
-    // Pre-link monomorphically with Integer
-    Object intResult =
-        BytecodeRuntimeBridge.dynamicInvokeMethod(site, target, new Object[] {Integer.valueOf(10)});
-    assertThat(intResult).isEqualTo("int:10");
+    Class<?> linkedType = site.resolveLink(target.getClass()).handle().type().parameterType(1);
+    Object mhArg = linkedType == Integer.class ? Integer.valueOf(10) : "test";
+    String expectedMhResult = linkedType == Integer.class ? "int:10" : "str:test";
+    Object fallbackFatalArg = linkedType == Integer.class ? "error" : Integer.valueOf(-1);
+    String expectedOomMessage =
+        linkedType == Integer.class
+            ? "Simulated OOM in overloaded string method: error"
+            : "Simulated OOM in overloaded integer method: -1";
 
-    // Dynamic invoke with String falls back to reflection and unwraps OutOfMemoryError
+    // Pre-link monomorphically with initial argument type
+    Object initialResult =
+        BytecodeRuntimeBridge.dynamicInvokeMethod(site, target, new Object[] {mhArg});
+    assertThat(initialResult).isEqualTo(expectedMhResult);
+
+    // Dynamic invoke with incompatible type falls back to reflection and unwraps OutOfMemoryError
     assertThatThrownBy(
             () ->
                 BytecodeRuntimeBridge.dynamicInvokeMethod(
-                    site, target, new Object[] {"test-value"}))
+                    site, target, new Object[] {fallbackFatalArg}))
         .isInstanceOf(OutOfMemoryError.class)
-        .hasMessage("Simulated OOM in overloaded string method: test-value");
+        .hasMessage(expectedOomMessage);
+
+    DynamicCallSite soeSite =
+        new DynamicCallSite(
+            203,
+            MemberKey.methodCall("runStackOverflow", 1),
+            LinkerAccessPolicy.standard(),
+            new DynamicLinker(),
+            null);
+
+    Class<?> soeLinkedType =
+        soeSite.resolveLink(target.getClass()).handle().type().parameterType(1);
+    Object soeMhArg = soeLinkedType == Integer.class ? Integer.valueOf(10) : "test";
+    String expectedSoeMhResult = soeLinkedType == Integer.class ? "int:10" : "str:test";
+    Object soeFallbackArg = soeLinkedType == Integer.class ? "error" : Integer.valueOf(-1);
+    String expectedSoeMessage =
+        soeLinkedType == Integer.class
+            ? "Simulated StackOverflow in overloaded string method: error"
+            : "Simulated StackOverflow in overloaded integer method: -1";
+
+    // Pre-link monomorphically
+    Object soeInitialResult =
+        BytecodeRuntimeBridge.dynamicInvokeMethod(soeSite, target, new Object[] {soeMhArg});
+    assertThat(soeInitialResult).isEqualTo(expectedSoeMhResult);
+
+    // Dynamic invoke with incompatible type falls back to reflection and unwraps StackOverflowError
+    assertThatThrownBy(
+            () ->
+                BytecodeRuntimeBridge.dynamicInvokeMethod(
+                    soeSite, target, new Object[] {soeFallbackArg}))
+        .isInstanceOf(StackOverflowError.class)
+        .hasMessage(expectedSoeMessage);
+  }
+
+  @Test
+  @DisplayName("BytecodeRuntimeBridge reflection fallback selects valid overload correctly")
+  void bytecodeBridgeReflectionFallbackSelectsValidOverloadCorrectly() {
+    OverloadedTarget target = new OverloadedTarget();
+    DynamicCallSite site =
+        new DynamicCallSite(
+            204,
+            MemberKey.methodCall("runSuccess", 1),
+            LinkerAccessPolicy.standard(),
+            new DynamicLinker(),
+            null);
+
+    Class<?> linkedType = site.resolveLink(target.getClass()).handle().type().parameterType(1);
+    Object mhArg = linkedType == Integer.class ? Integer.valueOf(42) : "first";
+    String expectedMhResult = linkedType == Integer.class ? "int:42" : "str:first";
+    Object fallbackArg = linkedType == Integer.class ? "fallback-value" : Integer.valueOf(99);
+    String expectedFallbackResult = linkedType == Integer.class ? "str:fallback-value" : "int:99";
+
+    // Pre-link monomorphically
+    Object initialResult =
+        BytecodeRuntimeBridge.dynamicInvokeMethod(site, target, new Object[] {mhArg});
+    assertThat(initialResult).isEqualTo(expectedMhResult);
+
+    // Dynamic invoke with incompatible argument type falls back to reflection and executes valid
+    // overload
+    Object fallbackResult =
+        BytecodeRuntimeBridge.dynamicInvokeMethod(site, target, new Object[] {fallbackArg});
+    assertThat(fallbackResult).isEqualTo(expectedFallbackResult);
   }
 
   @Test
@@ -525,57 +694,96 @@ class ExceptionSemanticsHardeningTest {
   }
 
   @Test
-  @DisplayName(
-      "FilesystemTemplateRepository distinguishes not found, access denied, and I/O error on"
-          + " unreadable file")
-  void filesystemRepositoryDistinguishesNotFoundFromAccessDeniedAndIoError(@TempDir Path tempDir)
-      throws IOException {
+  @DisplayName("FilesystemTemplateRepository returns empty for missing template")
+  void filesystemRepositoryReturnsEmptyForMissingTemplate(@TempDir Path tempDir) {
     FilesystemTemplateRepository repo = FilesystemTemplateRepository.of(tempDir);
-
-    // 1. Genuinely absent file returns Optional.empty()
     TemplateId missingId = TemplateId.of("missing.vm");
     assertThat(repo.find(missingId)).isEmpty();
+  }
 
-    // 2. Access denied on reading file throws TemplateSecurityException, never Optional.empty()
-    Path unreadableFile = tempDir.resolve("unreadable.vm");
-    Files.writeString(unreadableFile, "confidential payload");
-    unreadableFile.toFile().setReadable(false, false);
-    TemplateId unreadableId = TemplateId.of("unreadable.vm");
-    try {
-      assertThatThrownBy(() -> repo.find(unreadableId))
-          .isInstanceOf(TemplateSecurityException.class)
-          .hasMessageContaining("Access denied reading template file: unreadable.vm");
-    } finally {
-      unreadableFile.toFile().setReadable(true, false);
-    }
-
-    // 3. Access denied resolving real path (unsearchable directory) throws
-    // TemplateSecurityException
-    Path restrictedDir = tempDir.resolve("restricted_dir");
-    Files.createDirectory(restrictedDir);
-    Path secretFile = restrictedDir.resolve("secret.vm");
-    Files.writeString(secretFile, "secret under restricted dir");
-    restrictedDir.toFile().setReadable(false, false);
-    restrictedDir.toFile().setExecutable(false, false);
-    TemplateId restrictedId = TemplateId.of("restricted_dir/secret.vm");
-    try {
-      assertThatThrownBy(() -> repo.find(restrictedId))
-          .isInstanceOf(TemplateSecurityException.class)
-          .hasMessageContaining("Access denied resolving real path: restricted_dir/secret.vm");
-    } finally {
-      restrictedDir.toFile().setReadable(true, false);
-      restrictedDir.toFile().setExecutable(true, false);
-    }
-
-    // 4. Directory accessed as template file triggers I/O read failure ->
-    // TemplateResourceException,
-    // never Optional.empty()
+  @Test
+  @DisplayName(
+      "FilesystemTemplateRepository maps ordinary I/O failure to TemplateResourceException")
+  void filesystemRepositoryMapsOrdinaryIoFailureToTemplateResourceException(@TempDir Path tempDir)
+      throws IOException {
+    FilesystemTemplateRepository repo = FilesystemTemplateRepository.of(tempDir);
     Path dirAsFile = tempDir.resolve("dir_as_file.vm");
     Files.createDirectory(dirAsFile);
     TemplateId dirId = TemplateId.of("dir_as_file.vm");
     assertThatThrownBy(() -> repo.find(dirId))
         .isInstanceOf(TemplateResourceException.class)
         .hasMessageContaining("Failed to read template file: dir_as_file.vm");
+  }
+
+  @Test
+  @DisplayName("FilesystemTemplateRepository maps access denied to TemplateSecurityException")
+  void filesystemRepositoryMapsAccessDeniedToTemplateSecurityException(@TempDir Path tempDir)
+      throws IOException {
+    Assumptions.assumeTrue(
+        Files.getFileStore(tempDir).supportsFileAttributeView(PosixFileAttributeView.class),
+        "Filesystem does not support POSIX file attributes");
+
+    FilesystemTemplateRepository repo = FilesystemTemplateRepository.of(tempDir);
+    Path unreadableFile = tempDir.resolve("unreadable.vm");
+    Files.writeString(unreadableFile, "confidential payload");
+    TemplateId unreadableId = TemplateId.of("unreadable.vm");
+    try {
+      Files.setPosixFilePermissions(unreadableFile, Collections.emptySet());
+      boolean readDenied = false;
+      try {
+        Files.readString(unreadableFile);
+      } catch (java.nio.file.AccessDeniedException e) {
+        readDenied = true;
+      } catch (IOException ignored) {
+      }
+      Assumptions.assumeTrue(
+          readDenied, "Filesystem did not deny read access after removing POSIX permissions");
+      assertThatThrownBy(() -> repo.find(unreadableId))
+          .isInstanceOf(TemplateSecurityException.class)
+          .hasMessageContaining("Access denied reading template file: unreadable.vm");
+    } finally {
+      try {
+        Files.setPosixFilePermissions(unreadableFile, PosixFilePermissions.fromString("rw-r--r--"));
+      } catch (IOException ignored) {
+      }
+    }
+  }
+
+  @Test
+  @DisplayName(
+      "FilesystemTemplateRepository maps real path access denied to TemplateSecurityException")
+  void filesystemRepositoryMapsRealPathAccessDeniedToTemplateSecurityException(
+      @TempDir Path tempDir) throws IOException {
+    Assumptions.assumeTrue(
+        Files.getFileStore(tempDir).supportsFileAttributeView(PosixFileAttributeView.class),
+        "Filesystem does not support POSIX file attributes");
+
+    FilesystemTemplateRepository repo = FilesystemTemplateRepository.of(tempDir);
+    Path restrictedDir = tempDir.resolve("restricted_dir");
+    Files.createDirectory(restrictedDir);
+    Path secretFile = restrictedDir.resolve("secret.vm");
+    Files.writeString(secretFile, "secret under restricted dir");
+    TemplateId restrictedId = TemplateId.of("restricted_dir/secret.vm");
+    try {
+      Files.setPosixFilePermissions(restrictedDir, Collections.emptySet());
+      boolean accessDenied = false;
+      try {
+        restrictedDir.resolve("secret.vm").toRealPath();
+      } catch (java.nio.file.AccessDeniedException e) {
+        accessDenied = true;
+      } catch (IOException ignored) {
+      }
+      Assumptions.assumeTrue(
+          accessDenied, "Filesystem did not deny path traversal after removing POSIX permissions");
+      assertThatThrownBy(() -> repo.find(restrictedId))
+          .isInstanceOf(TemplateSecurityException.class)
+          .hasMessageContaining("Access denied resolving real path: restricted_dir/secret.vm");
+    } finally {
+      try {
+        Files.setPosixFilePermissions(restrictedDir, PosixFilePermissions.fromString("rwxr-xr-x"));
+      } catch (IOException ignored) {
+      }
+    }
   }
 
   @Test

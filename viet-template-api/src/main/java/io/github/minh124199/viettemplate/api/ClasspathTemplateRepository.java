@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
@@ -71,19 +72,23 @@ public final class ClasspathTemplateRepository
       return Optional.empty();
     }
 
-    try (InputStream is = resourceUrl.openStream()) {
-      if (is == null) {
-        return Optional.empty();
-      }
-      byte[] bytes = is.readAllBytes();
-      String content = new String(bytes, charset);
+    try {
+      URLConnection connection = resourceUrl.openConnection();
+      connection.setUseCaches(false);
       long lastModified = 0L;
       try {
-        lastModified = resourceUrl.openConnection().getLastModified();
-      } catch (IOException ignored) {
+        lastModified = connection.getLastModified();
+      } catch (RuntimeException ignored) {
       }
-      URI uri = URI.create("classpath:/" + resourcePath);
-      return Optional.of(TemplateSource.of(id, uri, charset, content, lastModified));
+      try (InputStream is = connection.getInputStream()) {
+        if (is == null) {
+          return Optional.empty();
+        }
+        byte[] bytes = is.readAllBytes();
+        String content = new String(bytes, charset);
+        URI uri = URI.create("classpath:/" + resourcePath);
+        return Optional.of(TemplateSource.of(id, uri, charset, content, lastModified));
+      }
     } catch (IOException e) {
       throw new TemplateResourceException(
           "Failed to read classpath resource: " + resourcePath, id, SourceSpan.UNKNOWN, null, e);

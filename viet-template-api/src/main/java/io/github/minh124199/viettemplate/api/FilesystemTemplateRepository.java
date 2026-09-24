@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -116,6 +117,15 @@ public final class FilesystemTemplateRepository implements TemplateRepository {
           "I/O failure resolving real path: " + id.value(), id, SourceSpan.UNKNOWN, null, e);
     }
 
+    if (Files.isDirectory(realCandidate)) {
+      throw new TemplateResourceException(
+          "Failed to read template file: " + id.value(),
+          id,
+          SourceSpan.UNKNOWN,
+          null,
+          new FileSystemException(realCandidate.toString(), null, "Is a directory"));
+    }
+
     try {
       String content = Files.readString(realCandidate, charset);
       long lastModified = Files.getLastModifiedTime(realCandidate).toMillis();
@@ -123,6 +133,10 @@ public final class FilesystemTemplateRepository implements TemplateRepository {
     } catch (NoSuchFileException e) {
       return Optional.empty();
     } catch (AccessDeniedException e) {
+      if (Files.isDirectory(realCandidate)) {
+        throw new TemplateResourceException(
+            "Failed to read template file: " + id.value(), id, SourceSpan.UNKNOWN, null, e);
+      }
       throw new TemplateSecurityException(
           "Access denied reading template file: " + id.value(), id, SourceSpan.UNKNOWN, null, e);
     } catch (IOException e) {

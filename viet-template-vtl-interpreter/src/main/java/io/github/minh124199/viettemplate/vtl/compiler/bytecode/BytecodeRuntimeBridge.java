@@ -947,55 +947,11 @@ public final class BytecodeRuntimeBridge {
       return null;
     }
     try {
-      return site.invokeWithArgs(unwrapped, args);
-    } catch (ClassCastException | java.lang.invoke.WrongMethodTypeException cce) {
-      Class<?> clazz = unwrapped.getClass();
-      String methodName = site.memberKey().name();
-      int arity = args != null ? args.length : 0;
-      for (java.lang.reflect.Method m : clazz.getMethods()) {
-        if (m.getName().equals(methodName) && m.getParameterCount() == arity) {
-          boolean matches = true;
-          Class<?>[] ptypes = m.getParameterTypes();
-          for (int i = 0; i < arity; i++) {
-            Object arg = args[i];
-            if (arg != null && !isAssignable(ptypes[i], arg.getClass())) {
-              matches = false;
-              break;
-            }
-          }
-          if (matches) {
-            if (!site.policy().isMethodPermitted(clazz, m)) {
-              throw new TemplateSecurityException(
-                  "Access to "
-                      + methodName
-                      + " on "
-                      + clazz.getName()
-                      + " is denied by security policy: method "
-                      + methodName
-                      + " is denied by policy",
-                  TemplateId.of("<generated>"),
-                  SourceSpan.UNKNOWN,
-                  InterpreterDiagnosticCodes.SECURITY_VIOLATION);
-            }
-            try {
-              m.setAccessible(true);
-              return m.invoke(unwrapped, args);
-            } catch (InvocationTargetException ite) {
-              Throwable targetEx = ite.getTargetException();
-              if (targetEx instanceof Error err) {
-                throw err;
-              }
-              if (targetEx instanceof RuntimeException re) {
-                throw re;
-              }
-              throw new RuntimeException(targetEx);
-            } catch (Exception ex) {
-              throw new RuntimeException(ex);
-            }
-          }
-        }
+      try {
+        return site.invokeWithArgs(unwrapped, args);
+      } catch (ClassCastException | java.lang.invoke.WrongMethodTypeException mismatch) {
+        return invokeReflectiveFallback(site, unwrapped, args, mismatch);
       }
-      throw cce;
     } catch (VirtualMachineError | ThreadDeath fatal) {
       throw fatal;
     } catch (TemplateException te) {
@@ -1028,6 +984,45 @@ public final class BytecodeRuntimeBridge {
           InterpreterDiagnosticCodes.INVALID_METHOD,
           cause);
     }
+  }
+
+  private static Object invokeReflectiveFallback(
+      DynamicCallSite site, Object unwrapped, Object[] args, RuntimeException mismatch)
+      throws Throwable {
+    Class<?> clazz = unwrapped.getClass();
+    String methodName = site.memberKey().name();
+    int arity = args != null ? args.length : 0;
+    for (java.lang.reflect.Method m : clazz.getMethods()) {
+      if (m.getName().equals(methodName) && m.getParameterCount() == arity) {
+        boolean matches = true;
+        Class<?>[] ptypes = m.getParameterTypes();
+        for (int i = 0; i < arity; i++) {
+          Object arg = args[i];
+          if (arg != null && !isAssignable(ptypes[i], arg.getClass())) {
+            matches = false;
+            break;
+          }
+        }
+        if (matches) {
+          if (!site.policy().isMethodPermitted(clazz, m)) {
+            throw new TemplateSecurityException(
+                "Access to "
+                    + methodName
+                    + " on "
+                    + clazz.getName()
+                    + " is denied by security policy: method "
+                    + methodName
+                    + " is denied by policy",
+                TemplateId.of("<generated>"),
+                SourceSpan.UNKNOWN,
+                InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+          }
+          m.setAccessible(true);
+          return m.invoke(unwrapped, args);
+        }
+      }
+    }
+    throw mismatch;
   }
 
   private static boolean isAssignable(Class<?> targetType, Class<?> argType) {
