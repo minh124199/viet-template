@@ -15,8 +15,8 @@ Viet Template is a clean-room JVM template engine designed for modern Java appli
 
 Many enterprise JVM applications still rely on legacy template engines that depend on heavy dynamic reflection, lack GraalVM native image support, allocate excessive heap memory, or expose dangerous reflection attack surfaces. Viet Template solves this:
 
-- **100% Velocity Syntax Compatibility**: Drop-in syntax compatibility for Velocity Template Language (VTL). Evaluated across 301 differential scenarios against Apache Velocity 2.4.1 in the Technology Compatibility Kit (TCK): 295 exact matches (98.01%), 5 documented expected differences, 1 extension, 0 unsupported, 0 regressions (100.00% accounted behavior coverage).
-- **Blazing Fast Multi-Tier Execution**: Offers both a lightweight development interpreter (Viet-IR) and a high-performance Ahead-Of-Time bytecode compiler (Viet-AOT) delivering **1.3x to 5.3x higher throughput** than Apache Velocity 2.4.1.
+- **Drop-in Velocity Syntax Compatibility**: Drop-in syntax compatibility for Velocity Template Language (VTL) covering 80/80 supported grammar features and 100% accounted differential behavior coverage across 301 differential scenarios against Apache Velocity 2.4.1 in the Technology Compatibility Kit (TCK): 295 exact matches (98.01%), 5 documented expected differences, 1 extension, 0 unsupported, 0 regressions.
+- **High-Throughput Multi-Tier Execution**: Offers both a lightweight development interpreter (Viet-IR) and a high-performance Ahead-Of-Time bytecode compiler (Viet-AOT) delivering **1.3x to 5.3x higher throughput** than Apache Velocity 2.4.1.
 - **Precompiled Bytecode & Zero Reflection**: Compiles templates to standard Java 21 bytecode (`.class` files) with compiler-assigned variable slots and pre-encoded UTF-8 literals, eliminating runtime reflection and AST traversal.
 - **GraalVM Native Image Ready**: Seamlessly compiles to native executables via out-of-the-box `VietTemplateRuntimeHints`, Spring AOT, and Quarkus deployment build steps (empirically qualified on Linux x86_64 Mandrel 25.0.4.1-Final and Oracle GraalVM 25.0.4+7.1).
 - **First-Class Spring & Quarkus Ecosystems**: Turnkey auto-configuration for Spring Boot 4 / Spring Framework 7 / Spring Security 7 and idiomatic CDI extension for Quarkus 3 with build-time AOT compilation and dev-mode hot reload.
@@ -28,7 +28,7 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 
 | Dimension | Detail |
 |---|---|
-| **Current Release Candidate** | `1.0.0-RC1` (locally staged and qualified; not yet remotely published) |
+| **Current Release Candidate** | `1.0.0-RC1` (Published: 2026-09-24; available on Maven Central & GitHub Releases) |
 | **Latest Published Stable Release** | `0.2.2` (Published: 2026-09-20; 0.2.3 prepared/held) |
 | **Java Baseline** | Java 21 LTS (`--release 21`, major version 65) |
 | **Primary Target** | Java 25 (optimized memory & runtime qualification) |
@@ -66,21 +66,22 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 Add `viet-template-api`, `viet-template-runtime`, and `viet-template-vtl-interpreter` to your `pom.xml`:
 
 ```xml
+<!-- Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1 -->
 <dependencies>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-api</artifactId>
-        <version>0.2.2</version>
+        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
     </dependency>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-runtime</artifactId>
-        <version>0.2.2</version>
+        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
     </dependency>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-vtl-interpreter</artifactId>
-        <version>0.2.2</version>
+        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
     </dependency>
 </dependencies>
 ```
@@ -97,7 +98,7 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) {
         TemplateEngine engine = TemplateEngine.builder()
-            .repository(ClasspathTemplateRepository.create("templates/"))
+            .repository(ClasspathTemplateRepository.of("templates/"))
             .memberAccessPolicy(MemberAccessPolicy.standard())
             .build();
 
@@ -117,10 +118,11 @@ public class Main {
 Add the starter dependency:
 
 ```xml
+<!-- Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1 -->
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-boot-starter</artifactId>
-    <version>0.2.2</version>
+    <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
 </dependency>
 ```
 
@@ -154,13 +156,14 @@ public class WebController {
 
 ### 3. Quarkus 3 Extension
 
-Add the extension dependency:
+Add the extension dependency (introduced in `1.0.0-RC1`):
 
 ```xml
+<!-- Quarkus extension is available starting in 1.0.0-RC1 (not present in 0.2.2) -->
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-quarkus</artifactId>
-    <version>0.2.2</version>
+    <version>1.0.0-RC1</version>
 </dependency>
 ```
 

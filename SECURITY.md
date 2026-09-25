@@ -2,12 +2,12 @@
 
 ## Supported Versions
 
-Only the latest active release line is supported with security updates.
+During the 1.0 release candidate qualification and soak period, two release tracks are actively supported: the latest stable release (`0.2.2`) receives critical backported security fixes, and the active release candidate (`1.0.0-RC1`) receives security fixes directly in the 1.0 candidate line.
 
 | Version | Supported | Notes |
 | :--- | :--- | :--- |
 | `0.2.2` | :white_check_mark: | Latest published stable release |
-| `1.0.0-RC1` | :hourglass_flowing_sand: | Release candidate (locally staged and qualified; remote publication pending authorization) |
+| `1.0.0-RC1` | :white_check_mark: | Published prerelease / release candidate; active qualification and soak; fixes roll into 1.0 candidate line |
 | `0.2.3` | :x: | Prepared/held, not released |
 | `< 0.2.2` | :x: | Superseded / unsupported |
 

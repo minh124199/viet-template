@@ -20,26 +20,27 @@ Use Viet Template directly in any Java application without framework dependencie
 Add `viet-template-api`, `viet-template-runtime`, and `viet-template-vtl-interpreter` to your `pom.xml`:
 
 ```xml
+<!-- Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1 -->
 <dependencies>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-api</artifactId>
-        <version>0.2.2</version>
+        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
     </dependency>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-runtime</artifactId>
-        <version>0.2.2</version>
+        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
     </dependency>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-vtl-interpreter</artifactId>
-        <version>0.2.2</version>
+        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
     </dependency>
 </dependencies>
 ```
 
-*(For Gradle, use `implementation("io.github.minh124199:viet-template-api:0.2.2")`, etc.)*
+*(For Gradle, use `implementation("io.github.minh124199:viet-template-api:0.2.2")` (or `1.0.0-RC1`), etc.)*
 
 ### 1.2 Create a Template
 
@@ -73,7 +74,7 @@ public class Application {
     public static void main(String[] args) {
         // Initialize engine with classpath repository
         TemplateEngine engine = TemplateEngine.builder()
-            .repository(ClasspathTemplateRepository.create("templates/"))
+            .repository(ClasspathTemplateRepository.of("templates/"))
             .memberAccessPolicy(MemberAccessPolicy.standard())
             .build();
 
@@ -99,10 +100,11 @@ Viet Template provides a turnkey Spring Boot 4 starter with automated view resol
 ### 2.1 Add Starter Dependency
 
 ```xml
+<!-- Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1 -->
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-boot-starter</artifactId>
-    <version>0.2.2</version>
+    <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
 </dependency>
 ```
 

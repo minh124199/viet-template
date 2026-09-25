@@ -69,7 +69,7 @@ To adhere to the Java-first design policy and avoid premature complexity:
 
 Release `0.2.0` introduces the next major internal runtime evolution, transitioning variable resolution from string-based hash lookups to compiler-assigned flat array slots and indexing the compilation cache for scalable invalidation.
 
-**Release Status**: 0.2.3 is RELEASED on 2026-09-22 (0.2.2 on 2026-09-20, 0.2.1 on 2026-09-17, 0.2.0 on 2026-09-12). The supported release line is `0.2.x`. The current active development version is `0.3.0-SNAPSHOT` on `main`. Subsequent minor milestones target `0.3.x` (evidence-driven optimizations) and `1.0`.
+**Release Status**: 0.2.2 is the latest published stable release (published 2026-09-20; 0.2.1 on 2026-09-17, 0.2.0 on 2026-09-12). Version 0.2.3 was prepared across POMs but held without tagging or publication (`PREPARED_HELD`). The supported stable line is `0.2.x`. Version `1.0.0-RC1` was published on 2026-09-24 as the active release candidate undergoing public soak, targeting 1.0.0 GA.
 
 **Post-release infrastructure status**: 0.2.x release infrastructure hardening is COMPLETE. Central
 submission, publication monitoring, public-coordinate verification, consumer smoke testing, and
@@ -307,14 +307,18 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
     - Updated release workflow to ensure GitHub Release sets `prerelease=true` for release candidates.
     - Enforced one-SHA release provenance invariant and artifact manifest rule across documentation and tooling.
     - Reached verdict: `RC1_READY_FOR_AUTHORIZED_PUBLICATION`.
-- **Milestone M9 (Public RC Publication, External Soak, Final Compatibility Reconfirmation, and 1.0 GA Promotion Readiness) — PLANNED**:
-    - Execute authorized remote publication of 1.0.0-RC1 to Maven Central.
-    - Post-publication smoke verification using `scripts/smoke-central-consumers.sh`.
-    - Multi-week public RC soak evaluating real-world downstream adoption, public plugin resolution, and external migration feedback.
-    - Final compatibility reconfirmation and 1.0.0 GA promotion readiness decision.
+- **Milestone M9 (Public RC Publication, External Soak, Final Compatibility Reconfirmation, and 1.0 GA Promotion Readiness) — IN PROGRESS**:
+    - **Completed (Remote RC1 Publication & Verification)**:
+        - Executed authorized remote publication of `1.0.0-RC1` to Maven Central across all 13 published artifacts and Gradle plugin marker.
+        - Created GitHub prerelease `v1.0.0-RC1` with release notes and artifact checksum manifest.
+        - Verified Central artifact propagation and completed external consumer smoke verification using `scripts/smoke-central-consumers.sh`.
+    - **Remaining (Public RC Soak & GA Promotion)**:
+        - Multi-week public RC soak evaluating real-world downstream adoption, public plugin resolution, and external migration feedback.
+        - Issue remediation and final API/ABI stability reconfirmation.
+        - Final compatibility reconfirmation and 1.0.0 GA promotion readiness decision.
 
 - **Roadmap Sequence Towards 1.0 GA**:
   - **0.2.3 Status**: Historical release prepared across POMs but held without tagging or publication (`PREPARED_HELD`).
   - **0.3.0 Development Line**: Completed public surface encapsulation (M1–M3.5), runtime architecture (M4), warmed-lookup simplification (M5), exception semantics hardening (M6), 1.0 candidate contract reconciliation (M7.9), and 1.0 candidate contract freeze (M8.1).
-  - **1.0.0-RC1 (Release Candidate)**: Staged artifact provenance rebuild, contract evidence reconciliation, documentation convergence, and publication qualification (M8 / M8.9).
+  - **1.0.0-RC1 (Published Prerelease / Release Candidate)**: Published to Maven Central and GitHub Releases on 2026-09-24, candidate contract frozen, provenance reconciled, and undergoing public RC soak.
   - **1.0.0 GA**: General Availability release locking permanent SemVer binary backwards compatibility following RC soak (M9).

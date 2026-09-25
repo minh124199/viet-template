@@ -60,6 +60,22 @@ class DocumentationVerifierTests(unittest.TestCase):
         errors = doc_verifier.check_consumer_snippets_in_text(valid_gradle, released_version="0.2.2")
         self.assertEqual([], errors)
 
+        # Accepts 1.0.0-RC1 when specified or by default
+        rc1_maven = """
+<dependency>
+    <groupId>io.github.minh124199</groupId>
+    <artifactId>viet-template-quarkus</artifactId>
+    <version>1.0.0-RC1</version>
+</dependency>
+"""
+        errors_rc1 = doc_verifier.check_consumer_snippets_in_text(rc1_maven, released_version="1.0.0-RC1")
+        self.assertEqual([], errors_rc1)
+
+        errors_default_stable = doc_verifier.check_consumer_snippets_in_text(valid_maven)
+        self.assertEqual([], errors_default_stable)
+        errors_default_rc1 = doc_verifier.check_consumer_snippets_in_text(rc1_maven)
+        self.assertEqual([], errors_default_rc1)
+
     def test_consumer_snippets_rejects_unreleased_or_stale_version(self):
         stale_maven = """
 <dependency>
@@ -280,6 +296,80 @@ viet-template.non-existent=123
             )
             errors = doc_verifier.check_compatibility_matrix_synced(tmp_root)
             self.assertTrue(any("out of sync" in err.lower() for err in errors))
+
+    # -------------------------------------------------------------------------
+    # Check 10: Stale Pre-Publication Language in Living Docs
+    # -------------------------------------------------------------------------
+
+    def test_current_repo_living_docs_have_no_stale_release_language(self):
+        errors = doc_verifier.check_stale_release_language_in_living_docs(self.repo_root)
+        self.assertEqual([], errors, f"Unexpected stale pre-publication language errors: {errors}")
+
+    def test_stale_release_language_rejects_unreleased_phrases_in_temp_repo(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            (tmp_root / "docs" / "getting-started").mkdir(parents=True)
+            bad_doc = tmp_root / "docs" / "getting-started" / "test.md"
+            bad_doc.write_text("The artifact is not yet remotely published.", encoding="utf-8")
+            errors = doc_verifier.check_stale_release_language_in_living_docs(tmp_root)
+            self.assertTrue(any("not yet remotely published" in err for err in errors))
+
+    def test_stale_release_language_rejects_snapshot_in_living_doc(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            (tmp_root / "docs" / "spring").mkdir(parents=True)
+            bad_doc = tmp_root / "docs" / "spring" / "test.md"
+            bad_doc.write_text("Use version 0.2.1-SNAPSHOT in your build.", encoding="utf-8")
+            errors = doc_verifier.check_stale_release_language_in_living_docs(tmp_root)
+            self.assertTrue(any("0.2.1-SNAPSHOT" in err for err in errors))
+
+    # -------------------------------------------------------------------------
+    # Check 11: Velocity Compatibility Overclaims in Living Docs
+    # -------------------------------------------------------------------------
+
+    def test_current_repo_living_docs_have_no_velocity_overclaims(self):
+        errors = doc_verifier.check_velocity_compatibility_overclaims_in_living_docs(self.repo_root)
+        self.assertEqual([], errors, f"Unexpected velocity overclaim errors: {errors}")
+
+    def test_velocity_overclaims_accepts_precise_differential_statements(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            (tmp_root / "docs" / "language").mkdir(parents=True)
+            doc = tmp_root / "docs" / "language" / "syntax.md"
+            doc.write_text(
+                "Viet Template supports all 80 tracked VTL grammar features. "
+                "In the current 301-scenario differential suite against Apache Velocity 2.4.1, "
+                "295 scenarios match exactly (98.01%), with 5 documented expected differences "
+                "and 1 Viet Template extension (100% accounted behavior coverage).\n"
+                "Dual-build tooling verifies byte-for-byte build parity across Maven and Gradle.\n",
+                encoding="utf-8",
+            )
+            errors = doc_verifier.check_velocity_compatibility_overclaims_in_living_docs(tmp_root)
+            self.assertEqual([], errors)
+
+    def test_velocity_overclaims_rejects_overclaim_in_living_doc(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            (tmp_root / "docs" / "language").mkdir(parents=True)
+            doc = tmp_root / "docs" / "language" / "syntax.md"
+            doc.write_text(
+                "Viet Template has comprehensive byte-for-byte behavioral compatibility with Apache Velocity.\n",
+                encoding="utf-8",
+            )
+            errors = doc_verifier.check_velocity_compatibility_overclaims_in_living_docs(tmp_root)
+            self.assertTrue(any("Velocity compatibility overclaim" in err for err in errors))
+
+    def test_velocity_overclaims_ignores_historical_docs_outside_living_scope(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            (tmp_root / "docs" / "archive").mkdir(parents=True)
+            doc = tmp_root / "docs" / "archive" / "historical-spec.md"
+            doc.write_text(
+                "Viet Template has comprehensive byte-for-byte behavioral compatibility with Apache Velocity.\n",
+                encoding="utf-8",
+            )
+            errors = doc_verifier.check_velocity_compatibility_overclaims_in_living_docs(tmp_root)
+            self.assertEqual([], errors)
 
     # -------------------------------------------------------------------------
     # Orchestration

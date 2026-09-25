@@ -4,7 +4,7 @@
 
 Viet Template provides complete build-time Ahead-Of-Time (AOT) compilation and Spring Boot integration for Apache Maven projects.
 
-The current published release is **`0.2.2`**. All consumer examples below use `0.2.2`.
+The latest stable release is **`0.2.2`** (published 2026-09-20). The latest preview release candidate is **`1.0.0-RC1`** (published 2026-09-24). Consumer examples below show the stable `0.2.2` coordinates, with `1.0.0-RC1` available for previewing candidate features.
 
 ### Minimum Requirements
 - **Java**: Java 21 (`--release 21`) or newer.

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0-RC1] - Prepared / Locally Qualified (2026-09-24)
+## [1.0.0-RC1] - 2026-09-24
 
 ### Added
 - **1.0 Release Candidate Preparation & Artifact Provenance Verification (Milestones M8 / M8.9)**:
