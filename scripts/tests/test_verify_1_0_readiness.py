@@ -160,7 +160,7 @@ class IndividualCheckAssertionTests(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual(details["productionModulesCount"], 12)
         self.assertTrue(details["parentPomIncluded"])
-        self.assertEqual(details["totalPublishedArtifactsIntended"], 13)
+        self.assertEqual(details["totalPublishedArtifactsIntended"], 14)
         self.assertEqual(details["nonPublishedModulesCount"], 2)
         self.assertFalse(details["currentSnapshotPublished"])
         self.assertEqual(details["automaticModuleNameStatus"], "NO_AUTOMATIC_MODULE_NAME_HEADER")
