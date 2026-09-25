@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-RC2] - 2026-09-25
+
+### Fixed
+- **DEFECT-M9-01: Published Gradle Plugin Marker Resolution**:
+  - Published Gradle plugin marker coordinate `io.github.minh124199.viet-template:io.github.minh124199.viet-template.gradle.plugin:1.0.0-RC2`, enabling standard Gradle Plugin DSL resolution (`plugins { id("io.github.minh124199.viet-template") version "1.0.0-RC2" }`).
+- **DEFECT-M9-02: Normalized AOT Parser Failure Diagnostics**:
+  - Normalized internal parser diagnostics to canonical public `SYNTAX:PARSE_ERROR` at the AOT translation boundary (`invalid.vtl:3:1 [SYNTAX:PARSE_ERROR]`), eliminating raw `[PARSER:UNCLOSED_DIRECTIVE]` leaks.
+
+### Compatibility
+- Zero breaking changes to `STABLE_API`, `STABLE_SPI`, or generated runtime ABI.
+- 31 canonical diagnostic codes preserved.
+- 301/301 differential test suite scenarios preserved against Apache Velocity 2.4.1 baseline.
+
+### Release Immutability
+- RC1 remains an immutable historical release (tag `v1.0.0-RC1`, commit `3a2a89cd549bf4c96b68fe30ff0e898351040ec6`).
+
 ## [1.0.0-RC1] - 2026-09-24
 
 ### Added
@@ -513,6 +529,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 1 `VIET_EXTENSION` (`$foreach.stop()` programmatic loop termination)
   - 0 `UNSUPPORTED`, 0 `BUG` (100.00% accounted behavior coverage)
 
-[Unreleased]: https://github.com/minh124199/viet-template/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC2...HEAD
+[1.0.0-RC2]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC1...v1.0.0-RC2
+[1.0.0-RC1]: https://github.com/minh124199/viet-template/compare/v0.2.2...v1.0.0-RC1
 [0.2.2]: https://github.com/minh124199/viet-template/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/minh124199/viet-template/compare/v0.2.0...v0.2.1

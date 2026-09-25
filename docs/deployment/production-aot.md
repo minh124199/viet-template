@@ -97,8 +97,8 @@ Apply `io.github.minh124199.viet-template` in your `build.gradle.kts`:
 
 ```kotlin
 plugins {
-    // Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1
-    id("io.github.minh124199.viet-template") version "0.2.2" // or "1.0.0-RC1"
+    // Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC2
+    id("io.github.minh124199.viet-template") version "1.0.0-RC2" // or "0.2.2"
 }
 
 vietTemplate {
