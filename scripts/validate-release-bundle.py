@@ -58,9 +58,14 @@ ALL_PUBLISHED_MODULES = PUBLISHED_MODULES
 EXCLUDED_MODULES = NON_PUBLISHED_MODULES
 
 PARENT_MODULE = "viet-template-parent"
+PLUGIN_MARKER_GROUP_ID = "io.github.minh124199.viet-template"
+PLUGIN_MARKER_ARTIFACT_ID = "io.github.minh124199.viet-template.gradle.plugin"
+PLUGIN_MARKER_COORDINATE = f"{PLUGIN_MARKER_GROUP_ID}:{PLUGIN_MARKER_ARTIFACT_ID}"
+TOTAL_PUBLIC_COORDINATES = 14
 
 RE_INVALID_URL = re.compile(r"^https://github\.com/minh124199/viet-template/viet-template-.*")
 RE_INVALID_SCM = re.compile(r"(/viet-template-)|(viet-template\.git/viet-template-.*)|(^scm:git:git://github\.com/)")
+
 
 
 def derive_published_modules(root_dir=ROOT_DIR):
@@ -416,12 +421,151 @@ def validate_parent_pom(root_dir, expected_version, errors):
         root_dir / "pom.xml", PARENT_MODULE, expected_version, errors, enforce_production_dependencies=False
     )
 
+
+def validate_plugin_marker(target_dir, expected_version, errors, repo_dir=None, pom_path=None):
+    """Validates the Gradle plugin marker POM metadata and dependency on viet-template-gradle-plugin."""
+    print(f"\nEvaluating Gradle plugin marker coordinate '{PLUGIN_MARKER_COORDINATE}':")
+    target_dir = Path(target_dir)
+    marker_pom = Path(pom_path) if pom_path is not None else None
+
+    if marker_pom is None:
+        marker_filename = f"{PLUGIN_MARKER_ARTIFACT_ID}-{expected_version}.pom"
+        candidates = []
+        if repo_dir:
+            r = Path(repo_dir)
+            candidates.extend([
+                r / "io" / "github" / "minh124199" / "viet-template" / PLUGIN_MARKER_ARTIFACT_ID / expected_version / marker_filename,
+                r / PLUGIN_MARKER_ARTIFACT_ID / expected_version / marker_filename,
+            ])
+        candidates.extend([
+            target_dir / "viet-template-gradle-plugin" / "build" / "publications" / "vietTemplatePluginMarkerMaven" / "pom-default.xml",
+            target_dir / "build" / "rc-repository" / "io" / "github" / "minh124199" / "viet-template" / PLUGIN_MARKER_ARTIFACT_ID / expected_version / marker_filename,
+            target_dir / "io" / "github" / "minh124199" / "viet-template" / PLUGIN_MARKER_ARTIFACT_ID / expected_version / marker_filename,
+            target_dir / "target" / "central-staging" / "io" / "github" / "minh124199" / "viet-template" / PLUGIN_MARKER_ARTIFACT_ID / expected_version / marker_filename,
+        ])
+        for cand in candidates:
+            if cand.exists():
+                marker_pom = cand
+                break
+
+    if marker_pom is None or not marker_pom.exists():
+        errors.append(f"Missing Gradle plugin marker POM in {target_dir}")
+        return
+
+    print(f"  [CHECK] Inspecting Gradle plugin marker POM: {marker_pom}")
+    try:
+        pom_tree = ET.parse(marker_pom)
+        pom_root = pom_tree.getroot()
+    except Exception as exc:
+        errors.append(f"Failed to parse marker POM {marker_pom}: {exc}")
+        return
+
+    ns = {"m": pom_root.tag.split("}")[0].strip("{")} if "}" in pom_root.tag else {}
+    prefix = "m:" if ns else ""
+
+    # GroupId
+    group_elem = pom_root.find(f"./{prefix}groupId", ns)
+    group_id = group_elem.text.strip() if group_elem is not None and group_elem.text else ""
+    if group_id != PLUGIN_MARKER_GROUP_ID:
+        errors.append(
+            f"Invalid groupId '{group_id}' in marker POM {marker_pom} (expected '{PLUGIN_MARKER_GROUP_ID}')"
+        )
+
+    # ArtifactId
+    art_elem = pom_root.find(f"./{prefix}artifactId", ns)
+    art_id = art_elem.text.strip() if art_elem is not None and art_elem.text else ""
+    if art_id != PLUGIN_MARKER_ARTIFACT_ID:
+        errors.append(
+            f"Invalid artifactId '{art_id}' in marker POM {marker_pom} (expected '{PLUGIN_MARKER_ARTIFACT_ID}')"
+        )
+
+    # Version
+    ver_elem = pom_root.find(f"./{prefix}version", ns)
+    ver = ver_elem.text.strip() if ver_elem is not None and ver_elem.text else ""
+    if ver != expected_version:
+        errors.append(
+            f"Invalid version '{ver}' in marker POM {marker_pom} (expected '{expected_version}')"
+        )
+
+    # Packaging
+    pack_elem = pom_root.find(f"./{prefix}packaging", ns)
+    pack = pack_elem.text.strip() if pack_elem is not None and pack_elem.text else ""
+    if pack != "pom":
+        errors.append(
+            f"Invalid packaging '{pack}' in marker POM {marker_pom} (expected 'pom')"
+        )
+
+    # Description
+    desc_elem = pom_root.find(f"./{prefix}description", ns)
+    desc = desc_elem.text.strip() if desc_elem is not None and desc_elem.text else ""
+    if not desc:
+        errors.append(f"Missing <description> in marker POM {marker_pom}")
+
+    # URL
+    url_elem = pom_root.find(f"./{prefix}url", ns)
+    url_val = url_elem.text.strip() if url_elem is not None and url_elem.text else ""
+    if not url_val:
+        errors.append(f"Missing <url> in marker POM {marker_pom}")
+
+    # Licenses
+    license_elem = pom_root.find(f"./{prefix}licenses/{prefix}license", ns)
+    if license_elem is None:
+        errors.append(f"Missing <licenses> in marker POM {marker_pom}")
+    else:
+        lic_name = license_elem.findtext(f"./{prefix}name", namespaces=ns)
+        lic_url = license_elem.findtext(f"./{prefix}url", namespaces=ns)
+        if not lic_name or not lic_url:
+            errors.append(f"Incomplete <license> in marker POM {marker_pom}")
+
+    # Developers
+    dev_elem = pom_root.find(f"./{prefix}developers/{prefix}developer", ns)
+    if dev_elem is None:
+        errors.append(f"Missing <developers> in marker POM {marker_pom}")
+    else:
+        dev_id = dev_elem.findtext(f"./{prefix}id", namespaces=ns)
+        dev_name = dev_elem.findtext(f"./{prefix}name", namespaces=ns)
+        if not dev_id and not dev_name:
+            errors.append(f"Incomplete <developer> in marker POM {marker_pom}")
+
+    # SCM
+    scm_elem = pom_root.find(f"./{prefix}scm", ns)
+    if scm_elem is None:
+        errors.append(f"Missing <scm> in marker POM {marker_pom}")
+    else:
+        scm_conn = scm_elem.findtext(f"./{prefix}connection", namespaces=ns)
+        scm_dev = scm_elem.findtext(f"./{prefix}developerConnection", namespaces=ns)
+        scm_url = scm_elem.findtext(f"./{prefix}url", namespaces=ns)
+        if not scm_conn or not scm_dev or not scm_url:
+            errors.append(f"Incomplete <scm> in marker POM {marker_pom}")
+
+    # Dependencies: must depend on io.github.minh124199:viet-template-gradle-plugin:<expected_version>
+    deps = pom_root.findall(f"./{prefix}dependencies/{prefix}dependency", ns)
+    plugin_dep_found = False
+    for dep in deps:
+        d_group = (dep.findtext(f"./{prefix}groupId", namespaces=ns) or "").strip()
+        d_art = (dep.findtext(f"./{prefix}artifactId", namespaces=ns) or "").strip()
+        d_ver = (dep.findtext(f"./{prefix}version", namespaces=ns) or "").strip()
+        if d_group == "io.github.minh124199" and d_art == "viet-template-gradle-plugin":
+            plugin_dep_found = True
+            if d_ver != expected_version:
+                errors.append(
+                    f"Marker POM {marker_pom} depends on viet-template-gradle-plugin version '{d_ver}', expected '{expected_version}'"
+                )
+    if not plugin_dep_found:
+        errors.append(
+            f"Marker POM {marker_pom} missing required dependency on io.github.minh124199:viet-template-gradle-plugin:{expected_version}"
+        )
+
+    print(f"  [PASS] Marker POM {marker_pom} validated successfully.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Validate release publication bundle.")
     parser.add_argument("--build-tool", choices=["maven", "gradle", "both"], default="maven",
                         help="Build tool artifacts to inspect (default: maven)")
     parser.add_argument("--version", help="Explicit version to validate (defaults to root pom.xml version)")
     parser.add_argument("--target-dir", type=Path, default=ROOT_DIR, help="Root directory of repository to inspect")
+    parser.add_argument("--repo-dir", type=Path, help="Path to staged repository to inspect (e.g. build/rc-repository)")
     parser.add_argument("--assemble", action="store_true", help="Assemble artifacts before validating")
     args = parser.parse_args()
 
@@ -441,12 +585,13 @@ def main():
     print(f"[INFO] Target directory: {target_dir}")
     print(f"[INFO] Project version: {version}")
     print(f"[INFO] Evaluating build tool artifacts: {args.build_tool}")
+    print(f"[INFO] Enforcing publication topology across {TOTAL_PUBLIC_COORDINATES} public coordinates (parent + 12 modules + 1 marker)")
 
     tools = ["maven", "gradle"] if args.build_tool == "both" else [args.build_tool]
 
     # Maven Central receives the root parent POM. Gradle remains a parity/local-publication build
     # and does not authoritatively publish this coordinate.
-    if "maven" in tools:
+    if "maven" in tools or args.repo_dir:
         validate_parent_pom(target_dir, version, errors)
 
     if args.assemble:
@@ -457,7 +602,7 @@ def main():
                            cwd=target_dir, check=True)
         if "gradle" in tools:
             print("\n[ACTION] Assembling Gradle artifacts...")
-            subprocess.run(["./gradlew", "assemble", "--no-daemon"], cwd=target_dir, check=True)
+            subprocess.run(["./gradlew", "assemble", "generatePomFileForVietTemplatePluginMarkerMavenPublication", "--no-daemon"], cwd=target_dir, check=True)
 
     prod_modules, all_published_modules, excluded_modules = derive_published_modules(target_dir)
     print(f"[INFO] Authoritative published modules ({len(all_published_modules)}): {all_published_modules}")
@@ -502,16 +647,22 @@ def main():
                 pom_path = pub_pom if pub_pom.exists() else (target_dir / mod / "pom.xml")
             validate_pom_metadata(pom_path, mod, version, errors, enforce_production_dependencies=False)
 
+    # Validate plugin marker coordinate for Gradle, repo-dir, or both
+    if "gradle" in tools or args.repo_dir or (target_dir / "build" / "rc-repository").exists():
+        validate_plugin_marker(target_dir, version, errors, repo_dir=args.repo_dir)
+
     validate_tck_defense_in_depth(target_dir, errors)
 
     if errors:
-        print("\n[FAILED] Release publication bundle validation FAILED:")
+        print(f"\n[FAILED] Release publication bundle validation FAILED ({len(errors)} errors):")
         for err in errors:
             print(f"  - {err}")
         sys.exit(1)
     else:
-        print("\n[SUCCESS] Release publication bundle validation PASSED! Parent POM and all published coordinates are release-ready.")
+        print(f"\n[SUCCESS] Release publication bundle validation PASSED! All {TOTAL_PUBLIC_COORDINATES} public coordinates are release-ready.")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
+

@@ -15,29 +15,45 @@ from pathlib import Path
 BASE_URL = "https://repo1.maven.org/maven2"
 GROUP_PATH = "io/github/minh124199"
 PARENT = "viet-template-parent"
-PRODUCTION_MODULES = (
+PLUGIN_MARKER = "io.github.minh124199.viet-template:io.github.minh124199.viet-template.gradle.plugin"
+PUBLISHED_MODULES = (
     "viet-template-api",
     "viet-template-runtime",
     "viet-template-language-vtl",
     "viet-template-vtl-interpreter",
+    "viet-template-spring",
+    "viet-template-spring-security",
+    "viet-template-spring-boot-autoconfigure",
+    "viet-template-spring-boot-starter",
+    "viet-template-maven-plugin",
+    "viet-template-gradle-plugin",
+    "viet-template-quarkus",
+    "viet-template-quarkus-deployment",
 )
+PRODUCTION_MODULES = PUBLISHED_MODULES
 EXCLUDED_MODULES = ("viet-template-tck", "viet-template-benchmarks")
 
 
 def artifact_urls(version: str) -> dict[str, tuple[str, ...]]:
     result = {PARENT: (f"{PARENT}-{version}.pom",)}
-    for module in PRODUCTION_MODULES:
+    for module in PUBLISHED_MODULES:
         result[module] = (
             f"{module}-{version}.pom",
             f"{module}-{version}.jar",
             f"{module}-{version}-sources.jar",
             f"{module}-{version}-javadoc.jar",
         )
+    result[PLUGIN_MARKER] = (f"io.github.minh124199.viet-template.gradle.plugin-{version}.pom",)
     return result
 
 
 def url_for(module: str, version: str, filename: str) -> str:
+    if ":" in module:
+        group_id, artifact_id = module.split(":", 1)
+        group_path = group_id.replace(".", "/")
+        return f"{BASE_URL}/{group_path}/{artifact_id}/{version}/{filename}"
     return f"{BASE_URL}/{GROUP_PATH}/{module}/{version}/{filename}"
+
 
 
 def exists(url: str, request_timeout: float) -> bool:
