@@ -218,7 +218,7 @@ The `#evaluate` directive parses and renders dynamic VTL code supplied as a stri
 - Requires interpreter execution (`ExecutionTier.IR`); Ahead-of-Time (AOT) bytecode compilers safely delegate `#evaluate` calls to the reference interpreter.
 
 ### 4.2 Security & Resource Limits
-- **Profile Restrictions**: `#evaluate` is disabled by default in the `VTL_SAFE` profile. Invoking `#evaluate` under a safe profile throws `TemplateSecurityException` with diagnostic code `SECURITY:VIOLATION`.
+- **Profile Restrictions**: `#evaluate` is disabled by default in `VTL_CORE`, `VTL_MIGRATION`, and `VTL_SAFE`, and only permitted when explicitly configured under `VTL_DYNAMIC`. Invoking `#evaluate` under an unauthorized profile throws `TemplateSecurityException` with diagnostic code `SECURITY:VIOLATION`.
 - **Recursion Guard**: Evaluated strings containing nested `#evaluate` directives are bounded by `maxEvaluateDepth()`. Violations throw `TemplateLimitException` (`LIMIT:LIMIT_EXCEEDED`).
 - **Input Size Guard**: String expressions exceeding `maxDynamicSourceLength()` are rejected immediately.
 - **Untrusted Input Caution**: Never pass unvalidated user input directly into `#evaluate`.

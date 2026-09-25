@@ -80,19 +80,19 @@ The intended 1.0 GA publication scope comprises **13 artifacts** (12 production 
 
 | Module Artifact ID | Packaging | Configured for Publication | Historically Published Releases | Intended for 1.0 GA? |
 |---|---|---|---|---|
-| `viet-template-parent` | POM | Yes | `0.1.0`, `0.2.0`, `0.2.1`, `0.2.2` | **Yes** |
-| `viet-template-api` | JAR | Yes | `0.1.0`, `0.2.0`, `0.2.1`, `0.2.2` | **Yes** |
-| `viet-template-runtime` | JAR | Yes | `0.1.0`, `0.2.0`, `0.2.1`, `0.2.2` | **Yes** |
-| `viet-template-language-vtl` | JAR | Yes | `0.1.0`, `0.2.0`, `0.2.1`, `0.2.2` | **Yes** |
-| `viet-template-vtl-interpreter` | JAR | Yes | `0.1.0`, `0.2.0`, `0.2.1`, `0.2.2` | **Yes** |
-| `viet-template-spring` | JAR | Yes | `0.2.1`, `0.2.2` | **Yes** |
-| `viet-template-spring-security` | JAR | Yes | `0.2.1`, `0.2.2` | **Yes** |
-| `viet-template-spring-boot-autoconfigure` | JAR | Yes | `0.2.1`, `0.2.2` | **Yes** |
-| `viet-template-spring-boot-starter` | JAR | Yes | `0.2.1`, `0.2.2` | **Yes** |
-| `viet-template-maven-plugin` | Maven Plugin | Yes | `0.2.1`, `0.2.2` | **Yes** |
-| `viet-template-gradle-plugin` | JAR (Plugin) | Yes | `0.2.1`, `0.2.2` | **Yes** |
-| `viet-template-quarkus` | JAR | Yes | *(None: introduced post-0.2.2)* | **Yes** |
-| `viet-template-quarkus-deployment` | JAR | Yes | *(None: introduced post-0.2.2)* | **Yes** |
+| `viet-template-parent` | POM | Yes | `0.1.0`, `0.2.0`, `0.2.1`, `0.2.2`, `1.0.0-RC1 (prerelease)` | **Yes** |
+| `viet-template-api` | JAR | Yes | `0.1.0`, `0.2.0`, `0.2.1`, `0.2.2`, `1.0.0-RC1 (prerelease)` | **Yes** |
+| `viet-template-runtime` | JAR | Yes | `0.1.0`, `0.2.0`, `0.2.1`, `0.2.2`, `1.0.0-RC1 (prerelease)` | **Yes** |
+| `viet-template-language-vtl` | JAR | Yes | `0.1.0`, `0.2.0`, `0.2.1`, `0.2.2`, `1.0.0-RC1 (prerelease)` | **Yes** |
+| `viet-template-vtl-interpreter` | JAR | Yes | `0.1.0`, `0.2.0`, `0.2.1`, `0.2.2`, `1.0.0-RC1 (prerelease)` | **Yes** |
+| `viet-template-spring` | JAR | Yes | `0.2.1`, `0.2.2`, `1.0.0-RC1 (prerelease)` | **Yes** |
+| `viet-template-spring-security` | JAR | Yes | `0.2.1`, `0.2.2`, `1.0.0-RC1 (prerelease)` | **Yes** |
+| `viet-template-spring-boot-autoconfigure` | JAR | Yes | `0.2.1`, `0.2.2`, `1.0.0-RC1 (prerelease)` | **Yes** |
+| `viet-template-spring-boot-starter` | JAR | Yes | `0.2.1`, `0.2.2`, `1.0.0-RC1 (prerelease)` | **Yes** |
+| `viet-template-maven-plugin` | Maven Plugin | Yes | `0.2.1`, `0.2.2`, `1.0.0-RC1 (prerelease)` | **Yes** |
+| `viet-template-gradle-plugin` | JAR (Plugin) | Yes | `0.2.1`, `0.2.2`, `1.0.0-RC1 (prerelease)` | **Yes** |
+| `viet-template-quarkus` | JAR | Yes | `1.0.0-RC1 (prerelease; first publication)` | **Yes** |
+| `viet-template-quarkus-deployment` | JAR | Yes | `1.0.0-RC1 (prerelease; first publication)` | **Yes** |
 
 Two modules remain strictly internal and non-published:
 - `viet-template-tck` (Technology Compatibility Kit test suite)

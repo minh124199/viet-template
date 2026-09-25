@@ -56,6 +56,10 @@ viet-template.hot-reload=false
 
 ## 3. Ahead-Of-Time (AOT) Build Tooling
 
+> [!NOTE]
+> **Tested Production & Native Environments**:
+> Ahead-Of-Time precompiled templates run on all standard Java 21+ JVMs. For GraalVM Native Image compilation, verification is empirically qualified on **Linux x86_64** with Oracle GraalVM 25.0.4+7.1 (Spring Boot 3/4) and Mandrel 25.0.4.1-Final (Quarkus 3). macOS and Windows environments remain experimental and unverified for native image packaging.
+
 ### 3.1 Maven Build Configuration
 
 Add `viet-template-maven-plugin` to your `pom.xml`:
@@ -63,10 +67,11 @@ Add `viet-template-maven-plugin` to your `pom.xml`:
 ```xml
 <build>
     <plugins>
+        <!-- Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1 -->
         <plugin>
             <groupId>io.github.minh124199</groupId>
             <artifactId>viet-template-maven-plugin</artifactId>
-            <version>0.2.2</version>
+            <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
             <executions>
                 <execution>
                     <goals>
@@ -92,7 +97,8 @@ Apply `io.github.minh124199.viet-template` in your `build.gradle.kts`:
 
 ```kotlin
 plugins {
-    id("io.github.minh124199.viet-template") version "0.2.2"
+    // Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1
+    id("io.github.minh124199.viet-template") version "0.2.2" // or "1.0.0-RC1"
 }
 
 vietTemplate {

@@ -50,8 +50,8 @@ TemplateEngine safeEngine = TemplateEngine.builder()
 // Option C: Custom policy with explicit allowlist additions
 MemberAccessPolicy customPolicy = MemberAccessPolicy.builder()
     .allowClass(com.example.dto.UserProfile.class)
-    .allowMethod(com.example.dto.UserProfile.class, "getDisplayName", 0)
-    .denyMethod(com.example.dto.UserProfile.class, "getInternalPasswordHash", 0)
+    .allowMethod(com.example.dto.UserProfile.class, "getDisplayName")
+    .denyMethod("getInternalPasswordHash")
     .build();
 
 TemplateEngine customEngine = TemplateEngine.builder()
@@ -59,6 +59,25 @@ TemplateEngine customEngine = TemplateEngine.builder()
     .memberAccessPolicy(customPolicy)
     .build();
 ```
+
+#### Complete `MemberAccessPolicy.Builder` Methods Reference
+
+The `MemberAccessPolicy.Builder` provides comprehensive controls for tuning sandboxing policies:
+- `allowClass(Class<?> clazz)`: Grants access to all permitted methods/properties of the specified class.
+- `allowClasses(Class<?>... classes)`: Grants access to multiple classes simultaneously.
+- `allowMethod(Class<?> clazz, String methodName)`: Permits invocation of a specific method on a class.
+- `allowProperty(Class<?> clazz, String propertyName)`: Permits reading a specific property getter on a class.
+- `allowHelper(Class<?> helperClass)`: Registers a helper class whose static methods are accessible.
+- `allowHelperMethod(Class<?> helperClass, String methodName)`: Registers a specific static helper method.
+- `allowPropertyMutation(Class<?> clazz, String propertyName)`: Permits in-template property mutation (`#set($target.prop = ...)`) for a specific property.
+- `allowIndexMutation(Class<?> clazz)`: Permits in-template index mutation (`#set($target[idx] = ...)`) for a class.
+- `allowAllPropertyMutations(boolean allow)`: Globally toggles permission for in-template property mutations.
+- `allowAllIndexMutations(boolean allow)`: Globally toggles permission for in-template index mutations.
+- `denyClass(Class<?> clazz)`: Explicitly denies all access to the specified class.
+- `denyPackage(String packagePrefix)`: Explicitly denies all classes under a package prefix.
+- `denyMethod(String methodName)`: Denies any method matching the method name across all classes.
+- `sensitiveClassifier(SensitiveObjectClassifier classifier)`: Configures custom logic for identifying sensitive runtime objects.
+- `safeProfile(boolean safeProfile)`: Switches builder defaults between standard fail-closed and safe sandbox baselines.
 
 ### 2.3 The `@TemplateData` Annotation
 
@@ -69,43 +88,55 @@ import io.github.minh124199.viettemplate.api.TemplateData;
 
 @TemplateData
 public record InvoiceSummary(String invoiceNumber, BigDecimal total, LocalDate issueDate) {
-    // All public methods and record components are accessible in safe mode
+    // Record components are accessible in safe mode
 }
 ```
+
+> [!IMPORTANT]
+> **Safe Mode Accessibility Constraints**:
+> In safe mode (`MemberAccessPolicy.safe()`), `@TemplateData` does **not** expose arbitrary public methods:
+> - **JavaBeans**: Only JavaBean getter accessors (`get<Name>()`, `is<Name>()`) and record components/accessors are accessible.
+> - **Explicit Callables**: Non-getter methods must be annotated with `@TemplateCallable` or explicitly permitted via `allowMethod(...)`.
+> - **Action/Mutation Denial**: Arbitrary public action methods (e.g. `delete()`, `execute()`) and mutating methods remain strictly denied.
 
 ---
 
 ## 3. Resource & Execution Confinement (`RenderBudget`)
 
-To prevent Denial of Service (DoS) attacks caused by infinite loops, deeply nested macros, or malicious memory exhaustion, Viet Template provides monotonic execution budgets via `RenderBudget`.
+To prevent Denial of Service (DoS) attacks caused by infinite loops, deeply nested macros, or malicious memory exhaustion, Viet Template provides monotonic execution budgets via `RenderBudget` in package `io.github.minh124199.viettemplate.runtime`.
 
 ```java
 import io.github.minh124199.viettemplate.runtime.RenderBudget;
 
 RenderBudget budget = new RenderBudget(
-    1_000_000L, // Max output characters: 1 MB
-    5_000L,     // Max execution deadline: 5,000 milliseconds (5s)
-    100_000     // Max loop iterations across all #foreach loops
+    1_000_000L, // maxOutputCharacters: Max rendered output characters (1 MB)
+    5_000L,     // maxExecutionTimeMillis: Max execution deadline (5,000 ms = 5s)
+    100_000     // maxLoopIterations: Max iterations across all #foreach loops
 );
 ```
 
-### 3.1 Enforced Limits
+For unconstrained development scenarios, `RenderBudget.unlimited()` creates an unrestricted budget instance.
 
-1. **Execution Time Limit**:
-   Guards against regex catastrophic backtracking, slow dynamic calls, or recursive macro depth. When elapsed time exceeds the deadline, rendering immediately aborts, throwing `TemplateLimitException` with code `LIMIT:TIME_LIMIT_EXCEEDED`.
-2. **Output Character Limit**:
-   Guards against memory exhaustion attacks where loops generate gigabytes of repetitive text. Exceeding the character cap immediately aborts, throwing `TemplateLimitException` with code `LIMIT:LIMIT_EXCEEDED`.
-3. **Loop Iteration Cap**:
-   Monotonically counts loop steps across all `#foreach` invocations. Exceeding the threshold aborts execution with `LIMIT:LIMIT_EXCEEDED`.
+### 3.1 Enforced Limits & Diagnostic Codes
+
+1. **Execution Time Deadline (`LIMIT:TIME_LIMIT_EXCEEDED`)**:
+   Guards against regex catastrophic backtracking, slow dynamic calls, or recursive macro depth. When elapsed time exceeds the deadline, rendering immediately aborts, throwing `TemplateLimitException` with diagnostic code `LIMIT:TIME_LIMIT_EXCEEDED`.
+   > [!NOTE]
+   > Deadline checks occur cooperatively at engine **safe points** (such as loop iteration steps and character consumption checks), rather than through OS-level preemption or asynchronous thread interruption.
+2. **Output Character Limit (`LIMIT:LIMIT_EXCEEDED`)**:
+   Guards against memory exhaustion attacks where loops generate gigabytes of repetitive text. Exceeding the character cap immediately aborts, throwing `TemplateLimitException` with diagnostic code `LIMIT:LIMIT_EXCEEDED`.
+3. **Loop Iteration Cap (`LIMIT:LIMIT_EXCEEDED`)**:
+   Monotonically counts loop steps across all `#foreach` invocations using saturating arithmetic. Exceeding the threshold aborts execution with `LIMIT:LIMIT_EXCEEDED`.
 
 ---
 
-## 4. Path Traversal Sandboxing
+## 4. Path Traversal & Filesystem Confinement
 
 When loading templates from the filesystem via `FilesystemTemplateRepository`, Viet Template verifies that every template identifier resolves within the configured base directory:
 
-- Template identifiers containing relative traversal sequences (`..`), null bytes, or backslash path escapes are rejected immediately with `TemplateResourceException` (`RESOURCE:NOT_FOUND`).
-- Symbolic links escaping the repository root are rejected unless explicitly allowed by the host environment.
+- **Path Normalization & Traversal Rejection**: Template identifiers containing relative traversal sequences (`..`), null bytes (`\0`), or backslash path escapes are rejected immediately with `TemplateResourceException` (`RESOURCE:NOT_FOUND`).
+- **Canonical Path Containment**: Resolves real canonical paths to ensure symbolic links escaping the repository root fail closed unless explicitly allowed by the host environment.
+- **Concurrency & Confinement**: Path resolution guarantees consistent containment checks even under concurrent lookups.
 
 ```java
 // Secure: Confined to /app/templates
@@ -114,11 +145,12 @@ FilesystemTemplateRepository repo = FilesystemTemplateRepository.of(Path.of("/ap
 // The following lookups fail closed and throw TemplateResourceException:
 // engine.get("../../../etc/passwd");
 // engine.get("..\\Windows\\win.ini");
+// engine.get("templates\0secret.vtl");
 ```
 
 ---
 
-## 5. Output Escaping & XSS Protection
+## 5. Output Escaping, `SafeHtml` & `SafeUrl`
 
 Viet Template implements **contextual auto-escaping** on all reference insertions by default:
 
@@ -130,8 +162,34 @@ If `$username` contains `<script>alert(1)</script>`, it is automatically escaped
 ### 5.1 High-Performance Zero-Allocation Escaping
 Unlike legacy templating engines that generate intermediate `String.replace()` or substring allocations, Viet Template's `HtmlTextEscaper` streams character ranges directly into the output buffer (`TemplateOutput`), delivering zero heap allocation during escaping.
 
-### 5.2 Emitting Raw Markup
-When raw, unescaped HTML must be rendered, wrap the content in a sanitized type or configure an explicit unescaped mode, avoiding unchecked raw output of user-supplied data.
+### 5.2 Emitting Trusted Content: `SafeHtml` & `SafeUrl`
+
+When pre-verified or trusted content must be rendered without default escaping, Viet Template provides explicit capability wrappers in package `io.github.minh124199.viettemplate.runtime`:
+
+#### `SafeHtml` (Trust Wrapper for HTML Markup)
+- **Record**: `io.github.minh124199.viettemplate.runtime.SafeHtml`.
+- **Capability Scope**: Bypasses `HTML_TEXT` auto-escaping only.
+- **Active Protections in Other Contexts**: When placed inside `HTML_ATTRIBUTE_QUOTED`, the content remains entity-escaped to prevent attribute delimiter breakout.
+- **Not a Sanitizer**: `SafeHtml` simply wraps a `CharSequence`. The host application asserts that markup has already been sanitized (e.g. via OWASP Java HTML Sanitizer) or originates from a trusted compile-time constant.
+
+```java
+import io.github.minh124199.viettemplate.runtime.SafeHtml;
+
+context.put("formattedArticle", SafeHtml.of("<p>Sanitized <em>article</em> body</p>"));
+```
+
+#### `SafeUrl` (Validated URL Wrapper)
+- **Class**: `io.github.minh124199.viettemplate.runtime.SafeUrl`.
+- **Capability Scope**: Bypasses RFC 3986 percent-encoding in `URL_COMPONENT` output context only.
+- **Scheme Validation**: `SafeUrl.of(url)` and `SafeUrl.tryOf(url)` validate the scheme against an approved safe allowlist (`http`, `https`, `mailto`, `tel`, and safe relative paths) via `SafeUrlValidator`, rejecting dangerous protocols (`javascript:`, `data:`) and obfuscation.
+- **Unchecked Escape Hatch**: `SafeUrl.ofTrusted(url)` bypasses validation where the caller takes full responsibility for safety.
+- **Remaining Protections**: In `HTML_TEXT` or `HTML_ATTRIBUTE_QUOTED`, `SafeUrl` is still entity-escaped to prevent tag and attribute delimiter breakouts.
+
+```java
+import io.github.minh124199.viettemplate.runtime.SafeUrl;
+
+context.put("profileLink", SafeUrl.of("https://example.com/users?id=123"));
+```
 
 ---
 
@@ -168,10 +226,13 @@ The `#evaluate` directive compiles and executes VTL code dynamically at runtime:
 ```
 
 > [!WARNING]
-> **Security Implication**: `#evaluate` should **never** be executed on raw, unvalidated user input. If untrusted users are permitted to author dynamic snippets:
+> **Compatibility Profile Invariant**:
+> Dynamic `#evaluate` is **disabled by default** in `VTL_CORE`, `VTL_MIGRATION`, and `VTL_SAFE` compatibility profiles. It is only permitted when explicitly configured under `VTL_DYNAMIC`.
+>
+> Even in `VTL_DYNAMIC`, `#evaluate` should **never** be executed on raw, unvalidated user input. If untrusted users are permitted to author dynamic snippets:
 > 1. Enforce `MemberAccessPolicy.safe()`.
 > 2. Bind a restrictive `RenderBudget` to the execution.
-> 3. Disable `#evaluate` entirely by configuring parser security options if dynamic evaluation is not required.
+> 3. Keep `#evaluate` disabled if dynamic template generation is not required.
 
 ---
 

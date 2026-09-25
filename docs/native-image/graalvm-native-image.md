@@ -32,16 +32,24 @@ Packaged inside `viet-template-spring-security`:
 
 ## 3. Building Native Executables
 
+> [!NOTE]
+> **Tested Native Environments**:
+> Native compilation is empirically verified on **Linux x86_64** with:
+> - **Spring Boot Native**: Oracle GraalVM 25.0.4+7.1 (build 25.0.4+7-LTS).
+> - **Quarkus Native**: Mandrel 25.0.4.1-Final (Java 25).
+> macOS and Windows environments remain experimental and unverified for native binaries; standard JVM runs cross-platform.
+
 ### 3.1 Maven Native Build
 
 Ensure `viet-template-maven-plugin` and `native-maven-plugin` are configured:
 
 ```xml
 <dependencies>
+    <!-- Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1 -->
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-spring-boot-starter</artifactId>
-        <version>0.2.2</version>
+        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
     </dependency>
 </dependencies>
 
@@ -51,7 +59,7 @@ Ensure `viet-template-maven-plugin` and `native-maven-plugin` are configured:
         <plugin>
             <groupId>io.github.minh124199</groupId>
             <artifactId>viet-template-maven-plugin</artifactId>
-            <version>0.2.2</version>
+            <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
             <executions>
                 <execution>
                     <goals>
@@ -80,11 +88,12 @@ Apply the GraalVM native plugin alongside `io.github.minh124199.viet-template`:
 ```kotlin
 plugins {
     id("org.graalvm.buildtools.native") version "0.10.3"
-    id("io.github.minh124199.viet-template") version "0.2.2"
+    // Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1
+    id("io.github.minh124199.viet-template") version "0.2.2" // or "1.0.0-RC1"
 }
 
 dependencies {
-    implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.2")
+    implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.2") // or "1.0.0-RC1"
 }
 ```
 

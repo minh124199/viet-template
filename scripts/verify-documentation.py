@@ -22,6 +22,10 @@ Automated documentation verification infrastructure for Viet Template:
    match known codes in the engine or adhere to defined diagnostic namespaces.
 9. Compatibility Matrix Synchronization: Ensures docs/migration/compatibility-matrix.md
    is present and in sync with config/tck/vtl-feature-matrix.json.
+10. Stale Pre-Publication Language in Living Docs: Confirms that living user-facing
+    documentation does not contain outdated pre-publication wording or unreleased snapshots.
+11. Velocity Compatibility Claims in Living Docs: Ensures living user-facing
+    documentation does not assert unsubstantiated Velocity compatibility overclaims.
 """
 
 import argparse
@@ -30,6 +34,7 @@ import re
 import sys
 from pathlib import Path
 
+VALID_RELEASED_VERSIONS = {"0.2.2", "1.0.0-RC1"}
 DEFAULT_RELEASED_VERSION = "0.2.2"
 STALE_RELEASE_DATES = ["2026-09-21"]
 EXPECTED_RELEASE_DATE = "2026-09-20"
@@ -101,10 +106,16 @@ def check_release_dates(repo_root: Path) -> list[str]:
 def check_consumer_snippets_in_text(
     text: str,
     filename: str = "<text>",
-    released_version: str = DEFAULT_RELEASED_VERSION,
+    released_version: str | set[str] | tuple[str, ...] | list[str] | None = None,
 ) -> list[str]:
     """Checks that consumer installation snippets reference the released version."""
     errors = []
+    if released_version is None:
+        allowed_versions = VALID_RELEASED_VERSIONS
+    elif isinstance(released_version, str):
+        allowed_versions = {released_version}
+    else:
+        allowed_versions = set(released_version)
 
     # 1. Maven snippets: <groupId>io.github.minh124199</groupId> ... <artifactId>viet-template-*</artifactId> <version>...</version>
     mvn_dep_pattern = re.compile(
@@ -123,17 +134,18 @@ def check_consumer_snippets_in_text(
                 surrounding = before_text + " " + after_text
                 is_labeled = any(
                     kw in surrounding
-                    for kw in ("snapshot", "development", "dev build", "nightly", "main branch", "pre-release")
+                    for kw in ("snapshot", "development", "dev build", "nightly", "main branch", "pre-release", "prerelease")
                 )
                 if not is_labeled:
                     errors.append(
                         f"Consumer installation snippet in {filename} references snapshot "
                         f"version '{version}' for {artifact} without explicit snapshot/development label."
                     )
-            elif version != released_version:
+            elif version not in allowed_versions:
+                exp_desc = f"'{next(iter(allowed_versions))}'" if len(allowed_versions) == 1 else f"one of {sorted(allowed_versions)}"
                 errors.append(
                     f"Consumer installation snippet in {filename} references version "
-                    f"'{version}' for {artifact} (expected released version '{released_version}')."
+                    f"'{version}' for {artifact} (expected released version {exp_desc})."
                 )
 
     # 2. Gradle snippets: implementation("io.github.minh124199:viet-template-*:version")
@@ -149,17 +161,18 @@ def check_consumer_snippets_in_text(
                 surrounding = before_text + " " + after_text
                 is_labeled = any(
                     kw in surrounding
-                    for kw in ("snapshot", "development", "dev build", "nightly", "main branch", "pre-release")
+                    for kw in ("snapshot", "development", "dev build", "nightly", "main branch", "pre-release", "prerelease")
                 )
                 if not is_labeled:
                     errors.append(
                         f"Consumer installation snippet in {filename} references snapshot "
                         f"version '{version}' for {artifact} without explicit snapshot/development label."
                     )
-            elif version != released_version:
+            elif version not in allowed_versions:
+                exp_desc = f"'{next(iter(allowed_versions))}'" if len(allowed_versions) == 1 else f"one of {sorted(allowed_versions)}"
                 errors.append(
                     f"Consumer installation snippet in {filename} references version "
-                    f"'{version}' for {artifact} (expected released version '{released_version}')."
+                    f"'{version}' for {artifact} (expected released version {exp_desc})."
                 )
 
     return errors
@@ -167,7 +180,7 @@ def check_consumer_snippets_in_text(
 
 def check_all_consumer_snippets(
     repo_root: Path,
-    released_version: str = DEFAULT_RELEASED_VERSION,
+    released_version: str | set[str] | tuple[str, ...] | list[str] | None = None,
 ) -> list[str]:
     """Verifies consumer installation snippets in README.md and active docs."""
     errors = []
@@ -714,6 +727,106 @@ def check_compatibility_matrix_synced(repo_root: Path) -> list[str]:
 
 
 # =============================================================================
+# LIVING DOCUMENT DEFINITION & HELPERS
+# =============================================================================
+
+def get_living_doc_files(repo_root: Path) -> list[Path]:
+    """Returns a sorted list of unique living documentation files."""
+    candidates: list[Path] = [
+        repo_root / "README.md",
+        repo_root / "SECURITY.md",
+        repo_root / "docs" / "36-spring-security-integration.md",
+        repo_root / "docs" / "extensions" / "quarkus.md",
+    ]
+    living_globs = [
+        "docs/getting-started/**/*.md",
+        "docs/security/**/*.md",
+        "docs/spring/**/*.md",
+        "docs/language/**/*.md",
+        "docs/build-tooling/**/*.md",
+        "docs/deployment/**/*.md",
+        "docs/native-image/**/*.md",
+        "docs/migration/**/*.md",
+        "docs/diagnostics/**/*.md",
+    ]
+    for pattern in living_globs:
+        candidates.extend(repo_root.glob(pattern))
+
+    seen: set[Path] = set()
+    result: list[Path] = []
+    for file_path in sorted(candidates):
+        if not file_path.is_file() or file_path in seen:
+            continue
+        seen.add(file_path)
+        result.append(file_path)
+    return result
+
+
+# =============================================================================
+# CHECK 10: Stale Pre-Publication Language in Living Docs
+# =============================================================================
+
+STALE_PRE_PUBLICATION_PATTERNS = [
+    "not yet remotely published",
+    "remote publication pending",
+    "locally staged and qualified; not yet",
+    "0.2.1-SNAPSHOT",
+]
+
+
+def check_stale_release_language_in_living_docs(repo_root: Path) -> list[str]:
+    """Confirms living docs do not contain outdated pre-publication wording or unreleased snapshots."""
+    errors = []
+    for file_path in get_living_doc_files(repo_root):
+        rel_path = file_path.relative_to(repo_root)
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+
+        for line_no, line in enumerate(content.splitlines(), start=1):
+            for phrase in STALE_PRE_PUBLICATION_PATTERNS:
+                if phrase in line:
+                    errors.append(
+                        f"Stale pre-publication language '{phrase}' in {rel_path}:{line_no}: {line.strip()}"
+                    )
+    return errors
+
+
+# =============================================================================
+# CHECK 11: Velocity Compatibility Overclaims in Living Docs
+# =============================================================================
+
+VELOCITY_COMPATIBILITY_OVERCLAIM_PATTERNS = [
+    re.compile(r"byte-for-byte\s+(?:behavioral\s+)?compatibility\s+with\s+Apache\s+Velocity", re.IGNORECASE),
+    re.compile(r"100%\s+Velocity[- ]compatible", re.IGNORECASE),
+    re.compile(r"100%\s+Velocity\s+Syntax\s+Compatibility", re.IGNORECASE),
+    re.compile(r"perfect\s+compatibility\s+with\s+Apache\s+Velocity", re.IGNORECASE),
+    re.compile(r"comprehensive,?\s*byte-for-byte\s+behavioral\s+compatibility\s+with\s+Apache\s+Velocity", re.IGNORECASE),
+]
+
+
+def check_velocity_compatibility_overclaims_in_living_docs(repo_root: Path) -> list[str]:
+    """Confirms living docs do not contain unsubstantiated Velocity compatibility overclaims."""
+    errors = []
+    for file_path in get_living_doc_files(repo_root):
+        rel_path = file_path.relative_to(repo_root)
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+
+        for line_no, line in enumerate(content.splitlines(), start=1):
+            for pattern in VELOCITY_COMPATIBILITY_OVERCLAIM_PATTERNS:
+                if pattern.search(line):
+                    errors.append(
+                        f"Velocity compatibility overclaim in {rel_path}:{line_no}: {line.strip()}"
+                    )
+                    break
+    return errors
+
+
+# =============================================================================
 # TOP-LEVEL VERIFICATION ORCHESTRATION
 # =============================================================================
 
@@ -731,6 +844,8 @@ def verify_all(repo_root: Path, verbose: bool = False) -> list[str]:
         ("Public Type Classification Alignment", check_all_public_types),
         ("Diagnostic Code Consistency", check_all_diagnostic_codes),
         ("Compatibility Matrix Synchronization", check_compatibility_matrix_synced),
+        ("Stale Pre-Publication Language in Living Docs", check_stale_release_language_in_living_docs),
+        ("Velocity Compatibility Claims in Living Docs", check_velocity_compatibility_overclaims_in_living_docs),
     ]
 
     for name, check_fn in checks:

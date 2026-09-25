@@ -3,7 +3,7 @@
 ## 1. Executive Summary
 
 - **Module**: `viet-template-spring-security` (Optional Framework Integration)
-- **Status**: **PRODUCTION READY (1.0 CANDIDATE BASELINE, READY_TO_FREEZE)**
+- **Status**: **PRODUCTION READY (1.0.0-RC1 Published Candidate Baseline)**
 - **Artifact Strategy**:
   - Exactly **one** `viet-template-spring-security` artifact for all supported Spring Security generations.
   - Java 21 bytecode (`--release 21`, classfile major version 65).
@@ -102,8 +102,11 @@ All public types are formally classified and guarded against binary and source c
 | `io.github.minh124199.viettemplate.spring.security.SecurityViewFactory` | `STABLE_SPI` | Factory SPI for customizing `SecurityView` construction |
 | `io.github.minh124199.viettemplate.spring.security.CsrfViewFactory` | `STABLE_SPI` | Factory SPI for customizing `CsrfView` construction |
 | `io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor` | `STABLE_SPI` | Template engine SPI contributor bridging Spring Security |
+| `io.github.minh124199.viettemplate.spring.security.aot.VietTemplateSecurityRuntimeHints` | `FRAMEWORK_ENTRYPOINT` | Spring AOT runtime hints registrar for native reflection |
 | `io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateSecurityAutoConfiguration` | `STABLE_API` | Spring Boot auto-configuration for Spring Security integration |
 | `io.github.minh124199.viettemplate.spring.web.servlet.SpringRenderAttributes` | `STABLE_SPI` | Generic metadata attribute keys in `viet-template-spring` |
+
+Across the 5 repository compatibility baselines, Viet Template locks **121 total stable types** (Core: 98, AOT: 6, Spring: 8, Spring Security: 5, Quarkus: 4). The 5 types in `config/api-baseline/1.0-spring-security-public-api.txt` (`SecurityView`, `CsrfView`, `SecurityViewFactory`, `CsrfViewFactory`, `SpringSecurityRenderContextContributor`) form the frozen Spring Security contract.
 
 ### 3.1 `SecurityView`
 
@@ -196,7 +199,7 @@ Templates gain access to `$security` and `$csrf` automatically when auto-configu
 
 ### 4.3 Contextual Auto-Escaping (No `$esc.html` Required)
 
-Viet Template automatically escapes plain `String` values in HTML contexts when HTML output / safe profile is active. Because `SecurityView.name()` and `CsrfView.token()` return standard Java `java.lang.String` and never implement `SafeHtml`, adversarial inputs are escaped safely:
+Viet Template automatically escapes plain `String` values in HTML contexts when HTML output / safe profile is active. Because `SecurityView.getName()` and `CsrfView.getToken()` return standard Java `java.lang.String` (accessed via `$security.name` and `$csrf.token` in VTL expressions) and never implement `SafeHtml`, adversarial inputs are escaped safely:
 
 ```velocity
 <!-- If $security.name is '<script>alert("xss")</script>' -->
@@ -244,18 +247,18 @@ To enable Spring Security integration in a Spring Boot application:
 **Maven (`pom.xml`)**:
 ```xml
 <dependencies>
-    <!-- Viet Template Spring Boot Starter -->
+    <!-- Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1 -->
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-spring-boot-starter</artifactId>
-        <version>0.2.1-SNAPSHOT</version>
+        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
     </dependency>
 
     <!-- Spring Security Module -->
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-spring-security</artifactId>
-        <version>0.2.1-SNAPSHOT</version>
+        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
     </dependency>
 
     <!-- Spring Boot Security Starter -->
@@ -269,8 +272,9 @@ To enable Spring Security integration in a Spring Boot application:
 **Gradle (`build.gradle.kts`)**:
 ```kotlin
 dependencies {
-    implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.1-SNAPSHOT")
-    implementation("io.github.minh124199:viet-template-spring-security:0.2.1-SNAPSHOT")
+    // Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1
+    implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.2") // or 1.0.0-RC1
+    implementation("io.github.minh124199:viet-template-spring-security:0.2.2") // or 1.0.0-RC1
     implementation("org.springframework.boot:spring-boot-starter-security")
 }
 ```
@@ -314,7 +318,7 @@ public class CustomSecurityConfig {
 
 Viet Template maintains a strictly aligned repository structure across Maven and Gradle:
 
-- **12 Physical Subprojects**:
+- **14 Physical Subprojects**:
   1. `viet-template-api`
   2. `viet-template-runtime`
   3. `viet-template-language-vtl`
@@ -323,12 +327,14 @@ Viet Template maintains a strictly aligned repository structure across Maven and
   6. `viet-template-spring-security`
   7. `viet-template-spring-boot-autoconfigure`
   8. `viet-template-spring-boot-starter`
-  9. `viet-template-tck` (internal non-published)
-  10. `viet-template-benchmarks` (internal non-published)
+  9. `viet-template-quarkus`
+  10. `viet-template-quarkus-deployment`
   11. `viet-template-maven-plugin`
   12. `viet-template-gradle-plugin`
-- **13 Maven Reactor Modules**: 1 parent POM (`viet-template-parent`) + 12 subprojects.
-- **11 Maven Central Published Coordinates**: 1 parent POM + 10 production modules (`api`, `runtime`, `language-vtl`, `vtl-interpreter`, `spring`, `spring-security`, `spring-boot-autoconfigure`, `spring-boot-starter`, `maven-plugin`, `gradle-plugin`).
+  13. `viet-template-tck` (internal non-published)
+  14. `viet-template-benchmarks` (internal non-published)
+- **15 Maven Reactor Modules**: 1 parent POM (`viet-template-parent`) + 14 subprojects.
+- **13 Maven Central Published Coordinates**: 1 parent POM + 12 production modules (`api`, `runtime`, `language-vtl`, `vtl-interpreter`, `spring`, `spring-security`, `spring-boot-autoconfigure`, `spring-boot-starter`, `quarkus`, `quarkus-deployment`, `maven-plugin`, `gradle-plugin`), plus Gradle plugin marker publication on Maven Central (`io.github.minh124199.viet-template:io.github.minh124199.viet-template.gradle.plugin`).
 
 ---
 

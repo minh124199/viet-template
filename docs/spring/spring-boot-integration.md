@@ -19,17 +19,17 @@ The integration is modular:
 Add the starter dependency to your project:
 
 ```xml
-<!-- Maven -->
+<!-- Maven (Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1) -->
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-boot-starter</artifactId>
-    <version>0.2.2</version>
+    <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
 </dependency>
 ```
 
 ```kotlin
-// Gradle
-implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.2")
+// Gradle (Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1)
+implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.2") // or 1.0.0-RC1
 ```
 
 ### 2.1 Writing a Spring MVC Controller

@@ -13,7 +13,7 @@
 
 ## 1. Overview & Architecture
 
-The Viet Template Language (VTL) is an enterprise-grade, high-throughput templating language designed for deterministic rendering on modern Java platforms (Java 21+). It maintains comprehensive, byte-for-byte behavioral compatibility with Apache Velocity 2.4.x while providing:
+The Viet Template Language (VTL) is an enterprise-grade, high-throughput templating language designed for deterministic rendering on modern Java platforms (Java 21+). Viet Template supports all 80 tracked VTL grammar features. In the current 301-scenario differential suite against Apache Velocity 2.4.1, 295 scenarios match exactly (98.01%), with 5 documented expected differences and 1 Viet Template extension (100% accounted behavior coverage), while providing:
 - Zero-allocation streaming output pipelines.
 - Modern type-safe execution profiles (`VTL_CORE`, `VTL_MIGRATION`, `VTL_DYNAMIC`, `VTL_SAFE`).
 - High-performance ahead-of-time (AOT) bytecode compilation alongside a clean-room AST/IR reference interpreter.
@@ -383,7 +383,7 @@ Parses and executes a dynamically constructed string template in the current sco
 ```
 
 > [!WARNING]
-> `#evaluate` requires interpreter execution and is disabled under the `VTL_SAFE` profile. It is subject to strict depth limits (`maxEvaluateDepth`) and source length limits (`maxDynamicSourceLength`) to prevent denial-of-service vulnerabilities.
+> `#evaluate` requires interpreter execution and is disabled by default in `VTL_CORE`, `VTL_MIGRATION`, and `VTL_SAFE`, and only permitted when explicitly configured under `VTL_DYNAMIC`. It is subject to strict depth limits (`maxEvaluateDepth`) and source length limits (`maxDynamicSourceLength`) to prevent denial-of-service vulnerabilities.
 
 ### 6.9 `#stop` — Execution Termination
 Stops template rendering immediately:
