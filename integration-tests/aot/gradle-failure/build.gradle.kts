@@ -1,6 +1,6 @@
 plugins {
     java
-    id("io.github.minh124199.viet-template") version "1.0.0-RC1"
+    id("io.github.minh124199.viet-template") version "1.0.0-RC2"
 }
 
 repositories {
@@ -9,7 +9,7 @@ repositories {
 }
 
 dependencies {
-    implementation("io.github.minh124199:viet-template-api:1.0.0-RC1")
-    implementation("io.github.minh124199:viet-template-runtime:1.0.0-RC1")
-    implementation("io.github.minh124199:viet-template-vtl-interpreter:1.0.0-RC1")
+    implementation("io.github.minh124199:viet-template-api:1.0.0-RC2")
+    implementation("io.github.minh124199:viet-template-runtime:1.0.0-RC2")
+    implementation("io.github.minh124199:viet-template-vtl-interpreter:1.0.0-RC2")
 }

@@ -3,7 +3,7 @@
   "version": "1.0",
   "contractName": "Viet Template 1.0 Candidate Release Contract",
   "description": "Authoritative machine-readable 1.0 candidate release contract defining compatibility invariants, public surface classifications, generated runtime ABI, diagnostic codes, framework matrix, publication topology, and blocker dispositions.",
-  "targetRelease": "1.0.0-RC1",
+  "targetRelease": "1.0.0-RC2",
   "targetVerdict": "READY_FOR_1_0_API_FREEZE_AND_RC_PREPARATION",
   "publicSurface": {
     "totalCompiledPublicTypes": 339,
@@ -139,7 +139,8 @@
     "groupId": "io.github.minh124199",
     "parentPomIncluded": true,
     "productionModulesCount": 12,
-    "totalPublishedArtifactsIntended": 13,
+    "totalPublishedArtifactsIntended": 14,
+    "generatedPluginMarkerCount": 1,
     "nonPublishedModulesCount": 2,
     "nonPublishedModules": [
       "viet-template-tck",
