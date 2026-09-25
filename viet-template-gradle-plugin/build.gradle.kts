@@ -1,6 +1,7 @@
 plugins {
     `java-gradle-plugin`
     `maven-publish`
+    signing
 }
 
 description = "Official build-time AOT template compiler for Viet Template"
@@ -32,6 +33,13 @@ tasks.processResources {
 }
 
 publishing {
+    repositories {
+        maven {
+            name = "rcRepository"
+            url = uri(rootProject.layout.buildDirectory.dir("rc-repository"))
+        }
+    }
+
     publications.withType<MavenPublication>().configureEach {
         pom {
             name.set(project.name)
@@ -59,3 +67,16 @@ publishing {
         }
     }
 }
+
+signing {
+    val signingKey = findProperty("signingKey") as String? ?: System.getenv("SIGNING_KEY")
+    val signingPassword = findProperty("signingPassword") as String? ?: System.getenv("SIGNING_PASSWORD")
+    val hasKey = !signingKey.isNullOrBlank()
+    isRequired = hasKey
+    if (hasKey) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign(publishing.publications["pluginMaven"])
+        sign(publishing.publications["vietTemplatePluginMarkerMaven"])
+    }
+}
+

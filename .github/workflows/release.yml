@@ -253,7 +253,7 @@ jobs:
       - name: Assemble unsigned release artifacts without upload
         run: |
           ./mvnw clean package -P release -Dgpg.skip=true -DskipTests -Dspotless.check.skip=true -B
-          ./gradlew assemble generatePomFileForMavenJavaPublication --no-daemon -Dspotless.check.skip=true
+          ./gradlew assemble generatePomFileForMavenJavaPublication generatePomFileForVietTemplatePluginMarkerMavenPublication --no-daemon -Dspotless.check.skip=true
       - name: Verify release JAR classes target Java 21 bytecode (version 65)
         run: |
           python3 -c '
@@ -342,10 +342,30 @@ jobs:
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.SIGNING_PASSWORD }}
         run: |
           set -o pipefail
+          ./gradlew :viet-template-gradle-plugin:publishVietTemplatePluginMarkerMavenPublicationToRcRepositoryRepository --no-daemon -Dspotless.check.skip=true
+          (
+            for i in $(seq 1 120); do
+              if [ -d "target/central-staging/io/github/minh124199/viet-template-parent" ]; then
+                mkdir -p target/central-staging/io/github/minh124199/viet-template
+                cp -r build/rc-repository/io/github/minh124199/viet-template/io.github.minh124199.viet-template.gradle.plugin target/central-staging/io/github/minh124199/viet-template/
+                echo "Gradle plugin marker staged to target/central-staging"
+                exit 0
+              fi
+              sleep 1
+            done
+            echo "Marker watcher timed out waiting for parent staging directory"
+            exit 1
+          ) &
+          WATCHER_PID=$!
           ./mvnw clean deploy -P release -DskipTests -Dspotless.check.skip=true -B 2>&1 | tee central-publish.log
+          MVN_STATUS=$?
+          wait $WATCHER_PID 2>/dev/null || true
+          [ $MVN_STATUS -eq 0 ] || exit $MVN_STATUS
           python3 scripts/extract-central-deployment-id.py central-publish.log --github-output "$GITHUB_OUTPUT"
       - name: Upload submission log
         if: always()

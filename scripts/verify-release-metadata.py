@@ -44,8 +44,41 @@ NON_PUBLISHED_MODULES = [
     "viet-template-benchmarks",
 ]
 
+PARENT_MODULE = "viet-template-parent"
+PLUGIN_MARKER_GROUP_ID = "io.github.minh124199.viet-template"
+PLUGIN_MARKER_ARTIFACT_ID = "io.github.minh124199.viet-template.gradle.plugin"
+PLUGIN_MARKER_COORDINATE = f"{PLUGIN_MARKER_GROUP_ID}:{PLUGIN_MARKER_ARTIFACT_ID}"
+TOTAL_PUBLIC_COORDINATES = 14
+
 RE_INVALID_URL = re.compile(r"^https://github\.com/minh124199/viet-template/viet-template-.*")
 RE_INVALID_SCM = re.compile(r"(/viet-template-)|(viet-template\.git/viet-template-.*)|(^scm:git:git://github\.com/)")
+
+
+def get_public_coordinates(root_dir=ROOT_DIR):
+    published, _ = get_reactor_modules(root_dir)
+    coords = [f"io.github.minh124199:{PARENT_MODULE}"]
+    for mod in published:
+        coords.append(f"io.github.minh124199:{mod}")
+    coords.append(PLUGIN_MARKER_COORDINATE)
+    return coords
+
+
+def validate_publication_topology(errors, root_dir=ROOT_DIR):
+    """Verifies that the release topology strictly enforces exactly 14 public coordinates."""
+    published, non_published = get_reactor_modules(root_dir)
+    total_public = 1 + len(published) + 1
+    if total_public != TOTAL_PUBLIC_COORDINATES:
+        errors.append(
+            f"Publication topology mismatch: expected {TOTAL_PUBLIC_COORDINATES} public coordinates, found {total_public}"
+        )
+    for mod in NON_PUBLISHED_MODULES:
+        if mod in published:
+            errors.append(f"Non-published module leaked into publication topology: {mod}")
+    print(
+        f"  [PASS] Publication topology verified: exactly {TOTAL_PUBLIC_COORDINATES} public coordinates "
+        f"({PARENT_MODULE} + {len(published)} published modules + 1 Gradle plugin marker)."
+    )
+
 
 
 def get_reactor_modules(root_dir=ROOT_DIR):
@@ -224,10 +257,13 @@ def validate_urls_online(errors, strict=False):
 
 
 def validate_publication_metadata(errors, check_effective=False, check_online=False, effective_pom_path=None):
+    validate_publication_topology(errors)
+
     pom_file = ROOT_DIR / "pom.xml"
     if not pom_file.exists():
         errors.append("Root pom.xml missing")
         return
+
 
     try:
         pom_tree = ET.parse(pom_file)
