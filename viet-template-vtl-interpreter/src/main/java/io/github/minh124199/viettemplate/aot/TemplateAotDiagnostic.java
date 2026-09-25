@@ -65,11 +65,15 @@ public record TemplateAotDiagnostic(
       endLine = span.endLine();
       endColumn = span.endColumn();
     }
+    DiagnosticCode code = diagnostic.code();
+    if (code != null && "PARSER".equalsIgnoreCase(code.category())) {
+      code = DiagnosticCode.of("SYNTAX", "PARSE_ERROR");
+    }
     return new TemplateAotDiagnostic(
         templateId,
         sourcePath,
         diagnostic.severity(),
-        diagnostic.code(),
+        code,
         diagnostic.message(),
         startLine,
         startColumn,

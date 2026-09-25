@@ -77,8 +77,13 @@ if [ ${MAVEN_STATUS} -eq 0 ]; then
     echo "[FAIL] maven-failure was expected to fail but succeeded!"
     exit 1
 fi
-if ! echo "${MAVEN_FAIL_OUT}" | grep -q "invalid.vtl:3:1 \[PARSER:UNCLOSED_DIRECTIVE\]"; then
+if ! echo "${MAVEN_FAIL_OUT}" | grep -q "invalid.vtl:3:1 \[SYNTAX:PARSE_ERROR\]"; then
     echo "[FAIL] maven-failure did not report expected line:column diagnostic! Output:"
+    echo "${MAVEN_FAIL_OUT}"
+    exit 1
+fi
+if echo "${MAVEN_FAIL_OUT}" | grep -q "PARSER:UNCLOSED_DIRECTIVE"; then
+    echo "[FAIL] maven-failure leaked internal parser code PARSER:UNCLOSED_DIRECTIVE! Output:"
     echo "${MAVEN_FAIL_OUT}"
     exit 1
 fi
@@ -94,8 +99,13 @@ if [ ${GRADLE_STATUS} -eq 0 ]; then
     echo "[FAIL] gradle-failure was expected to fail but succeeded!"
     exit 1
 fi
-if ! echo "${GRADLE_FAIL_OUT}" | grep -q "invalid.vtl:3:1 \[PARSER:UNCLOSED_DIRECTIVE\]"; then
+if ! echo "${GRADLE_FAIL_OUT}" | grep -q "invalid.vtl:3:1 \[SYNTAX:PARSE_ERROR\]"; then
     echo "[FAIL] gradle-failure did not report expected line:column diagnostic! Output:"
+    echo "${GRADLE_FAIL_OUT}"
+    exit 1
+fi
+if echo "${GRADLE_FAIL_OUT}" | grep -q "PARSER:UNCLOSED_DIRECTIVE"; then
+    echo "[FAIL] gradle-failure leaked internal parser code PARSER:UNCLOSED_DIRECTIVE! Output:"
     echo "${GRADLE_FAIL_OUT}"
     exit 1
 fi
