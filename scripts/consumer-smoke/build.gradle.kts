@@ -1,4 +1,7 @@
-plugins { java }
+plugins {
+    java
+    id("io.github.minh124199.viet-template") version "$consumerVersion"
+}
 
 val consumerVersion = providers.gradleProperty("consumerVersion").get()
 dependencies {

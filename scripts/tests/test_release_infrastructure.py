@@ -1,6 +1,7 @@
 import importlib.util
 import io
 import json
+import os
 import re
 import shutil
 import tempfile
@@ -126,13 +127,15 @@ class PublicReleaseTests(unittest.TestCase):
             self.assertEqual(0, central.guard("1.2.3", 1, None))
 
     def test_guard_rejects_partial_publication(self):
-        with mock.patch.object(central, "exists", side_effect=[True] + [False] * 16):
+        total_checks = sum(len(f) for f in central.artifact_urls("1.2.3").values())
+        with mock.patch.object(central, "exists", side_effect=[True] + [False] * (total_checks - 1)):
             self.assertEqual(1, central.guard("1.2.3", 1, None))
 
     def test_verify_requires_public_set_and_excluded_absence(self):
-        expected_count = 1 + 4 * 4
+        expected_count = sum(len(f) for f in central.artifact_urls("1.2.3").values())
+        excluded_count = len(central.EXCLUDED_MODULES) * 4
         valid_pom = b"<project><version>1.2.3</version></project>"
-        with mock.patch.object(central, "exists", side_effect=[True] * expected_count + [False] * 8), mock.patch.object(
+        with mock.patch.object(central, "exists", side_effect=[True] * expected_count + [False] * excluded_count), mock.patch.object(
             central, "fetch", return_value=valid_pom
         ):
             self.assertEqual([], central.verify_once("1.2.3", 1))
@@ -142,6 +145,30 @@ class PublicReleaseTests(unittest.TestCase):
     def test_pom_audit_rejects_version_mismatch_and_snapshot(self):
         errors = central.audit_pom("module", "1.2.3", b"<project><version>1.2.4-SNAPSHOT</version></project>")
         self.assertEqual(2, len(errors))
+
+    def test_topology_contains_14_coordinates_and_marker(self):
+        urls = central.artifact_urls("1.2.3")
+        self.assertEqual(14, len(urls))
+        self.assertIn("viet-template-parent", urls)
+        self.assertIn("io.github.minh124199.viet-template:io.github.minh124199.viet-template.gradle.plugin", urls)
+        marker_files = urls["io.github.minh124199.viet-template:io.github.minh124199.viet-template.gradle.plugin"]
+        self.assertEqual(("io.github.minh124199.viet-template.gradle.plugin-1.2.3.pom",), marker_files)
+        marker_url = central.url_for(
+            "io.github.minh124199.viet-template:io.github.minh124199.viet-template.gradle.plugin",
+            "1.2.3",
+            "io.github.minh124199.viet-template.gradle.plugin-1.2.3.pom",
+        )
+        self.assertEqual(
+            "https://repo1.maven.org/maven2/io/github/minh124199/viet-template/io.github.minh124199.viet-template.gradle.plugin/1.2.3/io.github.minh124199.viet-template.gradle.plugin-1.2.3.pom",
+            marker_url,
+        )
+
+    def test_metadata_publication_topology(self):
+        coords = metadata.get_public_coordinates()
+        self.assertEqual(14, len(coords))
+        errors = []
+        metadata.validate_publication_topology(errors)
+        self.assertEqual([], errors)
 
 
 class WorkflowContractTests(unittest.TestCase):
@@ -608,6 +635,117 @@ class PublicationMetadataTests(unittest.TestCase):
             bundle.validate_pom_metadata(fake_pom, "viet-template-api", curr_version, bad_errors)
             self.assertTrue(any("Malformed appended url" in e for e in bad_errors))
             self.assertTrue(any("Malformed appended scm connection" in e for e in bad_errors))
+
+
+class PluginMarkerAndConsumerTests(unittest.TestCase):
+    def _create_marker_pom(self, version="1.0.0-RC1", group_id=None, artifact_id=None, packaging="pom", dep_version="1.0.0-RC1", include_dep=True):
+        gid = group_id or bundle.PLUGIN_MARKER_GROUP_ID
+        aid = artifact_id or bundle.PLUGIN_MARKER_ARTIFACT_ID
+        dep_section = ""
+        if include_dep:
+            dep_section = f"""
+  <dependencies>
+    <dependency>
+      <groupId>io.github.minh124199</groupId>
+      <artifactId>viet-template-gradle-plugin</artifactId>
+      <version>{dep_version}</version>
+    </dependency>
+  </dependencies>"""
+        return f"""<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>{gid}</groupId>
+  <artifactId>{aid}</artifactId>
+  <version>{version}</version>
+  <packaging>{packaging}</packaging>
+  <name>viet-template-gradle-plugin</name>
+  <description>Official build-time AOT template compiler for Viet Template</description>
+  <url>https://github.com/minh124199/viet-template/tree/main/viet-template-gradle-plugin</url>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <id>minh124199</id>
+      <name>Minh Nguyen</name>
+      <url>https://github.com/minh124199</url>
+    </developer>
+  </developers>
+  <scm>
+    <connection>scm:git:https://github.com/minh124199/viet-template.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/minh124199/viet-template.git</developerConnection>
+    <url>https://github.com/minh124199/viet-template</url>
+  </scm>{dep_section}
+</project>"""
+
+    def test_validate_plugin_marker_valid(self):
+        with tempfile.TemporaryDirectory() as d:
+            pom = Path(d) / "pom.xml"
+            pom.write_text(self._create_marker_pom("1.0.0-RC1"))
+            errors = []
+            bundle.validate_plugin_marker(Path(d), "1.0.0-RC1", errors, pom_path=pom)
+            self.assertEqual([], errors)
+
+    def test_validate_plugin_marker_wrong_version(self):
+        with tempfile.TemporaryDirectory() as d:
+            pom = Path(d) / "pom.xml"
+            pom.write_text(self._create_marker_pom("9.9.9"))
+            errors = []
+            bundle.validate_plugin_marker(Path(d), "1.0.0-RC1", errors, pom_path=pom)
+            self.assertTrue(any("Invalid version '9.9.9'" in e for e in errors))
+
+    def test_validate_plugin_marker_wrong_group_and_artifact(self):
+        with tempfile.TemporaryDirectory() as d:
+            pom = Path(d) / "pom.xml"
+            pom.write_text(self._create_marker_pom(group_id="com.invalid", artifact_id="invalid.marker"))
+            errors = []
+            bundle.validate_plugin_marker(Path(d), "1.0.0-RC1", errors, pom_path=pom)
+            self.assertTrue(any("Invalid groupId" in e for e in errors))
+            self.assertTrue(any("Invalid artifactId" in e for e in errors))
+
+    def test_validate_plugin_marker_missing_dependency(self):
+        with tempfile.TemporaryDirectory() as d:
+            pom = Path(d) / "pom.xml"
+            pom.write_text(self._create_marker_pom(include_dep=False))
+            errors = []
+            bundle.validate_plugin_marker(Path(d), "1.0.0-RC1", errors, pom_path=pom)
+            self.assertTrue(any("missing required dependency on io.github.minh124199:viet-template-gradle-plugin" in e for e in errors))
+
+    def test_validate_plugin_marker_wrong_dependency_version(self):
+        with tempfile.TemporaryDirectory() as d:
+            pom = Path(d) / "pom.xml"
+            pom.write_text(self._create_marker_pom(dep_version="0.0.1"))
+            errors = []
+            bundle.validate_plugin_marker(Path(d), "1.0.0-RC1", errors, pom_path=pom)
+            self.assertTrue(any("depends on viet-template-gradle-plugin version '0.0.1'" in e for e in errors))
+
+    def test_staged_plugin_dsl_consumer_script_executable_and_valid(self):
+        script = ROOT / "scripts" / "test-staged-plugin-dsl-consumer.sh"
+        self.assertTrue(script.exists(), "test-staged-plugin-dsl-consumer.sh must exist")
+        self.assertTrue(os.access(script, os.X_OK), "test-staged-plugin-dsl-consumer.sh must be executable")
+        content = script.read_text(encoding="utf-8")
+        self.assertIn('id("io.github.minh124199.viet-template")', content)
+        self.assertIn("rc-repository", content)
+
+    def test_stage_rc_repository_script_executable_and_stages_marker(self):
+        script = ROOT / "scripts" / "stage-rc-repository.sh"
+        self.assertTrue(script.exists(), "stage-rc-repository.sh must exist")
+        self.assertTrue(os.access(script, os.X_OK), "stage-rc-repository.sh must be executable")
+        content = script.read_text(encoding="utf-8")
+        self.assertIn("publishVietTemplatePluginMarkerMavenPublicationToRcRepositoryRepository", content)
+        self.assertIn("-ne 14", content)
+
+    def test_consumer_smoke_plugin_dsl_configuration(self):
+        build_gradle = ROOT / "scripts" / "consumer-smoke" / "build.gradle.kts"
+        self.assertTrue(build_gradle.exists())
+        self.assertIn('id("io.github.minh124199.viet-template")', build_gradle.read_text(encoding="utf-8"))
+        settings_gradle = ROOT / "scripts" / "consumer-smoke" / "settings.gradle.kts"
+        self.assertTrue(settings_gradle.exists())
+        self.assertIn("pluginManagement", settings_gradle.read_text(encoding="utf-8"))
 
 
 def __getattr__(name):
