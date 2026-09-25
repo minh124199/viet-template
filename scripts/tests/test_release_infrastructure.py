@@ -27,6 +27,7 @@ central = load_script("verify-central-release.py")
 metadata = load_script("verify-release-metadata.py")
 bundle = load_script("validate-release-bundle.py")
 parity = load_script("verify-build-parity.py")
+signing_lifecycle = load_script("verify-gradle-signing-lifecycle.py")
 
 
 class FakeResponse:
@@ -746,6 +747,85 @@ class PluginMarkerAndConsumerTests(unittest.TestCase):
         settings_gradle = ROOT / "scripts" / "consumer-smoke" / "settings.gradle.kts"
         self.assertTrue(settings_gradle.exists())
         self.assertIn("pluginManagement", settings_gradle.read_text(encoding="utf-8"))
+
+
+class GradlePluginSigningLifecycleTests(unittest.TestCase):
+    def test_script_is_executable_and_exists(self):
+        script = ROOT / "scripts" / "verify-gradle-signing-lifecycle.py"
+        self.assertTrue(script.exists(), "verify-gradle-signing-lifecycle.py must exist")
+        self.assertTrue(os.access(script, os.X_OK), "verify-gradle-signing-lifecycle.py must be executable")
+
+    def test_ephemeral_pgp_key_generation(self):
+        key, passphrase = signing_lifecycle.generate_ephemeral_pgp_key("test-pw")
+        self.assertIn("BEGIN PGP PRIVATE KEY BLOCK", key)
+        self.assertIn("END PGP PRIVATE KEY BLOCK", key)
+        self.assertEqual("test-pw", passphrase)
+
+    def test_unauthenticated_configuration_succeeds_without_signing_tasks(self):
+        passed, diagnostics = signing_lifecycle.check_unauthenticated_configuration(ROOT)
+        self.assertTrue(passed, f"Unauthenticated check failed: {diagnostics}")
+        self.assertTrue(any("zero signing tasks" in d for d in diagnostics))
+
+    def test_signing_enabled_lifecycle_with_ephemeral_key(self):
+        result = signing_lifecycle.check_signing_enabled_lifecycle(ROOT)
+        self.assertTrue(result.passed, f"Signing lifecycle check failed: {result.diagnostics}")
+        self.assertEqual(signing_lifecycle.EXPECTED_PUBLICATIONS, result.observed_publications)
+        self.assertEqual(signing_lifecycle.EXPECTED_SIGNING_TASKS, result.observed_signing_tasks)
+        self.assertEqual(set(), result.missing_publications)
+        self.assertEqual(set(), result.missing_signing_tasks)
+
+    def test_missing_publication_detected_by_analyzer(self):
+        simulated_stdout = """
+Tasks runnable from project ':viet-template-gradle-plugin':
+Publishing tasks
+----------------
+generatePomFileForPluginMavenPublication - Generates the Maven POM file for publication 'pluginMaven'.
+signPluginMavenPublication - Signs the publication 'pluginMaven'.
+"""
+        with mock.patch("subprocess.run") as mock_run:
+            mock_run.return_value = mock.Mock(returncode=0, stdout=simulated_stdout, stderr="")
+            result = signing_lifecycle.check_signing_enabled_lifecycle(ROOT, signing_key="dummy-key", signing_password="")
+            self.assertFalse(result.passed)
+            self.assertIn("vietTemplatePluginMarkerMaven", result.missing_publications)
+            self.assertIn("signVietTemplatePluginMarkerMavenPublication", result.missing_signing_tasks)
+            self.assertTrue(any("Missing expected publication(s): vietTemplatePluginMarkerMaven" in d for d in result.diagnostics))
+
+    def test_missing_signing_task_detected_by_analyzer(self):
+        simulated_stdout = """
+Tasks runnable from project ':viet-template-gradle-plugin':
+Publishing tasks
+----------------
+generatePomFileForPluginMavenPublication - Generates the Maven POM file for publication 'pluginMaven'.
+generatePomFileForVietTemplatePluginMarkerMavenPublication - Generates the Maven POM file for publication 'vietTemplatePluginMarkerMaven'.
+signVietTemplatePluginMarkerMavenPublication - Signs the publication 'vietTemplatePluginMarkerMaven'.
+"""
+        with mock.patch("subprocess.run") as mock_run:
+            mock_run.return_value = mock.Mock(returncode=0, stdout=simulated_stdout, stderr="")
+            result = signing_lifecycle.check_signing_enabled_lifecycle(ROOT, signing_key="dummy-key", signing_password="")
+            self.assertFalse(result.passed)
+            self.assertEqual(set(), result.missing_publications)
+            self.assertEqual({"signPluginMavenPublication"}, result.missing_signing_tasks)
+            self.assertTrue(any("Missing expected signing task(s): signPluginMavenPublication" in d for d in result.diagnostics))
+
+    def test_regression_detection_when_gradle_reports_missing_publication(self):
+        simulated_stderr = "A problem occurred evaluating project ':viet-template-gradle-plugin'.\n> Publication with name 'pluginMaven' not found."
+        with mock.patch("subprocess.run") as mock_run:
+            mock_run.return_value = mock.Mock(returncode=1, stdout="", stderr=simulated_stderr)
+            result = signing_lifecycle.check_signing_enabled_lifecycle(ROOT, signing_key="dummy-key", signing_password="")
+            self.assertFalse(result.passed)
+            self.assertTrue(any("REGRESSION DETECTED: Publication with name 'pluginMaven' not found" in d for d in result.diagnostics))
+
+    def test_release_gates_script_includes_gate_10(self):
+        script = ROOT / "scripts" / "verify-m18-release-gates.sh"
+        self.assertTrue(script.exists())
+        content = script.read_text(encoding="utf-8")
+        self.assertIn("Gate 10", content)
+        self.assertIn("verify-gradle-signing-lifecycle.py", content)
+
+    def test_validate_metadata_supports_check_signing_lifecycle(self):
+        errors = []
+        metadata.validate_signing_lifecycle(errors, root_dir=ROOT)
+        self.assertEqual([], errors)
 
 
 def __getattr__(name):
