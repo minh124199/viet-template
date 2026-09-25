@@ -88,12 +88,12 @@ Apply the GraalVM native plugin alongside `io.github.minh124199.viet-template`:
 ```kotlin
 plugins {
     id("org.graalvm.buildtools.native") version "0.10.3"
-    // Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1
-    id("io.github.minh124199.viet-template") version "0.2.2" // or "1.0.0-RC1"
+    // Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC2
+    id("io.github.minh124199.viet-template") version "1.0.0-RC2" // or "0.2.2"
 }
 
 dependencies {
-    implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.2") // or "1.0.0-RC1"
+    implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.2") // or "1.0.0-RC2"
 }
 ```
 
