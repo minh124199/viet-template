@@ -76,9 +76,17 @@ if [ -d "${ROOT_DIR}/build/rc-repository/io/github/minh124199" ]; then
     mkdir -p "${HOME}/.m2/repository/io/github"
     cp -rn "${ROOT_DIR}/build/rc-repository/io/github/minh124199" "${HOME}/.m2/repository/io/github/" 2>/dev/null || cp -r "${ROOT_DIR}/build/rc-repository/io/github/minh124199" "${HOME}/.m2/repository/io/github/"
 else
+    "${ROOT_DIR}/gradlew" publishToMavenLocal --no-daemon -x test
     "${ROOT_DIR}/mvnw" install -DskipTests -Dspotless.check.skip=true --no-transfer-progress -B
 fi
-echo "[PASS] Reactor artifacts available locally."
+
+PROJECT_VERSION="$(sed -n 's/^[[:space:]]*<version>\([^<]*\)<\/version>/\1/p' "${ROOT_DIR}/pom.xml" | head -n 1)"
+PLUGIN_MARKER_POM="${HOME}/.m2/repository/io/github/minh124199/viet-template/io.github.minh124199.viet-template.gradle.plugin/${PROJECT_VERSION}/io.github.minh124199.viet-template.gradle.plugin-${PROJECT_VERSION}.pom"
+if [ ! -f "${PLUGIN_MARKER_POM}" ]; then
+    echo "[FAIL] Pre-flight assertion failed: Gradle plugin marker artifact missing at ${PLUGIN_MARKER_POM}!"
+    exit 1
+fi
+echo "[PASS] Reactor artifacts and Gradle plugin marker verified in local repository."
 
 CACHE_DIR="${TMPDIR:-/tmp}/viet-template-native-cache"
 mkdir -p "${CACHE_DIR}"
