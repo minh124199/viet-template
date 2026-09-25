@@ -28,7 +28,7 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 
 | Dimension | Detail |
 |---|---|
-| **Current Release Candidate** | `1.0.0-RC2` (Published: 2026-09-25; available on Maven Central & GitHub Releases) |
+| **Current Release Candidate** | `1.0.0-RC3` (Published: 2026-09-25; available on Maven Central & GitHub Releases) |
 | **Latest Published Stable Release** | `0.2.2` (Published: 2026-09-20; 0.2.3 prepared/held) |
 | **Java Baseline** | Java 21 LTS (`--release 21`, major version 65) |
 | **Primary Target** | Java 25 (optimized memory & runtime qualification) |
@@ -37,7 +37,7 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 | **JPMS Status** | Ordinary non-modular JARs (no `module-info.java`, no `Automatic-Module-Name` header) |
 
 > [!NOTE] Java Module System (JPMS) Disclaimer
-> Viet Template 1.0.0-RC2 ships as ordinary non-modular JARs. When placed on the Java module path they may be treated by the JVM as automatic modules using derived names, but those derived names are not a frozen compatibility contract.
+> Viet Template 1.0.0-RC3 ships as ordinary non-modular JARs. When placed on the Java module path they may be treated by the JVM as automatic modules using derived names, but those derived names are not a frozen compatibility contract.
 
 ---
 
@@ -250,7 +250,7 @@ Explore the complete documentation suite organized by topic:
 
 ### Build Tooling
 - **[Apache Maven Plugin](docs/build-tooling/maven.md)** — Build-time AOT precompilation and verification via `viet-template-maven-plugin`.
-- **[Gradle Plugin](docs/build-tooling/gradle.md)** — Gradle Kotlin/Groovy DSL plugin configuration (`plugins { id("io.github.minh124199.viet-template") version "1.0.0-RC2" }`) and incremental build-cache.
+- **[Gradle Plugin](docs/build-tooling/gradle.md)** — Gradle Kotlin/Groovy DSL plugin configuration (`plugins { id("io.github.minh124199.viet-template") version "1.0.0-RC3" }`) and incremental build-cache.
 
 ### Framework Integrations
 - **[Spring Boot Integration Guide](docs/spring/spring-boot-integration.md)** — Spring Boot 4 / Framework 7 starter, property catalog, and reactive view resolution.

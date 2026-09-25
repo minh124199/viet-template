@@ -415,13 +415,13 @@ class MetadataTagSelectionTests(unittest.TestCase):
             gh_output = Path(directory) / "gh_output"
             with mock.patch.dict(
                 metadata.os.environ,
-                {"RELEASE_TAG": "v1.0.0-RC2", "GITHUB_OUTPUT": str(gh_output)},
+                {"RELEASE_TAG": "v1.0.0-RC3", "GITHUB_OUTPUT": str(gh_output)},
                 clear=True,
             ), mock.patch.object(metadata.sys, "argv", ["verify-release-metadata.py"]):
                 with self.assertRaises(SystemExit) as result:
                     metadata.main()
                 self.assertEqual(0, result.exception.code)
-            self.assertIn("tag_name=v1.0.0-RC2\n", gh_output.read_text())
+            self.assertIn("tag_name=v1.0.0-RC3\n", gh_output.read_text())
 
 
 class PublicationMetadataTests(unittest.TestCase):

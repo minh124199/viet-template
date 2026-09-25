@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-RC3] - 2026-09-25
+
 ### Fixed
 - **INC-M11-01: Lifecycle-Safe Gradle Plugin Publication Signing**:
   - Replaced eager collection lookup with live container collection matching (`publishing.publications.matching { ... }.all { signing.sign(this) }`) in `viet-template-gradle-plugin`, resolving the `Publication with name 'pluginMaven' not found` failure during release publishing.
@@ -14,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Integrated signing lifecycle verification into CI release workflow (`release.yml`).
 
 ### Release Engineering Note
-- `1.0.0-RC2` was qualified locally and tagged (`v1.0.0-RC2` at `8c0504f45926291964e5b45ff280b8f065cd8f04`), but was not publicly published to Maven Central due to incident INC-M11-01 in the release publishing workflow. Tag `v1.0.0-RC2` remains immutable; fixes will be released in `1.0.0-RC3`.
+- `1.0.0-RC2` was qualified locally and tagged (`v1.0.0-RC2` at `8c0504f45926291964e5b45ff280b8f065cd8f04`), but was not publicly published to Maven Central due to incident INC-M11-01 in the release publishing workflow. Tag `v1.0.0-RC2` remains immutable; fixes are released in `1.0.0-RC3`.
 
 ## [1.0.0-RC2] - 2026-09-25
 
@@ -538,7 +540,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 1 `VIET_EXTENSION` (`$foreach.stop()` programmatic loop termination)
   - 0 `UNSUPPORTED`, 0 `BUG` (100.00% accounted behavior coverage)
 
-[Unreleased]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC2...HEAD
+[Unreleased]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC3...HEAD
+[1.0.0-RC3]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC2...v1.0.0-RC3
 [1.0.0-RC2]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC1...v1.0.0-RC2
 [1.0.0-RC1]: https://github.com/minh124199/viet-template/compare/v0.2.2...v1.0.0-RC1
 [0.2.2]: https://github.com/minh124199/viet-template/compare/v0.2.1...v0.2.2
