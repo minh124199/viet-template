@@ -13,7 +13,8 @@
     "intendedFor1_0Scope": {
       "parentPomIncluded": true,
       "productionModulesCount": 12,
-      "totalPublishedArtifactsIntended": 13,
+      "totalPublishedArtifactsIntended": 14,
+      "generatedPluginMarkerCount": 1,
       "nonPublishedModulesCount": 2,
       "totalReactorArtifacts": 15
     },
