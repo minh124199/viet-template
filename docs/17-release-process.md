@@ -319,3 +319,55 @@ Before remote publication, the release engineer must generate `build/reports/rc-
 - `generatedPluginMarkerCount`: 1 generated Gradle plugin marker publication.
 - `totalStagedCoordinatesCount`: 14 staged Maven coordinates.
 - For each staged file: `groupId`, `artifactId`, `version`, `packaging`, `filename`, `sizeBytes`, `sha256`, and verification flags.
+
+---
+
+## 8. Incident Postmortem: INC-M11-01 (Gradle Plugin Publication Signing Lifecycle)
+
+### 8.1 Incident Summary
+During the authorized publication run for `1.0.0-RC2` (workflow run `36109461136` targeting tag `v1.0.0-RC2` at commit `8c0504f45926291964e5b45ff280b8f065cd8f04`), Job 4 (`package-and-validate-bundle`) failed during `./gradlew assemble generatePomFileForVietTemplatePluginMarkerMavenPublication` with:
+```text
+* What went wrong:
+A problem occurred evaluating project ':viet-template-gradle-plugin'.
+> Publication with name 'pluginMaven' not found.
+```
+Central deployment was successfully guarded and aborted before any deployment occurred; zero artifacts were uploaded to Maven Central or any remote repository.
+
+### 8.2 Root Cause Analysis
+Gradle's `java-gradle-plugin` registers the `pluginMaven` publication lazily inside an internal `afterEvaluate` lifecycle block. The project's `viet-template-gradle-plugin/build.gradle.kts` attempted an eager collection lookup:
+```kotlin
+if (hasSigningKey) {
+    signing.sign(publishing.publications["pluginMaven"])
+}
+```
+During developer builds and local qualifications where `SIGNING_KEY` was absent (`hasSigningKey == false`), this conditional block was bypassed. However, in the release workflow where `SIGNING_KEY` was provided as a CI secret, the eager collection access executed during Gradle configuration *before* `java-gradle-plugin` had registered `pluginMaven`, immediately throwing an `UnknownDomainObjectException`.
+
+### 8.3 Architectural Remediation
+The eager collection indexing was replaced with Gradle's live container collection API:
+```kotlin
+if (hasSigningKey) {
+    publishing.publications
+        .matching {
+            it.name == "pluginMaven" || it.name == "vietTemplatePluginMarkerMaven"
+        }
+        .all {
+            signing.sign(this)
+        }
+}
+```
+This leverages Gradle's live domain object collection semantics:
+1. Registration order is irrelevant: the closure automatically executes for existing publications and any publications added in the future by plugins (such as `pluginMaven` from `java-gradle-plugin`).
+2. Fragile `afterEvaluate` ordering games are avoided.
+3. Both required publications (`pluginMaven` and `vietTemplatePluginMarkerMaven`) dynamically receive signing tasks (`signPluginMavenPublication` and `signVietTemplatePluginMarkerMavenPublication`).
+
+### 8.4 Mandatory Pre-Tag Signing Qualification Invariant
+To ensure that signing lifecycle failures cannot recur in future release candidates, clean-room release qualification enforces:
+1. **Canonical Verification Tool (`scripts/verify-gradle-signing-lifecycle.py`)**:
+   - Generates an in-memory ephemeral RSA 2048-bit OpenPGP key pair via `gpg` in a secure temporary directory (zero production secret exposure).
+   - Validates that unauthenticated developer builds remain unaffected (zero signing tasks, configuration succeeds).
+   - Validates that signing-enabled builds discover both publications and register both signing tasks.
+   - Validates that staged signing generates valid `.asc` signature files.
+2. **Gate 10 in M18 Qualification (`scripts/verify-m18-release-gates.sh`)**:
+   - Unconditionally executes `scripts/verify-gradle-signing-lifecycle.py`.
+3. **CI Release Workflow Enforced**:
+   - Release workflow (`.github/workflows/release.yml`) executes `scripts/verify-gradle-signing-lifecycle.py` in `package-and-validate-bundle`.
