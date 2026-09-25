@@ -68,15 +68,23 @@ publishing {
     }
 }
 
+val signingKey = findProperty("signingKey") as String? ?: System.getenv("SIGNING_KEY")
+val signingPassword = findProperty("signingPassword") as String? ?: System.getenv("SIGNING_PASSWORD")
+val hasSigningKey = !signingKey.isNullOrBlank()
+
 signing {
-    val signingKey = findProperty("signingKey") as String? ?: System.getenv("SIGNING_KEY")
-    val signingPassword = findProperty("signingPassword") as String? ?: System.getenv("SIGNING_PASSWORD")
-    val hasKey = !signingKey.isNullOrBlank()
-    isRequired = hasKey
-    if (hasKey) {
+    isRequired = hasSigningKey
+    if (hasSigningKey) {
         useInMemoryPgpKeys(signingKey, signingPassword)
-        sign(publishing.publications["pluginMaven"])
-        sign(publishing.publications["vietTemplatePluginMarkerMaven"])
     }
 }
 
+if (hasSigningKey) {
+    publishing.publications
+        .matching {
+            it.name == "pluginMaven" || it.name == "vietTemplatePluginMarkerMaven"
+        }
+        .all {
+            signing.sign(this)
+        }
+}
