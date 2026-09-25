@@ -14,6 +14,13 @@ mkdir -p "$scratch/maven-repository" "$scratch/gradle-home" "$scratch/gradle-pro
 cp scripts/consumer-smoke/pom.xml "$scratch/maven-project/pom.xml"
 cp scripts/consumer-smoke/settings.gradle.kts "$scratch/gradle-project/settings.gradle.kts"
 cp scripts/consumer-smoke/build.gradle.kts "$scratch/gradle-project/build.gradle.kts"
+sed -i "s/\\\$consumerVersion/$version/g" "$scratch/gradle-project/build.gradle.kts"
+
+# Reuse gradle wrapper binary to avoid redownloading 150MB gradle zip, keeping all caches isolated
+if [ -d "${HOME}/.gradle/wrapper/dists" ]; then
+  mkdir -p "$scratch/gradle-home/wrapper"
+  ln -s "${HOME}/.gradle/wrapper/dists" "$scratch/gradle-home/wrapper/dists"
+fi
 
 # A fresh Maven cache plus an explicit Central-only repository exercises the public POM/JAR graph.
 ./mvnw -f "$scratch/maven-project/pom.xml" -B -Dmaven.repo.local="$scratch/maven-repository" \
