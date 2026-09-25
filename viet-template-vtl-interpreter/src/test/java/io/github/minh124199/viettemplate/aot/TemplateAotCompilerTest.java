@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.minh124199.viettemplate.api.CompiledTemplate;
+import io.github.minh124199.viettemplate.api.DiagnosticCode;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
 import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.TemplateId;
@@ -477,5 +478,38 @@ class TemplateAotCompilerTest {
     assertThat(result.compiledCount()).isEqualTo(1);
     assertThat(result.artifacts()).hasSize(1);
     assertThat(result.artifacts().get(0).templateId()).isEqualTo(TemplateId.of("included.vtl"));
+  }
+
+  @Test
+  @DisplayName(
+      "12. Unclosed directive normalizes internal parser diagnostics to canonical"
+          + " SYNTAX:PARSE_ERROR")
+  void testUnclosedDirectiveNormalizesToSyntaxParseError(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src");
+    Path outDir = tempDir.resolve("out");
+    Files.createDirectories(srcDir);
+
+    Files.writeString(
+        srcDir.resolve("unclosed.vtl"), "#if($condition) hello", StandardCharsets.UTF_8);
+
+    TemplateAotCompiler compiler = TemplateAotCompiler.create();
+    TemplateAotRequest request =
+        TemplateAotRequest.builder().sourceDirectory(srcDir).outputDirectory(outDir).build();
+
+    TemplateAotResult result = compiler.compile(request);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.hasErrors()).isTrue();
+    assertThat(result.diagnostics()).isNotEmpty();
+
+    TemplateAotDiagnostic diag = result.diagnostics().get(0);
+    assertThat(diag.code()).isEqualTo(DiagnosticCode.of("SYNTAX", "PARSE_ERROR"));
+    String formatted = diag.formattedMessage();
+    assertThat(formatted).contains("[SYNTAX:PARSE_ERROR]");
+    assertThat(formatted).doesNotContain("[PARSER:UNCLOSED_DIRECTIVE]");
+    for (TemplateAotDiagnostic d : result.diagnostics()) {
+      assertThat(d.code().category()).isNotEqualToIgnoringCase("PARSER");
+      assertThat(d.formattedMessage()).doesNotContain("PARSER:UNCLOSED_DIRECTIVE");
+    }
   }
 }
