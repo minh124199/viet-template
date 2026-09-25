@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **INC-M11-01: Lifecycle-Safe Gradle Plugin Publication Signing**:
+  - Replaced eager collection lookup with live container collection matching (`publishing.publications.matching { ... }.all { signing.sign(this) }`) in `viet-template-gradle-plugin`, resolving the `Publication with name 'pluginMaven' not found` failure during release publishing.
+  - Added authoritative verification tool `scripts/verify-gradle-signing-lifecycle.py` and Gate 10 in `scripts/verify-m18-release-gates.sh` to qualify signing-enabled publication lifecycle ordering using ephemeral in-memory OpenPGP test credentials.
+  - Integrated signing lifecycle verification into CI release workflow (`release.yml`).
+
+### Release Engineering Note
+- `1.0.0-RC2` was qualified locally and tagged (`v1.0.0-RC2` at `8c0504f45926291964e5b45ff280b8f065cd8f04`), but was not publicly published to Maven Central due to incident INC-M11-01 in the release publishing workflow. Tag `v1.0.0-RC2` remains immutable; fixes will be released in `1.0.0-RC3`.
+
 ## [1.0.0-RC2] - 2026-09-25
 
 ### Fixed
