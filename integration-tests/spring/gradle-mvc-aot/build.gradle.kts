@@ -2,7 +2,7 @@ plugins {
     java
     id("org.springframework.boot") version "4.1.1"
     id("io.spring.dependency-management") version "1.1.7"
-    id("io.github.minh124199.viet-template") version "1.0.0-RC1"
+    id("io.github.minh124199.viet-template") version "1.0.0-RC2"
 }
 
 group = "io.github.minh124199.test"
@@ -21,7 +21,7 @@ java {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("io.github.minh124199:viet-template-spring-boot-starter:1.0.0-RC1")
+    implementation("io.github.minh124199:viet-template-spring-boot-starter:1.0.0-RC2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.springframework.boot:spring-boot-restclient")

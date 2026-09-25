@@ -35,6 +35,10 @@ done
 if [[ "${CLEAN_ROOM}" == "true" ]]; then
   M18_M2_REPO="$(mktemp -d /tmp/viet-m18-m2.XXXXXX)"
   M18_GRADLE_USER_HOME="$(mktemp -d /tmp/viet-m18-gradle.XXXXXX)"
+  if [[ -d "${HOME}/.m2/repository/dev/gradleplugins" ]]; then
+    mkdir -p "${M18_M2_REPO}/dev"
+    cp -r "${HOME}/.m2/repository/dev/gradleplugins" "${M18_M2_REPO}/dev/"
+  fi
 else
   M18_M2_REPO="${M18_M2_REPO:-${HOME}/.m2/repository}"
   M18_GRADLE_USER_HOME="${M18_GRADLE_USER_HOME:-${GRADLE_USER_HOME:-${HOME}/.gradle}}"
