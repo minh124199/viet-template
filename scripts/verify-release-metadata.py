@@ -80,6 +80,20 @@ def validate_publication_topology(errors, root_dir=ROOT_DIR):
     )
 
 
+def validate_signing_lifecycle(errors, root_dir=ROOT_DIR):
+    """Executes the signing lifecycle verification script to ensure publication signing ordering is valid."""
+    script = root_dir / "scripts" / "verify-gradle-signing-lifecycle.py"
+    if not script.exists():
+        errors.append(f"Signing lifecycle verification script not found: {script}")
+        return
+    res = subprocess.run([sys.executable, str(script)], cwd=str(root_dir), capture_output=True, text=True)
+    if res.returncode != 0:
+        errors.append(
+            f"Gradle plugin signing lifecycle check failed (exit code {res.returncode}):\n{res.stdout}\n{res.stderr}"
+        )
+    else:
+        print("  [PASS] Gradle plugin publication signing lifecycle verified.")
+
 
 def get_reactor_modules(root_dir=ROOT_DIR):
     """Derives published production modules and non-published modules dynamically from root pom.xml."""
@@ -562,6 +576,14 @@ def validate_workflow_contract(errors):
         errors.append(
             "package-and-validate-bundle must install release dependencies from scripts/requirements-release.txt"
         )
+    if not any(
+        isinstance(step, dict)
+        and "verify-gradle-signing-lifecycle.py" in step.get("run", "")
+        for step in package_steps
+    ):
+        errors.append(
+            "package-and-validate-bundle must verify Gradle plugin signing lifecycle via scripts/verify-gradle-signing-lifecycle.py"
+        )
     if "package-and-validate-bundle" not in as_needs(jobs["guard-publication"]):
         errors.append("Central publication guard must depend on the M18-gated publication bundle")
     if "publish-to-central" not in as_needs(jobs["wait-for-central-publication"]):
@@ -652,6 +674,7 @@ def main():
     parser.add_argument("--check-publication-metadata", action="store_true", help="Validate publication metadata in POMs and SCM configuration")
     parser.add_argument("--check-effective-pom", action="store_true", help="Generate and validate effective POM metadata across modules")
     parser.add_argument("--check-urls-online", action="store_true", help="Perform online HTTP checks on repository and module URLs")
+    parser.add_argument("--check-signing-lifecycle", action="store_true", help="Validate Gradle plugin publication signing lifecycle ordering and dynamic task registration")
     args = parser.parse_args()
 
     print("=== Viet Template Release Metadata Verification ===")
@@ -723,6 +746,13 @@ def main():
         )
         if len(errors) == before:
             print("  [PASS] Publication metadata verified successfully.")
+
+    if args.check_signing_lifecycle:
+        print("\n[CHECK] Validating Gradle plugin publication signing lifecycle...")
+        before = len(errors)
+        validate_signing_lifecycle(errors)
+        if len(errors) == before:
+            print("  [PASS] Gradle plugin publication signing lifecycle verified successfully.")
 
     github_output = os.environ.get("GITHUB_OUTPUT")
     if github_output:
