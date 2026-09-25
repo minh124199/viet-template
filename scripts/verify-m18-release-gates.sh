@@ -17,6 +17,7 @@
 #   7. Feature matrix semantic validity
 #   8. Benchmark manifest semantic validity
 #   9. Formal evidence contract (when --require-evidence is used)
+#  10. Gradle plugin publication signing lifecycle & topology (python3 scripts/verify-gradle-signing-lifecycle.py)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -173,6 +174,15 @@ if [[ "${REQUIRE_EVIDENCE}" == "true" ]]; then
     gate_fail "Gate 9: Formal evidence contract FAILED — see /tmp/m18-gate9.log"
     cat /tmp/m18-gate9.log
   fi
+fi
+
+# ---------- Gate 10: Gradle plugin publication signing lifecycle & topology ----------
+echo "[Gate 10] Gradle plugin publication signing lifecycle & topology..."
+if python3 "${ROOT_DIR}/scripts/verify-gradle-signing-lifecycle.py" > /tmp/m18-gate10.log 2>&1; then
+  gate_pass "Gate 10: Gradle plugin publication signing lifecycle & topology"
+else
+  gate_fail "Gate 10: Gradle plugin publication signing lifecycle FAILED — see /tmp/m18-gate10.log"
+  cat /tmp/m18-gate10.log
 fi
 
 # ---------- Summary ----------
