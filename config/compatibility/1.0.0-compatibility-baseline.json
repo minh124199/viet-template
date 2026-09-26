@@ -1,0 +1,2883 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "baselineName": "Viet Template 1.0.0 Canonical Compatibility Baseline",
+  "description": "Permanent canonical compatibility baseline for the Viet Template 1.x line defining frozen public API/SPI surface, runtime ABI, diagnostic codes, framework entrypoints, cross-module contracts, and TCK language features with complete 1.0.0 release provenance.",
+  "provenance": {
+    "version": "1.0.0",
+    "tag": "v1.0.0",
+    "commit": "b951021e9975b8e8103b2402dc244b32a96afaa8",
+    "tree": "87425fa306fb3b44ac6f6d435d79dfb95cd0a52a",
+    "targetRelease": "1.0.0",
+    "canonicalLine": "1.x",
+    "freezeDate": "2026-09-26"
+  },
+  "publicSurface": {
+    "totalCompiledPublicTypes": 339,
+    "stableApiTypesCount": 94,
+    "stableSpiTypesCount": 27,
+    "totalStableCount": 121,
+    "categories": {
+      "STABLE_API": 94,
+      "STABLE_SPI": 27,
+      "EXPERIMENTAL": 5,
+      "PUBLIC_BUT_INTERNAL_ACCIDENT": 85,
+      "INTERNAL_CROSS_MODULE": 59,
+      "INTERNAL_CROSS_PACKAGE": 57,
+      "FRAMEWORK_ENTRYPOINT": 4,
+      "BUILD_TOOL_ENTRYPOINT": 4,
+      "GENERATED_RUNTIME_ABI": 1,
+      "BENCHMARK_SUPPORT_INTERNAL": 3,
+      "TOTAL_STABLE": 121
+    },
+    "pbciaBreakdown": {
+      "ast": 41,
+      "ir": 33,
+      "semantics": 11,
+      "total": 85
+    },
+    "signatureLeaksAllowed": 0,
+    "stableApiTypes": [
+      "io.github.minh124199.viettemplate.aot.TemplateAotArtifact",
+      "io.github.minh124199.viettemplate.aot.TemplateAotCompiler",
+      "io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic",
+      "io.github.minh124199.viettemplate.aot.TemplateAotRequest",
+      "io.github.minh124199.viettemplate.aot.TemplateAotRequest$Builder",
+      "io.github.minh124199.viettemplate.aot.TemplateAotResult",
+      "io.github.minh124199.viettemplate.api.ClasspathTemplateRepository",
+      "io.github.minh124199.viettemplate.api.CompiledTemplate",
+      "io.github.minh124199.viettemplate.api.CompositeTemplateRepository",
+      "io.github.minh124199.viettemplate.api.ContextCollisionException",
+      "io.github.minh124199.viettemplate.api.ContextCollisionPolicy",
+      "io.github.minh124199.viettemplate.api.Diagnostic",
+      "io.github.minh124199.viettemplate.api.DiagnosticCode",
+      "io.github.minh124199.viettemplate.api.DiagnosticSeverity",
+      "io.github.minh124199.viettemplate.api.FilesystemTemplateRepository",
+      "io.github.minh124199.viettemplate.api.GlobalMacroPrecedence",
+      "io.github.minh124199.viettemplate.api.InMemoryTemplateRepository",
+      "io.github.minh124199.viettemplate.api.LayoutConfiguration",
+      "io.github.minh124199.viettemplate.api.LayoutConfiguration$Builder",
+      "io.github.minh124199.viettemplate.api.LayoutContextScope",
+      "io.github.minh124199.viettemplate.api.MutableRenderContext",
+      "io.github.minh124199.viettemplate.api.RenderContext",
+      "io.github.minh124199.viettemplate.api.RenderContext$Builder",
+      "io.github.minh124199.viettemplate.api.RenderRequest",
+      "io.github.minh124199.viettemplate.api.SecurityPolicyFingerprint",
+      "io.github.minh124199.viettemplate.api.SensitiveObjectClassifier",
+      "io.github.minh124199.viettemplate.api.SourceSpan",
+      "io.github.minh124199.viettemplate.api.Template",
+      "io.github.minh124199.viettemplate.api.TemplateCallable",
+      "io.github.minh124199.viettemplate.api.TemplateCompilationException",
+      "io.github.minh124199.viettemplate.api.TemplateData",
+      "io.github.minh124199.viettemplate.api.TemplateDependency",
+      "io.github.minh124199.viettemplate.api.TemplateDependencyGraph",
+      "io.github.minh124199.viettemplate.api.TemplateDependencyKind",
+      "io.github.minh124199.viettemplate.api.TemplateDescriptor",
+      "io.github.minh124199.viettemplate.api.TemplateEngine",
+      "io.github.minh124199.viettemplate.api.TemplateEngine$Builder",
+      "io.github.minh124199.viettemplate.api.TemplateException",
+      "io.github.minh124199.viettemplate.api.TemplateId",
+      "io.github.minh124199.viettemplate.api.TemplateLayoutException",
+      "io.github.minh124199.viettemplate.api.TemplateLimitException",
+      "io.github.minh124199.viettemplate.api.TemplateRenderException",
+      "io.github.minh124199.viettemplate.api.TemplateResourceException",
+      "io.github.minh124199.viettemplate.api.TemplateSecurityException",
+      "io.github.minh124199.viettemplate.api.TemplateSemanticException",
+      "io.github.minh124199.viettemplate.api.TemplateSource",
+      "io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration",
+      "io.github.minh124199.viettemplate.api.TemplateSyntaxException",
+      "io.github.minh124199.viettemplate.api.UndefinedReferencePolicy",
+      "io.github.minh124199.viettemplate.api.ValueOrigin",
+      "io.github.minh124199.viettemplate.language.vtl.VtlProfile",
+      "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions",
+      "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder",
+      "io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel",
+      "io.github.minh124199.viettemplate.language.vtl.source.SourceText",
+      "io.github.minh124199.viettemplate.quarkus.VietTemplateConfig",
+      "io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer",
+      "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView",
+      "io.github.minh124199.viettemplate.runtime.CssStringEscaper",
+      "io.github.minh124199.viettemplate.runtime.HtmlAttributeEscaper",
+      "io.github.minh124199.viettemplate.runtime.HtmlTextEscaper",
+      "io.github.minh124199.viettemplate.runtime.JsStringEscaper",
+      "io.github.minh124199.viettemplate.runtime.MapRenderContext",
+      "io.github.minh124199.viettemplate.runtime.MapRenderContext$Builder",
+      "io.github.minh124199.viettemplate.runtime.NumberFormatting",
+      "io.github.minh124199.viettemplate.runtime.RawEscaper",
+      "io.github.minh124199.viettemplate.runtime.RenderBudget",
+      "io.github.minh124199.viettemplate.runtime.SafeHtml",
+      "io.github.minh124199.viettemplate.runtime.SafeUrl",
+      "io.github.minh124199.viettemplate.runtime.SafeUrlValidator",
+      "io.github.minh124199.viettemplate.runtime.StringTemplateOutput",
+      "io.github.minh124199.viettemplate.runtime.UrlComponentEscaper",
+      "io.github.minh124199.viettemplate.runtime.Utf8OutputStreamTemplateOutput",
+      "io.github.minh124199.viettemplate.runtime.WriterTemplateOutput",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties$Security",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateSecurityAutoConfiguration",
+      "io.github.minh124199.viettemplate.spring.security.CsrfView",
+      "io.github.minh124199.viettemplate.spring.security.SecurityView",
+      "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView",
+      "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver",
+      "io.github.minh124199.viettemplate.vtl.engine.VtlTemplate",
+      "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine",
+      "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder",
+      "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineProvider",
+      "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits",
+      "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder",
+      "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier",
+      "io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler",
+      "io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode",
+      "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter",
+      "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions",
+      "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder"
+    ],
+    "stableSpiTypes": [
+      "io.github.minh124199.viettemplate.api.ContributorContext",
+      "io.github.minh124199.viettemplate.api.FreshnessToken",
+      "io.github.minh124199.viettemplate.api.LayoutRenderPlan",
+      "io.github.minh124199.viettemplate.api.LayoutResolver",
+      "io.github.minh124199.viettemplate.api.MemberAccessPolicy",
+      "io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder",
+      "io.github.minh124199.viettemplate.api.RenderContextContributor",
+      "io.github.minh124199.viettemplate.api.TemplateEngineProvider",
+      "io.github.minh124199.viettemplate.api.TemplateFreshnessProvider",
+      "io.github.minh124199.viettemplate.api.TemplateOutput",
+      "io.github.minh124199.viettemplate.api.TemplateRepository",
+      "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor",
+      "io.github.minh124199.viettemplate.runtime.EscapeMode",
+      "io.github.minh124199.viettemplate.runtime.Escaper",
+      "io.github.minh124199.viettemplate.runtime.EscaperRegistry",
+      "io.github.minh124199.viettemplate.runtime.SafeContent",
+      "io.github.minh124199.viettemplate.runtime.StandardEscapers",
+      "io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy",
+      "io.github.minh124199.viettemplate.spring.security.CsrfViewFactory",
+      "io.github.minh124199.viettemplate.spring.security.SecurityViewFactory",
+      "io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor",
+      "io.github.minh124199.viettemplate.spring.web.servlet.SpringRenderAttributes",
+      "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer",
+      "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResource",
+      "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver",
+      "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver$InMemoryBuilder",
+      "io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy"
+    ],
+    "stableTypes": [
+      "io.github.minh124199.viettemplate.aot.TemplateAotArtifact",
+      "io.github.minh124199.viettemplate.aot.TemplateAotCompiler",
+      "io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic",
+      "io.github.minh124199.viettemplate.aot.TemplateAotRequest",
+      "io.github.minh124199.viettemplate.aot.TemplateAotRequest$Builder",
+      "io.github.minh124199.viettemplate.aot.TemplateAotResult",
+      "io.github.minh124199.viettemplate.api.ClasspathTemplateRepository",
+      "io.github.minh124199.viettemplate.api.CompiledTemplate",
+      "io.github.minh124199.viettemplate.api.CompositeTemplateRepository",
+      "io.github.minh124199.viettemplate.api.ContextCollisionException",
+      "io.github.minh124199.viettemplate.api.ContextCollisionPolicy",
+      "io.github.minh124199.viettemplate.api.ContributorContext",
+      "io.github.minh124199.viettemplate.api.Diagnostic",
+      "io.github.minh124199.viettemplate.api.DiagnosticCode",
+      "io.github.minh124199.viettemplate.api.DiagnosticSeverity",
+      "io.github.minh124199.viettemplate.api.FilesystemTemplateRepository",
+      "io.github.minh124199.viettemplate.api.FreshnessToken",
+      "io.github.minh124199.viettemplate.api.GlobalMacroPrecedence",
+      "io.github.minh124199.viettemplate.api.InMemoryTemplateRepository",
+      "io.github.minh124199.viettemplate.api.LayoutConfiguration",
+      "io.github.minh124199.viettemplate.api.LayoutConfiguration$Builder",
+      "io.github.minh124199.viettemplate.api.LayoutContextScope",
+      "io.github.minh124199.viettemplate.api.LayoutRenderPlan",
+      "io.github.minh124199.viettemplate.api.LayoutResolver",
+      "io.github.minh124199.viettemplate.api.MemberAccessPolicy",
+      "io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder",
+      "io.github.minh124199.viettemplate.api.MutableRenderContext",
+      "io.github.minh124199.viettemplate.api.RenderContext",
+      "io.github.minh124199.viettemplate.api.RenderContext$Builder",
+      "io.github.minh124199.viettemplate.api.RenderContextContributor",
+      "io.github.minh124199.viettemplate.api.RenderRequest",
+      "io.github.minh124199.viettemplate.api.SecurityPolicyFingerprint",
+      "io.github.minh124199.viettemplate.api.SensitiveObjectClassifier",
+      "io.github.minh124199.viettemplate.api.SourceSpan",
+      "io.github.minh124199.viettemplate.api.Template",
+      "io.github.minh124199.viettemplate.api.TemplateCallable",
+      "io.github.minh124199.viettemplate.api.TemplateCompilationException",
+      "io.github.minh124199.viettemplate.api.TemplateData",
+      "io.github.minh124199.viettemplate.api.TemplateDependency",
+      "io.github.minh124199.viettemplate.api.TemplateDependencyGraph",
+      "io.github.minh124199.viettemplate.api.TemplateDependencyKind",
+      "io.github.minh124199.viettemplate.api.TemplateDescriptor",
+      "io.github.minh124199.viettemplate.api.TemplateEngine",
+      "io.github.minh124199.viettemplate.api.TemplateEngine$Builder",
+      "io.github.minh124199.viettemplate.api.TemplateEngineProvider",
+      "io.github.minh124199.viettemplate.api.TemplateException",
+      "io.github.minh124199.viettemplate.api.TemplateFreshnessProvider",
+      "io.github.minh124199.viettemplate.api.TemplateId",
+      "io.github.minh124199.viettemplate.api.TemplateLayoutException",
+      "io.github.minh124199.viettemplate.api.TemplateLimitException",
+      "io.github.minh124199.viettemplate.api.TemplateOutput",
+      "io.github.minh124199.viettemplate.api.TemplateRenderException",
+      "io.github.minh124199.viettemplate.api.TemplateRepository",
+      "io.github.minh124199.viettemplate.api.TemplateResourceException",
+      "io.github.minh124199.viettemplate.api.TemplateSecurityException",
+      "io.github.minh124199.viettemplate.api.TemplateSemanticException",
+      "io.github.minh124199.viettemplate.api.TemplateSource",
+      "io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration",
+      "io.github.minh124199.viettemplate.api.TemplateSyntaxException",
+      "io.github.minh124199.viettemplate.api.UndefinedReferencePolicy",
+      "io.github.minh124199.viettemplate.api.ValueOrigin",
+      "io.github.minh124199.viettemplate.language.vtl.VtlProfile",
+      "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions",
+      "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder",
+      "io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel",
+      "io.github.minh124199.viettemplate.language.vtl.source.SourceText",
+      "io.github.minh124199.viettemplate.quarkus.VietTemplateConfig",
+      "io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer",
+      "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor",
+      "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView",
+      "io.github.minh124199.viettemplate.runtime.CssStringEscaper",
+      "io.github.minh124199.viettemplate.runtime.EscapeMode",
+      "io.github.minh124199.viettemplate.runtime.Escaper",
+      "io.github.minh124199.viettemplate.runtime.EscaperRegistry",
+      "io.github.minh124199.viettemplate.runtime.HtmlAttributeEscaper",
+      "io.github.minh124199.viettemplate.runtime.HtmlTextEscaper",
+      "io.github.minh124199.viettemplate.runtime.JsStringEscaper",
+      "io.github.minh124199.viettemplate.runtime.MapRenderContext",
+      "io.github.minh124199.viettemplate.runtime.MapRenderContext$Builder",
+      "io.github.minh124199.viettemplate.runtime.NumberFormatting",
+      "io.github.minh124199.viettemplate.runtime.RawEscaper",
+      "io.github.minh124199.viettemplate.runtime.RenderBudget",
+      "io.github.minh124199.viettemplate.runtime.SafeContent",
+      "io.github.minh124199.viettemplate.runtime.SafeHtml",
+      "io.github.minh124199.viettemplate.runtime.SafeUrl",
+      "io.github.minh124199.viettemplate.runtime.SafeUrlValidator",
+      "io.github.minh124199.viettemplate.runtime.StandardEscapers",
+      "io.github.minh124199.viettemplate.runtime.StringTemplateOutput",
+      "io.github.minh124199.viettemplate.runtime.UrlComponentEscaper",
+      "io.github.minh124199.viettemplate.runtime.Utf8OutputStreamTemplateOutput",
+      "io.github.minh124199.viettemplate.runtime.WriterTemplateOutput",
+      "io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties$Security",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateSecurityAutoConfiguration",
+      "io.github.minh124199.viettemplate.spring.security.CsrfView",
+      "io.github.minh124199.viettemplate.spring.security.CsrfViewFactory",
+      "io.github.minh124199.viettemplate.spring.security.SecurityView",
+      "io.github.minh124199.viettemplate.spring.security.SecurityViewFactory",
+      "io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor",
+      "io.github.minh124199.viettemplate.spring.web.servlet.SpringRenderAttributes",
+      "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer",
+      "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView",
+      "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver",
+      "io.github.minh124199.viettemplate.vtl.engine.VtlTemplate",
+      "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine",
+      "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder",
+      "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineProvider",
+      "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits",
+      "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder",
+      "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier",
+      "io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler",
+      "io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode",
+      "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResource",
+      "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver",
+      "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver$InMemoryBuilder",
+      "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter",
+      "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions",
+      "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder",
+      "io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy"
+    ],
+    "allPublicSurfaceTypes": {
+      "io.github.minh124199.viettemplate.aot.TemplateAotArtifact": "STABLE_API",
+      "io.github.minh124199.viettemplate.aot.TemplateAotCompiler": "STABLE_API",
+      "io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic": "STABLE_API",
+      "io.github.minh124199.viettemplate.aot.TemplateAotRequest": "STABLE_API",
+      "io.github.minh124199.viettemplate.aot.TemplateAotRequest$Builder": "STABLE_API",
+      "io.github.minh124199.viettemplate.aot.TemplateAotResult": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.ClasspathTemplateRepository": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.CompiledTemplate": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.CompositeTemplateRepository": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.ContextCollisionException": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.ContextCollisionPolicy": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.ContributorContext": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.api.Diagnostic": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.DiagnosticCode": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.DiagnosticSeverity": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.FilesystemTemplateRepository": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.FreshnessToken": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.api.GlobalMacroPrecedence": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.InMemoryTemplateRepository": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.LayoutConfiguration": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.LayoutConfiguration$Builder": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.LayoutContextScope": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.LayoutRenderPlan": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.api.LayoutResolver": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.api.MemberAccessPolicy": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.api.MemberAccessPolicy$Builder": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.api.MutableRenderContext": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.RenderContext": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.RenderContext$Builder": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.RenderContextContributor": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.api.RenderRequest": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.SecurityPolicyFingerprint": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.SensitiveObjectClassifier": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.SourceSpan": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.Template": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateCallable": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateCompilationException": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateData": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateDependency": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateDependencyGraph": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateDependencyKind": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateDescriptor": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateEngine": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateEngine$Builder": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateEngineProvider": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.api.TemplateException": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateFreshnessProvider": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.api.TemplateId": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateLayoutException": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateLimitException": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateOutput": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.api.TemplateRenderException": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateRepository": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.api.TemplateResourceException": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateSecurityException": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateSemanticException": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateSource": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.TemplateSyntaxException": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.UndefinedReferencePolicy": "STABLE_API",
+      "io.github.minh124199.viettemplate.api.ValueOrigin": "STABLE_API",
+      "io.github.minh124199.viettemplate.language.vtl.VtlFeatureState": "EXPERIMENTAL",
+      "io.github.minh124199.viettemplate.language.vtl.VtlFrontend": "EXPERIMENTAL",
+      "io.github.minh124199.viettemplate.language.vtl.VtlProfile": "STABLE_API",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlAccessStep": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlAccessStep$IndexAccess": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlAccessStep$MethodCall": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlAccessStep$PropertyAccess": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlAssignmentTarget": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlAssignmentTarget$ReferenceTarget": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlBinaryExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlBinaryOperator": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlBlockDirectiveCallNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlBooleanLiteralExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlBreakDirectiveNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlDecimalLiteralExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlDefineDirectiveNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlDirectiveCallNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlDirectiveNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlErrorExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlErrorNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlEvaluateDirectiveNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlExpression": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlForeachDirectiveNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlGroupedExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlIfBranch": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlIfDirectiveNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlIncludeDirectiveNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlIntegerLiteralExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlInterpolatedStringExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlInterpolatedStringExpression$VtlInterpolatedStringPart": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlInterpolatedStringExpression$VtlInterpolatedStringPart$ReferencePart": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlInterpolatedStringExpression$VtlInterpolatedStringPart$TextPart": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlListLiteralExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlMacroDefinitionNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlMacroParameter": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlMapEntry": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlMapLiteralExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlNode": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlNullLiteralExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlParseDirectiveNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlRangeExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlRawTextNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlReference": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlReferenceExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlReferenceOutputNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlSetDirectiveNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlStopDirectiveNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlStringLiteralExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlTextNode": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ast.VtlUnaryExpression": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.internal.ast.ReferenceNotation": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.ast.VtlUnaryOperator": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.ir.plan.BudgetKind": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.ir.plan.DynamicAccessSite": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.ir.plan.DynamicKind": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.capability.TemplateCapabilities": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.capability.TemplateCapabilities$Builder": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.model.ModelParameter": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.LevenshteinDistance": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MemberResolution": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MemberResolution$Kind": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MemberResolver": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MethodResolution": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MethodResolution$Kind": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MethodResolver": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.scope.ScopeKind": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.scope.Symbol": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.scope.SymbolScope": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.internal.semantics.scope.SymbolTable": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.IrBlock": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.IrFunction": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.IrLocal": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.IrParameter": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout$BindingKind": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout$SlotLayout": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout$SlotMetadata": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.constant.IrTextConstant": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrAlternateValue": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrBinaryOp": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrConst": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrConvert": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrDynamicDispatch": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrExpression": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrGetProperty": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrIndexGet": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrInvokeAllowedMethod": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrIsNull": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrLoadLocal": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrLoadParam": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrTruthiness": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrUnaryOp": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.lowering.AstToIrLowerer": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions": "STABLE_API",
+      "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions$Builder": "STABLE_API",
+      "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.optimization.OptimizationLevel": "STABLE_API",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$DirectField": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$DirectGetter": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$DirectRecord": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$DynamicCallSite": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$ExtensionCall": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$MapLookup": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.IrEscapeMode": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.LoopPlan": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.NullAccessMode": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.plan.UnaryOpKind": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBranch": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBranchIf": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBreak": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBudgetCheck": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallMacro": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallTemplate": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrEvaluate": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrIf": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoop": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoopEnd": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoopNext": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoopSetup": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrNoOp": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrReturn": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrSetIndex": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrSetProperty": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStatement": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStop": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStoreLocal": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteConst": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteValue": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.ir.verifier.IrVerifier": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexResult": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexer": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexerOptions": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexerOptions$Builder": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.lexer.VtlToken": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.lexer.VtlTokenKind": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult": "EXPERIMENTAL",
+      "io.github.minh124199.viettemplate.language.vtl.parser.VtlParser": "EXPERIMENTAL",
+      "io.github.minh124199.viettemplate.language.vtl.parser.VtlParserOptions": "EXPERIMENTAL",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysisResult": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions$Builder": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.type.PrimitiveKind": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.type.VType": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.type.VType$ArrayType": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.type.VType$ClassType": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.type.VType$DynamicType": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.type.VType$ErrorType": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.type.VType$NullType": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.type.VType$PrimitiveType": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.type.VType$UnionType": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes": "PUBLIC_BUT_INTERNAL_ACCIDENT",
+      "io.github.minh124199.viettemplate.language.vtl.source.SourceText": "STABLE_API",
+      "io.github.minh124199.viettemplate.quarkus.VietTemplateConfig": "STABLE_API",
+      "io.github.minh124199.viettemplate.quarkus.VietTemplateProducer": "FRAMEWORK_ENTRYPOINT",
+      "io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer": "STABLE_API",
+      "io.github.minh124199.viettemplate.quarkus.deployment.VietTemplateProcessor": "FRAMEWORK_ENTRYPOINT",
+      "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.CssStringEscaper": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.EscapeMode": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.runtime.Escaper": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.runtime.EscaperRegistry": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.runtime.HtmlAttributeEscaper": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.HtmlTextEscaper": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.JsStringEscaper": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.MapRenderContext": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.MapRenderContext$Builder": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.NumberFormatting": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.RawEscaper": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.RenderBudget": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.SafeContent": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.runtime.SafeHtml": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.SafeUrl": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.SafeUrlValidator": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.StandardEscapers": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.runtime.StringTemplateOutput": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.UrlComponentEscaper": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.Utf8OutputStreamTemplateOutput": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.WriterTemplateOutput": "STABLE_API",
+      "io.github.minh124199.viettemplate.runtime.linker.AccessLink": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.runtime.linker.BoundedWeakClassCache": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.runtime.linker.CallSiteRegistry": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite$State": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.runtime.linker.DynamicLinker": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.runtime.linker.LinkerStatistics": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.runtime.linker.MemberKey": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.runtime.linker.MemberOperation": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.runtime.stream.NonClosingOutputStream": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration": "STABLE_API",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties": "STABLE_API",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties$Security": "STABLE_API",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateSecurityAutoConfiguration": "STABLE_API",
+      "io.github.minh124199.viettemplate.spring.boot.autoconfigure.aot.VietTemplateRuntimeHints": "FRAMEWORK_ENTRYPOINT",
+      "io.github.minh124199.viettemplate.spring.security.CsrfView": "STABLE_API",
+      "io.github.minh124199.viettemplate.spring.security.CsrfViewFactory": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.spring.security.SecurityView": "STABLE_API",
+      "io.github.minh124199.viettemplate.spring.security.SecurityViewFactory": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.spring.security.SpringSecurityRenderContextContributor": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.spring.security.aot.VietTemplateSecurityRuntimeHints": "FRAMEWORK_ENTRYPOINT",
+      "io.github.minh124199.viettemplate.spring.web.servlet.SpringRenderAttributes": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView": "STABLE_API",
+      "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver": "STABLE_API",
+      "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateCompileTask": "BUILD_TOOL_ENTRYPOINT",
+      "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension": "BUILD_TOOL_ENTRYPOINT",
+      "io.github.minh124199.viettemplate.tooling.gradle.VietTemplatePlugin": "BUILD_TOOL_ENTRYPOINT",
+      "io.github.minh124199.viettemplate.tooling.maven.VietTemplateCompileMojo": "BUILD_TOOL_ENTRYPOINT",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge": "GENERATED_RUNTIME_ABI",
+      "io.github.minh124199.viettemplate.vtl.engine.EngineFingerprint": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.engine.VtlTemplate": "STABLE_API",
+      "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine": "STABLE_API",
+      "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder": "STABLE_API",
+      "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineProvider": "STABLE_API",
+      "io.github.minh124199.viettemplate.vtl.engine.cache.CompileCacheKey": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.engine.cache.CompiledTemplateHandle": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.engine.cache.PreparedTemplateEntry": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.engine.cache.TemplateCompileCache": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.engine.dependency.DefaultTemplateDependencyGraph": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.BackendCapabilities": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.BackendId": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.BackendOptions": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.BackendOptions$Builder": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.BackendResult": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.CompilationStatus": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.CompiledArtifact": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.TemplateBackend": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.TemplateClassLoader": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.TemplateSidecarIndex": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.TemplateSidecarIndex$SourceMapping": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.BytecodeNaming": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.BytecodeTemplateCompiler": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.ClassFileWriter": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.ClassFileWriter$ConstantPool": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.ClassFileWriter$Label": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.ClassFileWriter$MethodWriter": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.ClassFileWriter$VerificationType": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.ClassFileWriter$VerificationType$ObjectType": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.ClassFileWriter$VerificationType$Simple": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.engine.context.ContributingContextComposer": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.engine.context.ContributingContextComposer$CompositionResult": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.engine.dependency.StaticDependencyExtractor": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.engine.layout.DefaultLayoutRenderPlan": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.engine.macro.GlobalMacroManager": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.engine.watcher.DevelopmentFileWatcher": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.interpreter.CountingTemplateOutput": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.interpreter.InterpreterDiagnosticCodes": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.interpreter.VtlComparisonOperations": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.internal.interpreter.VtlNumericOperations": "INTERNAL_CROSS_PACKAGE",
+      "io.github.minh124199.viettemplate.vtl.interpreter.EngineInterpreterBridge": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue$State": "BENCHMARK_SUPPORT_INTERNAL",
+      "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionContext": "INTERNAL_CROSS_MODULE",
+      "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionFrame": "BENCHMARK_SUPPORT_INTERNAL",
+      "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits": "STABLE_API",
+      "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionLimits$Builder": "STABLE_API",
+      "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier": "STABLE_API",
+      "io.github.minh124199.viettemplate.vtl.interpreter.ForeachMetadata": "BENCHMARK_SUPPORT_INTERNAL",
+      "io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler": "STABLE_API",
+      "io.github.minh124199.viettemplate.vtl.interpreter.SpaceGobbler$Mode": "STABLE_API",
+      "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResource": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.vtl.interpreter.TemplateResourceResolver$InMemoryBuilder": "STABLE_SPI",
+      "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter": "STABLE_API",
+      "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions": "STABLE_API",
+      "io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder": "STABLE_API",
+      "io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy": "STABLE_SPI"
+    },
+    "baselineParity": {
+      "enforceDisjoint": true,
+      "enforceBijection": true,
+      "baselines": [
+        "config/api-baseline/1.0-core-public-api.txt",
+        "config/api-baseline/1.0-aot-public-api.txt",
+        "config/api-baseline/1.0-spring-public-api.txt",
+        "config/api-baseline/1.0-spring-security-public-api.txt",
+        "config/api-baseline/1.0-quarkus-public-api.txt"
+      ]
+    }
+  },
+  "generatedRuntimeAbi": {
+    "typesCount": 7,
+    "methodsCount": 22,
+    "fieldsCount": 0,
+    "unregisteredDependenciesAllowed": 0,
+    "baselineFile": "config/api-baseline/generated-template-runtime-abi.txt",
+    "types": [
+      "io.github.minh124199.viettemplate.api.CompiledTemplate",
+      "io.github.minh124199.viettemplate.api.RenderContext",
+      "io.github.minh124199.viettemplate.api.TemplateId",
+      "io.github.minh124199.viettemplate.api.TemplateOutput",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata",
+      "io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge"
+    ],
+    "methods": [
+      "io.github.minh124199.viettemplate.api.RenderContext.get(java.lang.String)",
+      "io.github.minh124199.viettemplate.api.TemplateId.of(java.lang.String)",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata.getCount()",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata.getIndex()",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata.isFirst()",
+      "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata.isLast()",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.binaryOp(java.lang.Object, java.lang.Object, int, java.lang.String, int, int, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countLoopIteration(io.github.minh124199.viettemplate.api.TemplateOutput)",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.createCallSite(int, java.lang.String, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.createForeachMetadata(java.lang.Object, boolean, java.lang.Object)",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.createLoopState()",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.dynamicGetIndex(io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite, java.lang.Object, java.lang.Object)",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.dynamicGetProperty(io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite, java.lang.Object)",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.dynamicInvokeMethod(io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite, java.lang.Object, java.lang.Object[])",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.isTruthy(java.lang.Object, boolean)",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.rangeIterator(java.lang.Object, java.lang.Object, int, java.lang.String, int, int, int, int)",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.recordContextVariable(io.github.minh124199.viettemplate.api.RenderContext, java.lang.String, java.lang.Object)",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.toIterator(java.lang.Object, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy, java.lang.String, int, int, int, int)",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.toUtf8Bytes(java.lang.String)",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.unaryOp(java.lang.Object, int, java.lang.String, int, int, int, int)",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.writeConst(io.github.minh124199.viettemplate.api.TemplateOutput, java.lang.String, byte[])",
+      "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.writeValue(java.lang.Object, io.github.minh124199.viettemplate.api.TemplateOutput, int, int, java.lang.String, boolean, java.lang.String, int, int, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)"
+    ]
+  },
+  "diagnosticCodes": {
+    "canonicalCodesCount": 31,
+    "unregisteredCodesAllowed": 0,
+    "baselineFile": "config/api-baseline/diagnostic-codes-1.0.txt",
+    "codes": [
+      "COMPILER:CODEGEN_ERROR",
+      "CONTEXT:COLLISION",
+      "INTERPRETER:ERROR",
+      "INTERPRETER:INVALID_METHOD",
+      "INTERPRETER:INVALID_PROPERTY",
+      "INTERPRETER:VARIABLE_UNDEFINED",
+      "LAYOUT:CYCLE_DETECTED",
+      "LAYOUT:DEPTH_EXCEEDED",
+      "LIMIT:AST_NODE_LIMIT",
+      "LIMIT:LIMIT_EXCEEDED",
+      "LIMIT:SOURCE_TOO_LARGE",
+      "LIMIT:TIME_LIMIT_EXCEEDED",
+      "RENDER:IO_ERROR",
+      "RESOURCE:NOT_FOUND",
+      "SECURITY:ACCESS_DENIED",
+      "SECURITY:COMPILATION_REJECTED",
+      "SECURITY:MALFORMED_GLOBAL_MACRO_LIBRARY",
+      "SECURITY:PROTECTED_VARIABLE",
+      "SECURITY:VIOLATION",
+      "SYNTAX:PARSE_ERROR",
+      "VTLAOT:1001",
+      "VTLAOT:1101",
+      "VTLAOT:1102",
+      "VTLAOT:1201",
+      "VTLS:2101",
+      "VTLS:2102",
+      "VTLS:2103",
+      "VTLS:2104",
+      "VTLS:2105",
+      "VTLS:2106",
+      "VTLSEC:2401"
+    ]
+  },
+  "frameworkEntrypoints": {
+    "entrypointsCount": 12,
+    "registryFile": "config/architecture/framework-and-tooling-entrypoints.json",
+    "entrypoints": [
+      {
+        "fqcn": "io.github.minh124199.viettemplate.spring.boot.autoconfigure.aot.VietTemplateRuntimeHints",
+        "module": "viet-template-spring-boot-autoconfigure",
+        "entrypointKind": "SPRING_AOT_RUNTIME_HINTS",
+        "metadataSource": "META-INF/spring/aot.factories",
+        "mustBePublic": true,
+        "mustHavePublicConstructor": true,
+        "fqcnStabilityRequired": true,
+        "userJavaApi": false,
+        "stableApiClassification": "FRAMEWORK_ENTRYPOINT",
+        "description": "Spring AOT runtime hints registrar configuring native reflection and resource hints."
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.spring.security.aot.VietTemplateSecurityRuntimeHints",
+        "module": "viet-template-spring-security",
+        "entrypointKind": "SPRING_AOT_RUNTIME_HINTS",
+        "metadataSource": "META-INF/spring/aot.factories",
+        "mustBePublic": true,
+        "mustHavePublicConstructor": true,
+        "fqcnStabilityRequired": true,
+        "userJavaApi": false,
+        "stableApiClassification": "FRAMEWORK_ENTRYPOINT",
+        "description": "Spring Security AOT runtime hints registrar for security context reflection hints in Native Image."
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.quarkus.VietTemplateProducer",
+        "module": "viet-template-quarkus",
+        "entrypointKind": "QUARKUS_CDI_PRODUCER",
+        "metadataSource": "ApplicationScoped / Produces annotations",
+        "mustBePublic": true,
+        "mustHavePublicConstructor": true,
+        "fqcnStabilityRequired": false,
+        "userJavaApi": false,
+        "stableApiClassification": "FRAMEWORK_ENTRYPOINT",
+        "description": "Quarkus Arc CDI producer providing TemplateEngine and VietTemplateRenderer beans."
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.quarkus.deployment.VietTemplateProcessor",
+        "module": "viet-template-quarkus-deployment",
+        "entrypointKind": "QUARKUS_BUILD_STEP_PROCESSOR",
+        "metadataSource": "Quarkus build-time processor discovered via Jandex and build-step annotations",
+        "mustBePublic": true,
+        "mustHavePublicConstructor": true,
+        "fqcnStabilityRequired": false,
+        "userJavaApi": false,
+        "stableApiClassification": "FRAMEWORK_ENTRYPOINT",
+        "description": "Quarkus build-step processor orchestrating AOT template compilation, index generation, and native image configuration."
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.tooling.maven.VietTemplateCompileMojo",
+        "module": "viet-template-maven-plugin",
+        "entrypointKind": "MAVEN_MOJO",
+        "metadataSource": "@Mojo(name = \"compile\") / META-INF/maven/plugin.xml",
+        "mustBePublic": true,
+        "mustHavePublicConstructor": true,
+        "fqcnStabilityRequired": false,
+        "userJavaApi": false,
+        "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+        "description": "Maven Mojo goal executing ahead-of-time (AOT) template bytecode compilation during process-resources or compile phase."
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplatePlugin",
+        "module": "viet-template-gradle-plugin",
+        "entrypointKind": "GRADLE_PLUGIN_IMPLEMENTATION",
+        "metadataSource": "META-INF/gradle-plugins/io.github.minh124199.viet-template.properties",
+        "mustBePublic": true,
+        "mustHavePublicConstructor": true,
+        "fqcnStabilityRequired": true,
+        "userJavaApi": false,
+        "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+        "description": "Gradle plugin entrypoint registering the 'viettemplate' extension and configuring compileVietTemplate tasks."
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateCompileTask",
+        "module": "viet-template-gradle-plugin",
+        "entrypointKind": "GRADLE_TASK",
+        "metadataSource": "Registered by VietTemplatePlugin as compileVietTemplate task",
+        "mustBePublic": true,
+        "mustHavePublicConstructor": true,
+        "fqcnStabilityRequired": true,
+        "userJavaApi": true,
+        "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+        "description": "Gradle task type executing ahead-of-time (AOT) template compilation into classes directory."
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension",
+        "module": "viet-template-gradle-plugin",
+        "entrypointKind": "GRADLE_EXTENSION_DSL",
+        "metadataSource": "Registered by VietTemplatePlugin as 'viettemplate' extension",
+        "mustBePublic": true,
+        "mustHavePublicConstructor": true,
+        "fqcnStabilityRequired": true,
+        "userJavaApi": true,
+        "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+        "description": "Gradle extension DSL defining user-configurable properties for template compilation."
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration",
+        "module": "viet-template-spring-boot-autoconfigure",
+        "entrypointKind": "SPRING_BOOT_AUTOCONFIGURATION",
+        "metadataSource": "META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports",
+        "mustBePublic": true,
+        "mustHavePublicConstructor": true,
+        "fqcnStabilityRequired": true,
+        "userJavaApi": false,
+        "stableApiClassification": "STABLE_API",
+        "description": "Spring Boot AutoConfiguration registering Viet Template view resolver and template engine beans."
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties",
+        "module": "viet-template-spring-boot-autoconfigure",
+        "entrypointKind": "SPRING_BOOT_CONFIGURATION_PROPERTIES",
+        "metadataSource": "@ConfigurationProperties(prefix = \"viet-template\") / VietTemplateAutoConfiguration",
+        "mustBePublic": true,
+        "mustHavePublicConstructor": true,
+        "fqcnStabilityRequired": true,
+        "userJavaApi": true,
+        "stableApiClassification": "STABLE_API",
+        "description": "Spring Boot configuration properties bean bound to application.properties/yaml prefix 'viet-template'."
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.quarkus.VietTemplateConfig",
+        "module": "viet-template-quarkus",
+        "entrypointKind": "QUARKUS_CONFIG_ROOT",
+        "metadataSource": "@ConfigRoot / @ConfigMapping(prefix = \"quarkus.viet-template\")",
+        "mustBePublic": true,
+        "mustHavePublicConstructor": false,
+        "fqcnStabilityRequired": true,
+        "userJavaApi": true,
+        "stableApiClassification": "STABLE_API",
+        "description": "Quarkus build- and run-time configuration mapping interface for 'quarkus.viet-template' prefix."
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineProvider",
+        "module": "viet-template-vtl-interpreter",
+        "entrypointKind": "SERVICE_LOADER_PROVIDER",
+        "metadataSource": "META-INF/services/io.github.minh124199.viettemplate.api.TemplateEngineProvider",
+        "mustBePublic": true,
+        "mustHavePublicConstructor": true,
+        "fqcnStabilityRequired": true,
+        "userJavaApi": false,
+        "stableApiClassification": "STABLE_API",
+        "description": "ServiceLoader provider registering the VTL template engine implementation."
+      }
+    ]
+  },
+  "crossModuleContracts": {
+    "contractsCount": 62,
+    "registryFile": "config/architecture/cross-module-internal-contracts.json",
+    "contracts": [
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlBinaryOperator",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "AST",
+        "rationale": "Binary operator enum used by interpreter during AST-level expression evaluation.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlExpression",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "AST",
+        "rationale": "AST expression node interface evaluated directly by interpreter Tier 1.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlIfBranch",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "AST",
+        "rationale": "AST branch structure traversed by interpreter conditional execution.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlMacroParameter",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "AST",
+        "rationale": "AST parameter representation for macro definitions and calls.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlMapEntry",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "AST",
+        "rationale": "AST map literal entry representation used during map evaluation.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlNode",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "AST",
+        "rationale": "Root AST node interface traversed by interpreter visitors.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ast.VtlReference",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "AST",
+        "rationale": "AST reference node resolved and evaluated in runtime context.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrBlock",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "IR instruction block executed by Tier 2 IrInterpreter.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrFunction",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "IR function unit representing macro or compiled sub-template.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrLocal",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "IR local variable slot representation in stack frames.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrParameter",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "IR parameter binding in interpreter frames.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Slot assignment and variable layout metadata used for stack allocation.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout$BindingKind",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Classification of slot binding (parameter, local, iterator).",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout$SlotLayout",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Immutable layout record passed to execution frame setup.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrSlotLayout$SlotMetadata",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Slot descriptor with type and lifetime bounds.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Top-level intermediate representation consumed by bytecode compiler and IrInterpreter.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Constant pool tables accessed during interpretation and bytecode generation.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.constant.IrTextConstant",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Pre-encoded static text chunks streamed during template execution.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.expression.IrExpression",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "IR expression hierarchy evaluated by IrInterpreter.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.lowering.AstToIrLowerer",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Lowers AST to IR within engine compilation pipeline.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizer",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Multi-pass optimizer invoked prior to bytecode generation and interpretation.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Member and property access dispatch strategy executed at runtime.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$DirectField",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Direct field access plan variant.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$DirectGetter",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Direct getter invocation plan variant.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$DirectRecord",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Direct record component access plan variant.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$DynamicCallSite",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Polymorphic dynamic call site plan variant.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$ExtensionCall",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Extension method invocation plan variant.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.AccessPlan$MapLookup",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Map key lookup plan variant.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Classification of binary operations in IR execution plans.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.IrEscapeMode",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Contextual escaping mode applied during value rendering.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.LoopPlan",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Loop execution and iteration unwinding plan.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.NullAccessMode",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Policy for navigating null references during member access.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Policy for rendering null values to output stream.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.plan.UnaryOpKind",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Classification of unary operations in IR execution plans.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStatement",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "IR statement hierarchy executed sequentially by IrInterpreter.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.ir.verifier.IrVerifier",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "IR",
+        "rationale": "Structural IR integrity verifier executed prior to execution.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexResult",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "LEXER",
+        "rationale": "Token stream and diagnostic output of lexical analysis.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexer",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "LEXER",
+        "rationale": "Lexer instance invoked by engine and template compilation.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexerOptions",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "LEXER",
+        "rationale": "Lexer configuration options passed during engine initialization.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.lexer.VtlLexerOptions$Builder",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "LEXER",
+        "rationale": "Builder for lexer configuration options.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.lexer.VtlToken",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "LEXER",
+        "rationale": "Token data structure passed between lexer and AST parser.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.lexer.VtlTokenKind",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "LEXER",
+        "rationale": "Token classification enum inspected during parsing.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysisResult",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "SEMANTICS",
+        "rationale": "Symbol tables and typed AST output from semantic analysis.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "SEMANTICS",
+        "rationale": "Semantic analyzer validating AST against model schema.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "SEMANTICS",
+        "rationale": "Analysis configuration options.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions$Builder",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "SEMANTICS",
+        "rationale": "Builder for semantic analysis configuration.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "SEMANTICS",
+        "rationale": "Root model schema passed from engine to semantic analyzer.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.language.vtl.semantics.type.PrimitiveKind",
+        "owningModule": "viet-template-language-vtl",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "SEMANTICS",
+        "rationale": "Primitive type enum used during type checking and binary ops.",
+        "planned1_0Action": "INTERNALIZE_OR_CONSOLIDATE",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.runtime.linker.AccessLink",
+        "owningModule": "viet-template-runtime",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "RUNTIME_LINKER",
+        "rationale": "Polymorphic call site link target for dynamic member resolution.",
+        "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.runtime.linker.CallSiteRegistry",
+        "owningModule": "viet-template-runtime",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "RUNTIME_LINKER",
+        "rationale": "Shared registry holding dynamic call sites across templates in an engine instance.",
+        "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite$State",
+        "owningModule": "viet-template-runtime",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "RUNTIME_LINKER",
+        "rationale": "Monomorphic / bimorphic / polymorphic inline cache state enum.",
+        "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.runtime.linker.DynamicLinker",
+        "owningModule": "viet-template-runtime",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "RUNTIME_LINKER",
+        "rationale": "Reflective dynamic linker executing property and method resolution with inline caching.",
+        "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.runtime.linker.LinkerStatistics",
+        "owningModule": "viet-template-runtime",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "RUNTIME_LINKER",
+        "rationale": "Metrics and diagnostics tracking inline cache hit/miss rates.",
+        "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.runtime.linker.MemberKey",
+        "owningModule": "viet-template-runtime",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "RUNTIME_LINKER",
+        "rationale": "Cache key encapsulating target class, member name, and invocation args.",
+        "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.runtime.linker.MemberOperation",
+        "owningModule": "viet-template-runtime",
+        "consumingModules": [
+          "viet-template-vtl-interpreter"
+        ],
+        "layer": "RUNTIME_LINKER",
+        "rationale": "Operation descriptor for property get, method invocation, and index lookup.",
+        "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.runtime.stream.NonClosingOutputStream",
+        "owningModule": "viet-template-runtime",
+        "consumingModules": [
+          "viet-template-quarkus",
+          "viet-template-spring"
+        ],
+        "layer": "RUNTIME_STREAM",
+        "rationale": "Wrapper preventing framework servlet and REST response streams from premature closure during template rendering.",
+        "planned1_0Action": "RETAIN_AS_INTERNAL_CONTRACT",
+        "consumerScope": [
+          "MAIN"
+        ],
+        "publicationStatus": "PUBLISHED"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue",
+        "owningModule": "viet-template-vtl-interpreter",
+        "consumingModules": [
+          "viet-template-benchmarks",
+          "viet-template-tck"
+        ],
+        "layer": "Interpreter",
+        "rationale": "Core 3-state (UNDEFINED/DEFINED_NULL/DEFINED_VALUE) evaluation value type accessed directly by benchmarks for slot-level performance measurement and by the TCK differential harness for semantic parity verification.",
+        "planned1_0Action": "ENCAPSULATE_BEHIND_PUBLIC_API",
+        "consumerScope": [
+          "BENCHMARK",
+          "TEST"
+        ],
+        "publicationStatus": "BENCHMARK_ONLY"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.EvaluationValue$State",
+        "owningModule": "viet-template-vtl-interpreter",
+        "consumingModules": [
+          "viet-template-benchmarks"
+        ],
+        "layer": "Interpreter",
+        "rationale": "UNDEFINED/DEFINED_NULL/DEFINED_VALUE enum accessed via the outer EvaluationValue class from benchmarks. Tck accesses it via qualified EvaluationValue.State reference, covered by the EvaluationValue contract.",
+        "planned1_0Action": "ENCAPSULATE_BEHIND_PUBLIC_API",
+        "consumerScope": [
+          "BENCHMARK"
+        ],
+        "publicationStatus": "BENCHMARK_ONLY"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionContext",
+        "owningModule": "viet-template-vtl-interpreter",
+        "consumingModules": [
+          "viet-template-benchmarks",
+          "viet-template-tck"
+        ],
+        "layer": "Interpreter",
+        "rationale": "Lexical scope chain used directly by benchmarks to set up warm execution state for slot-level assignment measurements and by TCK for differential harness context construction.",
+        "planned1_0Action": "ENCAPSULATE_BEHIND_PUBLIC_API",
+        "consumerScope": [
+          "BENCHMARK",
+          "TEST"
+        ],
+        "publicationStatus": "BENCHMARK_ONLY"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.ExecutionFrame",
+        "owningModule": "viet-template-vtl-interpreter",
+        "consumingModules": [
+          "viet-template-benchmarks"
+        ],
+        "layer": "Interpreter",
+        "rationale": "Array-backed variable slot frame accessed directly by benchmarks to measure pre-warmed slot read/write throughput without template engine overhead.",
+        "planned1_0Action": "ENCAPSULATE_BEHIND_PUBLIC_API",
+        "consumerScope": [
+          "BENCHMARK"
+        ],
+        "publicationStatus": "BENCHMARK_ONLY"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.EngineInterpreterBridge",
+        "owningModule": "viet-template-vtl-interpreter",
+        "consumingModules": [
+          "viet-template-tck"
+        ],
+        "layer": "Interpreter",
+        "rationale": "Internal bridge exposing interpreter entry points to the TCK differential harness for AST-tier and IR-tier side-by-side semantic parity verification (SemanticCompatibilityDifferentialTest, TierDifferentialHarness, VietReferenceEngineAdapter).",
+        "planned1_0Action": "ENCAPSULATE_BEHIND_PUBLIC_API",
+        "consumerScope": [
+          "TEST"
+        ],
+        "publicationStatus": "TEST_ONLY"
+      },
+      {
+        "fqcn": "io.github.minh124199.viettemplate.vtl.interpreter.ForeachMetadata",
+        "owningModule": "viet-template-vtl-interpreter",
+        "consumingModules": [
+          "viet-template-benchmarks"
+        ],
+        "layer": "Interpreter",
+        "rationale": "Concrete implementation of the language.vtl.semantics.scope.ForeachMetadata interface; accessed directly by benchmarks (VariableAssignmentBenchmark, NestedScopeBenchmark) to construct pre-initialized foreach state for scope-assignment measurements.",
+        "planned1_0Action": "ENCAPSULATE_BEHIND_PUBLIC_API",
+        "consumerScope": [
+          "BENCHMARK"
+        ],
+        "publicationStatus": "BENCHMARK_ONLY"
+      }
+    ]
+  },
+  "tckLanguageFeatures": {
+    "featuresCount": 80,
+    "matrixFile": "config/tck/vtl-feature-matrix.json",
+    "features": [
+      {
+        "id": "LEX-001",
+        "category": "LEXICAL",
+        "name": "Single-line comment",
+        "description": "Lines or inline fragments starting with ## are treated as single-line comments and omitted from rendered output.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#2"
+      },
+      {
+        "id": "LEX-002",
+        "category": "LEXICAL",
+        "name": "Multi-line block comment",
+        "description": "Content enclosed within #* and *# is treated as a block comment and excluded from rendered output.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#2"
+      },
+      {
+        "id": "LEX-003",
+        "category": "LEXICAL",
+        "name": "Reference backslash escaping",
+        "description": "Backslashes preceding reference sigils escape variable rendering according to standard Velocity escaping rules.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#18"
+      },
+      {
+        "id": "LEX-004",
+        "category": "LEXICAL",
+        "name": "Directive backslash escaping",
+        "description": "Backslashes preceding directive keywords escape directive parsing and render keyword literally.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#18"
+      },
+      {
+        "id": "LEX-005",
+        "category": "LEXICAL",
+        "name": "String literal quotes",
+        "description": "Supports single-quoted uninterpreted string literals and double-quoted interpolated string literals.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+      },
+      {
+        "id": "REF-001",
+        "category": "REFERENCE",
+        "name": "Shorthand reference notation",
+        "description": "Evaluates shorthand reference identifiers such as $user from the render context.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+      },
+      {
+        "id": "REF-002",
+        "category": "REFERENCE",
+        "name": "Formal reference notation",
+        "description": "Evaluates formal reference identifiers delimited by braces such as ${user}.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+      },
+      {
+        "id": "REF-003",
+        "category": "REFERENCE",
+        "name": "Quiet shorthand reference",
+        "description": "Suppresses output when reference evaluates to null using quiet notation $!user.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+      },
+      {
+        "id": "REF-004",
+        "category": "REFERENCE",
+        "name": "Quiet formal reference",
+        "description": "Suppresses output when reference evaluates to null using quiet formal notation $!{user}.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+      },
+      {
+        "id": "REF-005",
+        "category": "REFERENCE",
+        "name": "Reference text concatenation",
+        "description": "Concatenates formal reference with immediately adjacent literal suffix text without whitespace.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+      },
+      {
+        "id": "PROP-001",
+        "category": "PROPERTY",
+        "name": "JavaBean getter property access",
+        "description": "Resolves $bean.property to standard getProperty() getter method.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+      },
+      {
+        "id": "PROP-002",
+        "category": "PROPERTY",
+        "name": "Boolean is-accessor property access",
+        "description": "Resolves $bean.active to boolean isProperty() accessor method.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+      },
+      {
+        "id": "PROP-003",
+        "category": "PROPERTY",
+        "name": "Record component property access",
+        "description": "Resolves $record.component to Java record accessor component().",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+      },
+      {
+        "id": "PROP-004",
+        "category": "PROPERTY",
+        "name": "Map key property access",
+        "description": "Resolves $map.key to Map.get('key') when receiver is java.util.Map.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+      },
+      {
+        "id": "PROP-005",
+        "category": "PROPERTY",
+        "name": "Property lookup fallback order",
+        "description": "Resolves properties using Velocity candidate ordering (getProp, GetProp, isProp, prop).",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+      },
+      {
+        "id": "IDX-001",
+        "category": "INDEX",
+        "name": "Array index access",
+        "description": "Indexes into Java arrays with zero-based integer index syntax $arr[0].",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#7"
+      },
+      {
+        "id": "IDX-002",
+        "category": "INDEX",
+        "name": "List index access",
+        "description": "Indexes into java.util.List instances with zero-based index syntax $list[1].",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#7"
+      },
+      {
+        "id": "IDX-003",
+        "category": "INDEX",
+        "name": "Map key index access",
+        "description": "Accesses java.util.Map entries using bracket notation $map['key'].",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#7"
+      },
+      {
+        "id": "IDX-004",
+        "category": "INDEX",
+        "name": "Dynamic variable index access",
+        "description": "Indexes collection or map using dynamic variable expression $arr[$idx].",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#7"
+      },
+      {
+        "id": "IDX-005",
+        "category": "INDEX",
+        "name": "Multi-dimensional nested index",
+        "description": "Chains consecutive index brackets for nested collections $matrix[0][1].",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#7"
+      },
+      {
+        "id": "METH-001",
+        "category": "METHOD",
+        "name": "Parameterless method call",
+        "description": "Invokes public parameterless method on receiver object $obj.getName().",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#6"
+      },
+      {
+        "id": "METH-002",
+        "category": "METHOD",
+        "name": "Single-argument method call",
+        "description": "Invokes public method passing single argument expression $calc.doubleVal(5).",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#6"
+      },
+      {
+        "id": "METH-003",
+        "category": "METHOD",
+        "name": "Multi-argument method call",
+        "description": "Invokes public method passing multiple argument expressions $calc.add(3, 4).",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#6"
+      },
+      {
+        "id": "METH-004",
+        "category": "METHOD",
+        "name": "Overloaded method resolution",
+        "description": "Resolves overloaded method candidates by dynamic argument types.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#6"
+      },
+      {
+        "id": "METH-005",
+        "category": "METHOD",
+        "name": "Varargs method invocation",
+        "description": "Invokes variable-arity method with variable number of arguments $calc.join('a', 'b').",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#6"
+      },
+      {
+        "id": "EXPR-001",
+        "category": "EXPRESSION",
+        "name": "Arithmetic operators",
+        "description": "Evaluates standard arithmetic operators (+, -, *, /, %).",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+      },
+      {
+        "id": "EXPR-002",
+        "category": "EXPRESSION",
+        "name": "Relational comparison operators",
+        "description": "Evaluates comparison operators (==, !=, <, <=, >, >=).",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+      },
+      {
+        "id": "EXPR-003",
+        "category": "EXPRESSION",
+        "name": "Logical boolean operators",
+        "description": "Evaluates logical operators (&&, ||, !, and, or, not).",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+      },
+      {
+        "id": "EXPR-004",
+        "category": "EXPRESSION",
+        "name": "Integer range literal",
+        "description": "Constructs ascending and descending integer range sequences [1..5].",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+      },
+      {
+        "id": "EXPR-005",
+        "category": "EXPRESSION",
+        "name": "Parenthesized expression grouping",
+        "description": "Overrides operator precedence with parenthesized sub-expressions (a + b) * c.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+      },
+      {
+        "id": "TRUTH-001",
+        "category": "TRUTHINESS",
+        "name": "Boolean literal truthiness",
+        "description": "Evaluates boolean true as truthy and false as falsy.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#9"
+      },
+      {
+        "id": "TRUTH-002",
+        "category": "TRUTHINESS",
+        "name": "Null truthiness",
+        "description": "Evaluates null value or undefined reference as falsy in boolean context.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#9"
+      },
+      {
+        "id": "TRUTH-003",
+        "category": "TRUTHINESS",
+        "name": "Number truthiness",
+        "description": "Evaluates numeric zero (0) as falsy and non-zero numbers as truthy.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#9"
+      },
+      {
+        "id": "TRUTH-004",
+        "category": "TRUTHINESS",
+        "name": "String truthiness",
+        "description": "Evaluates empty string as falsy and non-empty string as truthy.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#9"
+      },
+      {
+        "id": "TRUTH-005",
+        "category": "TRUTHINESS",
+        "name": "Collection and map truthiness",
+        "description": "Evaluates empty collections and maps as falsy, non-empty as truthy.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#9"
+      },
+      {
+        "id": "TRUTH-006",
+        "category": "TRUTHINESS",
+        "name": "Non-null object truthiness",
+        "description": "Evaluates arbitrary non-null non-empty Java objects as truthy.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#9"
+      },
+      {
+        "id": "SET-001",
+        "category": "SET",
+        "name": "Scalar assignment",
+        "description": "Assigns integer or string literal to template-scoped variable via #set.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#10"
+      },
+      {
+        "id": "SET-002",
+        "category": "SET",
+        "name": "Expression evaluation assignment",
+        "description": "Assigns evaluated arithmetic or reference expression to variable via #set.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#10"
+      },
+      {
+        "id": "SET-003",
+        "category": "SET",
+        "name": "List literal assignment",
+        "description": "Assigns list literal [1, 2, 3] to variable via #set.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#10"
+      },
+      {
+        "id": "SET-004",
+        "category": "SET",
+        "name": "Map literal assignment",
+        "description": "Assigns map literal {'key': 'value'} to variable via #set.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#10"
+      },
+      {
+        "id": "SET-005",
+        "category": "SET",
+        "name": "Variable reassignment",
+        "description": "Reassigns existing variable to new value within template execution scope.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#10"
+      },
+      {
+        "id": "IF-001",
+        "category": "IF",
+        "name": "Basic #if conditional",
+        "description": "Executes template body conditionally based on boolean expression in #if.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#11"
+      },
+      {
+        "id": "IF-002",
+        "category": "IF",
+        "name": "#if and #else branches",
+        "description": "Selects between truthy branch and #else fallback branch.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#11"
+      },
+      {
+        "id": "IF-003",
+        "category": "IF",
+        "name": "#if, #elseif and #else branches",
+        "description": "Chains multiple conditional branches through #elseif directives.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#11"
+      },
+      {
+        "id": "IF-004",
+        "category": "IF",
+        "name": "Nested conditional directives",
+        "description": "Evaluates nested #if conditions within outer conditional blocks.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#11"
+      },
+      {
+        "id": "FOREACH-001",
+        "category": "FOREACH",
+        "name": "List collection iteration",
+        "description": "Iterates over java.util.List elements via #foreach($item in $list).",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#12"
+      },
+      {
+        "id": "FOREACH-002",
+        "category": "FOREACH",
+        "name": "Array and range iteration",
+        "description": "Iterates over Java arrays and integer range literals [1..3].",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#12"
+      },
+      {
+        "id": "FOREACH-003",
+        "category": "FOREACH",
+        "name": "Loop index and count metadata",
+        "description": "Exposes 0-based $foreach.index and 1-based $foreach.count loop metadata.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#12"
+      },
+      {
+        "id": "FOREACH-004",
+        "category": "FOREACH",
+        "name": "Loop boundary state metadata",
+        "description": "Exposes $foreach.first, $foreach.last, and $foreach.hasNext loop state flags.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#12"
+      },
+      {
+        "id": "FOREACH-005",
+        "category": "FOREACH",
+        "name": "Early loop break directive",
+        "description": "Terminates current loop execution immediately upon encountering #break.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#15"
+      },
+      {
+        "id": "FOREACH-006",
+        "category": "FOREACH",
+        "name": "Empty collection loop fallback",
+        "description": "Executes #else branch when iterated collection is empty or null.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#12"
+      },
+      {
+        "id": "MACRO-001",
+        "category": "MACRO",
+        "name": "Parameterless velocimacro",
+        "description": "Defines and invokes parameterless inline velocimacro via #macro(name) and #name().",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#17"
+      },
+      {
+        "id": "MACRO-002",
+        "category": "MACRO",
+        "name": "Parameterized velocimacro",
+        "description": "Defines and calls velocimacro with positional arguments #macro(greet $name).",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#17"
+      },
+      {
+        "id": "MACRO-003",
+        "category": "MACRO",
+        "name": "Nested velocimacro invocation",
+        "description": "Invokes a velocimacro from within the body of another velocimacro.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#17"
+      },
+      {
+        "id": "MACRO-004",
+        "category": "MACRO",
+        "name": "Recursive velocimacro invocation",
+        "description": "Supports recursive macro invocations with base case termination.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#17"
+      },
+      {
+        "id": "DYN-001",
+        "category": "DYNAMIC",
+        "name": "Dynamic evaluation directive #evaluate",
+        "description": "Evaluates dynamic VTL snippet string at runtime in VTL_DYNAMIC profile.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#16"
+      },
+      {
+        "id": "DYN-002",
+        "category": "DYNAMIC",
+        "name": "Dynamic property resolution",
+        "description": "Resolves map or bean property with variable runtime key expression.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+      },
+      {
+        "id": "DYN-003",
+        "category": "DYNAMIC",
+        "name": "Polymorphic dynamic method dispatch",
+        "description": "Dispatches method invocation on polymorphic interface receiver instance.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#6"
+      },
+      {
+        "id": "STATE3-001",
+        "category": "STATE3",
+        "name": "Tri-state quiet null suppression",
+        "description": "Quiet reference notation $!nullVar renders empty string when receiver is null.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+      },
+      {
+        "id": "STATE3-002",
+        "category": "STATE3",
+        "name": "Unresolved reference literal rendering",
+        "description": "Unresolved non-quiet reference renders literal source string $undefined.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+      },
+      {
+        "id": "STATE3-003",
+        "category": "STATE3",
+        "name": "Alternate default value expression",
+        "description": "Provides fallback value expression when reference is null or missing ($val|'default').",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+      },
+      {
+        "id": "STRICT-001",
+        "category": "STRICT",
+        "name": "Strict mode undefined variable check",
+        "description": "Throws TemplateRenderException when undefined variable is accessed in strict mode.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#4"
+      },
+      {
+        "id": "STRICT-002",
+        "category": "STRICT",
+        "name": "Strict mode invalid property access check",
+        "description": "Throws TemplateRenderException when non-existent property is accessed on target in strict mode.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#5"
+      },
+      {
+        "id": "SEC-001",
+        "category": "SECURITY",
+        "name": "Reflection denial on getClass",
+        "description": "Denies access to getClass() and .class property by default with TemplateSecurityException.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#21"
+      },
+      {
+        "id": "SEC-002",
+        "category": "SECURITY",
+        "name": "ClassLoader and system pivot blocking",
+        "description": "Blocks access to ClassLoader, Thread, Runtime, and ProcessBuilder targets.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#21"
+      },
+      {
+        "id": "SEC-003",
+        "category": "SECURITY",
+        "name": "Macro recursion depth limit",
+        "description": "Terminates infinite or excessive macro recursion with TemplateLimitException.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#21"
+      },
+      {
+        "id": "SEC-004",
+        "category": "SECURITY",
+        "name": "Parse cycle and depth limit",
+        "description": "Guards against infinite #parse cycles and recursion with TemplateLimitException.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#21"
+      },
+      {
+        "id": "ERR-001",
+        "category": "ERRORS",
+        "name": "Division by zero runtime error",
+        "description": "Fails fast throwing TemplateRenderException with DIVISION_BY_ZERO diagnostic code.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#8"
+      },
+      {
+        "id": "ERR-002",
+        "category": "ERRORS",
+        "name": "Syntax error diagnosis",
+        "description": "Reports malformed template syntax throwing TemplateSyntaxException with exact span coordinates.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#19"
+      },
+      {
+        "id": "ERR-003",
+        "category": "ERRORS",
+        "name": "Missing template resource error",
+        "description": "Throws TemplateResourceException when referenced template resource cannot be resolved.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#14"
+      },
+      {
+        "id": "UNICODE-001",
+        "category": "UNICODE",
+        "name": "Vietnamese diacritic encoding",
+        "description": "Correctly parses and renders UTF-8 Vietnamese accented characters (\u0103, \u00e2, \u0111, \u00ea, \u00f4, \u01a1, \u01b0).",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#1"
+      },
+      {
+        "id": "UNICODE-002",
+        "category": "UNICODE",
+        "name": "Multilingual CJK and non-Latin text",
+        "description": "Preserves multibyte CJK, Arabic, and Cyrillic character encodings without corruption.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#1"
+      },
+      {
+        "id": "UNICODE-003",
+        "category": "UNICODE",
+        "name": "Emoji and surrogate pair rendering",
+        "description": "Preserves supplementary plane characters and 4-byte UTF-8 emoji surrogates.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#1"
+      },
+      {
+        "id": "APP-001",
+        "category": "APPLICATION",
+        "name": "Static template composition #parse",
+        "description": "Composes nested template by static name via #parse directive inheriting caller context.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#14"
+      },
+      {
+        "id": "APP-002",
+        "category": "APPLICATION",
+        "name": "Static raw resource inclusion #include",
+        "description": "Includes raw non-evaluated resource text directly via #include directive.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#13"
+      },
+      {
+        "id": "APP-003",
+        "category": "APPLICATION",
+        "name": "RenderContext contributor merge",
+        "description": "Merges external attributes into execution context via RenderContextContributor SPI.",
+        "status": "SUPPORTED",
+        "classification": "EXACT_MATCH",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/02-vtl-compatibility-spec.md#20"
+      },
+      {
+        "id": "DIFF-001",
+        "category": "INTENTIONAL_DIFFERENCE",
+        "name": "Fail-fast division by zero",
+        "description": "Viet Template fails fast with TemplateRenderException instead of producing null output on division by zero.",
+        "status": "INTENTIONAL_DIFFERENCE",
+        "classification": "EXPECTED_DIFFERENCE",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/06-velocity-2.4.1-compatibility.md#4.1",
+        "rationale": "Silent arithmetic errors mask critical bugs in financial and billing templates; fail-fast ensures immediate defect discovery."
+      },
+      {
+        "id": "DIFF-002",
+        "category": "INTENTIONAL_DIFFERENCE",
+        "name": "Default reflection and class access denial",
+        "description": "Viet Template denies reflection access to getClass() and .class by default in standard execution.",
+        "status": "INTENTIONAL_DIFFERENCE",
+        "classification": "EXPECTED_DIFFERENCE",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/06-velocity-2.4.1-compatibility.md#4.2",
+        "rationale": "Template injection vulnerabilities in Velocity frequently pivot through getClass() to achieve RCE; Viet Template is secure by default."
+      },
+      {
+        "id": "DIFF-003",
+        "category": "INTENTIONAL_DIFFERENCE",
+        "name": "Legacy #set null RHS preservation option",
+        "description": "Viet Template supports Velocity 1.x null RHS preservation where undefined RHS leaves variable untouched.",
+        "status": "INTENTIONAL_DIFFERENCE",
+        "classification": "EXPECTED_DIFFERENCE",
+        "requiredBackends": [
+          "IR",
+          "AOT_BYTECODE"
+        ],
+        "specificationReference": "docs/06-velocity-2.4.1-compatibility.md#4.3",
+        "rationale": "Many enterprise templates migrating from Velocity 1.7 rely on null RHS preservation for cascading defaults, which was removed in Velocity 2.x."
+      },
+      {
+        "id": "EXT-001",
+        "category": "EXTENSION",
+        "name": "Programmatic loop termination via $foreach.stop()",
+        "description": "Supports programmatic loop termination using $foreach.stop() method call on loop metadata.",
+        "status": "EXTENSION",
+        "classification": "VIET_EXTENSION",
+        "requiredBackends": [
+          "IR"
+        ],
+        "specificationReference": "docs/06-velocity-2.4.1-compatibility.md#5.1",
+        "rationale": "Preserves backward compatibility with legacy enterprise templates utilizing programmatic loop termination."
+      }
+    ]
+  },
+  "frameworkSupport": {
+    "springBoot": {
+      "declaredMinimum": "3.3.0",
+      "testedVersions": [
+        "3.3.5",
+        "4.1.1"
+      ],
+      "canonicalCi": "4.1.1",
+      "latestQualified": "4.1.1"
+    },
+    "springFramework": {
+      "declaredMinimum": "6.1.0",
+      "testedVersions": [
+        "6.1.14",
+        "7.0.9"
+      ],
+      "canonicalCi": "7.0.9",
+      "latestQualified": "7.0.9"
+    },
+    "springSecurity": {
+      "declaredMinimum": "6.3.0",
+      "testedVersions": [
+        "6.3.4",
+        "6.5.11",
+        "7.0.7",
+        "7.1.1"
+      ],
+      "canonicalCi": "7.1.1",
+      "latestQualified": "7.1.1"
+    },
+    "quarkus": {
+      "declaredMinimum": "3.33.0",
+      "testedVersions": [
+        "3.33.3",
+        "3.39.4"
+      ],
+      "canonicalCi": "3.39.4",
+      "latestQualified": "3.39.4"
+    },
+    "buildTooling": {
+      "maven": {
+        "declaredMinimum": "3.8.0",
+        "canonicalWrapper": "3.9.9",
+        "testedVersions": [
+          "3.9.9"
+        ]
+      },
+      "gradle": {
+        "declaredMinimum": "8.5",
+        "canonicalWrapper": "9.7.1",
+        "testedVersions": [
+          "9.7.1"
+        ]
+      }
+    },
+    "jakartaEeAndCdi": {
+      "standaloneIntegration": false,
+      "status": "NO_STANDALONE_JAKARTA_INTEGRATION"
+    }
+  },
+  "publicationTopology": {
+    "groupId": "io.github.minh124199",
+    "parentPomIncluded": true,
+    "productionModulesCount": 12,
+    "totalPublishedArtifactsIntended": 14,
+    "generatedPluginMarkerCount": 1,
+    "nonPublishedModulesCount": 2,
+    "nonPublishedModules": [
+      "viet-template-tck",
+      "viet-template-benchmarks"
+    ],
+    "currentSnapshot": "0.3.0-SNAPSHOT",
+    "currentSnapshotPublished": false,
+    "automaticModuleName": {
+      "declared": false,
+      "status": "NO_AUTOMATIC_MODULE_NAME_HEADER"
+    }
+  },
+  "blockerDisposition": {
+    "p0BlockerCount": 0,
+    "p1BlockerCount": 0,
+    "signatureLeaks": 0,
+    "pbciaDebt": {
+      "totalTypes": 85,
+      "status": "NON_BLOCKING_P2",
+      "targetMilestone": "M22",
+      "rationale": "All 85 PBCIA types have 0 signature leaks into STABLE_API or STABLE_SPI, cannot be reached by public consumers, ForeachMetadata is frozen under the generated ABI baseline, and structural module realignment is deferred to M22."
+    },
+    "verdict": "CANONICAL_1_0_0_BASELINE_ACTIVE"
+  }
+}
