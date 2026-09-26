@@ -1,0 +1,4 @@
+<h1>Protected Content</h1>
+#if($security.authenticated)
+<p id="welcome-message">Hello, $security.name!</p>
+#end

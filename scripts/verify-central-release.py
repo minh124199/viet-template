@@ -37,12 +37,18 @@ EXCLUDED_MODULES = ("viet-template-tck", "viet-template-benchmarks")
 def artifact_urls(version: str) -> dict[str, tuple[str, ...]]:
     result = {PARENT: (f"{PARENT}-{version}.pom",)}
     for module in PUBLISHED_MODULES:
-        result[module] = (
-            f"{module}-{version}.pom",
-            f"{module}-{version}.jar",
-            f"{module}-{version}-sources.jar",
-            f"{module}-{version}-javadoc.jar",
-        )
+        if module == "viet-template-spring-boot-starter":
+            result[module] = (
+                f"{module}-{version}.pom",
+                f"{module}-{version}.jar",
+            )
+        else:
+            result[module] = (
+                f"{module}-{version}.pom",
+                f"{module}-{version}.jar",
+                f"{module}-{version}-sources.jar",
+                f"{module}-{version}-javadoc.jar",
+            )
     result[PLUGIN_MARKER] = (f"io.github.minh124199.viet-template.gradle.plugin-{version}.pom",)
     return result
 

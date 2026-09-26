@@ -10,7 +10,7 @@ version="$1"
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
-mkdir -p "$scratch/maven-repository" "$scratch/gradle-home" "$scratch/gradle-project" "$scratch/maven-project"
+mkdir -p "$scratch/maven-repository" "$scratch/gradle-home" "$scratch/gradle-project/src/main/viet-template" "$scratch/maven-project"
 cp scripts/consumer-smoke/pom.xml "$scratch/maven-project/pom.xml"
 cp scripts/consumer-smoke/settings.gradle.kts "$scratch/gradle-project/settings.gradle.kts"
 cp scripts/consumer-smoke/build.gradle.kts "$scratch/gradle-project/build.gradle.kts"
