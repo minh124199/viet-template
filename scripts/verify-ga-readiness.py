@@ -468,19 +468,19 @@ def evaluate_ga_readiness(args: argparse.Namespace) -> dict[str, Any]:
     print(f"API/ABI:                    {'PASS' if api_res['passed'] and abi_res['passed'] else 'FAIL'}")
     print(f"Public surface:             {'PASS' if surface_res['passed'] else 'FAIL'}")
     print(f"Diagnostics:                {'PASS' if diag_res['passed'] else 'FAIL'}")
-    print(f"TCK:                        {'PASS' if tck_res['passed'] else 'FAIL'}")
+    print(f"TCK coverage:               {'PASS' if tck_res['passed'] else 'FAIL'}")
     print(f"Maven/Gradle parity:        {'PASS' if parity_res['passed'] else 'FAIL'}")
-    print(f"Spring:                     {'PASS' if entry_res['passed'] else 'FAIL'}")
-    print(f"Spring Security:            {'PASS' if sec_res['passed'] else 'FAIL'}")
+    print(f"Framework metadata:         {'PASS' if entry_res['passed'] else 'FAIL'}")
+    print(f"Security policy:            {'PASS' if sec_res['passed'] else 'FAIL'}")
     print("Quarkus JVM:                NOT EXECUTED by this static aggregator")
     print("Quarkus Native:                NOT EXECUTED by this static aggregator")
     print("Spring Native:                NOT EXECUTED by this static aggregator")
-    print(f"Security regression:        {'PASS' if sec_res['passed'] else 'FAIL'}")
-    print(f"Performance regression:     {'PASS' if perf_res['passed'] else 'FAIL'}")
+    print(f"Security static checks:     {'PASS' if sec_res['passed'] else 'FAIL'}")
+    print(f"Performance manifest:       {'PASS' if perf_res['passed'] else 'FAIL'}")
     print(f"Artifact topology:          {'PASS' if meta_res['passed'] else 'FAIL'}")
     print(f"Release metadata:           {'PASS' if meta_res['passed'] else 'FAIL'}")
     print(f"Clean-worktree verification:{'PASS' if clean_wt_res['passed'] else 'FAIL'}")
-    print(f"GA workflow dry-run:        {'PASS' if dry_run_res['passed'] else 'FAIL'}")
+    print(f"Workflow static contract:   {'PASS' if dry_run_res['passed'] else 'FAIL'}")
     print(f"P0: {p0_count}")
     print(f"P1: {p1_count}")
     print(f"RC4_REQUIRED={str(requires_rc4).lower()}")
@@ -489,6 +489,7 @@ def evaluate_ga_readiness(args: argparse.Namespace) -> dict[str, Any]:
 
     # Machine-readable report matching canonical schema
     report: dict[str, Any] = {
+        "qualification_scope": "static-audit",
         "release_state": freeze_result.get("release_state"),
         "requires_patch_release": freeze_result.get("requires_patch_release", False),
         "baseline_version": baseline_tag.removeprefix("v"),

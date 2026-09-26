@@ -16,6 +16,11 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+// Match the published Java 21 baseline even when Gradle runs on newer JDKs.
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(21)
+}
+
 tasks.test {
     useJUnitPlatform()
 }
