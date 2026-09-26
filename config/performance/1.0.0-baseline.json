@@ -1,0 +1,112 @@
+{
+  "_schema": "viet-template-performance-baseline/1.0",
+  "_description": "Canonical 1.0.0 GA performance baseline for Viet Template 1.x regression tracking",
+  "version": "1.0.0",
+  "tag": "v1.0.0",
+  "commit": "b951021e9975b8e8103b2402dc244b32a96afaa8",
+  "evidenceSource": {
+    "type": "RELEASE_QUALIFICATION",
+    "evidenceDir": "benchmark-evidence/m18",
+    "evidenceCommit": "6838a3227d8010d74dbd94aea93411208e43438b",
+    "evidenceCreatedAt": "2026-09-20T13:05:17Z",
+    "note": "M18 RELEASE_QUALIFICATION evidence captured on pre-GA feature branch. The 1.0.0 GA commit (b951021) contains no performance-relevant changes relative to this baseline — it contains only release metadata, changelog, and documentation updates. This evidence is accepted as the canonical 1.0.0 performance baseline per M14 policy.",
+    "manifestSha256": "fb658d4f8bc7de38a6f79b8cc544979431286f7150b845b68c1ad2101bb74a28"
+  },
+  "jmhVersion": "1.37",
+  "protocol": {
+    "classification": "RELEASE_QUALIFICATION",
+    "forks": 3,
+    "warmupIterations": 5,
+    "measurementIterations": 10
+  },
+  "workloads": {
+    "c01_staticHtml": {
+      "description": "Static HTML rendering — no variable substitution",
+      "mode": "thrpt",
+      "unit": "ops/s"
+    },
+    "c02_scalarVariables": {
+      "description": "Scalar variable substitution (string, int, boolean)",
+      "mode": "thrpt",
+      "unit": "ops/s"
+    },
+    "c03_deepPropertyChains": {
+      "description": "Deep property chain traversal via reflective linker",
+      "mode": "thrpt",
+      "unit": "ops/s"
+    },
+    "c04_conditionals": {
+      "description": "Conditional branching (#if / #else / #end)",
+      "mode": "thrpt",
+      "unit": "ops/s"
+    },
+    "c05_smallTableForeach": {
+      "description": "Small list iteration — 10-row foreach",
+      "mode": "thrpt",
+      "unit": "ops/s"
+    },
+    "c06_largeTableForeach": {
+      "description": "Large list iteration — 1000-row foreach",
+      "mode": "thrpt",
+      "unit": "ops/s"
+    },
+    "c07_nestedForeach": {
+      "description": "Nested foreach loops",
+      "mode": "thrpt",
+      "unit": "ops/s"
+    },
+    "c08_htmlEscaping": {
+      "description": "HTML-unsafe content requiring entity escaping",
+      "mode": "thrpt",
+      "unit": "ops/s"
+    }
+  },
+  "profiles": {
+    "J21-G1": {
+      "description": "OpenJDK 21 with G1GC — minimum supported runtime",
+      "java": {
+        "majorVersion": 21,
+        "collector": "G1",
+        "flags": ["-server", "-Xms2g", "-Xmx2g", "-XX:+AlwaysPreTouch", "-XX:+UseG1GC"]
+      },
+      "results": {
+        "c01_staticHtml":        { "score": 4835232.856466124,  "scoreError": 61818.11921048688,  "scoreUnit": "ops/s" },
+        "c02_scalarVariables":   { "score": 1177241.1670001554, "scoreError": 18538.366586650496, "scoreUnit": "ops/s" },
+        "c03_deepPropertyChains":{ "score": 194229.96786811113, "scoreError": 11539.816642943933, "scoreUnit": "ops/s" },
+        "c04_conditionals":      { "score": 1334332.721911002,  "scoreError": 16944.65690171268,  "scoreUnit": "ops/s" },
+        "c05_smallTableForeach": { "score": 114466.29362098634, "scoreError": 1331.261872368723,  "scoreUnit": "ops/s" },
+        "c06_largeTableForeach": { "score": 6282.109231391559,  "scoreError": 103.45881363716205, "scoreUnit": "ops/s" },
+        "c07_nestedForeach":     { "score": 102523.61515136788, "scoreError": 1132.3685860784599, "scoreUnit": "ops/s" },
+        "c08_htmlEscaping":      { "score": 257200.12567750335, "scoreError": 4064.39027613643,   "scoreUnit": "ops/s" }
+      }
+    },
+    "J25-G1": {
+      "description": "OpenJDK 25 with G1GC — primary development and CI runtime",
+      "java": {
+        "majorVersion": 25,
+        "collector": "G1",
+        "flags": ["-server", "-Xms2g", "-Xmx2g", "-XX:+AlwaysPreTouch", "-XX:+UseG1GC"]
+      },
+      "results": {
+        "c01_staticHtml":        { "score": 10763964.286277447, "scoreError": 117865.6438363619,  "scoreUnit": "ops/s" },
+        "c02_scalarVariables":   { "score": 1852108.4075667316, "scoreError": 46758.24520254401,  "scoreUnit": "ops/s" },
+        "c03_deepPropertyChains":{ "score": 192684.13527865332, "scoreError": 1415.6658137520237, "scoreUnit": "ops/s" },
+        "c04_conditionals":      { "score": 1499495.9667740115, "scoreError": 34082.71058889879,  "scoreUnit": "ops/s" },
+        "c05_smallTableForeach": { "score": 111521.00882455145, "scoreError": 1842.3850023803595, "scoreUnit": "ops/s" },
+        "c06_largeTableForeach": { "score": 6511.359912334858,  "scoreError": 118.52739568683029, "scoreUnit": "ops/s" },
+        "c07_nestedForeach":     { "score": 99946.32287358855,  "scoreError": 2186.5790191529704, "scoreUnit": "ops/s" },
+        "c08_htmlEscaping":      { "score": 292996.9309485926,  "scoreError": 5113.942313508907,  "scoreUnit": "ops/s" }
+      }
+    }
+  },
+  "regressionPolicy": {
+    "description": "A benchmark run is a regression if throughput falls more than the threshold below the baseline score.",
+    "defaultThresholdPercent": 10.0,
+    "perWorkloadOverrides": {
+      "c03_deepPropertyChains": {
+        "thresholdPercent": 15.0,
+        "rationale": "Reflective linker performance has higher variance due to JIT warm-up sensitivity"
+      }
+    }
+  }
+}
