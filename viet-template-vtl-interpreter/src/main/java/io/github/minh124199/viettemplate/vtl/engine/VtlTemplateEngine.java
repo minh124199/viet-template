@@ -235,6 +235,10 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
       }
     }
 
+    // Capture freshness before loading the source. A replacement during lookup or compilation
+    // must not label an old compiled template with the replacement's token.
+    Optional<FreshnessToken> freshness = repositoryFreshnessToken(id);
+
     // 2. Repository lookup
     Optional<TemplateSource> sourceOpt = repository.find(id);
     if (sourceOpt.isEmpty()) {
@@ -277,7 +281,6 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
     TemplateDescriptor descriptor = TemplateDescriptor.of(id, executionTier.name());
     VtlTemplate template =
         new VtlTemplate(descriptor, compiledHandle, sourceText, interpreterOptions, interpreter);
-    Optional<FreshnessToken> freshness = repositoryFreshnessToken(id);
     PreparedTemplateEntry entry =
         new PreparedTemplateEntry(
             id,
