@@ -2,14 +2,16 @@
 """
 scripts/verify-ga-product-freeze.py
 
-Formal GA Product-Freeze Verifier for Viet Template 1.0 (Milestone M13).
-Validates that NO forbidden product source code or contracts have changed
-between the qualified baseline (v1.0.0-RC3) and the GA candidate.
+State-aware release policy verifier for Viet Template 1.0.
+Historical pre-GA audits forbid product drift from RC3. Post-GA audits compare
+to immutable v1.0.0 and classify fixes as requiring the 1.0.1 patch release.
+A passing post-GA classification does not establish compatibility or readiness.
 
 Accepts:
-  --baseline-tag v1.0.0-RC3
+  --release-state auto|pre-ga|post-ga
+  --baseline-tag (defaults to RC3 before GA, v1.0.0 after GA)
   --candidate HEAD (or commit SHA)
-  --target-version 1.0.0
+  --target-version (defaults to 1.0.0 before GA, 1.0.1-SNAPSHOT after GA)
   --include-uncommitted (include dirty working tree in audit)
 
 Classification Categories:

@@ -5,7 +5,7 @@ verify-ga-readiness.py
 Master GA Readiness Verifier for Viet Template 1.0 (Milestone M13).
 Orchestrates and verifies the critical GA invariants:
 1. RC3 Release Provenance & Immutability (tags, commits, Central deployment)
-2. Product Freeze (0 product drift, 0 unclassified drift via verify-ga-product-freeze.py)
+2. State-aware product policy (historical RC3 freeze or post-GA patch development)
 3. API Freeze & Compatibility (0 breaking changes across all 5 baselines)
 4. Runtime ABI Freeze (exact 7 types, 22 methods, 0 fields, 0 unregistered)
 5. Public Surface Classification (339 types, 121 stable, 0 signature leaks)
@@ -23,7 +23,8 @@ Orchestrates and verifies the critical GA invariants:
 17. GA Workflow Dry-Run Contract (stable non-prerelease)
 
 Emits: build/reports/ga-readiness.json
-Verdict: READY_TO_TAG_1_0_0 (or RC4_REQUIRED / NOT_READY_FOR_1_0_0)
+Pre-GA verdict: READY_TO_TAG_1_0_0 (or RC4_REQUIRED / NOT_READY_FOR_1_0_0)
+Post-GA verdict: PATCH_RELEASE_REQUIRED (or NOT_READY_FOR_1_0_1)
 """
 
 from __future__ import annotations
