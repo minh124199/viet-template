@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-VERSION="${1:-1.0.0-RC3}"
+VERSION="${1:-1.0.0}"
 
 if [[ "$VERSION" == *-SNAPSHOT ]]; then
   echo "ERROR: SNAPSHOT version '$VERSION' is not eligible for Maven Central consumer verification." >&2
