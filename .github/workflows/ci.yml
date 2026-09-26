@@ -203,6 +203,21 @@ jobs:
       - name: Run Public Surface Classification Verification
         run: python3 scripts/verify-public-surface-classification.py
 
+      - name: Run Generated ABI Verification
+        run: python3 scripts/verify-generated-abi.py
+
+      - name: Run Diagnostic Codes Verification
+        run: python3 scripts/verify-diagnostic-codes.py
+
+      - name: Run Framework Entrypoints Verification
+        run: python3 scripts/verify-framework-entrypoints.py
+
+      - name: Run Cross-Module Contracts Verification
+        run: python3 scripts/verify-cross-module-contracts.py
+
+      - name: Run 1.0.0 Canonical Compatibility Baseline Verification
+        run: python3 scripts/verify-compatibility-baseline.py
+
   release-infrastructure-tier-a:
     name: Tier A — Release Infrastructure Contract
     runs-on: ubuntu-latest
