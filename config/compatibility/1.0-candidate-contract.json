@@ -3,8 +3,8 @@
   "version": "1.0",
   "contractName": "Viet Template 1.0 Candidate Release Contract",
   "description": "Authoritative machine-readable 1.0 candidate release contract defining compatibility invariants, public surface classifications, generated runtime ABI, diagnostic codes, framework matrix, publication topology, and blocker dispositions.",
-  "targetRelease": "1.0.0-RC3",
-  "targetVerdict": "READY_FOR_1_0_API_FREEZE_AND_RC_PREPARATION",
+  "targetRelease": "1.0.0",
+  "targetVerdict": "READY_TO_TAG_1_0_0",
   "publicSurface": {
     "totalCompiledPublicTypes": 339,
     "categories": {

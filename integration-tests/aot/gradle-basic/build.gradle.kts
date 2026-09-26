@@ -1,6 +1,6 @@
 plugins {
     java
-    id("io.github.minh124199.viet-template") version "1.0.0-RC3"
+    id("io.github.minh124199.viet-template") version "1.0.0"
 }
 
 repositories {
@@ -9,9 +9,9 @@ repositories {
 }
 
 dependencies {
-    implementation("io.github.minh124199:viet-template-api:1.0.0-RC3")
-    implementation("io.github.minh124199:viet-template-runtime:1.0.0-RC3")
-    implementation("io.github.minh124199:viet-template-vtl-interpreter:1.0.0-RC3")
+    implementation("io.github.minh124199:viet-template-api:1.0.0")
+    implementation("io.github.minh124199:viet-template-runtime:1.0.0")
+    implementation("io.github.minh124199:viet-template-vtl-interpreter:1.0.0")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testImplementation("org.assertj:assertj-core:3.27.7")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.4")
