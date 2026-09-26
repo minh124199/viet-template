@@ -62,13 +62,13 @@ def find_production_java_files(repo_root: Path) -> list[Path]:
     files: list[Path] = []
     # Primary: scan all src/main/java/**/*.java ignoring build and dot directories
     for p in repo_root.glob("**/src/main/java/**/*.java"):
-        if not any(part.startswith(".") or part == "build" for part in p.parts):
+        if not any(part.startswith(".") or part == "build" for part in p.relative_to(repo_root).parts):
             files.append(p)
 
     # Fallback for synthetic unit test structures or non-standard directory layouts
     if not files:
         for p in repo_root.glob("**/*.java"):
-            if not any(part.startswith(".") or part == "build" for part in p.parts):
+            if not any(part.startswith(".") or part == "build" for part in p.relative_to(repo_root).parts):
                 files.append(p)
 
     return sorted(files)

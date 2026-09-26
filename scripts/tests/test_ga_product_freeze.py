@@ -178,7 +178,7 @@ class TestGAProductFreeze(unittest.TestCase):
                 "scripts/verify-ga-readiness.py",
                 "viet-template-runtime/src/test/java/io/github/minh124199/viettemplate/runtime/FooTest.java",
             ]
-            res = evaluate_product_freeze(baseline_tag="v1.0.0-RC3", candidate="HEAD")
+            res = evaluate_product_freeze(baseline_tag="v1.0.0-RC3", candidate="HEAD", release_state="pre-ga")
             self.assertTrue(res["passed"])
             self.assertFalse(res["requires_rc4"])
             self.assertEqual(res["product_drift_total"], 0)
@@ -191,7 +191,7 @@ class TestGAProductFreeze(unittest.TestCase):
                 "pom.xml",
                 "viet-template-runtime/src/main/java/io/github/minh124199/viettemplate/runtime/Engine.java",
             ]
-            res = evaluate_product_freeze(baseline_tag="v1.0.0-RC3", candidate="HEAD")
+            res = evaluate_product_freeze(baseline_tag="v1.0.0-RC3", candidate="HEAD", release_state="pre-ga")
             self.assertFalse(res["passed"])
             self.assertTrue(res["requires_rc4"])
             self.assertEqual(res["product_drift_total"], 1)
@@ -203,11 +203,61 @@ class TestGAProductFreeze(unittest.TestCase):
                 "pom.xml",
                 "arbitrary_unexpected_file.xyz",
             ]
-            res = evaluate_product_freeze(baseline_tag="v1.0.0-RC3", candidate="HEAD")
+            res = evaluate_product_freeze(baseline_tag="v1.0.0-RC3", candidate="HEAD", release_state="pre-ga")
             self.assertFalse(res["passed"])
             self.assertFalse(res["requires_rc4"])
             self.assertEqual(res["unclassified_drift_total"], 1)
             self.assertEqual(res["verdict"], "FAIL")
+
+
+class TestPostGA(unittest.TestCase):
+    def evaluate(self, files, **kwargs):
+        with patch.object(mod, "get_diff_files", return_value=files):
+            return evaluate_product_freeze(release_state="post-ga", **kwargs)
+
+    def test_bugfix_requires_patch_not_rc4(self):
+        result = self.evaluate(["viet-template-runtime/src/main/java/Engine.java"])
+        self.assertTrue(result["passed"])
+        self.assertEqual(result["verdict"], "PATCH_RELEASE_REQUIRED")
+        self.assertFalse(result["requires_rc4"])
+        self.assertTrue(result["requires_patch_release"])
+        self.assertEqual(result["baseline_tag"], "v1.0.0")
+        self.assertEqual(result["target_version"], "1.0.1-SNAPSHOT")
+
+    def test_published_version_cannot_be_reused(self):
+        result = self.evaluate([], target_version="1.0.0")
+        self.assertFalse(result["passed"])
+        self.assertEqual(result["verdict"], "FAIL")
+
+    def test_post_ga_cannot_compare_to_rc3(self):
+        result = self.evaluate([], baseline_tag="v1.0.0-RC3")
+        self.assertFalse(result["passed"])
+
+    def test_unknown_drift_fails_even_with_bugfix(self):
+        result = self.evaluate(["unknown.xyz", "viet-template-runtime/src/main/java/Engine.java"])
+        self.assertEqual(result["verdict"], "FAIL")
+        self.assertFalse(result["passed"])
+        self.assertFalse(result["requires_rc4"])
+
+    def test_historical_audit_uses_candidate_ancestry(self):
+        self.assertEqual(mod.resolve_release_state("v1.0.0-RC3", "auto", REPO_ROOT), "pre-ga")
+        self.assertEqual(mod.resolve_release_state("v1.0.0", "auto", REPO_ROOT), "post-ga")
+
+    def test_missing_history_fails_closed(self):
+        with self.assertRaises(ValueError):
+            mod.resolve_release_state("nonexistent-candidate", "auto", REPO_ROOT)
+
+    def test_mutated_ga_tag_fails_closed(self):
+        original = mod.subprocess.run
+        def altered(command, **kwargs):
+            result = original(command, **kwargs)
+            if command == ["git", "rev-parse", "v1.0.0"]:
+                result.stdout = "0" * 40
+            return result
+        with patch.object(mod.subprocess, "run", side_effect=altered):
+            result = self.evaluate([])
+        self.assertFalse(result["passed"])
+        self.assertTrue(result["issues"])
 
 
 if __name__ == "__main__":

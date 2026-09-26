@@ -417,7 +417,9 @@ class MetadataTagSelectionTests(unittest.TestCase):
                 metadata.os.environ,
                 {"RELEASE_TAG": "v1.0.0", "GITHUB_OUTPUT": str(gh_output)},
                 clear=True,
-            ), mock.patch.object(metadata.sys, "argv", ["verify-release-metadata.py"]):
+            ), mock.patch.object(metadata.sys, "argv", ["verify-release-metadata.py"]), mock.patch.object(
+                metadata, "get_maven_version", return_value="1.0.0"
+            ), mock.patch.object(metadata, "get_gradle_version", return_value="1.0.0"):
                 with self.assertRaises(SystemExit) as result:
                     metadata.main()
                 self.assertEqual(0, result.exception.code)
