@@ -38,6 +38,15 @@ class DiagnosticCodesBaselineTests(unittest.TestCase):
     # 1. Baseline Parsing Tests
     # =========================================================================
 
+    def test_checkout_under_hidden_parent_is_scanned(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / ".worktrees" / "repo"
+            source = root / "module/src/main/java/Example.java"
+            source.parent.mkdir(parents=True)
+            source.write_text("class Example {}")
+            self.assertEqual([source], verify_diag.find_production_java_files(root))
+
     def test_parse_valid_baseline(self):
         content = """# Header comment
 # Another comment

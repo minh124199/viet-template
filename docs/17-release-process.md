@@ -371,3 +371,35 @@ To ensure that signing lifecycle failures cannot recur in future release candida
    - Unconditionally executes `scripts/verify-gradle-signing-lifecycle.py`.
 3. **CI Release Workflow Enforced**:
    - Release workflow (`.github/workflows/release.yml`) executes `scripts/verify-gradle-signing-lifecycle.py` in `package-and-validate-bundle`.
+
+
+## Post-GA 1.0.1 development baseline
+
+`v1.0.0` (tag object `ac0dc481da40a718688ab800f1750d7498515c08`,
+commit `b951021e9975b8e8103b2402dc244b32a96afaa8`) and its Maven Central
+coordinates are immutable. Main now builds `1.0.1-SNAPSHOT`. PR #40 fixes the
+atomic replacement/freshness race and belongs to the unreleased 1.0.1 patch.
+Do not republish or move 1.0.0 to include this fix.
+
+The release policy verifier selects state from candidate ancestry. Post-GA
+compares to `v1.0.0`; product changes report `PATCH_RELEASE_REQUIRED` and never
+retroactively request RC4. Exit zero means the development classification is
+valid, not that release qualification or publication is approved. Unknown files,
+changed GA provenance, and attempts to reuse 1.0.0 fail closed. API/ABI, security,
+TCK and framework gates remain independently mandatory: a path classification
+cannot establish that an arbitrary product change is patch-compatible.
+
+```bash
+python3 scripts/verify-ga-product-freeze.py --include-uncommitted
+# Reproduce the historical pre-GA contract explicitly:
+python3 scripts/verify-ga-product-freeze.py --release-state pre-ga \
+  --baseline-tag v1.0.0-RC3 --candidate v1.0.0 --target-version 1.0.0
+```
+
+`verify-ga-readiness.py` remains a static aggregator; post-GA it reports
+`PATCH_RELEASE_REQUIRED` or `NOT_READY_FOR_1_0_1`, never permission to tag 1.0.0.
+Its framework-entrypoint checks do not execute native or public consumers.
+Run the native and consumer suites separately and retain their logs. Central
+verification and Central-only smoke tests continue to target **published 1.0.0**;
+local/CI reactor and staged consumer tests target **1.0.1-SNAPSHOT**. Success for
+published 1.0.0 does not qualify the unreleased patch artifact.

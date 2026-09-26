@@ -2,14 +2,16 @@
 """
 scripts/verify-ga-product-freeze.py
 
-Formal GA Product-Freeze Verifier for Viet Template 1.0 (Milestone M13).
-Validates that NO forbidden product source code or contracts have changed
-between the qualified baseline (v1.0.0-RC3) and the GA candidate.
+State-aware release policy verifier for Viet Template 1.0.
+Historical pre-GA audits forbid product drift from RC3. Post-GA audits compare
+to immutable v1.0.0 and classify fixes as requiring the 1.0.1 patch release.
+A passing post-GA classification does not establish compatibility or readiness.
 
 Accepts:
-  --baseline-tag v1.0.0-RC3
+  --release-state auto|pre-ga|post-ga
+  --baseline-tag (defaults to RC3 before GA, v1.0.0 after GA)
   --candidate HEAD (or commit SHA)
-  --target-version 1.0.0
+  --target-version (defaults to 1.0.0 before GA, 1.0.1-SNAPSHOT after GA)
   --include-uncommitted (include dirty working tree in audit)
 
 Classification Categories:
@@ -227,13 +229,47 @@ def get_diff_files(baseline_tag: str, candidate_sha: str, include_uncommitted: b
     return sorted(files)
 
 
+GA_TAG = "v1.0.0"
+GA_TAG_OBJECT = "ac0dc481da40a718688ab800f1750d7498515c08"
+GA_COMMIT = "b951021e9975b8e8103b2402dc244b32a96afaa8"
+
+
+def resolve_release_state(candidate: str, release_state: str, cwd: Path) -> str:
+    """Use candidate ancestry, never today's date or merely the presence of a tag."""
+    if release_state not in ("auto", "pre-ga", "post-ga"):
+        raise ValueError(f"Unknown release state: {release_state}")
+    if release_state != "auto":
+        return release_state
+    result = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", GA_COMMIT, candidate],
+        cwd=cwd, capture_output=True, text=True,
+    )
+    if result.returncode not in (0, 1):
+        raise ValueError("Cannot establish release state; fetch complete release history")
+    return "post-ga" if result.returncode == 0 else "pre-ga"
+
+
 def evaluate_product_freeze(
-    baseline_tag: str = "v1.0.0-RC3",
+    baseline_tag: str | None = None,
     candidate: str = "HEAD",
-    target_version: str = "1.0.0",
+    target_version: str | None = None,
     include_uncommitted: bool = False,
     cwd: Path = REPO_ROOT,
+    release_state: str = "auto",
 ) -> dict[str, Any]:
+    state = resolve_release_state(candidate, release_state, cwd)
+    baseline_tag = baseline_tag or (GA_TAG if state == "post-ga" else "v1.0.0-RC3")
+    target_version = target_version or ("1.0.1-SNAPSHOT" if state == "post-ga" else "1.0.0")
+    issues: list[str] = []
+    if state == "post-ga":
+        for ref, expected in ((GA_TAG, GA_TAG_OBJECT), (f"{GA_TAG}^{{commit}}", GA_COMMIT)):
+            result = subprocess.run(["git", "rev-parse", ref], cwd=cwd, capture_output=True, text=True)
+            if result.returncode or result.stdout.strip() != expected:
+                issues.append(f"Immutable GA provenance mismatch: {ref}")
+        if baseline_tag != GA_TAG:
+            issues.append("Post-GA baseline must be v1.0.0")
+        if target_version not in ("1.0.1", "1.0.1-SNAPSHOT"):
+            issues.append("Post-GA development requires the 1.0.1 patch line; 1.0.0 is immutable")
     # Resolve SHAs
     res_base = subprocess.run(["git", "rev-parse", f"{baseline_tag}^{{commit}}"], cwd=cwd, capture_output=True, text=True)
     baseline_sha = res_base.stdout.strip() if res_base.returncode == 0 else baseline_tag
@@ -256,11 +292,18 @@ def evaluate_product_freeze(
     unclassified_total = counts[CAT_UNCLASSIFIED]
     allowed_total = sum(counts[cat] for cat in ALLOWED_GA_CATEGORIES)
 
-    passed = (product_drift_total == 0) and (unclassified_total == 0)
-    requires_rc4 = product_drift_total > 0
+    requires_rc4 = state == "pre-ga" and product_drift_total > 0
+    requires_patch = state == "post-ga" and product_drift_total > 0
+    passed = not requires_rc4 and unclassified_total == 0 and not issues
+    verdict = "FAIL" if issues or unclassified_total else (
+        "RC4_REQUIRED" if requires_rc4 else ("PATCH_RELEASE_REQUIRED" if requires_patch else "PASS")
+    )
 
     return {
         "passed": passed,
+        "release_state": state,
+        "issues": issues,
+        "requires_patch_release": requires_patch,
         "baseline_tag": baseline_tag,
         "baseline_sha": baseline_sha,
         "candidate": candidate,
@@ -273,13 +316,13 @@ def evaluate_product_freeze(
         "requires_rc4": requires_rc4,
         "counts": counts,
         "categorized_files": categorized_files,
-        "verdict": "PASS" if passed else ("RC4_REQUIRED" if requires_rc4 else "FAIL"),
+        "verdict": verdict,
     }
 
 
 def print_report(res: dict[str, Any]) -> None:
     c = res["counts"]
-    print("GA Product Freeze")
+    print(f"Release policy ({res['release_state']})")
     print("=================")
     print(f"Baseline:  {res['baseline_tag']} ({res['baseline_sha'][:12]})")
     print(f"Candidate: {res['candidate_sha'][:12]}")
@@ -304,9 +347,11 @@ def print_report(res: dict[str, Any]) -> None:
     print(f"Allowed benchmark-only drift:       {c[CAT_BENCHMARK_ONLY]}")
     print(f"Unclassified drift:                 {res['unclassified_drift_total']}")
     print(f"RESULT: {res['verdict']}")
-    if not res["passed"]:
-        if res["requires_rc4"]:
-            print("\nFORBIDDEN PRODUCT DRIFT DETECTED:")
+    for issue in res["issues"]:
+        print(f"ERROR: {issue}")
+    if not res["passed"] or res["requires_patch_release"]:
+        if res["product_drift_total"]:
+            print("\nPRODUCT CHANGES DETECTED:")
             for cat in FORBIDDEN_PRODUCT_CATEGORIES:
                 if c[cat] > 0:
                     for f in res["categorized_files"][cat]:
@@ -319,14 +364,16 @@ def print_report(res: dict[str, Any]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Verify GA product freeze against RC baseline")
-    parser.add_argument("--baseline-tag", default="v1.0.0-RC3", help="Baseline tag to compare against")
+    parser.add_argument("--baseline-tag", default=None, help="Baseline tag (defaults by release state)")
     parser.add_argument("--candidate", default="HEAD", help="Candidate commit or ref to verify")
-    parser.add_argument("--target-version", default="1.0.0", help="Target release version")
+    parser.add_argument("--target-version", default=None, help="Target version (defaults by release state)")
     parser.add_argument("--include-uncommitted", action="store_true", help="Include working tree uncommitted changes")
     parser.add_argument("--json", action="store_true", help="Output JSON report")
+    parser.add_argument("--release-state", choices=("auto", "pre-ga", "post-ga"), default="auto")
     args = parser.parse_args()
 
     res = evaluate_product_freeze(
+        release_state=args.release_state,
         baseline_tag=args.baseline_tag,
         candidate=args.candidate,
         target_version=args.target_version,

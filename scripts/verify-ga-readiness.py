@@ -5,7 +5,7 @@ verify-ga-readiness.py
 Master GA Readiness Verifier for Viet Template 1.0 (Milestone M13).
 Orchestrates and verifies the critical GA invariants:
 1. RC3 Release Provenance & Immutability (tags, commits, Central deployment)
-2. Product Freeze (0 product drift, 0 unclassified drift via verify-ga-product-freeze.py)
+2. State-aware product policy (historical RC3 freeze or post-GA patch development)
 3. API Freeze & Compatibility (0 breaking changes across all 5 baselines)
 4. Runtime ABI Freeze (exact 7 types, 22 methods, 0 fields, 0 unregistered)
 5. Public Surface Classification (339 types, 121 stable, 0 signature leaks)
@@ -23,7 +23,8 @@ Orchestrates and verifies the critical GA invariants:
 17. GA Workflow Dry-Run Contract (stable non-prerelease)
 
 Emits: build/reports/ga-readiness.json
-Verdict: READY_TO_TAG_1_0_0 (or RC4_REQUIRED / NOT_READY_FOR_1_0_0)
+Pre-GA verdict: READY_TO_TAG_1_0_0 (or RC4_REQUIRED / NOT_READY_FOR_1_0_0)
+Post-GA verdict: PATCH_RELEASE_REQUIRED (or NOT_READY_FOR_1_0_1)
 """
 
 from __future__ import annotations
@@ -105,7 +106,7 @@ def check_git_provenance(baseline_tag: str = RC3_TAG) -> dict[str, Any]:
     }
 
 
-def check_product_freeze(baseline_tag: str, candidate: str, target_version: str, include_uncommitted: bool = False) -> dict[str, Any]:
+def check_product_freeze(baseline_tag: str, candidate: str, target_version: str, include_uncommitted: bool = False, release_state: str = "auto") -> dict[str, Any]:
     freeze_script = REPO_ROOT / "scripts" / "verify-ga-product-freeze.py"
     if not freeze_script.exists():
         return {
@@ -125,6 +126,7 @@ def check_product_freeze(baseline_tag: str, candidate: str, target_version: str,
         target_version=target_version,
         include_uncommitted=include_uncommitted,
         cwd=REPO_ROOT,
+        release_state=release_state,
     )
 
 
@@ -345,7 +347,7 @@ def evaluate_ga_readiness(args: argparse.Namespace) -> dict[str, Any]:
     candidate_sha = stdout.strip() if rc == 0 else candidate
 
     # Baseline commit SHA
-    rc, stdout, _ = run_command(["git", "rev-parse", f"{baseline_tag}^{{commit}}"])
+    rc, stdout, _ = run_command(["git", "rev-parse", f"{baseline_tag or RC3_TAG}^{{commit}}"])
     baseline_sha = stdout.strip() if rc == 0 else RC3_COMMIT_SHA
 
     # 1. Product Freeze Audit
@@ -354,7 +356,12 @@ def evaluate_ga_readiness(args: argparse.Namespace) -> dict[str, Any]:
         candidate=candidate,
         target_version=target_version,
         include_uncommitted=not require_ready_to_tag,
+        release_state=getattr(args, "release_state", "auto"),
     )
+    baseline_tag = freeze_result.get("baseline_tag", baseline_tag)
+    baseline_sha = freeze_result.get("baseline_sha", baseline_sha)
+    target_version = freeze_result.get("target_version", target_version)
+    post_ga = freeze_result.get("release_state") == "post-ga"
     counts = freeze_result.get("counts", {})
 
     # 2. Compatibility & Freeze Checks
@@ -386,7 +393,7 @@ def evaluate_ga_readiness(args: argparse.Namespace) -> dict[str, Any]:
         p0_count += 1
     if not sec_res["passed"]:
         p0_count += 1
-    if freeze_result.get("requires_rc4", False):
+    if not freeze_result.get("passed", False):
         p0_count += 1
 
     if not api_res["passed"]:
@@ -422,7 +429,10 @@ def evaluate_ga_readiness(args: argparse.Namespace) -> dict[str, Any]:
 
     requires_rc4 = freeze_result.get("requires_rc4", False)
 
-    if requires_rc4:
+    if post_ga:
+        # A development audit never authorizes publishing, even when static gates pass.
+        verdict = "PATCH_RELEASE_REQUIRED" if p0_count == 0 and p1_count == 0 else "NOT_READY_FOR_1_0_1"
+    elif requires_rc4:
         verdict = VERDICT_RC4_REQUIRED
     elif p0_count == 0 and p1_count == 0:
         verdict = VERDICT_READY_TO_TAG
@@ -430,7 +440,7 @@ def evaluate_ga_readiness(args: argparse.Namespace) -> dict[str, Any]:
         verdict = VERDICT_NOT_READY
 
     # Output human-readable report matching canonical specification
-    print("Viet Template 1.0.0 GA Final Qualification")
+    print("Viet Template post-GA development audit" if post_ga else "Viet Template 1.0.0 GA Final Qualification")
     print("==========================================")
     print("BASELINE")
     print(f"RC baseline:       {baseline_tag}")
@@ -458,19 +468,19 @@ def evaluate_ga_readiness(args: argparse.Namespace) -> dict[str, Any]:
     print(f"API/ABI:                    {'PASS' if api_res['passed'] and abi_res['passed'] else 'FAIL'}")
     print(f"Public surface:             {'PASS' if surface_res['passed'] else 'FAIL'}")
     print(f"Diagnostics:                {'PASS' if diag_res['passed'] else 'FAIL'}")
-    print(f"TCK:                        {'PASS' if tck_res['passed'] else 'FAIL'}")
+    print(f"TCK coverage:               {'PASS' if tck_res['passed'] else 'FAIL'}")
     print(f"Maven/Gradle parity:        {'PASS' if parity_res['passed'] else 'FAIL'}")
-    print(f"Spring:                     {'PASS' if entry_res['passed'] else 'FAIL'}")
-    print(f"Spring Security:            {'PASS' if sec_res['passed'] else 'FAIL'}")
-    print(f"Quarkus JVM:                {'PASS' if entry_res['passed'] else 'FAIL'}")
-    print(f"Quarkus Native:             {'PASS' if entry_res['passed'] else 'FAIL'}")
-    print(f"Spring Native:              {'PASS' if entry_res['passed'] else 'FAIL'}")
-    print(f"Security regression:        {'PASS' if sec_res['passed'] else 'FAIL'}")
-    print(f"Performance regression:     {'PASS' if perf_res['passed'] else 'FAIL'}")
+    print(f"Framework metadata:         {'PASS' if entry_res['passed'] else 'FAIL'}")
+    print(f"Security policy:            {'PASS' if sec_res['passed'] else 'FAIL'}")
+    print("Quarkus JVM:                NOT EXECUTED by this static aggregator")
+    print("Quarkus Native:                NOT EXECUTED by this static aggregator")
+    print("Spring Native:                NOT EXECUTED by this static aggregator")
+    print(f"Security static checks:     {'PASS' if sec_res['passed'] else 'FAIL'}")
+    print(f"Performance manifest:       {'PASS' if perf_res['passed'] else 'FAIL'}")
     print(f"Artifact topology:          {'PASS' if meta_res['passed'] else 'FAIL'}")
     print(f"Release metadata:           {'PASS' if meta_res['passed'] else 'FAIL'}")
     print(f"Clean-worktree verification:{'PASS' if clean_wt_res['passed'] else 'FAIL'}")
-    print(f"GA workflow dry-run:        {'PASS' if dry_run_res['passed'] else 'FAIL'}")
+    print(f"Workflow static contract:   {'PASS' if dry_run_res['passed'] else 'FAIL'}")
     print(f"P0: {p0_count}")
     print(f"P1: {p1_count}")
     print(f"RC4_REQUIRED={str(requires_rc4).lower()}")
@@ -479,7 +489,10 @@ def evaluate_ga_readiness(args: argparse.Namespace) -> dict[str, Any]:
 
     # Machine-readable report matching canonical schema
     report: dict[str, Any] = {
-        "baseline_version": RC3_VERSION,
+        "qualification_scope": "static-audit",
+        "release_state": freeze_result.get("release_state"),
+        "requires_patch_release": freeze_result.get("requires_patch_release", False),
+        "baseline_version": baseline_tag.removeprefix("v"),
         "baseline_tag": baseline_tag,
         "baseline_sha": baseline_sha,
         "candidate_sha": candidate_sha,
@@ -502,7 +515,7 @@ def evaluate_ga_readiness(args: argparse.Namespace) -> dict[str, Any]:
         "abi_breaking_changes": abi_res["abi_breaking_changes"],
         "diagnostic_drift": 0 if diag_res["passed"] else 1,
         "public_surface_leaks": surface_res["leaks"],
-        "public_consumer_failures": 0,
+        "public_consumer_failures": None,
         "security_blockers": len(sec_res["issues"]),
         "release_infrastructure_blockers": 0 if meta_res["passed"] and signing_res["passed"] else 1,
         "p0": p0_count,
@@ -520,11 +533,12 @@ def evaluate_ga_readiness(args: argparse.Namespace) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Viet Template 1.0 GA Final Qualification")
-    parser.add_argument("--baseline-tag", default=RC3_TAG, help="Baseline release tag")
+    parser.add_argument("--baseline-tag", default=None, help="Baseline release tag (defaults by release state)")
     parser.add_argument("--candidate", default="HEAD", help="Candidate commit or ref")
-    parser.add_argument("--target-version", default=TARGET_VERSION_DEFAULT, help="Target release version")
+    parser.add_argument("--target-version", default=None, help="Target release version (defaults by release state)")
     parser.add_argument("--require-ready-to-tag", action="store_true", help="Require clean worktree and exact tag match")
     parser.add_argument("--output", default=str(DEFAULT_REPORT), help="Output JSON report path")
+    parser.add_argument("--release-state", choices=("auto", "pre-ga", "post-ga"), default="auto")
     args = parser.parse_args()
 
     report = evaluate_ga_readiness(args)
