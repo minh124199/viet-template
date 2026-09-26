@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-26
+
+### Promoted to General Availability (GA)
+- **Viet Template 1.0.0 GA Release**:
+  - Promotes the `1.0.0-RC3`-qualified product contract to General Availability after exhaustive release, compatibility, clean-room public consumer, framework integration, native-image, and Maven Central publication qualification.
+  - Runtime behavior, language semantics, parser and interpreter behavior, AOT compiler behavior, dynamic linking semantics, security policies, and generated ABI remain 100% frozen and identical to the RC3 qualification baseline.
+  - Zero breaking changes to `STABLE_API` or `STABLE_SPI` contracts across all 5 baselines.
+  - 31 canonical diagnostic codes preserved.
+  - 100% language feature TCK coverage (80/80 features across 20 categories).
+  - All 14 public coordinates published to Maven Central and verified across clean-room Spring Boot 3/4, Spring Security 6/7, and Quarkus JVM/Native consumers.
+
 ## [1.0.0-RC3] - 2026-09-25
 
 ### Fixed
@@ -540,7 +551,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 1 `VIET_EXTENSION` (`$foreach.stop()` programmatic loop termination)
   - 0 `UNSUPPORTED`, 0 `BUG` (100.00% accounted behavior coverage)
 
-[Unreleased]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC3...HEAD
+[Unreleased]: https://github.com/minh124199/viet-template/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC3...v1.0.0
 [1.0.0-RC3]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC2...v1.0.0-RC3
 [1.0.0-RC2]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC1...v1.0.0-RC2
 [1.0.0-RC1]: https://github.com/minh124199/viet-template/compare/v0.2.2...v1.0.0-RC1

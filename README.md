@@ -28,8 +28,7 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 
 | Dimension | Detail |
 |---|---|
-| **Current Release Candidate** | `1.0.0-RC3` (Published: 2026-09-25; available on Maven Central & GitHub Releases) |
-| **Latest Published Stable Release** | `0.2.2` (Published: 2026-09-20; 0.2.3 prepared/held) |
+| **Latest Published Stable Release** | `1.0.0` (Published: 2026-09-26; available on Maven Central & GitHub Releases) |
 | **Java Baseline** | Java 21 LTS (`--release 21`, major version 65) |
 | **Primary Target** | Java 25 (optimized memory & runtime qualification) |
 | **Maven Group ID** | `io.github.minh124199` |
@@ -37,7 +36,7 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 | **JPMS Status** | Ordinary non-modular JARs (no `module-info.java`, no `Automatic-Module-Name` header) |
 
 > [!NOTE] Java Module System (JPMS) Disclaimer
-> Viet Template 1.0.0-RC3 ships as ordinary non-modular JARs. When placed on the Java module path they may be treated by the JVM as automatic modules using derived names, but those derived names are not a frozen compatibility contract.
+> Viet Template 1.0.0 ships as ordinary non-modular JARs. When placed on the Java module path they may be treated by the JVM as automatic modules using derived names, but those derived names are not a frozen compatibility contract.
 
 ---
 
@@ -66,22 +65,22 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 Add `viet-template-api`, `viet-template-runtime`, and `viet-template-vtl-interpreter` to your `pom.xml`:
 
 ```xml
-<!-- Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1 -->
+<!-- Latest Published Stable: 1.0.0 -->
 <dependencies>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-api</artifactId>
-        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
+        <version>1.0.0</version>
     </dependency>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-runtime</artifactId>
-        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
+        <version>1.0.0</version>
     </dependency>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-vtl-interpreter</artifactId>
-        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
+        <version>1.0.0</version>
     </dependency>
 </dependencies>
 ```
@@ -118,11 +117,11 @@ public class Main {
 Add the starter dependency:
 
 ```xml
-<!-- Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1 -->
+<!-- Latest Published Stable: 1.0.0 -->
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-boot-starter</artifactId>
-    <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
+    <version>1.0.0</version>
 </dependency>
 ```
 
