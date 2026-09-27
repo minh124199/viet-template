@@ -4,6 +4,7 @@ import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.DiagnosticCode;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
 import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.api.TemplateContract;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
@@ -13,6 +14,7 @@ import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
 import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysisResult;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
+import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.BackendOptions;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.BackendResult;
@@ -130,7 +132,18 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
         continue;
       }
 
-      String contentHash = sha256Hex(sourceText);
+      TemplateContract contract = request.contracts().get(templateId);
+      if (contract == null) {
+        contract =
+            TemplateContractReader.findCompanion(
+                    sourceFile, templateId, request.classLoader().orElse(null))
+                .orElse(null);
+      }
+
+      String contentHash =
+          contract == null
+              ? sha256Hex(sourceText)
+              : sha256Hex(sourceText + "\n---CONTRACT---\n" + contract.fingerprint());
       StateEntry prev = previousState.get(templateId);
 
       boolean isUpToDate = false;
@@ -165,11 +178,13 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
         continue;
       }
 
-      VtlSemanticOptions semanticOptions =
-          VtlSemanticOptions.builder()
-              .profile(VtlProfile.VTL_CORE)
-              .allowArbitraryMethods(true)
-              .build();
+      ModelSchema modelSchema = contract != null ? ModelSchema.fromContract(contract) : null;
+      VtlSemanticOptions.Builder semanticOptionsBuilder =
+          VtlSemanticOptions.builder().profile(VtlProfile.VTL_CORE).allowArbitraryMethods(true);
+      if (modelSchema != null) {
+        semanticOptionsBuilder.modelSchema(modelSchema);
+      }
+      VtlSemanticOptions semanticOptions = semanticOptionsBuilder.build();
       SemanticAnalysisResult analysis =
           VtlSemanticAnalyzer.analyze(parseResult.template(), semanticOptions);
       for (Diagnostic diag : analysis.diagnostics()) {
@@ -182,7 +197,13 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
 
       IrTemplate ir =
           AstToIrLowerer.lower(parseResult.template(), source, analysis, semanticOptions);
-      BackendResult result = compiler.compile(ir, backendOptions);
+      BackendOptions.Builder backendOptionsBuilder =
+          BackendOptions.builder().packagePrefix(packagePrefix);
+      if (modelSchema != null) {
+        backendOptionsBuilder.modelSchema(modelSchema);
+      }
+      BackendOptions currentBackendOptions = backendOptionsBuilder.build();
+      BackendResult result = compiler.compile(ir, currentBackendOptions);
       for (Diagnostic diag : result.diagnostics()) {
         allDiagnostics.add(TemplateAotDiagnostic.from(templateId, dt.relPath(), diag));
       }
@@ -225,6 +246,30 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
       artifacts.add(artifact);
       pendingWrites.add(new PendingClassWrite(outputFile, ca.classBytes()));
       compiledCount++;
+
+      if (request.generateTypedFacades() && contract != null) {
+        Path genSrcDir =
+            request
+                .generatedSourcesDirectory()
+                .orElseGet(
+                    () -> outputDir.resolve("../generated-sources/viet-template").normalize());
+        try {
+          TypedTemplateFacadeGenerator.generate(contract, fqcn, packagePrefix, genSrcDir);
+        } catch (IOException e) {
+          allDiagnostics.add(
+              new TemplateAotDiagnostic(
+                  templateId,
+                  dt.relPath(),
+                  DiagnosticSeverity.ERROR,
+                  DiagnosticCode.of("VTLAOT", "1102"),
+                  "Failed to generate typed Java facade: " + e.getMessage(),
+                  -1,
+                  -1,
+                  -1,
+                  -1));
+          compilationFailed = true;
+        }
+      }
     }
 
     boolean hasErrors =

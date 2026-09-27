@@ -1,10 +1,14 @@
 package io.github.minh124199.viettemplate.aot;
 
+import io.github.minh124199.viettemplate.api.TemplateContract;
+import io.github.minh124199.viettemplate.api.TemplateId;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -21,6 +25,10 @@ public final class TemplateAotRequest {
   private final boolean failOnWarning;
   private final boolean incremental;
   private final Path stateFile;
+  private final Map<TemplateId, TemplateContract> contracts;
+  private final boolean generateTypedFacades;
+  private final Path generatedSourcesDirectory;
+  private final ClassLoader classLoader;
 
   TemplateAotRequest(
       List<Path> sourceDirectories,
@@ -33,6 +41,38 @@ public final class TemplateAotRequest {
       boolean failOnWarning,
       boolean incremental,
       Path stateFile) {
+    this(
+        sourceDirectories,
+        outputDirectory,
+        resourceOutputDirectory,
+        includePatterns,
+        excludePatterns,
+        encoding,
+        packagePrefix,
+        failOnWarning,
+        incremental,
+        stateFile,
+        Map.of(),
+        false,
+        null,
+        null);
+  }
+
+  TemplateAotRequest(
+      List<Path> sourceDirectories,
+      Path outputDirectory,
+      Path resourceOutputDirectory,
+      List<String> includePatterns,
+      List<String> excludePatterns,
+      Charset encoding,
+      String packagePrefix,
+      boolean failOnWarning,
+      boolean incremental,
+      Path stateFile,
+      Map<TemplateId, TemplateContract> contracts,
+      boolean generateTypedFacades,
+      Path generatedSourcesDirectory,
+      ClassLoader classLoader) {
     this.sourceDirectories =
         List.copyOf(
             Objects.requireNonNull(sourceDirectories, "sourceDirectories must not be null"));
@@ -50,6 +90,10 @@ public final class TemplateAotRequest {
     this.failOnWarning = failOnWarning;
     this.incremental = incremental;
     this.stateFile = stateFile;
+    this.contracts = contracts != null ? Map.copyOf(contracts) : Map.of();
+    this.generateTypedFacades = generateTypedFacades;
+    this.generatedSourcesDirectory = generatedSourcesDirectory;
+    this.classLoader = classLoader;
   }
 
   public static Builder builder() {
@@ -96,12 +140,29 @@ public final class TemplateAotRequest {
     return Optional.ofNullable(stateFile);
   }
 
+  public Map<TemplateId, TemplateContract> contracts() {
+    return contracts;
+  }
+
+  public boolean generateTypedFacades() {
+    return generateTypedFacades;
+  }
+
+  public Optional<Path> generatedSourcesDirectory() {
+    return Optional.ofNullable(generatedSourcesDirectory);
+  }
+
+  public Optional<ClassLoader> classLoader() {
+    return Optional.ofNullable(classLoader);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (!(o instanceof TemplateAotRequest that)) return false;
     return failOnWarning == that.failOnWarning
         && incremental == that.incremental
+        && generateTypedFacades == that.generateTypedFacades
         && Objects.equals(sourceDirectories, that.sourceDirectories)
         && Objects.equals(outputDirectory, that.outputDirectory)
         && Objects.equals(resourceOutputDirectory, that.resourceOutputDirectory)
@@ -109,7 +170,9 @@ public final class TemplateAotRequest {
         && Objects.equals(excludePatterns, that.excludePatterns)
         && Objects.equals(encoding, that.encoding)
         && Objects.equals(packagePrefix, that.packagePrefix)
-        && Objects.equals(stateFile, that.stateFile);
+        && Objects.equals(stateFile, that.stateFile)
+        && Objects.equals(contracts, that.contracts)
+        && Objects.equals(generatedSourcesDirectory, that.generatedSourcesDirectory);
   }
 
   @Override
@@ -124,7 +187,10 @@ public final class TemplateAotRequest {
         packagePrefix,
         failOnWarning,
         incremental,
-        stateFile);
+        stateFile,
+        contracts,
+        generateTypedFacades,
+        generatedSourcesDirectory);
   }
 
   @Override
@@ -138,6 +204,10 @@ public final class TemplateAotRequest {
         + resourceOutputDirectory
         + ", includePatterns="
         + includePatterns
+        + ", contracts="
+        + contracts.size()
+        + ", generateTypedFacades="
+        + generateTypedFacades
         + ", excludePatterns="
         + excludePatterns
         + ", encoding="
@@ -165,6 +235,10 @@ public final class TemplateAotRequest {
     private boolean failOnWarning = false;
     private boolean incremental = true;
     private Path stateFile;
+    private final Map<TemplateId, TemplateContract> contracts = new LinkedHashMap<>();
+    private boolean generateTypedFacades = false;
+    private Path generatedSourcesDirectory;
+    private ClassLoader classLoader;
 
     private Builder() {}
 
@@ -269,6 +343,34 @@ public final class TemplateAotRequest {
       return this;
     }
 
+    public Builder contract(TemplateId id, TemplateContract contract) {
+      Objects.requireNonNull(id, "id must not be null");
+      Objects.requireNonNull(contract, "contract must not be null");
+      this.contracts.put(id, contract);
+      return this;
+    }
+
+    public Builder contracts(Map<TemplateId, TemplateContract> contracts) {
+      Objects.requireNonNull(contracts, "contracts must not be null");
+      this.contracts.putAll(contracts);
+      return this;
+    }
+
+    public Builder generateTypedFacades(boolean generateTypedFacades) {
+      this.generateTypedFacades = generateTypedFacades;
+      return this;
+    }
+
+    public Builder generatedSourcesDirectory(Path generatedSourcesDirectory) {
+      this.generatedSourcesDirectory = generatedSourcesDirectory;
+      return this;
+    }
+
+    public Builder classLoader(ClassLoader classLoader) {
+      this.classLoader = classLoader;
+      return this;
+    }
+
     public TemplateAotRequest build() {
       Objects.requireNonNull(outputDirectory, "outputDirectory must not be null");
       if (sourceDirectories.isEmpty()) {
@@ -286,7 +388,11 @@ public final class TemplateAotRequest {
           packagePrefix,
           failOnWarning,
           incremental,
-          stateFile);
+          stateFile,
+          contracts,
+          generateTypedFacades,
+          generatedSourcesDirectory,
+          classLoader);
     }
   }
 
