@@ -1,5 +1,7 @@
 package io.github.minh124199.viettemplate.language.vtl.semantics.model;
 
+import io.github.minh124199.viettemplate.api.TemplateContract;
+import io.github.minh124199.viettemplate.api.TemplateParameter;
 import io.github.minh124199.viettemplate.language.vtl.internal.semantics.model.ModelParameter;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
@@ -7,8 +9,13 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.RecordComponent;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -48,6 +55,26 @@ public final class ModelSchema {
     Map<String, ModelParameter> map = new LinkedHashMap<>();
     for (ModelParameter param : params) {
       map.put(param.name(), param);
+    }
+    return new ModelSchema(map);
+  }
+
+  public static ModelSchema fromContract(TemplateContract contract) {
+    Objects.requireNonNull(contract, "contract must not be null");
+    Map<String, ModelParameter> map = new LinkedHashMap<>();
+    for (TemplateParameter param : contract.parameters()) {
+      Nullability nullability = param.nullable() ? Nullability.NULLABLE : Nullability.NON_NULL;
+      VType type;
+      if (param.typeArguments().isEmpty()) {
+        type = VTypes.fromJavaClass(param.rawType(), nullability);
+      } else {
+        List<VType> args = new ArrayList<>();
+        for (Class<?> arg : param.typeArguments()) {
+          args.add(VTypes.fromJavaClass(arg, Nullability.NULLABLE));
+        }
+        type = VType.ClassType.of(param.rawType(), args, nullability);
+      }
+      map.put(param.name(), ModelParameter.of(param.name(), type));
     }
     return new ModelSchema(map);
   }
@@ -149,6 +176,39 @@ public final class ModelSchema {
 
   public int size() {
     return parameters.size();
+  }
+
+  public String fingerprint() {
+    try {
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      for (Map.Entry<String, ModelParameter> entry : parameters.entrySet()) {
+        md.update(entry.getKey().getBytes(StandardCharsets.UTF_8));
+        md.update((byte) ':');
+        md.update(entry.getValue().type().toString().getBytes(StandardCharsets.UTF_8));
+        md.update((byte) '\n');
+      }
+      byte[] digest = md.digest();
+      StringBuilder sb = new StringBuilder(digest.length * 2);
+      for (byte b : digest) {
+        sb.append(Character.forDigit((b >> 4) & 0xF, 16));
+        sb.append(Character.forDigit(b & 0xF, 16));
+      }
+      return sb.toString();
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("SHA-256 not available", e);
+    }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof ModelSchema that)) return false;
+    return parameters.equals(that.parameters);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(parameters);
   }
 
   static Builder builder() {

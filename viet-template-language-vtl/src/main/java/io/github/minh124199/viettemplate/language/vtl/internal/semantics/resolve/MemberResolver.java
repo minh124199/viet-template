@@ -30,11 +30,33 @@ import java.util.Set;
  */
 public final class MemberResolver {
 
+  private static final Set<String> DENIED_METHODS =
+      Set.of("getClass", "wait", "notify", "notifyAll", "clone", "finalize");
+
+  private static final Set<String> DENIED_CLASS_PREFIXES =
+      Set.of("java.lang.reflect.", "java.lang.invoke.", "java.security.", "sun.", "jdk.internal.");
+
+  private static final Set<Class<?>> DENIED_CLASSES =
+      Set.of(
+          Class.class,
+          ClassLoader.class,
+          Module.class,
+          Runtime.class,
+          ProcessBuilder.class,
+          Process.class,
+          Thread.class,
+          ThreadGroup.class,
+          System.class);
+
   private MemberResolver() {}
 
   public static MemberResolution resolveProperty(VType receiverType, String propertyName) {
     Objects.requireNonNull(receiverType, "receiverType must not be null");
     Objects.requireNonNull(propertyName, "propertyName must not be null");
+
+    if (propertyName.equals("class") || DENIED_METHODS.contains(propertyName)) {
+      return MemberResolution.notFound(VTypes.ERROR, Optional.empty());
+    }
 
     if (receiverType instanceof VType.DynamicType) {
       return MemberResolution.dynamic(VTypes.DYNAMIC);
@@ -51,8 +73,28 @@ public final class MemberResolver {
     return MemberResolution.notFound(VTypes.ERROR, Optional.empty());
   }
 
+  private static boolean isClassDenied(Class<?> clazz) {
+    if (clazz == null) {
+      return true;
+    }
+    if (DENIED_CLASSES.contains(clazz)) {
+      return true;
+    }
+    String name = clazz.getName();
+    for (String prefix : DENIED_CLASS_PREFIXES) {
+      if (name.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private static MemberResolution resolveClassProperty(
       Class<?> clazz, VType.ClassType receiverType, String propertyName) {
+    if (isClassDenied(clazz)) {
+      return MemberResolution.notFound(VTypes.ERROR, Optional.empty());
+    }
+
     Set<String> candidates = new LinkedHashSet<>();
 
     // 1. Record component exact name
@@ -60,6 +102,9 @@ public final class MemberResolver {
       for (RecordComponent rc : clazz.getRecordComponents()) {
         candidates.add(rc.getName());
         if (rc.getName().equals(propertyName)) {
+          if (isClassDenied(rc.getType())) {
+            return MemberResolution.notFound(VTypes.ERROR, Optional.empty());
+          }
           VType type = VTypes.fromJavaType(rc.getGenericType(), Nullability.NULLABLE);
           return MemberResolution.of(
               MemberResolution.Kind.RECORD_COMPONENT, type, rc.getAccessor());
@@ -69,28 +114,38 @@ public final class MemberResolver {
 
     // 2. JavaBean getter: getX()
     String getterName = "get" + capitalize(propertyName);
-    try {
-      Method m = clazz.getMethod(getterName);
-      if (Modifier.isPublic(m.getModifiers())
-          && m.getParameterCount() == 0
-          && m.getReturnType() != void.class) {
-        VType type = VTypes.fromJavaType(m.getGenericReturnType(), Nullability.NULLABLE);
-        return MemberResolution.of(MemberResolution.Kind.GETTER, type, m);
+    if (!DENIED_METHODS.contains(getterName)) {
+      try {
+        Method m = clazz.getMethod(getterName);
+        if (Modifier.isPublic(m.getModifiers())
+            && m.getParameterCount() == 0
+            && m.getReturnType() != void.class
+            && !DENIED_METHODS.contains(m.getName())
+            && !isClassDenied(m.getDeclaringClass())
+            && !isClassDenied(m.getReturnType())) {
+          VType type = VTypes.fromJavaType(m.getGenericReturnType(), Nullability.NULLABLE);
+          return MemberResolution.of(MemberResolution.Kind.GETTER, type, m);
+        }
+      } catch (NoSuchMethodException ignored) {
       }
-    } catch (NoSuchMethodException ignored) {
     }
 
     // 3. Boolean getter: isX()
     String booleanGetterName = "is" + capitalize(propertyName);
-    try {
-      Method m = clazz.getMethod(booleanGetterName);
-      if (Modifier.isPublic(m.getModifiers())
-          && m.getParameterCount() == 0
-          && (m.getReturnType() == boolean.class || m.getReturnType() == Boolean.class)) {
-        VType type = VTypes.fromJavaType(m.getGenericReturnType(), Nullability.NULLABLE);
-        return MemberResolution.of(MemberResolution.Kind.BOOLEAN_GETTER, type, m);
+    if (!DENIED_METHODS.contains(booleanGetterName)) {
+      try {
+        Method m = clazz.getMethod(booleanGetterName);
+        if (Modifier.isPublic(m.getModifiers())
+            && m.getParameterCount() == 0
+            && (m.getReturnType() == boolean.class || m.getReturnType() == Boolean.class)
+            && !DENIED_METHODS.contains(m.getName())
+            && !isClassDenied(m.getDeclaringClass())
+            && !isClassDenied(m.getReturnType())) {
+          VType type = VTypes.fromJavaType(m.getGenericReturnType(), Nullability.NULLABLE);
+          return MemberResolution.of(MemberResolution.Kind.BOOLEAN_GETTER, type, m);
+        }
+      } catch (NoSuchMethodException ignored) {
       }
-    } catch (NoSuchMethodException ignored) {
     }
 
     // 4. Exact zero-arg public method matching property name (e.g. interface or record-style
@@ -100,7 +155,10 @@ public final class MemberResolver {
       if (Modifier.isPublic(m.getModifiers())
           && m.getParameterCount() == 0
           && m.getReturnType() != void.class
-          && m.getDeclaringClass() != Object.class) {
+          && m.getDeclaringClass() != Object.class
+          && !DENIED_METHODS.contains(m.getName())
+          && !isClassDenied(m.getDeclaringClass())
+          && !isClassDenied(m.getReturnType())) {
         VType type = VTypes.fromJavaType(m.getGenericReturnType(), Nullability.NULLABLE);
         return MemberResolution.of(MemberResolution.Kind.GETTER, type, m);
       }
@@ -110,7 +168,10 @@ public final class MemberResolver {
     // 5. Public field
     try {
       Field f = clazz.getField(propertyName);
-      if (Modifier.isPublic(f.getModifiers())) {
+      if (Modifier.isPublic(f.getModifiers())
+          && !Modifier.isStatic(f.getModifiers())
+          && !isClassDenied(f.getDeclaringClass())
+          && !isClassDenied(f.getType())) {
         VType type = VTypes.fromJavaType(f.getGenericType(), Nullability.NULLABLE);
         return MemberResolution.of(MemberResolution.Kind.FIELD, type, f);
       }
@@ -127,7 +188,9 @@ public final class MemberResolver {
     for (Method m : clazz.getMethods()) {
       if (m.getParameterCount() != 0
           || !Modifier.isPublic(m.getModifiers())
-          || m.getDeclaringClass() == Object.class) {
+          || m.getDeclaringClass() == Object.class
+          || DENIED_METHODS.contains(m.getName())
+          || isClassDenied(m.getDeclaringClass())) {
         continue;
       }
       String name = m.getName();
