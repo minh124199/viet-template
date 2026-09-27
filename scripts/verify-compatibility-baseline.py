@@ -62,6 +62,14 @@ API_BASELINE_FILES = [
     "config/api-baseline/1.0-quarkus-public-api.txt",
 ]
 
+# Permitted additive types introduced in post-1.0 minor releases (Viet Template 1.1.x),
+# adhering to the 1.x Compatibility Policy in COMPATIBILITY.md (purely additive public APIs).
+ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
+    "io.github.minh124199.viettemplate.api.TemplateContract",
+    "io.github.minh124199.viettemplate.api.TemplateContract$Builder",
+    "io.github.minh124199.viettemplate.api.TemplateParameter",
+}
+
 
 # =============================================================================
 # Helper Parsers
@@ -307,39 +315,38 @@ def verify_public_surface(manifest: dict[str, Any], repo_root: Path) -> list[str
     except Exception as e:
         return [f"Failed to load classification file: {e}"]
 
-    # 1. Total count
-    if len(current_classification) != EXPECTED_TOTAL_PUBLIC_TYPES:
-        errors.append(f"Public surface total types mismatch: expected {EXPECTED_TOTAL_PUBLIC_TYPES}, got {len(current_classification)}")
+    # 1. Total count (1.0.0 baseline + explicitly registered 1.x additive types)
+    expected_total = EXPECTED_TOTAL_PUBLIC_TYPES + len(ALLOWED_ADDITIVE_1_X_TYPES)
+    if len(current_classification) != expected_total:
+        errors.append(f"Public surface total types mismatch: expected {expected_total} ({EXPECTED_TOTAL_PUBLIC_TYPES} baseline + {len(ALLOWED_ADDITIVE_1_X_TYPES)} 1.x additive), got {len(current_classification)}")
 
-    # 2. Match baseline classification mapping
+    # 2. Match baseline classification mapping (allowing registered 1.x additive types)
     baseline_types = ps.get("allPublicSurfaceTypes", {})
-    if current_classification != baseline_types:
-        missing_in_current = set(baseline_types.keys()) - set(current_classification.keys())
-        extra_in_current = set(current_classification.keys()) - set(baseline_types.keys())
-        category_mismatches = [
-            f"{t}: baseline={baseline_types[t]}, current={current_classification[t]}"
-            for t in baseline_types
-            if t in current_classification and baseline_types[t] != current_classification[t]
-        ]
-        if missing_in_current:
-            errors.append(f"Public surface types missing from classification: {sorted(missing_in_current)[:5]} (total {len(missing_in_current)})")
-        if extra_in_current:
-            errors.append(f"Unexpected public surface types found in classification: {sorted(extra_in_current)[:5]} (total {len(extra_in_current)})")
-        if category_mismatches:
-            errors.append(f"Category mismatches between baseline and classification: {category_mismatches[:5]} (total {len(category_mismatches)})")
+    missing_in_current = set(baseline_types.keys()) - set(current_classification.keys())
+    extra_in_current = (set(current_classification.keys()) - set(baseline_types.keys())) - ALLOWED_ADDITIVE_1_X_TYPES
+    category_mismatches = [
+        f"{t}: baseline={baseline_types[t]}, current={current_classification[t]}"
+        for t in baseline_types
+        if t in current_classification and baseline_types[t] != current_classification[t]
+    ]
+    if missing_in_current:
+        errors.append(f"Public surface types missing from classification: {sorted(missing_in_current)[:5]} (total {len(missing_in_current)})")
+    if extra_in_current:
+        errors.append(f"Unexpected public surface types found in classification: {sorted(extra_in_current)[:5]} (total {len(extra_in_current)})")
+    if category_mismatches:
+        errors.append(f"Category mismatches between baseline and classification: {category_mismatches[:5]} (total {len(category_mismatches)})")
 
-    # 3. Stable types parity
+    # 3. Stable types parity (allowing registered 1.x additive types)
     stable_in_curr = {k for k, v in current_classification.items() if v in ("STABLE_API", "STABLE_SPI")}
     baseline_stable = set(ps.get("stableTypes", []))
-    if stable_in_curr != baseline_stable:
-        diff1 = baseline_stable - stable_in_curr
-        diff2 = stable_in_curr - baseline_stable
-        if diff1:
-            errors.append(f"Stable types missing from current classification: {sorted(diff1)}")
-        if diff2:
-            errors.append(f"Unexpected stable types in current classification: {sorted(diff2)}")
+    diff1 = baseline_stable - stable_in_curr
+    diff2 = (stable_in_curr - baseline_stable) - ALLOWED_ADDITIVE_1_X_TYPES
+    if diff1:
+        errors.append(f"Stable types missing from current classification: {sorted(diff1)}")
+    if diff2:
+        errors.append(f"Unexpected stable types in current classification: {sorted(diff2)}")
 
-    # 4. API baseline files parity (disjoint & bijection)
+    # 4. API baseline files parity (disjoint & bijection, allowing registered 1.x additive types)
     discovered_api_types: dict[str, str] = {}  # type -> baseline_name
     for rel_path in API_BASELINE_FILES:
         bf = repo_root / rel_path
@@ -355,13 +362,12 @@ def verify_public_surface(manifest: dict[str, Any], repo_root: Path) -> list[str
             discovered_api_types[t] = rel_path
 
     all_api_types = set(discovered_api_types.keys())
-    if all_api_types != baseline_stable:
-        diff1 = baseline_stable - all_api_types
-        diff2 = all_api_types - baseline_stable
-        if diff1:
-            errors.append(f"Stable types defined in baseline JSON but missing from API baseline files: {sorted(diff1)}")
-        if diff2:
-            errors.append(f"Types in API baseline files not recognized as stable in baseline JSON: {sorted(diff2)}")
+    diff1 = baseline_stable - all_api_types
+    diff2 = (all_api_types - baseline_stable) - ALLOWED_ADDITIVE_1_X_TYPES
+    if diff1:
+        errors.append(f"Stable types defined in baseline JSON but missing from API baseline files: {sorted(diff1)}")
+    if diff2:
+        errors.append(f"Types in API baseline files not recognized as stable in baseline JSON: {sorted(diff2)}")
 
     return errors
 

@@ -1,7 +1,9 @@
 package io.github.minh124199.viettemplate.api;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -55,9 +57,83 @@ public interface RenderContext {
    */
   static RenderContext of(String key, Object value) {
     Objects.requireNonNull(key, "key must not be null");
-    Map<String, Object> map = new LinkedHashMap<>(1);
-    map.put(key, value);
-    return new MapBackedRenderContext(map);
+    return new SingleVariableRenderContext(key, value);
+  }
+
+  /**
+   * Creates an immutable two-variable {@link RenderContext} without map allocation.
+   *
+   * @param k1 first variable name
+   * @param v1 first variable value
+   * @param k2 second variable name
+   * @param v2 second variable value
+   * @return read-only render context
+   */
+  static RenderContext of(String k1, Object v1, String k2, Object v2) {
+    Objects.requireNonNull(k1, "k1 must not be null");
+    Objects.requireNonNull(k2, "k2 must not be null");
+    return new ArrayBackedRenderContext(new String[] {k1, k2}, new Object[] {v1, v2});
+  }
+
+  /**
+   * Creates an immutable three-variable {@link RenderContext} without map allocation.
+   *
+   * @param k1 first variable name
+   * @param v1 first variable value
+   * @param k2 second variable name
+   * @param v2 second variable value
+   * @param k3 third variable name
+   * @param v3 third variable value
+   * @return read-only render context
+   */
+  static RenderContext of(String k1, Object v1, String k2, Object v2, String k3, Object v3) {
+    Objects.requireNonNull(k1, "k1 must not be null");
+    Objects.requireNonNull(k2, "k2 must not be null");
+    Objects.requireNonNull(k3, "k3 must not be null");
+    return new ArrayBackedRenderContext(new String[] {k1, k2, k3}, new Object[] {v1, v2, v3});
+  }
+
+  /**
+   * Creates an immutable four-variable {@link RenderContext} without map allocation.
+   *
+   * @param k1 first variable name
+   * @param v1 first variable value
+   * @param k2 second variable name
+   * @param v2 second variable value
+   * @param k3 third variable name
+   * @param v3 third variable value
+   * @param k4 fourth variable name
+   * @param v4 fourth variable value
+   * @return read-only render context
+   */
+  static RenderContext of(
+      String k1, Object v1, String k2, Object v2, String k3, Object v3, String k4, Object v4) {
+    Objects.requireNonNull(k1, "k1 must not be null");
+    Objects.requireNonNull(k2, "k2 must not be null");
+    Objects.requireNonNull(k3, "k3 must not be null");
+    Objects.requireNonNull(k4, "k4 must not be null");
+    return new ArrayBackedRenderContext(
+        new String[] {k1, k2, k3, k4}, new Object[] {v1, v2, v3, v4});
+  }
+
+  /**
+   * Creates an immutable {@link RenderContext} backed by parallel arrays of keys and values.
+   *
+   * @param keys array of variable names (must not be null, elements must not be null)
+   * @param values array of variable values (must not be null, length must match keys)
+   * @return read-only render context
+   */
+  static RenderContext of(String[] keys, Object[] values) {
+    Objects.requireNonNull(keys, "keys must not be null");
+    Objects.requireNonNull(values, "values must not be null");
+    if (keys.length != values.length) {
+      throw new IllegalArgumentException(
+          "Keys length (" + keys.length + ") does not match values length (" + values.length + ")");
+    }
+    for (String key : keys) {
+      Objects.requireNonNull(key, "variable key must not be null");
+    }
+    return new ArrayBackedRenderContext(keys.clone(), values.clone());
   }
 
   static Builder builder() {
@@ -103,6 +179,31 @@ final class EmptyRenderContext implements RenderContext {
   }
 }
 
+final class SingleVariableRenderContext implements RenderContext {
+  private final String key;
+  private final Object value;
+
+  SingleVariableRenderContext(String key, Object value) {
+    this.key = Objects.requireNonNull(key, "variable key must not be null");
+    this.value = value;
+  }
+
+  @Override
+  public Object get(String name) {
+    return key.equals(name) ? value : null;
+  }
+
+  @Override
+  public boolean contains(String name) {
+    return key.equals(name);
+  }
+
+  @Override
+  public Set<String> keys() {
+    return Set.of(key);
+  }
+}
+
 final class MapBackedRenderContext implements RenderContext {
   private final Map<String, Object> map;
 
@@ -128,5 +229,46 @@ final class MapBackedRenderContext implements RenderContext {
   @Override
   public Set<String> keys() {
     return map.keySet();
+  }
+}
+
+final class ArrayBackedRenderContext implements RenderContext {
+  private final String[] keys;
+  private final Object[] values;
+
+  ArrayBackedRenderContext(String[] keys, Object[] values) {
+    this.keys = keys;
+    this.values = values;
+  }
+
+  @Override
+  public Object get(String name) {
+    if (name == null) {
+      return null;
+    }
+    for (int i = 0; i < keys.length; i++) {
+      if (keys[i].equals(name)) {
+        return values[i];
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public boolean contains(String name) {
+    if (name == null) {
+      return false;
+    }
+    for (String key : keys) {
+      if (key.equals(name)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public Set<String> keys() {
+    return Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(keys)));
   }
 }
