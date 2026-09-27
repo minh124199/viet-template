@@ -22,6 +22,8 @@ public abstract class VietTemplateExtension {
     getPackagePrefix().convention("io.github.minh124199.viettemplate.generated");
     getFailOnWarning().convention(false);
     getIncremental().convention(true);
+    getGenerateTypedFacades().convention(false);
+    getGeneratedSourcesDirectory().convention(objects.directoryProperty());
   }
 
   public abstract DirectoryProperty getSourceDirectory();
@@ -29,6 +31,8 @@ public abstract class VietTemplateExtension {
   public abstract DirectoryProperty getOutputDirectory();
 
   public abstract DirectoryProperty getResourceOutputDirectory();
+
+  public abstract DirectoryProperty getGeneratedSourcesDirectory();
 
   public abstract ListProperty<String> getIncludes();
 
@@ -41,4 +45,6 @@ public abstract class VietTemplateExtension {
   public abstract Property<Boolean> getFailOnWarning();
 
   public abstract Property<Boolean> getIncremental();
+
+  public abstract Property<Boolean> getGenerateTypedFacades();
 }

@@ -47,6 +47,36 @@ class VietTemplateCompileMojoTest {
   }
 
   @Test
+  @DisplayName("Compiles template with companion contract and generates typed Java facade")
+  void testCompileWithTypedFacades(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src/main/viet-template");
+    Path outDir = tempDir.resolve("target/classes");
+    Path genSourcesDir = tempDir.resolve("target/generated-sources/viet-template");
+    Files.createDirectories(srcDir);
+    Files.writeString(
+        srcDir.resolve("greeting.vtl"), "Hello, $name! Welcome.", StandardCharsets.UTF_8);
+    Files.writeString(
+        srcDir.resolve("greeting.vtl.contract"), "name=String\n", StandardCharsets.UTF_8);
+
+    VietTemplateCompileMojo mojo = new VietTemplateCompileMojo();
+    mojo.setSourceDirectory(srcDir.toFile());
+    mojo.setOutputDirectory(outDir.toFile());
+    mojo.setResourceOutputDirectory(outDir.toFile());
+    mojo.setGenerateTypedFacades(true);
+    mojo.setGeneratedSourcesDirectory(genSourcesDir.toFile());
+
+    assertThatCode(mojo::execute).doesNotThrowAnyException();
+
+    Path viewFile =
+        genSourcesDir.resolve("io/github/minh124199/viettemplate/generated/GreetingView.java");
+    assertThat(viewFile).isRegularFile();
+    String viewContent = Files.readString(viewFile, StandardCharsets.UTF_8);
+    assertThat(viewContent).contains("public final class GreetingView");
+    assertThat(viewContent)
+        .contains("public static void render(TemplateOutput output, java.lang.String name)");
+  }
+
+  @Test
   @DisplayName("Fails build when template has syntax or compilation errors")
   void testCompileFailureTemplates(@TempDir Path tempDir) throws Exception {
     Path srcDir = tempDir.resolve("src/main/viet-template");

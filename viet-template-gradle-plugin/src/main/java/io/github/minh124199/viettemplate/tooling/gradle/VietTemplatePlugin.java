@@ -32,6 +32,9 @@ public class VietTemplatePlugin implements Plugin<Project> {
         .getResourceOutputDirectory()
         .convention(
             project.getLayout().getBuildDirectory().dir("generated/viet-template/resources"));
+    extension
+        .getGeneratedSourcesDirectory()
+        .convention(project.getLayout().getBuildDirectory().dir("generated/viet-template/sources"));
 
     TaskProvider<VietTemplateCompileTask> task =
         project
@@ -48,12 +51,18 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   compileTask
                       .getResourceOutputDirectory()
                       .convention(extension.getResourceOutputDirectory());
+                  compileTask
+                      .getGeneratedSourcesDirectory()
+                      .convention(extension.getGeneratedSourcesDirectory());
                   compileTask.getIncludes().convention(extension.getIncludes());
                   compileTask.getExcludes().convention(extension.getExcludes());
                   compileTask.getEncoding().convention(extension.getEncoding());
                   compileTask.getPackagePrefix().convention(extension.getPackagePrefix());
                   compileTask.getFailOnWarning().convention(extension.getFailOnWarning());
                   compileTask.getIncremental().convention(extension.getIncremental());
+                  compileTask
+                      .getGenerateTypedFacades()
+                      .convention(extension.getGenerateTypedFacades());
                 });
 
     // When java plugin applied:
@@ -74,6 +83,11 @@ public class VietTemplatePlugin implements Plugin<Project> {
               VietTemplateCompileTask compileTask = task.get();
               mainSourceSet.getOutput().dir(compileTask.getOutputDirectory());
               mainSourceSet.getResources().srcDir(compileTask.getResourceOutputDirectory());
+              compileTask
+                  .getClasspath()
+                  .from(
+                      mainSourceSet.getCompileClasspath(),
+                      mainSourceSet.getOutput().getClassesDirs());
               compileTask.dependsOn(JavaPlugin.COMPILE_JAVA_TASK_NAME);
               project
                   .getTasks()

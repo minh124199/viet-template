@@ -11,13 +11,16 @@ import java.util.List;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
+import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.CacheableTask;
+import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.IgnoreEmptyDirectories;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputDirectory;
+import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.PathSensitive;
@@ -37,6 +40,7 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
     getPackagePrefix().convention("io.github.minh124199.viettemplate.generated");
     getFailOnWarning().convention(false);
     getIncremental().convention(true);
+    getGenerateTypedFacades().convention(false);
   }
 
   @InputDirectory
@@ -50,6 +54,15 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
 
   @OutputDirectory
   public abstract DirectoryProperty getResourceOutputDirectory();
+
+  @OutputDirectory
+  @Optional
+  public abstract DirectoryProperty getGeneratedSourcesDirectory();
+
+  @InputFiles
+  @Classpath
+  @Optional
+  public abstract ConfigurableFileCollection getClasspath();
 
   @Input
   @Optional
@@ -74,6 +87,10 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
   @Input
   @Optional
   public abstract Property<Boolean> getIncremental();
+
+  @Input
+  @Optional
+  public abstract Property<Boolean> getGenerateTypedFacades();
 
   @TaskAction
   public void compileTemplates() {
@@ -126,6 +143,30 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
     List<String> excl = getExcludes().getOrNull();
     if (excl != null && !excl.isEmpty()) {
       reqBuilder.excludePatterns(excl);
+    }
+
+    boolean generateTypedFacades = getGenerateTypedFacades().getOrElse(false);
+    if (generateTypedFacades) {
+      reqBuilder.generateTypedFacades(true);
+      File genSourcesDir = getGeneratedSourcesDirectory().getAsFile().getOrNull();
+      if (genSourcesDir != null) {
+        reqBuilder.generatedSourcesDirectory(genSourcesDir.toPath());
+      }
+    }
+
+    if (!getClasspath().isEmpty()) {
+      try {
+        java.util.List<java.net.URL> urls = new java.util.ArrayList<>();
+        for (File f : getClasspath().getFiles()) {
+          urls.add(f.toURI().toURL());
+        }
+        ClassLoader cl =
+            new java.net.URLClassLoader(
+                urls.toArray(new java.net.URL[0]), Thread.currentThread().getContextClassLoader());
+        reqBuilder.classLoader(cl);
+      } catch (Exception e) {
+        getLogger().debug("Could not build compile classpath ClassLoader", e);
+      }
     }
 
     TemplateAotRequest request;

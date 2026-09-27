@@ -63,6 +63,14 @@ public class VietTemplateCompileMojo extends AbstractMojo {
   @Parameter(defaultValue = "false", property = "viet-template.skip")
   private boolean skip = false;
 
+  @Parameter(defaultValue = "false", property = "viet-template.generateTypedFacades")
+  private boolean generateTypedFacades = false;
+
+  @Parameter(
+      defaultValue = "${project.build.directory}/generated-sources/viet-template",
+      property = "viet-template.generatedSourcesDirectory")
+  private File generatedSourcesDirectory;
+
   @Parameter(defaultValue = "${project}", readonly = true)
   private MavenProject project;
 
@@ -129,6 +137,32 @@ public class VietTemplateCompileMojo extends AbstractMojo {
       requestBuilder.excludePatterns(excludes);
     }
 
+    if (generateTypedFacades) {
+      requestBuilder.generateTypedFacades(true);
+      if (generatedSourcesDirectory != null) {
+        requestBuilder.generatedSourcesDirectory(generatedSourcesDirectory.toPath());
+      }
+    }
+
+    if (project != null) {
+      try {
+        List<String> classpathElements = project.getCompileClasspathElements();
+        if (classpathElements != null && !classpathElements.isEmpty()) {
+          List<java.net.URL> urls = new ArrayList<>();
+          for (String element : classpathElements) {
+            urls.add(new File(element).toURI().toURL());
+          }
+          ClassLoader cl =
+              new java.net.URLClassLoader(
+                  urls.toArray(new java.net.URL[0]),
+                  Thread.currentThread().getContextClassLoader());
+          requestBuilder.classLoader(cl);
+        }
+      } catch (Exception e) {
+        getLog().debug("Could not build compile classpath ClassLoader: " + e.getMessage());
+      }
+    }
+
     TemplateAotRequest request;
     try {
       request = requestBuilder.build();
@@ -165,6 +199,10 @@ public class VietTemplateCompileMojo extends AbstractMojo {
             String.format(
                 "Compiled %d Viet Template(s) (%d skipped, %d deleted).",
                 result.compiledCount(), result.skippedCount(), result.deletedCount()));
+
+    if (generateTypedFacades && generatedSourcesDirectory != null && project != null) {
+      project.addCompileSourceRoot(generatedSourcesDirectory.getAbsolutePath());
+    }
   }
 
   public File getSourceDirectory() {
@@ -253,5 +291,21 @@ public class VietTemplateCompileMojo extends AbstractMojo {
 
   public void setProject(MavenProject project) {
     this.project = project;
+  }
+
+  public boolean isGenerateTypedFacades() {
+    return generateTypedFacades;
+  }
+
+  public void setGenerateTypedFacades(boolean generateTypedFacades) {
+    this.generateTypedFacades = generateTypedFacades;
+  }
+
+  public File getGeneratedSourcesDirectory() {
+    return generatedSourcesDirectory;
+  }
+
+  public void setGeneratedSourcesDirectory(File generatedSourcesDirectory) {
+    this.generatedSourcesDirectory = generatedSourcesDirectory;
   }
 }
