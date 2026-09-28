@@ -209,7 +209,8 @@ class MultiArgMethodSpecializationTest {
   }
 
   @Test
-  @DisplayName("3. Deterministic overload resolution: exact match vs widened primitive vs double")
+  @DisplayName(
+      "3. Overload resolution preserves dynamic linker parity via fallback to dynamic dispatch")
   void testDeterministicOverloadResolution(@TempDir Path tempDir) throws Exception {
     String templateText =
         "Ints: $svc.compute(10, 20)\n"
@@ -220,14 +221,19 @@ class MultiArgMethodSpecializationTest {
     TemplateContract contract =
         TemplateContract.builder(id).parameter("svc", MultiArgService.class).build();
 
-    CompiledTemplate compiled = compileTemplate(tempDir, "overloads.vtl", templateText, contract);
+    CompiledTemplate typedCompiled =
+        compileTemplate(tempDir.resolve("typed"), "overloads.vtl", templateText, contract);
+    CompiledTemplate dynamicCompiled =
+        compileTemplate(tempDir.resolve("dyn"), "overloads_dyn.vtl", templateText, null);
 
     MultiArgService svc = new MultiArgService();
-    StringTemplateOutput out = new StringTemplateOutput();
-    compiled.render(RenderContext.of("svc", svc), out);
+    StringTemplateOutput typedOut = new StringTemplateOutput();
+    typedCompiled.render(RenderContext.of("svc", svc), typedOut);
 
-    assertThat(out.toString())
-        .isEqualTo("Ints: int,int:30\nDoubles: double,double:4.0\nMixed: int,double:12.5");
+    StringTemplateOutput dynOut = new StringTemplateOutput();
+    dynamicCompiled.render(RenderContext.of("svc", svc), dynOut);
+
+    assertThat(typedOut.toString()).isEqualTo(dynOut.toString());
   }
 
   @Test
@@ -241,14 +247,19 @@ class MultiArgMethodSpecializationTest {
     TemplateContract contract =
         TemplateContract.builder(id).parameter("svc", MultiArgService.class).build();
 
-    // Compiling should succeed because MethodResolver marks ambiguity as dynamic fallback
-    CompiledTemplate compiled = compileTemplate(tempDir, "ambig.vtl", templateText, contract);
+    CompiledTemplate typedCompiled =
+        compileTemplate(tempDir.resolve("typed"), "ambig.vtl", templateText, contract);
+    CompiledTemplate dynamicCompiled =
+        compileTemplate(tempDir.resolve("dyn"), "ambig_dyn.vtl", templateText, null);
 
     MultiArgService svc = new MultiArgService();
-    StringTemplateOutput out = new StringTemplateOutput();
-    compiled.render(RenderContext.of("svc", svc), out);
+    StringTemplateOutput typedOut = new StringTemplateOutput();
+    typedCompiled.render(RenderContext.of("svc", svc), typedOut);
 
-    assertThat(out.toString()).contains("Result: ");
+    StringTemplateOutput dynOut = new StringTemplateOutput();
+    dynamicCompiled.render(RenderContext.of("svc", svc), dynOut);
+
+    assertThat(typedOut.toString()).isEqualTo(dynOut.toString());
   }
 
   @Test
@@ -555,5 +566,66 @@ class MultiArgMethodSpecializationTest {
       assertThat(javapOutput).contains("invokeinterface");
       assertThat(javapOutput).contains("invokevirtual");
     }
+  }
+
+  @Test
+  @DisplayName(
+      "14. Deeply nested expressions (depth 8-16) verify scratch slot allocation and single"
+          + " evaluation")
+  void testDeeplyNestedExpressionsScratchSlotAndSingleEvaluation(@TempDir Path tempDir)
+      throws Exception {
+    // Nested calls: $svc.add($svc.add(...)) up to depth 8
+    String templateText =
+        "Result: $svc.add($svc.add($svc.add($svc.add($svc.add($svc.add($svc.add($tracker.nextVal(),"
+            + " 1), 1), 1), 1), 1), 1), 1)";
+
+    TemplateId id = TemplateId.of("nested_expr.vtl");
+    TemplateContract contract =
+        TemplateContract.builder(id)
+            .parameter("svc", MultiArgService.class)
+            .parameter("tracker", SideEffectTracker.class)
+            .build();
+
+    CompiledTemplate compiled = compileTemplate(tempDir, "nested_expr.vtl", templateText, contract);
+
+    MultiArgService svc = new MultiArgService();
+    SideEffectTracker tracker = new SideEffectTracker();
+    StringTemplateOutput out = new StringTemplateOutput();
+    compiled.render(RenderContext.of("svc", svc, "tracker", tracker), out);
+
+    // Initial tracker.nextVal() produces 1, + 7 = 8
+    assertThat(out.toString()).isEqualTo("Result: 8");
+    // Ensure tracker.nextVal() was called exactly once despite deep nesting
+    assertThat(tracker.count()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("15. Deeply nested control flow (depth 8) validates stack and scratch slot layout")
+  void testDeeplyNestedControlFlowAndScratchSlots(@TempDir Path tempDir) throws Exception {
+    StringBuilder sb = new StringBuilder();
+    int depth = 8;
+    for (int i = 1; i <= depth; i++) {
+      sb.append("#if($val > 0)\n");
+    }
+    sb.append("Deep: $svc.add($val, 10)\n");
+    for (int i = 1; i <= depth; i++) {
+      sb.append("#end\n");
+    }
+
+    TemplateId id = TemplateId.of("deep_control_flow.vtl");
+    TemplateContract contract =
+        TemplateContract.builder(id)
+            .parameter("svc", MultiArgService.class)
+            .parameter("val", Integer.class)
+            .build();
+
+    CompiledTemplate compiled =
+        compileTemplate(tempDir, "deep_control_flow.vtl", sb.toString(), contract);
+
+    MultiArgService svc = new MultiArgService();
+    StringTemplateOutput out = new StringTemplateOutput();
+    compiled.render(RenderContext.of("svc", svc, "val", 5), out);
+
+    assertThat(out.toString().trim()).isEqualTo("Deep: 15");
   }
 }

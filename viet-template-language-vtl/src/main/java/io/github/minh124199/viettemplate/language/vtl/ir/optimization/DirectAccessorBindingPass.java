@@ -386,7 +386,7 @@ final class DirectAccessorBindingPass implements IrOptimizationPass {
 
     MethodResolution res =
         MethodResolver.resolveMethod(receiverType, methodName, argTypes, context.securityPolicy());
-    if (res.isResolved() && res.targetMethod().isPresent()) {
+    if (res.isResolved() && res.isSpecializationStable() && res.targetMethod().isPresent()) {
       Method targetMethod = res.targetMethod().get();
       if (DENIED_METHODS.contains(targetMethod.getName())
           || isDeniedClass(targetMethod.getDeclaringClass())

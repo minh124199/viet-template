@@ -2,7 +2,6 @@ package io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolv
 
 import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability;
-import io.github.minh124199.viettemplate.language.vtl.semantics.type.PrimitiveKind;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import java.lang.reflect.Method;
@@ -109,7 +108,12 @@ public final class MethodResolver {
           targetMethod.getReturnType() == void.class
               ? VTypes.DYNAMIC
               : VTypes.fromJavaType(targetMethod.getGenericReturnType(), Nullability.NULLABLE);
-      return MethodResolution.resolved(returnType, targetMethod);
+      long distinctSignatures =
+          candidates.stream()
+              .map(m -> java.util.Arrays.toString(m.getParameterTypes()))
+              .distinct()
+              .count();
+      return MethodResolution.resolved(returnType, targetMethod, (int) distinctSignatures);
     }
 
     // Typo suggestion
@@ -183,14 +187,12 @@ public final class MethodResolver {
 
     if (paramType.isPrimitive()) {
       if (argType instanceof VType.PrimitiveType pt) {
-        if (pt.kind().primitiveClass() == paramType) {
+        Class<?> primArg = pt.kind().primitiveClass();
+        if (primArg == paramType) {
           return 0;
         }
-        if (pt.isAssignableTo(new VType.PrimitiveType(PrimitiveKind.fromClass(paramType)))) {
-          return 2;
-        }
-        if (isNumericType(paramType) && pt.kind().isNumeric()) {
-          return 50;
+        if (isPermittedPrimitiveWidening(primArg, paramType)) {
+          return 2 + wideningDistance(primArg, paramType);
         }
         return -1;
       }
@@ -199,8 +201,9 @@ public final class MethodResolver {
         if (boxType(paramType) == argClass) {
           return 1;
         }
-        if (isNumericType(paramType) && isNumericType(argClass)) {
-          return 50;
+        Class<?> unboxed = unboxType(argClass);
+        if (unboxed != null && isPermittedPrimitiveWidening(unboxed, paramType)) {
+          return 3 + wideningDistance(unboxed, paramType);
         }
         return -1;
       }
@@ -215,11 +218,8 @@ public final class MethodResolver {
       if (paramType.isAssignableFrom(boxed)) {
         return 2 + Math.min(getInheritanceDistance(paramType, boxed), 20);
       }
-      if (isNumericType(paramType) && pt.kind().isNumeric()) {
-        return 50;
-      }
-      if (paramType == String.class || paramType == CharSequence.class) {
-        return 80;
+      if (paramType == Object.class) {
+        return 15;
       }
       return -1;
     }
@@ -232,12 +232,8 @@ public final class MethodResolver {
       if (paramType.isAssignableFrom(argClass)) {
         return 2 + Math.min(getInheritanceDistance(paramType, argClass), 20);
       }
-      if (isNumericType(paramType) && isNumericType(argClass)) {
-        return 50;
-      }
-      if ((paramType == String.class || paramType == CharSequence.class)
-          && !java.util.Map.class.isAssignableFrom(argClass)) {
-        return 80;
+      if (paramType == Object.class) {
+        return 15;
       }
       return -1;
     }
@@ -251,6 +247,70 @@ public final class MethodResolver {
     }
 
     return -1;
+  }
+
+  private static boolean isPermittedPrimitiveWidening(Class<?> from, Class<?> to) {
+    if (from == byte.class) {
+      return to == short.class
+          || to == int.class
+          || to == long.class
+          || to == float.class
+          || to == double.class;
+    }
+    if (from == short.class) {
+      return to == int.class || to == long.class || to == float.class || to == double.class;
+    }
+    if (from == int.class) {
+      return to == long.class || to == float.class || to == double.class;
+    }
+    if (from == long.class) {
+      return to == float.class || to == double.class;
+    }
+    if (from == float.class) {
+      return to == double.class;
+    }
+    return false;
+  }
+
+  private static int wideningDistance(Class<?> from, Class<?> to) {
+    if (from == byte.class) {
+      if (to == short.class) return 1;
+      if (to == int.class) return 2;
+      if (to == long.class) return 3;
+      if (to == float.class) return 4;
+      if (to == double.class) return 5;
+    }
+    if (from == short.class) {
+      if (to == int.class) return 1;
+      if (to == long.class) return 2;
+      if (to == float.class) return 3;
+      if (to == double.class) return 4;
+    }
+    if (from == int.class) {
+      if (to == long.class) return 1;
+      if (to == float.class) return 2;
+      if (to == double.class) return 3;
+    }
+    if (from == long.class) {
+      if (to == float.class) return 1;
+      if (to == double.class) return 2;
+    }
+    if (from == float.class) {
+      if (to == double.class) return 1;
+    }
+    return 10;
+  }
+
+  private static Class<?> unboxType(Class<?> type) {
+    if (type == Integer.class) return int.class;
+    if (type == Long.class) return long.class;
+    if (type == Double.class) return double.class;
+    if (type == Float.class) return float.class;
+    if (type == Short.class) return short.class;
+    if (type == Byte.class) return byte.class;
+    if (type == Boolean.class) return boolean.class;
+    if (type == Character.class) return char.class;
+    return null;
   }
 
   private static int getInheritanceDistance(Class<?> target, Class<?> sub) {
@@ -283,10 +343,6 @@ public final class MethodResolver {
       }
     }
     return getInterfaceDistance(targetInterface, cls.getSuperclass()) + 1;
-  }
-
-  private static boolean isNumericType(Class<?> clazz) {
-    return Number.class.isAssignableFrom(boxType(clazz));
   }
 
   private static Class<?> boxType(Class<?> type) {
