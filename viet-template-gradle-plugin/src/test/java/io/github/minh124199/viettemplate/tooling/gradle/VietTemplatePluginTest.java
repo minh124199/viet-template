@@ -78,6 +78,13 @@ class VietTemplatePluginTest {
     assertThat(task.getDependsOn()).contains(JavaPlugin.COMPILE_JAVA_TASK_NAME);
     Task classesTask = project.getTasks().getByName(JavaPlugin.CLASSES_TASK_NAME);
     assertThat(classesTask.getDependsOn()).contains(task);
+
+    // Verify facade task
+    Task facadeTaskObj =
+        project.getTasks().findByName(VietTemplatePlugin.GENERATE_FACADES_TASK_NAME);
+    assertThat(facadeTaskObj).isInstanceOf(VietTemplateGenerateFacadesTask.class);
+    Task compileJavaTask = project.getTasks().getByName(JavaPlugin.COMPILE_JAVA_TASK_NAME);
+    assertThat(compileJavaTask.getDependsOn()).contains(facadeTaskObj);
   }
 
   @Test

@@ -64,19 +64,43 @@ public final class ModelSchema {
     Map<String, ModelParameter> map = new LinkedHashMap<>();
     for (TemplateParameter param : contract.parameters()) {
       Nullability nullability = param.nullable() ? Nullability.NULLABLE : Nullability.NON_NULL;
-      VType type;
-      if (param.typeArguments().isEmpty()) {
-        type = VTypes.fromJavaClass(param.rawType(), nullability);
-      } else {
-        List<VType> args = new ArrayList<>();
-        for (Class<?> arg : param.typeArguments()) {
-          args.add(VTypes.fromJavaClass(arg, Nullability.NULLABLE));
-        }
-        type = VType.ClassType.of(param.rawType(), args, nullability);
-      }
+      VType type = convertTemplateType(param.type(), nullability);
       map.put(param.name(), ModelParameter.of(param.name(), type));
     }
     return new ModelSchema(map);
+  }
+
+  private static VType convertTemplateType(
+      io.github.minh124199.viettemplate.api.TemplateType templateType, Nullability nullability) {
+    if (templateType
+        instanceof io.github.minh124199.viettemplate.api.TemplateType.PrimitiveType pt) {
+      return new VType.PrimitiveType(
+          io.github.minh124199.viettemplate.language.vtl.semantics.type.PrimitiveKind.fromClass(
+              pt.primitiveClass()));
+    }
+    if (templateType instanceof io.github.minh124199.viettemplate.api.TemplateType.ArrayType at) {
+      return new VType.ArrayType(
+          convertTemplateType(at.componentType(), Nullability.NULLABLE), nullability);
+    }
+    if (templateType
+        instanceof io.github.minh124199.viettemplate.api.TemplateType.ParameterizedType pt) {
+      List<VType> args = new ArrayList<>();
+      for (io.github.minh124199.viettemplate.api.TemplateType arg : pt.typeArguments()) {
+        args.add(convertTemplateType(arg, Nullability.NULLABLE));
+      }
+      return VType.ClassType.of(pt.rawClass(), args, nullability);
+    }
+    if (templateType instanceof io.github.minh124199.viettemplate.api.TemplateType.ClassType ct) {
+      return VType.ClassType.of(ct.rawClass(), nullability);
+    }
+    if (templateType
+        instanceof io.github.minh124199.viettemplate.api.TemplateType.WildcardType wt) {
+      if (wt.upperBound().isPresent()) {
+        return convertTemplateType(wt.upperBound().get(), nullability);
+      }
+      return VTypes.DYNAMIC;
+    }
+    return VTypes.fromJavaClass(templateType.rawClass(), nullability);
   }
 
   public static ModelSchema fromRecord(Class<?> recordClass) {

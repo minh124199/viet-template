@@ -9,6 +9,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import java.util.Optional;
 public final class TemplateContract implements Serializable {
 
   private static final long serialVersionUID = 1L;
+  private static final String FINGERPRINT_PREFIX = "vt-contract:v1:";
 
   private final TemplateId templateId;
   private final List<TemplateParameter> parameters;
@@ -45,21 +47,31 @@ public final class TemplateContract implements Serializable {
     }
     this.parameterMap = Collections.unmodifiableMap(map);
     this.parameters = List.copyOf(map.values());
-    this.fingerprint = computeFingerprint(this.templateId, this.parameters);
+    this.fingerprint = computeCanonicalFingerprint(this.templateId, this.parameters);
   }
 
-  private static String computeFingerprint(
+  /**
+   * Computes a deterministic canonical fingerprint for this contract.
+   *
+   * <p>Parameters are canonically sorted by name so that two contracts with identical parameter
+   * sets declared in different insertion orders yield the exact same fingerprint.
+   */
+  private static String computeCanonicalFingerprint(
       TemplateId templateId, List<TemplateParameter> parameters) {
+    List<TemplateParameter> sorted = new ArrayList<>(parameters);
+    sorted.sort(Comparator.comparing(TemplateParameter::name));
+
     try {
       MessageDigest md = MessageDigest.getInstance("SHA-256");
       md.update(templateId.value().getBytes(StandardCharsets.UTF_8));
       md.update((byte) '\n');
-      for (TemplateParameter param : parameters) {
+      for (TemplateParameter param : sorted) {
         md.update(param.fingerprintFragment().getBytes(StandardCharsets.UTF_8));
         md.update((byte) '\n');
       }
       byte[] digest = md.digest();
-      StringBuilder sb = new StringBuilder(digest.length * 2);
+      StringBuilder sb = new StringBuilder(FINGERPRINT_PREFIX.length() + digest.length * 2);
+      sb.append(FINGERPRINT_PREFIX);
       for (byte b : digest) {
         sb.append(Character.forDigit((b >> 4) & 0xF, 16));
         sb.append(Character.forDigit(b & 0xF, 16));
@@ -91,6 +103,13 @@ public final class TemplateContract implements Serializable {
     return new TemplateContract(templateId, List.of());
   }
 
+  /**
+   * Creates a contract by introspecting public record components as individual template parameters.
+   *
+   * @param templateId template identifier
+   * @param recordClass the record class to inspect
+   * @return contract where each record component maps to a template parameter
+   */
   public static TemplateContract fromRecord(TemplateId templateId, Class<?> recordClass) {
     Objects.requireNonNull(recordClass, "recordClass must not be null");
     if (!recordClass.isRecord()) {
@@ -104,19 +123,25 @@ public final class TemplateContract implements Serializable {
     return new TemplateContract(templateId, params);
   }
 
-  public static TemplateContract fromClass(TemplateId templateId, Class<?> clazz) {
-    Objects.requireNonNull(clazz, "clazz must not be null");
-    if (clazz.isRecord()) {
-      return fromRecord(templateId, clazz);
+  /**
+   * Creates a contract by introspecting JavaBean properties or record components of {@code clazz}
+   * as individual template parameters ($prop1, $prop2).
+   */
+  public static TemplateContract fromProperties(TemplateId templateId, Class<?> beanOrRecordClass) {
+    Objects.requireNonNull(beanOrRecordClass, "beanOrRecordClass must not be null");
+    if (beanOrRecordClass.isRecord()) {
+      return fromRecord(templateId, beanOrRecordClass);
     }
+    MemberAccessPolicy policy = MemberAccessPolicy.standard();
     List<Method> candidateMethods = new ArrayList<>();
-    for (Method method : clazz.getMethods()) {
+    for (Method method : beanOrRecordClass.getMethods()) {
       if (method.getParameterCount() != 0
           || Modifier.isStatic(method.getModifiers())
           || method.isBridge()
           || method.isSynthetic()
           || method.getDeclaringClass() == Object.class
-          || method.getReturnType() == void.class) {
+          || method.getReturnType() == void.class
+          || !policy.isMethodPermitted(beanOrRecordClass, method)) {
         continue;
       }
       String name = method.getName();
@@ -128,36 +153,88 @@ public final class TemplateContract implements Serializable {
         candidateMethods.add(method);
       }
     }
-    candidateMethods.sort(
-        java.util.Comparator.comparing(Method::getName)
-            .thenComparing(m -> m.getReturnType().getName()));
 
-    Map<String, TemplateParameter> paramMap = new LinkedHashMap<>();
+    // Sort candidate methods deterministically
+    candidateMethods.sort(
+        Comparator.comparing(Method::getName).thenComparing(m -> m.getReturnType().getName()));
+
+    Map<String, Method> propertyToMethod = new LinkedHashMap<>();
     for (Method method : candidateMethods) {
       String propName = extractPropertyName(method);
-      TemplateParameter newParam =
-          TemplateParameter.fromGenericType(propName, method.getGenericReturnType());
-      TemplateParameter existing = paramMap.get(propName);
+      Method existing = propertyToMethod.get(propName);
       if (existing == null) {
-        paramMap.put(propName, newParam);
-      } else if (existing.rawType().isAssignableFrom(newParam.rawType())) {
-        paramMap.put(propName, newParam);
+        propertyToMethod.put(propName, method);
+      } else {
+        // If conflicting getter vs is-getter, prefer 'get'
+        boolean existingIsGet = existing.getName().startsWith("get");
+        boolean currentIsGet = method.getName().startsWith("get");
+        if (!existingIsGet && currentIsGet) {
+          propertyToMethod.put(propName, method);
+        } else if (existing.getReturnType().isAssignableFrom(method.getReturnType())) {
+          // Covariant specialization: more specific return type wins
+          propertyToMethod.put(propName, method);
+        }
       }
     }
-    List<TemplateParameter> params = new ArrayList<>(paramMap.values());
-    params.sort(java.util.Comparator.comparing(TemplateParameter::name));
+
+    List<TemplateParameter> params = new ArrayList<>();
+    for (Map.Entry<String, Method> entry : propertyToMethod.entrySet()) {
+      params.add(
+          TemplateParameter.fromGenericType(
+              entry.getKey(), entry.getValue().getGenericReturnType()));
+    }
+    params.sort(Comparator.comparing(TemplateParameter::name));
     return new TemplateContract(templateId, params);
   }
 
-  private static String extractPropertyName(Method method) {
+  /**
+   * Introspects public properties/record components of {@code clazz} as individual template
+   * parameters ($prop1, $prop2).
+   */
+  public static TemplateContract fromClass(TemplateId templateId, Class<?> clazz) {
+    return fromProperties(templateId, clazz);
+  }
+
+  /**
+   * Creates a contract declaring a single root model parameter (e.g. {@code $user}).
+   *
+   * @param templateId template identifier
+   * @param parameterName the root parameter name (e.g. "user")
+   * @param clazz the expected root model class
+   * @return contract with a single root parameter
+   */
+  public static TemplateContract fromRoot(
+      TemplateId templateId, String parameterName, Class<?> clazz) {
+    Objects.requireNonNull(clazz, "clazz must not be null");
+    return of(templateId, TemplateParameter.of(parameterName, clazz));
+  }
+
+  /** Creates a contract declaring a single root model parameter with a {@link TemplateType}. */
+  public static TemplateContract fromRoot(
+      TemplateId templateId, String parameterName, TemplateType type, boolean nullable) {
+    Objects.requireNonNull(type, "type must not be null");
+    return of(templateId, TemplateParameter.of(parameterName, type, nullable));
+  }
+
+  /** Standard JavaBean property name extraction following decapitalization rules. */
+  public static String extractPropertyName(Method method) {
     String name = method.getName();
+    String rawProp;
     if (name.startsWith("get") && name.length() > 3) {
-      return Character.toLowerCase(name.charAt(3)) + name.substring(4);
+      rawProp = name.substring(3);
+    } else if (name.startsWith("is") && name.length() > 2) {
+      rawProp = name.substring(2);
+    } else {
+      return name;
     }
-    if (name.startsWith("is") && name.length() > 2) {
-      return Character.toLowerCase(name.charAt(2)) + name.substring(3);
+
+    // Standard JavaBeans decapitalization: if first two chars are uppercase (e.g. "URL"), keep it
+    if (rawProp.length() > 1
+        && Character.isUpperCase(rawProp.charAt(0))
+        && Character.isUpperCase(rawProp.charAt(1))) {
+      return rawProp;
     }
-    return name;
+    return Character.toLowerCase(rawProp.charAt(0)) + rawProp.substring(1);
   }
 
   public TemplateId templateId() {
@@ -241,6 +318,14 @@ public final class TemplateContract implements Serializable {
     public Builder parameter(
         String name, Class<?> rawType, List<Class<?>> typeArguments, boolean nullable) {
       return parameter(TemplateParameter.of(name, rawType, typeArguments, nullable));
+    }
+
+    public Builder parameter(String name, TemplateType type) {
+      return parameter(TemplateParameter.of(name, type));
+    }
+
+    public Builder parameter(String name, TemplateType type, boolean nullable) {
+      return parameter(TemplateParameter.of(name, type, nullable));
     }
 
     public TemplateContract build() {

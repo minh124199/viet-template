@@ -154,7 +154,7 @@ def classify_file(path_str: str) -> str:
         return CAT_GENERATED_ABI_CONTRACT
     if p.startswith("config/api-baseline/") or p.startswith("config/architecture/") or p.startswith("config/compatibility/"):
         return CAT_PUBLIC_API_SPI
-    if p.startswith("config/tck/") or p.startswith("config/benchmark-"):
+    if p.startswith("config/tck/") or p.startswith("config/benchmark-") or p.startswith("config/performance/"):
         return CAT_VERIFICATION_TOOLING
 
     # 7. Shipped Product Source Tree Classification

@@ -6,6 +6,10 @@ import io.github.minh124199.viettemplate.aot.TemplateAotRequest;
 import io.github.minh124199.viettemplate.aot.TemplateAotResult;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
 import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,12 +22,16 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 
-/** Maven Mojo to compile Viet Template files Ahead-Of-Time (AOT) into bytecode. */
+/**
+ * Maven Mojo to generate typed Java facades for Viet Template contracts during the {@code
+ * generate-sources} phase. This ensures generated {@code <Template>View.java} source files are
+ * compiled by {@code javac} alongside application code in a single-pass clean build.
+ */
 @Mojo(
-    name = "compile",
-    defaultPhase = LifecyclePhase.PROCESS_CLASSES,
+    name = "generate-facades",
+    defaultPhase = LifecyclePhase.GENERATE_SOURCES,
     requiresDependencyResolution = ResolutionScope.COMPILE)
-public class VietTemplateCompileMojo extends AbstractMojo {
+public class VietTemplateGenerateFacadesMojo extends AbstractMojo {
 
   @Parameter(
       defaultValue = "${project.basedir}/src/main/viet-template",
@@ -31,14 +39,14 @@ public class VietTemplateCompileMojo extends AbstractMojo {
   private File sourceDirectory;
 
   @Parameter(
-      defaultValue = "${project.build.outputDirectory}",
-      property = "viet-template.outputDirectory")
-  private File outputDirectory;
+      defaultValue = "${project.build.directory}/generated-sources/viet-template",
+      property = "viet-template.generatedSourcesDirectory")
+  private File generatedSourcesDirectory;
 
   @Parameter(
-      defaultValue = "${project.build.outputDirectory}",
-      property = "viet-template.resourceOutputDirectory")
-  private File resourceOutputDirectory;
+      defaultValue = "${project.build.directory}/generated-classes/viet-template-facades",
+      property = "viet-template.facadeClassOutputDirectory")
+  private File facadeClassOutputDirectory;
 
   @Parameter(property = "viet-template.includes")
   private List<String> includes = new ArrayList<>(List.of("**/*.vtl", "**/*.vm"));
@@ -57,19 +65,8 @@ public class VietTemplateCompileMojo extends AbstractMojo {
   @Parameter(defaultValue = "false", property = "viet-template.failOnWarning")
   private boolean failOnWarning = false;
 
-  @Parameter(defaultValue = "true", property = "viet-template.incremental")
-  private boolean incremental = true;
-
   @Parameter(defaultValue = "false", property = "viet-template.skip")
   private boolean skip = false;
-
-  @Parameter(defaultValue = "false", property = "viet-template.generateTypedFacades")
-  private boolean generateTypedFacades = false;
-
-  @Parameter(
-      defaultValue = "${project.build.directory}/generated-sources/viet-template",
-      property = "viet-template.generatedSourcesDirectory")
-  private File generatedSourcesDirectory;
 
   @Parameter(defaultValue = "${project}", readonly = true)
   private MavenProject project;
@@ -77,37 +74,25 @@ public class VietTemplateCompileMojo extends AbstractMojo {
   @Override
   public void execute() throws MojoExecutionException, MojoFailureException {
     if (skip) {
-      getLog().info("Skipping Viet Template compilation (skip=true).");
+      getLog().info("Skipping Viet Template facade generation (skip=true).");
       return;
     }
 
-    if (sourceDirectory == null || !sourceDirectory.exists()) {
-      getLog()
-          .info(
-              "Viet Template source directory does not exist, skipping: "
-                  + (sourceDirectory != null ? sourceDirectory.getAbsolutePath() : "null"));
-      return;
-    }
-
-    if (!sourceDirectory.isDirectory()) {
-      getLog()
-          .warn(
-              "Viet Template source directory is not a directory, skipping: "
-                  + sourceDirectory.getAbsolutePath());
+    if (sourceDirectory == null || !sourceDirectory.exists() || !sourceDirectory.isDirectory()) {
       return;
     }
 
     String[] files = sourceDirectory.list();
     if (files == null || files.length == 0) {
-      getLog()
-          .info(
-              "Viet Template source directory is empty, skipping: "
-                  + sourceDirectory.getAbsolutePath());
       return;
     }
 
-    if (outputDirectory == null) {
-      throw new MojoExecutionException("outputDirectory must not be null");
+    if (generatedSourcesDirectory == null) {
+      throw new MojoExecutionException("generatedSourcesDirectory must not be null");
+    }
+
+    if (project != null) {
+      project.addCompileSourceRoot(generatedSourcesDirectory.getAbsolutePath());
     }
 
     Charset charset;
@@ -117,18 +102,20 @@ public class VietTemplateCompileMojo extends AbstractMojo {
       throw new MojoExecutionException("Invalid encoding: " + encoding, e);
     }
 
+    File tempOutput =
+        facadeClassOutputDirectory != null
+            ? facadeClassOutputDirectory
+            : new File(generatedSourcesDirectory.getParentFile(), "facade-classes");
+
     TemplateAotRequest.Builder requestBuilder =
         TemplateAotRequest.builder()
             .sourceDirectory(sourceDirectory.toPath())
-            .outputDirectory(outputDirectory.toPath())
-            .resourceOutputDirectory(
-                resourceOutputDirectory != null
-                    ? resourceOutputDirectory.toPath()
-                    : outputDirectory.toPath())
+            .outputDirectory(tempOutput.toPath())
             .encoding(charset)
             .packagePrefix(packagePrefix)
             .failOnWarning(failOnWarning)
-            .incremental(incremental);
+            .generateTypedFacades(true)
+            .generatedSourcesDirectory(generatedSourcesDirectory.toPath());
 
     if (includes != null && !includes.isEmpty()) {
       requestBuilder.includePatterns(includes);
@@ -137,30 +124,22 @@ public class VietTemplateCompileMojo extends AbstractMojo {
       requestBuilder.excludePatterns(excludes);
     }
 
-    if (generateTypedFacades) {
-      requestBuilder.generateTypedFacades(true);
-      if (generatedSourcesDirectory != null) {
-        requestBuilder.generatedSourcesDirectory(generatedSourcesDirectory.toPath());
-      }
-    }
-
-    java.net.URLClassLoader urlClassLoader = null;
+    URLClassLoader urlClassLoader = null;
     if (project != null) {
       try {
         List<String> classpathElements = project.getCompileClasspathElements();
         if (classpathElements != null && !classpathElements.isEmpty()) {
-          List<java.net.URL> urls = new ArrayList<>();
+          List<URL> urls = new ArrayList<>();
           for (String element : classpathElements) {
             urls.add(new File(element).toURI().toURL());
           }
           urlClassLoader =
-              new java.net.URLClassLoader(
-                  urls.toArray(new java.net.URL[0]),
-                  Thread.currentThread().getContextClassLoader());
+              new URLClassLoader(
+                  urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
           requestBuilder.classLoader(urlClassLoader);
         }
       } catch (org.apache.maven.artifact.DependencyResolutionRequiredException
-          | java.net.MalformedURLException
+          | MalformedURLException
           | RuntimeException e) {
         getLog().debug("Could not build compile classpath ClassLoader: " + e.getMessage());
       }
@@ -172,7 +151,7 @@ public class VietTemplateCompileMojo extends AbstractMojo {
         request = requestBuilder.build();
       } catch (IllegalArgumentException | IllegalStateException e) {
         throw new MojoExecutionException(
-            "Failed to build AOT compilation request: " + e.getMessage(), e);
+            "Failed to build facade generation request: " + e.getMessage(), e);
       }
 
       TemplateAotCompiler compiler = TemplateAotCompiler.create();
@@ -195,23 +174,16 @@ public class VietTemplateCompileMojo extends AbstractMojo {
                 .filter(d -> d.severity() == DiagnosticSeverity.ERROR)
                 .count();
         throw new MojoFailureException(
-            "Viet Template AOT compilation failed with " + errorCount + " error(s).");
+            "Viet Template facade generation failed with " + errorCount + " error(s).");
       }
 
       getLog()
-          .info(
-              String.format(
-                  "Compiled %d Viet Template(s) (%d skipped, %d deleted).",
-                  result.compiledCount(), result.skippedCount(), result.deletedCount()));
-
-      if (generateTypedFacades && generatedSourcesDirectory != null && project != null) {
-        project.addCompileSourceRoot(generatedSourcesDirectory.getAbsolutePath());
-      }
+          .info("Generated typed Java facades in " + generatedSourcesDirectory.getAbsolutePath());
     } finally {
       if (urlClassLoader != null) {
         try {
           urlClassLoader.close();
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
           getLog().debug("Failed to close URLClassLoader: " + e.getMessage());
         }
       }
@@ -226,20 +198,20 @@ public class VietTemplateCompileMojo extends AbstractMojo {
     this.sourceDirectory = sourceDirectory;
   }
 
-  public File getOutputDirectory() {
-    return outputDirectory;
+  public File getGeneratedSourcesDirectory() {
+    return generatedSourcesDirectory;
   }
 
-  public void setOutputDirectory(File outputDirectory) {
-    this.outputDirectory = outputDirectory;
+  public void setGeneratedSourcesDirectory(File generatedSourcesDirectory) {
+    this.generatedSourcesDirectory = generatedSourcesDirectory;
   }
 
-  public File getResourceOutputDirectory() {
-    return resourceOutputDirectory;
+  public File getFacadeClassOutputDirectory() {
+    return facadeClassOutputDirectory;
   }
 
-  public void setResourceOutputDirectory(File resourceOutputDirectory) {
-    this.resourceOutputDirectory = resourceOutputDirectory;
+  public void setFacadeClassOutputDirectory(File facadeClassOutputDirectory) {
+    this.facadeClassOutputDirectory = facadeClassOutputDirectory;
   }
 
   public List<String> getIncludes() {
@@ -282,14 +254,6 @@ public class VietTemplateCompileMojo extends AbstractMojo {
     this.failOnWarning = failOnWarning;
   }
 
-  public boolean isIncremental() {
-    return incremental;
-  }
-
-  public void setIncremental(boolean incremental) {
-    this.incremental = incremental;
-  }
-
   public boolean isSkip() {
     return skip;
   }
@@ -304,21 +268,5 @@ public class VietTemplateCompileMojo extends AbstractMojo {
 
   public void setProject(MavenProject project) {
     this.project = project;
-  }
-
-  public boolean isGenerateTypedFacades() {
-    return generateTypedFacades;
-  }
-
-  public void setGenerateTypedFacades(boolean generateTypedFacades) {
-    this.generateTypedFacades = generateTypedFacades;
-  }
-
-  public File getGeneratedSourcesDirectory() {
-    return generatedSourcesDirectory;
-  }
-
-  public void setGeneratedSourcesDirectory(File generatedSourcesDirectory) {
-    this.generatedSourcesDirectory = generatedSourcesDirectory;
   }
 }

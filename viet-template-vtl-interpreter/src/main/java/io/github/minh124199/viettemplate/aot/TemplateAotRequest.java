@@ -346,13 +346,23 @@ public final class TemplateAotRequest {
     public Builder contract(TemplateId id, TemplateContract contract) {
       Objects.requireNonNull(id, "id must not be null");
       Objects.requireNonNull(contract, "contract must not be null");
+      if (!id.equals(contract.templateId())) {
+        throw new IllegalArgumentException(
+            "TemplateId mismatch: contract mapping key is '"
+                + id.value()
+                + "' but contract.templateId is '"
+                + contract.templateId().value()
+                + "'");
+      }
       this.contracts.put(id, contract);
       return this;
     }
 
     public Builder contracts(Map<TemplateId, TemplateContract> contracts) {
       Objects.requireNonNull(contracts, "contracts must not be null");
-      this.contracts.putAll(contracts);
+      for (Map.Entry<TemplateId, TemplateContract> entry : contracts.entrySet()) {
+        contract(entry.getKey(), entry.getValue());
+      }
       return this;
     }
 

@@ -68,6 +68,20 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.api.TemplateContract",
     "io.github.minh124199.viettemplate.api.TemplateContract$Builder",
     "io.github.minh124199.viettemplate.api.TemplateParameter",
+    "io.github.minh124199.viettemplate.api.TemplateType",
+    "io.github.minh124199.viettemplate.api.TemplateType$ArrayType",
+    "io.github.minh124199.viettemplate.api.TemplateType$ClassType",
+    "io.github.minh124199.viettemplate.api.TemplateType$NamedType",
+    "io.github.minh124199.viettemplate.api.TemplateType$ParameterizedType",
+    "io.github.minh124199.viettemplate.api.TemplateType$PrimitiveType",
+    "io.github.minh124199.viettemplate.api.TemplateType$WildcardType",
+    "io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateFacadesMojo",
+    "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask",
+}
+
+ALLOWED_ADDITIVE_1_X_ENTRYPOINTS: set[str] = {
+    "io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateFacadesMojo",
+    "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask",
 }
 
 
@@ -281,6 +295,21 @@ def verify_git_provenance(manifest: dict[str, Any], repo_root: Path) -> list[str
         text=True,
     )
     if proc.returncode != 0:
+        # Try fetching tags from origin if working tree is a shallow clone without tags
+        subprocess.run(
+            ["git", "fetch", "--tags", "origin"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+        )
+        proc = subprocess.run(
+            ["git", "rev-parse", f"{exp_tag}^{{commit}}"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+        )
+
+    if proc.returncode != 0:
         errors.append(f"Failed to resolve git tag '{exp_tag}': {proc.stderr.strip()}")
     else:
         act_commit = proc.stdout.strip()
@@ -451,7 +480,7 @@ def verify_framework_entrypoints(manifest: dict[str, Any], repo_root: Path) -> l
 
     if curr_fqcns != exp_fqcns:
         missing = set(exp_fqcns) - set(curr_fqcns)
-        extra = set(curr_fqcns) - set(exp_fqcns)
+        extra = (set(curr_fqcns) - set(exp_fqcns)) - ALLOWED_ADDITIVE_1_X_ENTRYPOINTS
         if missing:
             errors.append(f"Framework entrypoints missing: {sorted(missing)}")
         if extra:

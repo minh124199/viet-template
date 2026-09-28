@@ -501,7 +501,9 @@ public final class VtlSemanticAnalyzer {
         } else if (currentType instanceof VType.ErrorType) {
           currentType = VTypes.ERROR;
         } else {
-          MemberResolution res = MemberResolver.resolveProperty(currentType, prop.propertyName());
+          MemberResolution res =
+              MemberResolver.resolveProperty(
+                  currentType, prop.propertyName(), options.memberAccessPolicy());
           memberResolutions.put(prop, res);
           if (res.isFound()) {
             currentType = res.resultType();
@@ -536,7 +538,8 @@ public final class VtlSemanticAnalyzer {
           currentType = VTypes.ERROR;
         } else {
           MethodResolution res =
-              MethodResolver.resolveMethod(currentType, call.methodName(), argTypes);
+              MethodResolver.resolveMethod(
+                  currentType, call.methodName(), argTypes, options.memberAccessPolicy());
           methodResolutions.put(call, res);
           if (res.isResolved()) {
             currentType = res.returnType();

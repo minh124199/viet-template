@@ -53,6 +53,13 @@
                 <version>${viet-template.version}</version>
                 <executions>
                     <execution>
+                        <id>generate-facades</id>
+                        <goals>
+                            <goal>generate-facades</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>compile-templates</id>
                         <goals>
                             <goal>compile</goal>
                         </goals>

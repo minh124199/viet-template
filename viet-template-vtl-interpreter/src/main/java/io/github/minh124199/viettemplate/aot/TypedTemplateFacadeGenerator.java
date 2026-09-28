@@ -74,9 +74,19 @@ final class TypedTemplateFacadeGenerator {
         .append("}.\n");
     sb.append(" */\n");
     sb.append("public final class ").append(className).append(" {\n\n");
-    sb.append("  private static final CompiledTemplate COMPILED = new ")
+    sb.append("  private static final CompiledTemplate COMPILED = loadCompiled();\n\n");
+    sb.append("  private static CompiledTemplate loadCompiled() {\n");
+    sb.append("    try {\n");
+    sb.append("      Class<?> clazz = Class.forName(\"")
         .append(compiledFqcn)
-        .append("();\n\n");
+        .append("\", true, ")
+        .append(className)
+        .append(".class.getClassLoader());\n");
+    sb.append("      return (CompiledTemplate) clazz.getConstructor().newInstance();\n");
+    sb.append("    } catch (ReflectiveOperationException e) {\n");
+    sb.append("      throw new ExceptionInInitializerError(e);\n");
+    sb.append("    }\n");
+    sb.append("  }\n\n");
     sb.append("  private ").append(className).append("() {}\n\n");
 
     List<TemplateParameter> params = contract.parameters();
@@ -84,7 +94,7 @@ final class TypedTemplateFacadeGenerator {
     // 1. render(TemplateOutput output, ...)
     sb.append("  public static void render(TemplateOutput output");
     for (TemplateParameter p : params) {
-      sb.append(", ").append(formatType(p)).append(" ").append(p.name());
+      sb.append(", ").append(formatType(p)).append(" ").append(escapeParamName(p.name()));
     }
     sb.append(") throws IOException {\n");
     sb.append("    RenderContext context = ").append(renderContextExpression(params)).append(";\n");
@@ -96,7 +106,7 @@ final class TypedTemplateFacadeGenerator {
     for (int i = 0; i < params.size(); i++) {
       if (i > 0) sb.append(", ");
       TemplateParameter p = params.get(i);
-      sb.append(formatType(p)).append(" ").append(p.name());
+      sb.append(formatType(p)).append(" ").append(escapeParamName(p.name()));
     }
     sb.append(") {\n");
     sb.append("    RenderContext context = ").append(renderContextExpression(params)).append(";\n");
@@ -107,10 +117,76 @@ final class TypedTemplateFacadeGenerator {
     sb.append("      throw new UncheckedIOException(e);\n");
     sb.append("    }\n");
     sb.append("    return out.toString();\n");
-    sb.append("  }\n");
-
+    sb.append("  }\n\n");
     sb.append("}\n");
     return sb.toString();
+  }
+
+  private static final java.util.Set<String> JAVA_KEYWORDS =
+      java.util.Set.of(
+          "abstract",
+          "assert",
+          "boolean",
+          "break",
+          "byte",
+          "case",
+          "catch",
+          "char",
+          "class",
+          "const",
+          "continue",
+          "default",
+          "do",
+          "double",
+          "else",
+          "enum",
+          "extends",
+          "final",
+          "finally",
+          "float",
+          "for",
+          "goto",
+          "if",
+          "implements",
+          "import",
+          "instanceof",
+          "int",
+          "interface",
+          "long",
+          "native",
+          "new",
+          "package",
+          "private",
+          "protected",
+          "public",
+          "return",
+          "short",
+          "static",
+          "strictfp",
+          "super",
+          "switch",
+          "synchronized",
+          "this",
+          "throw",
+          "throws",
+          "transient",
+          "try",
+          "void",
+          "volatile",
+          "while",
+          "record",
+          "yield",
+          "var",
+          "permits",
+          "sealed",
+          "non-sealed",
+          "_");
+
+  public static String escapeParamName(String name) {
+    if (JAVA_KEYWORDS.contains(name) || !javax.lang.model.SourceVersion.isIdentifier(name)) {
+      return "p_" + name;
+    }
+    return name;
   }
 
   private static String renderContextExpression(List<TemplateParameter> params) {
@@ -122,7 +198,7 @@ final class TypedTemplateFacadeGenerator {
       for (int i = 0; i < params.size(); i++) {
         if (i > 0) sb.append(", ");
         TemplateParameter p = params.get(i);
-        sb.append('"').append(p.name()).append("\", ").append(p.name());
+        sb.append('"').append(p.name()).append("\", ").append(escapeParamName(p.name()));
       }
       sb.append(")");
       return sb.toString();
@@ -136,7 +212,7 @@ final class TypedTemplateFacadeGenerator {
         vals.append(", ");
       }
       keys.append('"').append(params.get(i).name()).append('"');
-      vals.append(params.get(i).name());
+      vals.append(escapeParamName(params.get(i).name()));
     }
     keys.append("}");
     vals.append("}");
@@ -144,6 +220,9 @@ final class TypedTemplateFacadeGenerator {
   }
 
   private static String formatType(TemplateParameter param) {
+    if (param.type() != null) {
+      return param.type().typeName();
+    }
     String raw = param.rawType().getCanonicalName();
     if (raw == null) {
       raw = param.rawType().getName();
