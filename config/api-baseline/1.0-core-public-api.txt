@@ -202,6 +202,10 @@ TYPE public interface io.github.minh124199.viettemplate.api.RenderContext
   MEMBER public default java.util.Set<java.lang.String> keys()
   MEMBER public static io.github.minh124199.viettemplate.api.RenderContext empty()
   MEMBER public static io.github.minh124199.viettemplate.api.RenderContext of(java.lang.String, java.lang.Object)
+  MEMBER public static io.github.minh124199.viettemplate.api.RenderContext of(java.lang.String, java.lang.Object, java.lang.String, java.lang.Object)
+  MEMBER public static io.github.minh124199.viettemplate.api.RenderContext of(java.lang.String, java.lang.Object, java.lang.String, java.lang.Object, java.lang.String, java.lang.Object)
+  MEMBER public static io.github.minh124199.viettemplate.api.RenderContext of(java.lang.String, java.lang.Object, java.lang.String, java.lang.Object, java.lang.String, java.lang.Object, java.lang.String, java.lang.Object)
+  MEMBER public static io.github.minh124199.viettemplate.api.RenderContext of(java.lang.String[], java.lang.Object[])
   MEMBER public static io.github.minh124199.viettemplate.api.RenderContext of(java.util.Map<java.lang.String, java.lang.Object>)
   MEMBER public static io.github.minh124199.viettemplate.api.RenderContext$Builder builder()
 
@@ -267,6 +271,40 @@ TYPE public interface io.github.minh124199.viettemplate.api.TemplateCallable ext
 TYPE public class io.github.minh124199.viettemplate.api.TemplateCompilationException extends io.github.minh124199.viettemplate.api.TemplateException
   MEMBER public io.github.minh124199.viettemplate.api.TemplateCompilationException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode)
   MEMBER public io.github.minh124199.viettemplate.api.TemplateCompilationException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateContract implements java.io.Serializable
+  MEMBER public boolean equals(java.lang.Object)
+  MEMBER public boolean hasParameter(java.lang.String)
+  MEMBER public boolean isEmpty()
+  MEMBER public int hashCode()
+  MEMBER public int size()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId templateId()
+  MEMBER public java.lang.String fingerprint()
+  MEMBER public java.lang.String toString()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.api.TemplateParameter> parameters()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateParameter> parameter(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateContract empty(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateContract fromClass(io.github.minh124199.viettemplate.api.TemplateId, java.lang.Class<?>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateContract fromProperties(io.github.minh124199.viettemplate.api.TemplateId, java.lang.Class<?>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateContract fromRecord(io.github.minh124199.viettemplate.api.TemplateId, java.lang.Class<?>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateContract fromRoot(io.github.minh124199.viettemplate.api.TemplateId, java.lang.String, io.github.minh124199.viettemplate.api.TemplateType, boolean)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateContract fromRoot(io.github.minh124199.viettemplate.api.TemplateId, java.lang.String, java.lang.Class<?>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateContract of(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.TemplateParameter...)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateContract of(io.github.minh124199.viettemplate.api.TemplateId, java.util.List<io.github.minh124199.viettemplate.api.TemplateParameter>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateContract$Builder builder(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateContract$Builder builder(java.lang.String)
+  MEMBER public static java.lang.String extractPropertyName(java.lang.reflect.Method)
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateContract$Builder
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateContract build()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateContract$Builder parameter(io.github.minh124199.viettemplate.api.TemplateParameter)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateContract$Builder parameter(java.lang.String, io.github.minh124199.viettemplate.api.TemplateType)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateContract$Builder parameter(java.lang.String, io.github.minh124199.viettemplate.api.TemplateType, boolean)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateContract$Builder parameter(java.lang.String, java.lang.Class<?>)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateContract$Builder parameter(java.lang.String, java.lang.Class<?>, boolean)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateContract$Builder parameter(java.lang.String, java.lang.Class<?>, java.util.List<java.lang.Class<?>>)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateContract$Builder parameter(java.lang.String, java.lang.Class<?>, java.util.List<java.lang.Class<?>>, boolean)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateContract$Builder(io.github.minh124199.viettemplate.api.TemplateId)
 
 TYPE public interface io.github.minh124199.viettemplate.api.TemplateData extends java.lang.annotation.Annotation
 
@@ -388,6 +426,27 @@ TYPE public interface io.github.minh124199.viettemplate.api.TemplateOutput
   MEMBER public default void writeShort(short) throws java.io.IOException
   MEMBER public default void writeUtf8(byte[], int, int) throws java.io.IOException
 
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateParameter implements java.io.Serializable
+  MEMBER public boolean equals(java.lang.Object)
+  MEMBER public boolean nullable()
+  MEMBER public int hashCode()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateParameter(java.lang.String, io.github.minh124199.viettemplate.api.TemplateType, boolean)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateParameter(java.lang.String, java.lang.Class<?>, java.util.List<java.lang.Class<?>>, boolean)
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateType type()
+  MEMBER public java.lang.Class<?> rawType()
+  MEMBER public java.lang.String fingerprintFragment()
+  MEMBER public java.lang.String name()
+  MEMBER public java.lang.String toString()
+  MEMBER public java.util.List<java.lang.Class<?>> typeArguments()
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateParameter fromGenericType(java.lang.String, java.lang.reflect.Type)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateParameter fromGenericType(java.lang.String, java.lang.reflect.Type, boolean)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateParameter of(java.lang.String, io.github.minh124199.viettemplate.api.TemplateType)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateParameter of(java.lang.String, io.github.minh124199.viettemplate.api.TemplateType, boolean)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateParameter of(java.lang.String, java.lang.Class<?>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateParameter of(java.lang.String, java.lang.Class<?>, boolean)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateParameter of(java.lang.String, java.lang.Class<?>, java.util.List<java.lang.Class<?>>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateParameter of(java.lang.String, java.lang.Class<?>, java.util.List<java.lang.Class<?>>, boolean)
+
 TYPE public class io.github.minh124199.viettemplate.api.TemplateRenderException extends io.github.minh124199.viettemplate.api.TemplateException
   MEMBER public io.github.minh124199.viettemplate.api.TemplateRenderException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode)
   MEMBER public io.github.minh124199.viettemplate.api.TemplateRenderException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
@@ -448,6 +507,90 @@ TYPE public final class io.github.minh124199.viettemplate.api.TemplateSuffixConf
 TYPE public class io.github.minh124199.viettemplate.api.TemplateSyntaxException extends io.github.minh124199.viettemplate.api.TemplateException
   MEMBER public io.github.minh124199.viettemplate.api.TemplateSyntaxException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode)
   MEMBER public io.github.minh124199.viettemplate.api.TemplateSyntaxException(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.api.DiagnosticCode, java.lang.Throwable)
+
+TYPE public interface io.github.minh124199.viettemplate.api.TemplateType extends java.io.Serializable
+  MEMBER public abstract java.lang.Class<?> rawClass()
+  MEMBER public abstract java.lang.String fingerprintFragment()
+  MEMBER public abstract java.lang.String typeName()
+  MEMBER public default boolean isArray()
+  MEMBER public default boolean isPrimitive()
+  MEMBER public default java.util.List<io.github.minh124199.viettemplate.api.TemplateType> typeArguments()
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateType array(io.github.minh124199.viettemplate.api.TemplateType)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateType classType(java.lang.Class<?>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateType fromGenericType(java.lang.reflect.Type)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateType named(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateType named(java.lang.String, java.util.List<io.github.minh124199.viettemplate.api.TemplateType>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateType of(java.lang.Class<?>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateType parameterized(java.lang.Class<?>, io.github.minh124199.viettemplate.api.TemplateType...)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateType parameterized(java.lang.Class<?>, java.util.List<io.github.minh124199.viettemplate.api.TemplateType>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateType primitive(java.lang.Class<?>)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateType wildcard()
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateType wildcardExtends(io.github.minh124199.viettemplate.api.TemplateType)
+  MEMBER public static io.github.minh124199.viettemplate.api.TemplateType wildcardSuper(io.github.minh124199.viettemplate.api.TemplateType)
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateType$ArrayType extends java.lang.Record implements io.github.minh124199.viettemplate.api.TemplateType
+  MEMBER public boolean isArray()
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateType componentType()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateType$ArrayType(io.github.minh124199.viettemplate.api.TemplateType)
+  MEMBER public java.lang.Class<?> rawClass()
+  MEMBER public java.lang.String fingerprintFragment()
+  MEMBER public java.lang.String typeName()
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateType$ClassType extends java.lang.Record implements io.github.minh124199.viettemplate.api.TemplateType
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateType$ClassType(java.lang.Class<?>)
+  MEMBER public java.lang.Class<?> rawClass()
+  MEMBER public java.lang.String fingerprintFragment()
+  MEMBER public java.lang.String typeName()
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateType$NamedType extends java.lang.Record implements io.github.minh124199.viettemplate.api.TemplateType
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateType$NamedType(java.lang.String, java.util.List<io.github.minh124199.viettemplate.api.TemplateType>)
+  MEMBER public java.lang.Class<?> rawClass()
+  MEMBER public java.lang.String fingerprintFragment()
+  MEMBER public java.lang.String name()
+  MEMBER public java.lang.String typeName()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.api.TemplateType> typeArguments()
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateType$ParameterizedType extends java.lang.Record implements io.github.minh124199.viettemplate.api.TemplateType
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateType$ParameterizedType(java.lang.Class<?>, java.util.List<io.github.minh124199.viettemplate.api.TemplateType>)
+  MEMBER public java.lang.Class<?> rawClass()
+  MEMBER public java.lang.String fingerprintFragment()
+  MEMBER public java.lang.String typeName()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.api.TemplateType> typeArguments()
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateType$PrimitiveType extends java.lang.Record implements io.github.minh124199.viettemplate.api.TemplateType
+  MEMBER public boolean isPrimitive()
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateType$PrimitiveType(java.lang.Class<?>)
+  MEMBER public java.lang.Class<?> primitiveClass()
+  MEMBER public java.lang.Class<?> rawClass()
+  MEMBER public java.lang.String fingerprintFragment()
+  MEMBER public java.lang.String typeName()
+
+TYPE public final class io.github.minh124199.viettemplate.api.TemplateType$WildcardType extends java.lang.Record implements io.github.minh124199.viettemplate.api.TemplateType
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateType$WildcardType(java.util.Optional<io.github.minh124199.viettemplate.api.TemplateType>, java.util.Optional<io.github.minh124199.viettemplate.api.TemplateType>)
+  MEMBER public java.lang.Class<?> rawClass()
+  MEMBER public java.lang.String fingerprintFragment()
+  MEMBER public java.lang.String typeName()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateType> lowerBound()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateType> upperBound()
+  MEMBER public static final io.github.minh124199.viettemplate.api.TemplateType$WildcardType UNBOUNDED
 
 TYPE public final class io.github.minh124199.viettemplate.api.UndefinedReferencePolicy extends java.lang.Enum<io.github.minh124199.viettemplate.api.UndefinedReferencePolicy>
   MEMBER public static final io.github.minh124199.viettemplate.api.UndefinedReferencePolicy ERROR

@@ -21,3 +21,7 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
+
+vietTemplate {
+    generateTypedFacades.set(true)
+}

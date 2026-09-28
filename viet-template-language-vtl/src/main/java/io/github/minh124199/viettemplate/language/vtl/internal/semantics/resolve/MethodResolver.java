@@ -1,5 +1,6 @@
 package io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve;
 
+import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.PrimitiveKind;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
@@ -16,31 +17,19 @@ import java.util.Set;
 /** Resolves method calls against receiver types with overload scoring and security validation. */
 public final class MethodResolver {
 
-  private static final Set<String> DENIED_CLASS_PREFIXES =
-      Set.of("java.lang.reflect.", "java.lang.invoke.", "java.security.", "sun.", "jdk.internal.");
-
-  private static final Set<Class<?>> DENIED_CLASSES =
-      Set.of(
-          Class.class,
-          ClassLoader.class,
-          Module.class,
-          Runtime.class,
-          ProcessBuilder.class,
-          Process.class,
-          Thread.class,
-          ThreadGroup.class,
-          System.class);
-
-  private static final Set<String> DENIED_METHOD_NAMES =
-      Set.of("getClass", "wait", "notify", "notifyAll");
-
   private MethodResolver() {}
 
   public static MethodResolution resolveMethod(
       VType receiverType, String methodName, List<VType> argumentTypes) {
+    return resolveMethod(receiverType, methodName, argumentTypes, MemberAccessPolicy.standard());
+  }
+
+  public static MethodResolution resolveMethod(
+      VType receiverType, String methodName, List<VType> argumentTypes, MemberAccessPolicy policy) {
     Objects.requireNonNull(receiverType, "receiverType must not be null");
     Objects.requireNonNull(methodName, "methodName must not be null");
     Objects.requireNonNull(argumentTypes, "argumentTypes must not be null");
+    MemberAccessPolicy effectivePolicy = policy != null ? policy : MemberAccessPolicy.standard();
 
     if (receiverType instanceof VType.DynamicType) {
       return MethodResolution.dynamic(VTypes.DYNAMIC);
@@ -51,20 +40,20 @@ public final class MethodResolver {
 
     if (receiverType instanceof VType.ClassType ct && ct.javaClass().isPresent()) {
       Class<?> clazz = ct.javaClass().get();
-      return resolveClassMethod(clazz, methodName, argumentTypes);
+      return resolveClassMethod(clazz, methodName, argumentTypes, effectivePolicy);
     }
 
     return MethodResolution.notFound(VTypes.ERROR, Optional.empty());
   }
 
   private static MethodResolution resolveClassMethod(
-      Class<?> clazz, String methodName, List<VType> argumentTypes) {
+      Class<?> clazz, String methodName, List<VType> argumentTypes, MemberAccessPolicy policy) {
     // 1. Security Check
-    if (isClassDenied(clazz)) {
+    if (!policy.isClassPermitted(clazz)) {
       return MethodResolution.denied(
           "Access to class " + clazz.getName() + " is denied by security policy");
     }
-    if (DENIED_METHOD_NAMES.contains(methodName)) {
+    if (!policy.isMethodPermitted(clazz, methodName, argumentTypes.size())) {
       return MethodResolution.denied("Method " + methodName + " is denied by security policy");
     }
 
@@ -76,11 +65,12 @@ public final class MethodResolver {
       if (!Modifier.isPublic(method.getModifiers()) || Modifier.isStatic(method.getModifiers())) {
         continue;
       }
-      candidateNames.add(method.getName());
-      if (!method.getName().equals(methodName)) {
+      if (!policy.isMethodPermitted(clazz, method)
+          || !policy.isClassPermitted(method.getReturnType())) {
         continue;
       }
-      if (isMethodDenied(method)) {
+      candidateNames.add(method.getName());
+      if (!method.getName().equals(methodName)) {
         continue;
       }
 
@@ -151,51 +141,21 @@ public final class MethodResolver {
       return 8;
     }
 
-    if (argType instanceof VType.PrimitiveType pt) {
-      if (paramType.isAssignableFrom(pt.kind().boxedClass())) {
-        return 6;
-      }
-      if (paramType == Object.class || paramType == Number.class) {
-        return 4;
-      }
-      return -1;
-    }
-
     if (argType instanceof VType.ClassType ct && ct.javaClass().isPresent()) {
       Class<?> argClass = ct.javaClass().get();
-      if (paramType == argClass) {
-        return 10;
-      }
       if (paramType.isAssignableFrom(argClass)) {
-        return 8;
-      }
-      return -1;
-    }
-
-    return 2;
-  }
-
-  private static boolean isClassDenied(Class<?> clazz) {
-    if (clazz == null) {
-      return true;
-    }
-    if (DENIED_CLASSES.contains(clazz)) {
-      return true;
-    }
-    String name = clazz.getName();
-    for (String prefix : DENIED_CLASS_PREFIXES) {
-      if (name.startsWith(prefix)) {
-        return true;
+        if (paramType == argClass) {
+          return 10;
+        }
+        return 6;
       }
     }
-    return false;
-  }
 
-  private static boolean isMethodDenied(Method method) {
-    if (DENIED_METHOD_NAMES.contains(method.getName())) {
-      return true;
+    if (argType instanceof VType.ArrayType at && paramType.isArray()) {
+      return 7;
     }
-    return isClassDenied(method.getDeclaringClass());
+
+    return -1;
   }
 
   private record MethodScore(Method method, int score) {}

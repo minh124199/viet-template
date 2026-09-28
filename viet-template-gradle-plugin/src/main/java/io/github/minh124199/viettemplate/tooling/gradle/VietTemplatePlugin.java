@@ -12,6 +12,7 @@ public class VietTemplatePlugin implements Plugin<Project> {
 
   public static final String EXTENSION_NAME = "vietTemplate";
   public static final String TASK_NAME = "compileVietTemplates";
+  public static final String GENERATE_FACADES_TASK_NAME = "generateVietTemplateFacades";
 
   @Override
   public void apply(Project project) {
@@ -32,6 +33,35 @@ public class VietTemplatePlugin implements Plugin<Project> {
         .getResourceOutputDirectory()
         .convention(
             project.getLayout().getBuildDirectory().dir("generated/viet-template/resources"));
+    extension
+        .getGeneratedSourcesDirectory()
+        .convention(project.getLayout().getBuildDirectory().dir("generated/viet-template/sources"));
+
+    TaskProvider<VietTemplateGenerateFacadesTask> generateFacadesTask =
+        project
+            .getTasks()
+            .register(
+                GENERATE_FACADES_TASK_NAME,
+                VietTemplateGenerateFacadesTask.class,
+                facadeTask -> {
+                  facadeTask.setDescription(
+                      "Generates typed Java facades for Viet Template contracts Ahead-Of-Time.");
+                  facadeTask.setGroup("build");
+
+                  facadeTask.getSourceDirectory().convention(extension.getSourceDirectory());
+                  facadeTask
+                      .getGeneratedSourcesDirectory()
+                      .convention(extension.getGeneratedSourcesDirectory());
+                  facadeTask.getIncludes().convention(extension.getIncludes());
+                  facadeTask.getExcludes().convention(extension.getExcludes());
+                  facadeTask.getEncoding().convention(extension.getEncoding());
+                  facadeTask.getPackagePrefix().convention(extension.getPackagePrefix());
+                  facadeTask.getFailOnWarning().convention(extension.getFailOnWarning());
+                  facadeTask
+                      .getGenerateTypedFacades()
+                      .convention(extension.getGenerateTypedFacades());
+                  facadeTask.onlyIf(t -> facadeTask.getGenerateTypedFacades().getOrElse(false));
+                });
 
     TaskProvider<VietTemplateCompileTask> task =
         project
@@ -48,12 +78,18 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   compileTask
                       .getResourceOutputDirectory()
                       .convention(extension.getResourceOutputDirectory());
+                  compileTask
+                      .getGeneratedSourcesDirectory()
+                      .convention(extension.getGeneratedSourcesDirectory());
                   compileTask.getIncludes().convention(extension.getIncludes());
                   compileTask.getExcludes().convention(extension.getExcludes());
                   compileTask.getEncoding().convention(extension.getEncoding());
                   compileTask.getPackagePrefix().convention(extension.getPackagePrefix());
                   compileTask.getFailOnWarning().convention(extension.getFailOnWarning());
                   compileTask.getIncremental().convention(extension.getIncremental());
+                  compileTask
+                      .getGenerateTypedFacades()
+                      .convention(extension.getGenerateTypedFacades());
                 });
 
     // When java plugin applied:
@@ -71,9 +107,22 @@ public class VietTemplatePlugin implements Plugin<Project> {
               SourceSet mainSourceSet =
                   javaExt.getSourceSets().named(SourceSet.MAIN_SOURCE_SET_NAME).get();
 
+              VietTemplateGenerateFacadesTask facadeTask = generateFacadesTask.get();
+              facadeTask.getClasspath().from(mainSourceSet.getCompileClasspath());
+              mainSourceSet.getJava().srcDir(facadeTask.getGeneratedSourcesDirectory());
+              project
+                  .getTasks()
+                  .named(JavaPlugin.COMPILE_JAVA_TASK_NAME)
+                  .configure(t -> t.dependsOn(facadeTask));
+
               VietTemplateCompileTask compileTask = task.get();
               mainSourceSet.getOutput().dir(compileTask.getOutputDirectory());
               mainSourceSet.getResources().srcDir(compileTask.getResourceOutputDirectory());
+              compileTask
+                  .getClasspath()
+                  .from(
+                      mainSourceSet.getCompileClasspath(),
+                      mainSourceSet.getOutput().getClassesDirs());
               compileTask.dependsOn(JavaPlugin.COMPILE_JAVA_TASK_NAME);
               project
                   .getTasks()

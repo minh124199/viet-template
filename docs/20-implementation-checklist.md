@@ -1015,3 +1015,12 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **P8.** Reconcile Publication Topology Coordinates: Documented 13 primary project publications (12 production modules + parent POM) plus 1 generated Gradle plugin marker publication (14 staged coordinates total).
 - [x] **P9.** Complete Documentation Convergence: Reconciled `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, `docs/17-release-process.md`, `docs/18-roadmap.md`, `docs/1.0-readiness-gap-analysis.md`, `docs/diagnostics/error-catalog.md`, `docs/migration/velocity-differences.md`, `docs/extensions/quarkus.md`, and ADRs.
 - [x] **P10.** Authorized Publication Readiness Verdict: Verified all release gates and confirmed status `RC1_READY_FOR_AUTHORIZED_PUBLICATION` while preserving `REMOTE_PUBLICATION_NOT_EXECUTED`.
+
+### Deliverable Q: Optional Typed Template Contracts, Static Specialization & Generated Typed Java APIs (Milestone M24 / 1.1.0)
+
+- [x] **Q1.** Public Contract Domain Model: Implemented immutable, deterministic `TemplateContract` and `TemplateParameter` in `viet-template-api` with covariant return deduplication, synthetic/bridge filtering, primitive nullability normalization, and wildcard upper-bound resolution.
+- [x] **Q2.** Zero-Allocation Context Fast-Path: Added `SingleVariableRenderContext` in `viet-template-api` for zero-allocation single-variable rendering.
+- [x] **Q3.** Security-Hardened Member Resolution: Added deny-lists (`DENIED_METHODS`, `DENIED_CLASSES`) in `MemberResolver` to prevent compile-time reflection/access escapes.
+- [x] **Q4.** Static Specialization & Bytecode Compilation: Overhauled `BytecodeTemplateCompiler` for direct `invokevirtual`/`invokeinterface` access plans with null guards and dynamic fallback (`dynamicInvokeMethod`).
+- [x] **Q5.** Typed Facade Generator & Tooling Integration: Added `TypedTemplateFacadeGenerator` and configured contract discovery and facade generation across Maven (`VietTemplateCompileMojo`) and Gradle (`VietTemplateCompileTask`, `VietTemplatePlugin`).
+- [x] **Q6.** Compatibility & Verification Gates: Verified 100% test pass across all 11 modules, verified 0 breaking changes against 1.0.0 API baselines, 0 unclassified types, and 0 unregistered contracts.

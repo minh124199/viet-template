@@ -1,5 +1,7 @@
 package io.github.minh124199.viettemplate.language.vtl.semantics.model;
 
+import io.github.minh124199.viettemplate.api.TemplateContract;
+import io.github.minh124199.viettemplate.api.TemplateParameter;
 import io.github.minh124199.viettemplate.language.vtl.internal.semantics.model.ModelParameter;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
@@ -7,8 +9,14 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.RecordComponent;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,7 +35,7 @@ public final class ModelSchema {
   private final Map<String, ModelParameter> parameters;
 
   private ModelSchema(Map<String, ModelParameter> parameters) {
-    this.parameters = Map.copyOf(parameters);
+    this.parameters = Collections.unmodifiableMap(new LinkedHashMap<>(parameters));
   }
 
   public static ModelSchema empty() {
@@ -52,6 +60,50 @@ public final class ModelSchema {
     return new ModelSchema(map);
   }
 
+  public static ModelSchema fromContract(TemplateContract contract) {
+    Objects.requireNonNull(contract, "contract must not be null");
+    Map<String, ModelParameter> map = new LinkedHashMap<>();
+    for (TemplateParameter param : contract.parameters()) {
+      Nullability nullability = param.nullable() ? Nullability.NULLABLE : Nullability.NON_NULL;
+      VType type = convertTemplateType(param.type(), nullability);
+      map.put(param.name(), ModelParameter.of(param.name(), type));
+    }
+    return new ModelSchema(map);
+  }
+
+  private static VType convertTemplateType(
+      io.github.minh124199.viettemplate.api.TemplateType templateType, Nullability nullability) {
+    if (templateType
+        instanceof io.github.minh124199.viettemplate.api.TemplateType.PrimitiveType pt) {
+      return new VType.PrimitiveType(
+          io.github.minh124199.viettemplate.language.vtl.semantics.type.PrimitiveKind.fromClass(
+              pt.primitiveClass()));
+    }
+    if (templateType instanceof io.github.minh124199.viettemplate.api.TemplateType.ArrayType at) {
+      return new VType.ArrayType(
+          convertTemplateType(at.componentType(), Nullability.NULLABLE), nullability);
+    }
+    if (templateType
+        instanceof io.github.minh124199.viettemplate.api.TemplateType.ParameterizedType pt) {
+      List<VType> args = new ArrayList<>();
+      for (io.github.minh124199.viettemplate.api.TemplateType arg : pt.typeArguments()) {
+        args.add(convertTemplateType(arg, Nullability.NULLABLE));
+      }
+      return VType.ClassType.of(pt.rawClass(), args, nullability);
+    }
+    if (templateType instanceof io.github.minh124199.viettemplate.api.TemplateType.ClassType ct) {
+      return VType.ClassType.of(ct.rawClass(), nullability);
+    }
+    if (templateType
+        instanceof io.github.minh124199.viettemplate.api.TemplateType.WildcardType wt) {
+      if (wt.upperBound().isPresent()) {
+        return convertTemplateType(wt.upperBound().get(), nullability);
+      }
+      return VTypes.DYNAMIC;
+    }
+    return VTypes.fromJavaClass(templateType.rawClass(), nullability);
+  }
+
   public static ModelSchema fromRecord(Class<?> recordClass) {
     Objects.requireNonNull(recordClass, "recordClass must not be null");
     if (!recordClass.isRecord()) {
@@ -70,8 +122,11 @@ public final class ModelSchema {
     if (!interfaceClass.isInterface()) {
       throw new IllegalArgumentException("Class is not an interface: " + interfaceClass.getName());
     }
+    List<Method> methods = new ArrayList<>(List.of(interfaceClass.getMethods()));
+    methods.sort(
+        Comparator.comparing(Method::getName).thenComparing(m -> m.getReturnType().getName()));
     Map<String, ModelParameter> map = new LinkedHashMap<>();
-    for (Method method : interfaceClass.getMethods()) {
+    for (Method method : methods) {
       if (method.getParameterCount() != 0
           || Modifier.isStatic(method.getModifiers())
           || method.getDeclaringClass() == Object.class) {
@@ -93,8 +148,11 @@ public final class ModelSchema {
       return fromInterface(clazz);
     }
     // For standard classes, inspect public zero-arg getters
+    List<Method> methods = new ArrayList<>(List.of(clazz.getMethods()));
+    methods.sort(
+        Comparator.comparing(Method::getName).thenComparing(m -> m.getReturnType().getName()));
     Map<String, ModelParameter> map = new LinkedHashMap<>();
-    for (Method method : clazz.getMethods()) {
+    for (Method method : methods) {
       if (method.getParameterCount() != 0
           || Modifier.isStatic(method.getModifiers())
           || method.getDeclaringClass() == Object.class) {
@@ -149,6 +207,39 @@ public final class ModelSchema {
 
   public int size() {
     return parameters.size();
+  }
+
+  public String fingerprint() {
+    try {
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      for (Map.Entry<String, ModelParameter> entry : parameters.entrySet()) {
+        md.update(entry.getKey().getBytes(StandardCharsets.UTF_8));
+        md.update((byte) ':');
+        md.update(entry.getValue().type().toString().getBytes(StandardCharsets.UTF_8));
+        md.update((byte) '\n');
+      }
+      byte[] digest = md.digest();
+      StringBuilder sb = new StringBuilder(digest.length * 2);
+      for (byte b : digest) {
+        sb.append(Character.forDigit((b >> 4) & 0xF, 16));
+        sb.append(Character.forDigit(b & 0xF, 16));
+      }
+      return sb.toString();
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("SHA-256 not available", e);
+    }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof ModelSchema that)) return false;
+    return parameters.equals(that.parameters);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(parameters);
   }
 
   static Builder builder() {

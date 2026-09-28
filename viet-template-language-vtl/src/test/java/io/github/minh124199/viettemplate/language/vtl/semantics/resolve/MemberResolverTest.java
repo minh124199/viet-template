@@ -92,4 +92,23 @@ class MemberResolverTest {
     assertThat(activeTypo.isFound()).isFalse();
     assertThat(activeTypo.typoSuggestion()).contains("active");
   }
+
+  @Test
+  @DisplayName("Security: denied methods and denied classes are rejected")
+  void securityDeniedMethodsAndClasses() {
+    VType userType = VType.ClassType.of(User.class, Nullability.NON_NULL);
+    MemberResolution classRes = MemberResolver.resolveProperty(userType, "class");
+    assertThat(classRes.isFound()).isFalse();
+    assertThat(classRes.kind()).isEqualTo(MemberResolution.Kind.NOT_FOUND);
+
+    MemberResolution getClassRes = MemberResolver.resolveProperty(userType, "getClass");
+    assertThat(getClassRes.isFound()).isFalse();
+
+    MemberResolution waitRes = MemberResolver.resolveProperty(userType, "wait");
+    assertThat(waitRes.isFound()).isFalse();
+
+    VType systemType = VType.ClassType.of(System.class, Nullability.NON_NULL);
+    MemberResolution sysRes = MemberResolver.resolveProperty(systemType, "currentTimeMillis");
+    assertThat(sysRes.isFound()).isFalse();
+  }
 }

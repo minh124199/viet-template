@@ -6,7 +6,12 @@ import io.github.minh124199.viettemplate.aot.TemplateAotRequest;
 import io.github.minh124199.viettemplate.aot.TemplateAotResult;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
 import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
@@ -27,21 +32,28 @@ import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.TaskAction;
 
-/** Gradle task that compiles Viet Template files into JVM bytecode Ahead-Of-Time (AOT). */
+/**
+ * Gradle task that generates typed Java facades for Viet Template contracts. This runs before
+ * {@code compileJava} so generated {@code <Template>View.java} classes can be compiled together
+ * with application code in a single build pass.
+ */
 @CacheableTask
-public abstract class VietTemplateCompileTask extends DefaultTask {
+public abstract class VietTemplateGenerateFacadesTask extends DefaultTask {
 
   @Inject
   @SuppressWarnings("this-escape")
-  public VietTemplateCompileTask() {
+  public VietTemplateGenerateFacadesTask() {
     getIncludes().convention(List.of("**/*.vtl", "**/*.vm"));
     getExcludes().convention(List.of());
     getEncoding().convention("UTF-8");
     getPackagePrefix().convention("io.github.minh124199.viettemplate.generated");
     getFailOnWarning().convention(false);
-    getIncremental().convention(true);
     getGenerateTypedFacades().convention(false);
   }
+
+  @Input
+  @Optional
+  public abstract Property<Boolean> getGenerateTypedFacades();
 
   @InputDirectory
   @Optional
@@ -50,14 +62,11 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
   public abstract DirectoryProperty getSourceDirectory();
 
   @OutputDirectory
-  public abstract DirectoryProperty getOutputDirectory();
-
-  @OutputDirectory
-  public abstract DirectoryProperty getResourceOutputDirectory();
+  public abstract DirectoryProperty getGeneratedSourcesDirectory();
 
   @OutputDirectory
   @Optional
-  public abstract DirectoryProperty getGeneratedSourcesDirectory();
+  public abstract DirectoryProperty getFacadeClassOutputDirectory();
 
   @InputFiles
   @Classpath
@@ -84,19 +93,22 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
   @Optional
   public abstract Property<Boolean> getFailOnWarning();
 
-  @Input
-  @Optional
-  public abstract Property<Boolean> getIncremental();
-
-  @Input
-  @Optional
-  public abstract Property<Boolean> getGenerateTypedFacades();
-
   @TaskAction
-  public void compileTemplates() {
+  public void generateFacades() {
+    if (!getGenerateTypedFacades().getOrElse(false)) {
+      getLogger()
+          .info(
+              "Viet Template typed facade generation is not enabled (generateTypedFacades=false),"
+                  + " skipping.");
+      return;
+    }
+
     File srcDir = getSourceDirectory().getAsFile().getOrNull();
     if (srcDir == null || !srcDir.exists()) {
-      getLogger().info("Viet Template source directory does not exist, skipping: {}", srcDir);
+      getLogger()
+          .info(
+              "Viet Template source directory does not exist, skipping facade generation: {}",
+              srcDir);
       return;
     }
 
@@ -111,8 +123,11 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
       return;
     }
 
-    File outDir = getOutputDirectory().getAsFile().get();
-    File resDir = getResourceOutputDirectory().getAsFile().get();
+    File genSourcesDir = getGeneratedSourcesDirectory().getAsFile().get();
+    File facadeClassDir =
+        getFacadeClassOutputDirectory().isPresent()
+            ? getFacadeClassOutputDirectory().getAsFile().get()
+            : new File(genSourcesDir.getParentFile(), "facade-classes");
 
     String enc = getEncoding().getOrElse("UTF-8");
     Charset charset;
@@ -124,17 +139,16 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
 
     String pkg = getPackagePrefix().getOrElse("io.github.minh124199.viettemplate.generated");
     boolean failWarn = getFailOnWarning().getOrElse(false);
-    boolean incr = getIncremental().getOrElse(true);
 
     TemplateAotRequest.Builder reqBuilder =
         TemplateAotRequest.builder()
             .sourceDirectory(srcDir.toPath())
-            .outputDirectory(outDir.toPath())
-            .resourceOutputDirectory(resDir.toPath())
+            .outputDirectory(facadeClassDir.toPath())
             .encoding(charset)
             .packagePrefix(pkg)
             .failOnWarning(failWarn)
-            .incremental(incr);
+            .generateTypedFacades(true)
+            .generatedSourcesDirectory(genSourcesDir.toPath());
 
     List<String> incl = getIncludes().getOrNull();
     if (incl != null && !incl.isEmpty()) {
@@ -145,27 +159,18 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
       reqBuilder.excludePatterns(excl);
     }
 
-    boolean generateTypedFacades = getGenerateTypedFacades().getOrElse(false);
-    if (generateTypedFacades) {
-      reqBuilder.generateTypedFacades(true);
-      File genSourcesDir = getGeneratedSourcesDirectory().getAsFile().getOrNull();
-      if (genSourcesDir != null) {
-        reqBuilder.generatedSourcesDirectory(genSourcesDir.toPath());
-      }
-    }
-
-    java.net.URLClassLoader urlClassLoader = null;
+    URLClassLoader urlClassLoader = null;
     if (!getClasspath().isEmpty()) {
       try {
-        java.util.List<java.net.URL> urls = new java.util.ArrayList<>();
+        List<URL> urls = new ArrayList<>();
         for (File f : getClasspath().getFiles()) {
           urls.add(f.toURI().toURL());
         }
         urlClassLoader =
-            new java.net.URLClassLoader(
-                urls.toArray(new java.net.URL[0]), Thread.currentThread().getContextClassLoader());
+            new URLClassLoader(
+                urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
         reqBuilder.classLoader(urlClassLoader);
-      } catch (java.net.MalformedURLException | RuntimeException e) {
+      } catch (MalformedURLException | RuntimeException e) {
         getLogger().debug("Could not build compile classpath ClassLoader", e);
       }
     }
@@ -175,7 +180,8 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
       try {
         request = reqBuilder.build();
       } catch (IllegalArgumentException | IllegalStateException e) {
-        throw new GradleException("Failed to build AOT compilation request: " + e.getMessage(), e);
+        throw new GradleException(
+            "Failed to build facade generation request: " + e.getMessage(), e);
       }
 
       TemplateAotCompiler compiler = TemplateAotCompiler.create();
@@ -198,20 +204,15 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
                 .filter(d -> d.severity() == DiagnosticSeverity.ERROR)
                 .count();
         throw new GradleException(
-            "Viet Template AOT compilation failed with " + errorCount + " error(s).");
+            "Viet Template facade generation failed with " + errorCount + " error(s).");
       }
 
-      getLogger()
-          .info(
-              "Compiled {} Viet Template(s) ({} skipped, {} deleted).",
-              result.compiledCount(),
-              result.skippedCount(),
-              result.deletedCount());
+      getLogger().info("Generated typed Java facades in {}", genSourcesDir);
     } finally {
       if (urlClassLoader != null) {
         try {
           urlClassLoader.close();
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
           getLogger().debug("Failed to close URLClassLoader", e);
         }
       }

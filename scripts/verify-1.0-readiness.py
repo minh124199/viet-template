@@ -61,6 +61,24 @@ PRODUCTION_MODULES = [
 ]
 
 
+# Permitted additive types introduced in post-1.0 minor releases (Viet Template 1.1.x),
+# adhering to the 1.x Compatibility Policy in COMPATIBILITY.md (purely additive public APIs).
+ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
+    "io.github.minh124199.viettemplate.api.TemplateContract",
+    "io.github.minh124199.viettemplate.api.TemplateContract$Builder",
+    "io.github.minh124199.viettemplate.api.TemplateParameter",
+    "io.github.minh124199.viettemplate.api.TemplateType",
+    "io.github.minh124199.viettemplate.api.TemplateType$ArrayType",
+    "io.github.minh124199.viettemplate.api.TemplateType$ClassType",
+    "io.github.minh124199.viettemplate.api.TemplateType$NamedType",
+    "io.github.minh124199.viettemplate.api.TemplateType$ParameterizedType",
+    "io.github.minh124199.viettemplate.api.TemplateType$PrimitiveType",
+    "io.github.minh124199.viettemplate.api.TemplateType$WildcardType",
+    "io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateFacadesMojo",
+    "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask",
+}
+
+
 # =============================================================================
 # Helper Utilities
 # =============================================================================
@@ -378,14 +396,23 @@ def verify_public_surface(
     exp_cats = ps_expected.get("categories", {})
     exp_pbcia = ps_expected.get("pbciaBreakdown", {})
 
-    if total_types != ps_expected.get("totalCompiledPublicTypes", 339):
-        errors.append(f"Total compiled public types mismatch: expected {ps_expected.get('totalCompiledPublicTypes', 339)}, found {total_types}")
-    if stable_api != exp_cats.get("STABLE_API", 94):
-        errors.append(f"STABLE_API count mismatch: expected {exp_cats.get('STABLE_API', 94)}, found {stable_api}")
-    if stable_spi != exp_cats.get("STABLE_SPI", 27):
-        errors.append(f"STABLE_SPI count mismatch: expected {exp_cats.get('STABLE_SPI', 27)}, found {stable_spi}")
-    if total_stable != exp_cats.get("TOTAL_STABLE", 121):
-        errors.append(f"TOTAL_STABLE count mismatch: expected {exp_cats.get('TOTAL_STABLE', 121)}, found {total_stable}")
+    additive_stable_api = sum(1 for t in ALLOWED_ADDITIVE_1_X_TYPES if classification.get(t) == "STABLE_API")
+    additive_stable_spi = sum(1 for t in ALLOWED_ADDITIVE_1_X_TYPES if classification.get(t) == "STABLE_SPI")
+    additive_total = len(ALLOWED_ADDITIVE_1_X_TYPES)
+
+    exp_total = ps_expected.get("totalCompiledPublicTypes", 339) + additive_total
+    exp_stable_api = exp_cats.get("STABLE_API", 94) + additive_stable_api
+    exp_stable_spi = exp_cats.get("STABLE_SPI", 27) + additive_stable_spi
+    exp_total_stable = exp_cats.get("TOTAL_STABLE", 121) + (additive_stable_api + additive_stable_spi)
+
+    if total_types != exp_total:
+        errors.append(f"Total compiled public types mismatch: expected {exp_total}, found {total_types}")
+    if stable_api != exp_stable_api:
+        errors.append(f"STABLE_API count mismatch: expected {exp_stable_api}, found {stable_api}")
+    if stable_spi != exp_stable_spi:
+        errors.append(f"STABLE_SPI count mismatch: expected {exp_stable_spi}, found {stable_spi}")
+    if total_stable != exp_total_stable:
+        errors.append(f"TOTAL_STABLE count mismatch: expected {exp_total_stable}, found {total_stable}")
     if experimental != exp_cats.get("EXPERIMENTAL", 5):
         errors.append(f"EXPERIMENTAL count mismatch: expected {exp_cats.get('EXPERIMENTAL', 5)}, found {experimental}")
     if pbcia != exp_cats.get("PUBLIC_BUT_INTERNAL_ACCIDENT", 85):

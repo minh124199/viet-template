@@ -88,6 +88,30 @@
       "description": "Gradle task type executing ahead-of-time (AOT) template compilation into classes directory."
     },
     {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateFacadesMojo",
+      "module": "viet-template-maven-plugin",
+      "entrypointKind": "MAVEN_MOJO",
+      "metadataSource": "@Mojo(name = \"generate-facades\") / META-INF/maven/plugin.xml",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": false,
+      "userJavaApi": false,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Maven Mojo goal generating typed Java facades during generate-sources phase."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask",
+      "module": "viet-template-gradle-plugin",
+      "entrypointKind": "GRADLE_TASK",
+      "metadataSource": "Registered by VietTemplatePlugin as generateVietTemplateFacades task",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": true,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Gradle task type generating typed Java facades ahead of compileJava."
+    },
+    {
       "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension",
       "module": "viet-template-gradle-plugin",
       "entrypointKind": "GRADLE_EXTENSION_DSL",

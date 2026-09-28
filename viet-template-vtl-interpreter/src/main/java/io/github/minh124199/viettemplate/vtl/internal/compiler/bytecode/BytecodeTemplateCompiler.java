@@ -958,17 +958,61 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   private static void compileGetProperty(
       IrGetProperty prop, ClassFileWriter.MethodWriter mw, CompilerContext context) {
     AccessPlan plan = prop.accessPlan();
+    int scratchSlot = context.scratchSlot;
 
     if (plan instanceof AccessPlan.DirectRecord rec) {
+      ClassFileWriter.Label nullLabel = mw.newLabel();
+      ClassFileWriter.Label dynamicLabel = mw.newLabel();
+      ClassFileWriter.Label endLabel = mw.newLabel();
       compileExpression(prop.receiver(), mw, context);
+      mw.astore(scratchSlot);
+      mw.aload(scratchSlot);
+      mw.ifnull(nullLabel);
+      mw.aload(scratchSlot);
       String owner = rec.owner().getName().replace('.', '/');
+      mw.instanceofOp(owner);
+      mw.ifeq(dynamicLabel);
+      mw.aload(scratchSlot);
       mw.checkcast(owner);
       String desc = "()" + rec.returnType().descriptorString();
       mw.invokevirtual(owner, rec.componentName(), desc);
       boxIfPrimitive(rec.returnType(), mw);
+      mw.astore(scratchSlot);
+      mw.gotoOp(endLabel);
+
+      mw.bindLabel(dynamicLabel);
+      int siteIdx =
+          context.registerDynamicSite(prop.propertyName(), MemberOperation.PROPERTY_GET, 0);
+      mw.getstatic(
+          context.internalName,
+          "SITES",
+          "[Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;");
+      mw.iconst(siteIdx);
+      mw.aaload();
+      mw.aload(scratchSlot);
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "dynamicGetProperty",
+          "(Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;Ljava/lang/Object;)Ljava/lang/Object;");
+      mw.astore(scratchSlot);
+      mw.gotoOp(endLabel);
+
+      mw.bindLabel(nullLabel);
+      mw.bindLabel(endLabel);
+      mw.aload(scratchSlot);
     } else if (plan instanceof AccessPlan.DirectGetter getter) {
+      ClassFileWriter.Label nullLabel = mw.newLabel();
+      ClassFileWriter.Label dynamicLabel = mw.newLabel();
+      ClassFileWriter.Label endLabel = mw.newLabel();
       compileExpression(prop.receiver(), mw, context);
+      mw.astore(scratchSlot);
+      mw.aload(scratchSlot);
+      mw.ifnull(nullLabel);
+      mw.aload(scratchSlot);
       String owner = getter.owner().getName().replace('.', '/');
+      mw.instanceofOp(owner);
+      mw.ifeq(dynamicLabel);
+      mw.aload(scratchSlot);
       mw.checkcast(owner);
       String desc = "()" + getter.returnType().descriptorString();
       if (getter.owner().isInterface()) {
@@ -977,18 +1021,107 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         mw.invokevirtual(owner, getter.methodName(), desc);
       }
       boxIfPrimitive(getter.returnType(), mw);
+      mw.astore(scratchSlot);
+      mw.gotoOp(endLabel);
+
+      mw.bindLabel(dynamicLabel);
+      int siteIdx =
+          context.registerDynamicSite(prop.propertyName(), MemberOperation.PROPERTY_GET, 0);
+      mw.getstatic(
+          context.internalName,
+          "SITES",
+          "[Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;");
+      mw.iconst(siteIdx);
+      mw.aaload();
+      mw.aload(scratchSlot);
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "dynamicGetProperty",
+          "(Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;Ljava/lang/Object;)Ljava/lang/Object;");
+      mw.astore(scratchSlot);
+      mw.gotoOp(endLabel);
+
+      mw.bindLabel(nullLabel);
+      mw.bindLabel(endLabel);
+      mw.aload(scratchSlot);
     } else if (plan instanceof AccessPlan.DirectField field) {
+      ClassFileWriter.Label nullLabel = mw.newLabel();
+      ClassFileWriter.Label dynamicLabel = mw.newLabel();
+      ClassFileWriter.Label endLabel = mw.newLabel();
       compileExpression(prop.receiver(), mw, context);
+      mw.astore(scratchSlot);
+      mw.aload(scratchSlot);
+      mw.ifnull(nullLabel);
+      mw.aload(scratchSlot);
       String owner = field.owner().getName().replace('.', '/');
+      mw.instanceofOp(owner);
+      mw.ifeq(dynamicLabel);
+      mw.aload(scratchSlot);
       mw.checkcast(owner);
       String desc = field.fieldType().descriptorString();
       mw.getfield(owner, field.fieldName(), desc);
       boxIfPrimitive(field.fieldType(), mw);
+      mw.astore(scratchSlot);
+      mw.gotoOp(endLabel);
+
+      mw.bindLabel(dynamicLabel);
+      int siteIdx =
+          context.registerDynamicSite(prop.propertyName(), MemberOperation.PROPERTY_GET, 0);
+      mw.getstatic(
+          context.internalName,
+          "SITES",
+          "[Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;");
+      mw.iconst(siteIdx);
+      mw.aaload();
+      mw.aload(scratchSlot);
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "dynamicGetProperty",
+          "(Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;Ljava/lang/Object;)Ljava/lang/Object;");
+      mw.astore(scratchSlot);
+      mw.gotoOp(endLabel);
+
+      mw.bindLabel(nullLabel);
+      mw.bindLabel(endLabel);
+      mw.aload(scratchSlot);
     } else if (plan instanceof AccessPlan.MapLookup mapLookup) {
+      ClassFileWriter.Label nullLabel = mw.newLabel();
+      ClassFileWriter.Label dynamicLabel = mw.newLabel();
+      ClassFileWriter.Label endLabel = mw.newLabel();
       compileExpression(prop.receiver(), mw, context);
+      mw.astore(scratchSlot);
+      mw.aload(scratchSlot);
+      mw.ifnull(nullLabel);
+      mw.aload(scratchSlot);
+      mw.instanceofOp("java/util/Map");
+      mw.ifeq(dynamicLabel);
+      mw.aload(scratchSlot);
       mw.checkcast("java/util/Map");
       mw.ldc(mapLookup.keyConstant());
       mw.invokeinterface("java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", 2);
+      mw.astore(scratchSlot);
+      mw.gotoOp(endLabel);
+
+      mw.bindLabel(dynamicLabel);
+      int siteIdx =
+          context.registerDynamicSite(prop.propertyName(), MemberOperation.PROPERTY_GET, 0);
+      mw.getstatic(
+          context.internalName,
+          "SITES",
+          "[Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;");
+      mw.iconst(siteIdx);
+      mw.aaload();
+      mw.aload(scratchSlot);
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "dynamicGetProperty",
+          "(Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;Ljava/lang/Object;)Ljava/lang/Object;");
+      mw.astore(scratchSlot);
+      mw.gotoOp(endLabel);
+
+      mw.bindLabel(nullLabel);
+      mw.bindLabel(endLabel);
+      mw.aload(scratchSlot);
     } else {
       // Dynamic call site dispatch
       int siteIdx =
@@ -1033,10 +1166,25 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   private static void compileInvokeAllowedMethod(
       IrInvokeAllowedMethod inv, ClassFileWriter.MethodWriter mw, CompilerContext context) {
     Method m = inv.targetMethod();
-    compileExpression(inv.receiver(), mw, context);
-    String owner = m.getDeclaringClass().getName().replace('.', '/');
-    mw.checkcast(owner);
+    Class<?> ownerClass = m.getDeclaringClass();
+    String owner = ownerClass.getName().replace('.', '/');
     Class<?>[] ptypes = m.getParameterTypes();
+    int scratchSlot = context.scratchSlot;
+
+    ClassFileWriter.Label nullLabel = mw.newLabel();
+    ClassFileWriter.Label dynamicLabel = mw.newLabel();
+    ClassFileWriter.Label endLabel = mw.newLabel();
+
+    compileExpression(inv.receiver(), mw, context);
+    mw.astore(scratchSlot);
+    mw.aload(scratchSlot);
+    mw.ifnull(nullLabel);
+    mw.aload(scratchSlot);
+    mw.instanceofOp(owner);
+    mw.ifeq(dynamicLabel);
+
+    mw.aload(scratchSlot);
+    mw.checkcast(owner);
     for (int i = 0; i < inv.arguments().size(); i++) {
       compileExpression(inv.arguments().get(i), mw, context);
       unboxIfPrimitive(ptypes[i], mw);
@@ -1047,7 +1195,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     }
     descBuilder.append(")").append(m.getReturnType().descriptorString());
     String desc = descBuilder.toString();
-    if (m.getDeclaringClass().isInterface()) {
+    if (ownerClass.isInterface()) {
       int count = 1; // receiver
       for (Class<?> ptype : ptypes) {
         count += (ptype == long.class || ptype == double.class) ? 2 : 1;
@@ -1061,6 +1209,37 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     } else {
       boxIfPrimitive(m.getReturnType(), mw);
     }
+    mw.astore(scratchSlot);
+    mw.gotoOp(endLabel);
+
+    mw.bindLabel(dynamicLabel);
+    int numArgs = inv.arguments().size();
+    int siteIdx = context.registerDynamicSite(m.getName(), MemberOperation.METHOD_CALL, numArgs);
+    mw.getstatic(
+        context.internalName,
+        "SITES",
+        "[Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;");
+    mw.iconst(siteIdx);
+    mw.aaload();
+    mw.aload(scratchSlot);
+    mw.iconst(numArgs);
+    mw.anewarray("java/lang/Object");
+    for (int i = 0; i < numArgs; i++) {
+      mw.dup();
+      mw.iconst(i);
+      compileExpression(inv.arguments().get(i), mw, context);
+      mw.aastore();
+    }
+    mw.invokestatic(
+        "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+        "dynamicInvokeMethod",
+        "(Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;");
+    mw.astore(scratchSlot);
+    mw.gotoOp(endLabel);
+
+    mw.bindLabel(nullLabel);
+    mw.bindLabel(endLabel);
+    mw.aload(scratchSlot);
   }
 
   private static void unboxIfPrimitive(Class<?> clazz, ClassFileWriter.MethodWriter mw) {

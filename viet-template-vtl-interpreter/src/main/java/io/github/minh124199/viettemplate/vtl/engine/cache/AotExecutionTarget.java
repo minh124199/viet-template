@@ -1,7 +1,9 @@
 package io.github.minh124199.viettemplate.vtl.engine.cache;
 
 import io.github.minh124199.viettemplate.api.CompiledTemplate;
+import io.github.minh124199.viettemplate.api.DiagnosticCode;
 import io.github.minh124199.viettemplate.api.RenderContext;
+import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateException;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
@@ -45,6 +47,14 @@ record AotExecutionTarget(
         }
       }
       throw te;
+    } catch (ClassCastException cce) {
+      TemplateId realId = resolveTemplateId();
+      throw new TemplateRenderException(
+          "Type mismatch during template execution: " + cce.getMessage(),
+          realId,
+          SourceSpan.UNKNOWN,
+          DiagnosticCode.of("INTERPRETER", "ERROR"),
+          cce);
     }
   }
 

@@ -1,10 +1,10 @@
 # Viet Template Public Surface Classification Baseline
-# Total Types: 339
-# STABLE_API: 94
+# Total Types: 351
+# STABLE_API: 104
 # STABLE_SPI: 27
 # EXPERIMENTAL: 5
 # FRAMEWORK_ENTRYPOINT: 4
-# BUILD_TOOL_ENTRYPOINT: 4
+# BUILD_TOOL_ENTRYPOINT: 6
 # SERVICE_ENTRYPOINT: 0
 # GENERATED_RUNTIME_ABI: 1
 # INTERNAL_CROSS_MODULE: 59
@@ -64,6 +64,8 @@ io.github.minh124199.viettemplate.api.SourceSpan STABLE_API
 io.github.minh124199.viettemplate.api.Template STABLE_API
 io.github.minh124199.viettemplate.api.TemplateCallable STABLE_API
 io.github.minh124199.viettemplate.api.TemplateCompilationException STABLE_API
+io.github.minh124199.viettemplate.api.TemplateContract STABLE_API
+io.github.minh124199.viettemplate.api.TemplateContract$Builder STABLE_API
 io.github.minh124199.viettemplate.api.TemplateData STABLE_API
 io.github.minh124199.viettemplate.api.TemplateDependency STABLE_API
 io.github.minh124199.viettemplate.api.TemplateDependencyGraph STABLE_API
@@ -78,6 +80,7 @@ io.github.minh124199.viettemplate.api.TemplateId STABLE_API
 io.github.minh124199.viettemplate.api.TemplateLayoutException STABLE_API
 io.github.minh124199.viettemplate.api.TemplateLimitException STABLE_API
 io.github.minh124199.viettemplate.api.TemplateOutput STABLE_SPI
+io.github.minh124199.viettemplate.api.TemplateParameter STABLE_API
 io.github.minh124199.viettemplate.api.TemplateRenderException STABLE_API
 io.github.minh124199.viettemplate.api.TemplateRepository STABLE_SPI
 io.github.minh124199.viettemplate.api.TemplateResourceException STABLE_API
@@ -86,6 +89,13 @@ io.github.minh124199.viettemplate.api.TemplateSemanticException STABLE_API
 io.github.minh124199.viettemplate.api.TemplateSource STABLE_API
 io.github.minh124199.viettemplate.api.TemplateSuffixConfiguration STABLE_API
 io.github.minh124199.viettemplate.api.TemplateSyntaxException STABLE_API
+io.github.minh124199.viettemplate.api.TemplateType STABLE_API
+io.github.minh124199.viettemplate.api.TemplateType$ArrayType STABLE_API
+io.github.minh124199.viettemplate.api.TemplateType$ClassType STABLE_API
+io.github.minh124199.viettemplate.api.TemplateType$NamedType STABLE_API
+io.github.minh124199.viettemplate.api.TemplateType$ParameterizedType STABLE_API
+io.github.minh124199.viettemplate.api.TemplateType$PrimitiveType STABLE_API
+io.github.minh124199.viettemplate.api.TemplateType$WildcardType STABLE_API
 io.github.minh124199.viettemplate.api.UndefinedReferencePolicy STABLE_API
 io.github.minh124199.viettemplate.api.ValueOrigin STABLE_API
 io.github.minh124199.viettemplate.language.vtl.VtlFeatureState EXPERIMENTAL
@@ -305,8 +315,10 @@ io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView STABLE_API
 io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver STABLE_API
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateCompileTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension BUILD_TOOL_ENTRYPOINT
+io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplatePlugin BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateCompileMojo BUILD_TOOL_ENTRYPOINT
+io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateFacadesMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge GENERATED_RUNTIME_ABI
 io.github.minh124199.viettemplate.vtl.engine.EngineFingerprint INTERNAL_CROSS_PACKAGE
 io.github.minh124199.viettemplate.vtl.engine.VtlTemplate STABLE_API

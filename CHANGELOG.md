@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Milestone M20: Optional Typed Template Contracts, Static Specialization, and Generated Typed Java APIs**:
+  - **Public Contract Model (`viet-template-api`)**:
+    - Added `TemplateContract` and `TemplateParameter` immutable records for declaring optional typed parameter schemas programmatically or via companion `.contract` files.
+    - Added `RenderContext.of(...)` overloads for 1, 2, 3, and 4 key-value pairs, plus array-backed `RenderContext.of(String[], Object[])` to eliminate intermediate map allocations during context creation.
+  - **Static Specialization & Type Propagation (`viet-template-language-vtl`)**:
+    - Integrated `TemplateContract` into `ModelSchema` and `AstToIrLowerer`, resolving typed references to direct access plans (`DirectRecord`, `DirectGetter`, `DirectField`, `MapLookup`) at compile time when contracts are present.
+    - Preserved full Velocity dynamic fallback: if receiver types diverge at runtime or contracts are omitted, execution seamlessly falls back to polymorphic dynamic dispatch without throwing `ClassCastException`.
+  - **Specialized Bytecode Compilation (`viet-template-vtl-interpreter`)**:
+    - Emitted direct invokevirtual / invokeinterface bytecode for getters and record accessors in `BytecodeTemplateCompiler` with fail-closed null checks and operand-stack-empty `StackMapTable` compliance.
+    - Zero runtime ABI changes: 100% compliance with the frozen 7-type, 22-method runtime ABI contract.
+  - **Companion Contract Discovery & Typed Java Facades (`DefaultTemplateAotCompiler`)**:
+    - Added companion contract reader supporting `.contract` and `.vtl.contract` discovery (`class=...`, `record=...`, `nullable name=Type<Arg>`).
+    - Added deterministic code generation for typed Java views (`<Template>View.render(TemplateOutput, ...)` and `render(...) -> String`).
+    - Wired contract hashing into incremental AOT compilation cache keys.
+  - **Build Tool Parity (Maven & Gradle Plugins)**:
+    - Added `generateTypedFacades` and `generatedSourcesDirectory` parameters to `VietTemplateCompileMojo` (Maven) and `VietTemplateCompileTask` (Gradle).
+    - Automatically registered generated source directories with Maven project compile source roots and Gradle Java source set conventions.
+
 ### Release Engineering
 - Open `1.1.0-SNAPSHOT` development baseline following the successful GA patch release of `1.0.1`.
 

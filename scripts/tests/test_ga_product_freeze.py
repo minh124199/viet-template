@@ -140,6 +140,7 @@ class TestGAProductFreeze(unittest.TestCase):
         # Verification Tooling
         self.assertEqual(classify_file("scripts/verify-ga-readiness.py"), CAT_VERIFICATION_TOOLING)
         self.assertEqual(classify_file("scripts/verify-ga-product-freeze.py"), CAT_VERIFICATION_TOOLING)
+        self.assertEqual(classify_file("config/performance/1.0.0-baseline.json"), CAT_VERIFICATION_TOOLING)
 
         # Documentation
         self.assertEqual(classify_file("README.md"), CAT_DOCUMENTATION)

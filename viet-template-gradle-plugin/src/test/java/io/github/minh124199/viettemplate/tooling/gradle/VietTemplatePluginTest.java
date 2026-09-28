@@ -54,6 +54,7 @@ class VietTemplatePluginTest {
         .isEqualTo("io.github.minh124199.viettemplate.generated");
     assertThat(extension.getFailOnWarning().get()).isFalse();
     assertThat(extension.getIncremental().get()).isTrue();
+    assertThat(extension.getGenerateTypedFacades().get()).isFalse();
 
     // Verify task
     Task taskObj = project.getTasks().findByName(VietTemplatePlugin.TASK_NAME);
@@ -68,11 +69,22 @@ class VietTemplatePluginTest {
     assertThat(task.getResourceOutputDirectory().get().getAsFile().getCanonicalFile())
         .isEqualTo(
             tempDir.resolve("build/generated/viet-template/resources").toFile().getCanonicalFile());
+    assertThat(task.getGeneratedSourcesDirectory().get().getAsFile().getCanonicalFile())
+        .isEqualTo(
+            tempDir.resolve("build/generated/viet-template/sources").toFile().getCanonicalFile());
+    assertThat(task.getGenerateTypedFacades().get()).isFalse();
 
     // Verify task dependencies
     assertThat(task.getDependsOn()).contains(JavaPlugin.COMPILE_JAVA_TASK_NAME);
     Task classesTask = project.getTasks().getByName(JavaPlugin.CLASSES_TASK_NAME);
     assertThat(classesTask.getDependsOn()).contains(task);
+
+    // Verify facade task
+    Task facadeTaskObj =
+        project.getTasks().findByName(VietTemplatePlugin.GENERATE_FACADES_TASK_NAME);
+    assertThat(facadeTaskObj).isInstanceOf(VietTemplateGenerateFacadesTask.class);
+    Task compileJavaTask = project.getTasks().getByName(JavaPlugin.COMPILE_JAVA_TASK_NAME);
+    assertThat(compileJavaTask.getDependsOn()).contains(facadeTaskObj);
   }
 
   @Test

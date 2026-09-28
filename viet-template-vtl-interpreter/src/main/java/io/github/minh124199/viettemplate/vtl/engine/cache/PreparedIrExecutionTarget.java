@@ -17,7 +17,23 @@ record PreparedIrExecutionTarget(CompiledTemplate preparedIr, Optional<IrTemplat
   }
 
   @Override
+  @SuppressWarnings("removal")
   public void render(RenderContext context, TemplateOutput output) throws IOException {
-    preparedIr.render(context, output);
+    try {
+      preparedIr.render(context, output);
+    } catch (VirtualMachineError | ThreadDeath fatal) {
+      throw fatal;
+    } catch (ClassCastException cce) {
+      io.github.minh124199.viettemplate.api.TemplateId realId =
+          irTemplate
+              .map(IrTemplate::id)
+              .orElseGet(() -> io.github.minh124199.viettemplate.api.TemplateId.of("<generated>"));
+      throw new io.github.minh124199.viettemplate.api.TemplateRenderException(
+          "Type mismatch during template execution: " + cce.getMessage(),
+          realId,
+          io.github.minh124199.viettemplate.api.SourceSpan.UNKNOWN,
+          io.github.minh124199.viettemplate.api.DiagnosticCode.of("INTERPRETER", "ERROR"),
+          cce);
+    }
   }
 }

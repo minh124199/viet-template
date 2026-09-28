@@ -44,6 +44,9 @@ public final class VTypes {
 
   public static VType fromJavaClass(Class<?> clazz, Nullability nullability) {
     Objects.requireNonNull(clazz, "clazz must not be null");
+    if (clazz == void.class || clazz == Void.class) {
+      return VTypes.NULL;
+    }
     if (clazz.isPrimitive()) {
       return new VType.PrimitiveType(PrimitiveKind.fromClass(clazz));
     }
@@ -143,12 +146,20 @@ public final class VTypes {
           if (!ct.typeArguments().isEmpty()) {
             return ct.typeArguments().get(0);
           }
+          List<Type> args = findGenericArguments(c, Iterable.class);
+          if (!args.isEmpty()) {
+            return fromJavaType(args.get(0), Nullability.NULLABLE);
+          }
           return DYNAMIC;
         }
         if (Map.class.isAssignableFrom(c)) {
           // In VTL #foreach($item in $map), Velocity iterates over the map values
           if (ct.typeArguments().size() >= 2) {
             return ct.typeArguments().get(1);
+          }
+          List<Type> args = findGenericArguments(c, Map.class);
+          if (args.size() >= 2) {
+            return fromJavaType(args.get(1), Nullability.NULLABLE);
           }
           return DYNAMIC;
         }
@@ -158,5 +169,94 @@ public final class VTypes {
       return DYNAMIC;
     }
     return DYNAMIC;
+  }
+
+  private static List<Type> findGenericArguments(Type current, Class<?> target) {
+    if (current == null) {
+      return List.of();
+    }
+    if (current instanceof ParameterizedType pt) {
+      Type raw = pt.getRawType();
+      if (raw instanceof Class<?> rawClass) {
+        if (rawClass == target) {
+          return List.of(pt.getActualTypeArguments());
+        }
+        for (Type iface : rawClass.getGenericInterfaces()) {
+          List<Type> res =
+              findGenericArguments(
+                  resolveTypeArguments(iface, rawClass, pt.getActualTypeArguments()), target);
+          if (!res.isEmpty()) {
+            return res;
+          }
+        }
+        Type sc = rawClass.getGenericSuperclass();
+        if (sc != null) {
+          List<Type> res =
+              findGenericArguments(
+                  resolveTypeArguments(sc, rawClass, pt.getActualTypeArguments()), target);
+          if (!res.isEmpty()) {
+            return res;
+          }
+        }
+      }
+    } else if (current instanceof Class<?> clazz) {
+      if (clazz == target) {
+        return List.of();
+      }
+      for (Type iface : clazz.getGenericInterfaces()) {
+        List<Type> res = findGenericArguments(iface, target);
+        if (!res.isEmpty()) {
+          return res;
+        }
+      }
+      Type sc = clazz.getGenericSuperclass();
+      if (sc != null) {
+        List<Type> res = findGenericArguments(sc, target);
+        if (!res.isEmpty()) {
+          return res;
+        }
+      }
+    }
+    return List.of();
+  }
+
+  private static Type resolveTypeArguments(
+      Type targetType, Class<?> declaringClass, Type[] actualArgs) {
+    if (!(targetType instanceof ParameterizedType pt)) {
+      return targetType;
+    }
+    Type[] targetArgs = pt.getActualTypeArguments();
+    Type[] resolvedArgs = new Type[targetArgs.length];
+    java.lang.reflect.TypeVariable<?>[] typeParams = declaringClass.getTypeParameters();
+    for (int i = 0; i < targetArgs.length; i++) {
+      resolvedArgs[i] = targetArgs[i];
+      if (targetArgs[i] instanceof java.lang.reflect.TypeVariable<?> tv) {
+        for (int j = 0; j < typeParams.length; j++) {
+          if (typeParams[j].getName().equals(tv.getName()) && j < actualArgs.length) {
+            resolvedArgs[i] = actualArgs[j];
+            break;
+          }
+        }
+      }
+    }
+    return new ParameterizedTypeImpl(pt.getRawType(), resolvedArgs, pt.getOwnerType());
+  }
+
+  private record ParameterizedTypeImpl(Type rawType, Type[] actualTypeArguments, Type ownerType)
+      implements ParameterizedType {
+    @Override
+    public Type[] getActualTypeArguments() {
+      return actualTypeArguments.clone();
+    }
+
+    @Override
+    public Type getRawType() {
+      return rawType;
+    }
+
+    @Override
+    public Type getOwnerType() {
+      return ownerType;
+    }
   }
 }

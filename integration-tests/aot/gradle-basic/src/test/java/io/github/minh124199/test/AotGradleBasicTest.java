@@ -46,4 +46,12 @@ public class AotGradleBasicTest {
         MapRenderContext.of(Map.of("active", false, "user", Map.of("name", "Bob"))), out3);
     assertThat(out3.toString().trim()).isEqualTo("User: Bob, Status: inactive");
   }
+
+  @Test
+  @DisplayName("Invokes generated typed Java facade directly in single-pass build")
+  void testRenderTypedFacade() {
+    String rendered =
+        io.github.minh124199.viettemplate.generated.HelloView.render("World", "Vietnam");
+    assertThat(rendered.trim()).isEqualTo("Hello, World! Welcome to Vietnam.");
+  }
 }

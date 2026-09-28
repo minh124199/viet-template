@@ -322,3 +322,19 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
   - **0.3.0 Development Line**: Completed public surface encapsulation (M1–M3.5), runtime architecture (M4), warmed-lookup simplification (M5), exception semantics hardening (M6), 1.0 candidate contract reconciliation (M7.9), and 1.0 candidate contract freeze (M8.1).
   - **1.0.0-RC1 (Published Prerelease / Release Candidate)**: Published to Maven Central and GitHub Releases on 2026-09-24, candidate contract frozen, provenance reconciled, and undergoing public RC soak.
   - **1.0.0 GA**: General Availability release locking permanent SemVer binary backwards compatibility following RC soak (M9).
+
+---
+
+## Release Phase 1.1.x — Static Specialization & Typed Contracts
+
+Release Phase 1.1.x evolves Viet Template with optional compile-time typed template contracts, jte-inspired static specialization, and generated typed Java APIs, while strictly preserving full dynamic Velocity-compatible behavior and zero-overhead defaults.
+
+### Completed Milestones
+
+- **Milestone M24 (Optional Typed Template Contracts, Static Specialization, and Generated Typed Java APIs — target 1.1.0) — COMPLETE**:
+    - **M24.1 (Public Contract Model & Adapter Foundation)**: Introduced immutable, deterministic `TemplateContract` and `TemplateParameter` in `viet-template-api` with zero internal compiler dependencies. Implemented bidirectional adaptation to internal `ModelSchema` and SHA-256 canonical fingerprinting.
+    - **M24.2 (Zero-Allocation Single-Variable RenderContext)**: Introduced `SingleVariableRenderContext` in `viet-template-api` enabling zero-allocation single-variable rendering for high-frequency microservice templates.
+    - **M24.3 (Security Hardening & Member Resolution Policy)**: Hardened `MemberResolver` in `viet-template-language-vtl` with `DENIED_METHODS` and `DENIED_CLASSES`, preventing compile-time bypass of class/method access restrictions (`Object.getClass()`, `ClassLoader`, `Process`, `Runtime`).
+    - **M24.4 (Static Specialization in Bytecode Compiler)**: Overhauled `BytecodeTemplateCompiler` with null-safe and dynamic-fallback bytecode emission for `compileGetProperty` and `compileInvokeAllowedMethod`. Direct property reads emit `checkcast` and `invokevirtual`/`invokeinterface` with null jump labels and dynamic call-site fallback on type mismatch.
+    - **M24.5 (Generated Typed Java API Facade & Build Tooling Parity)**: Implemented `TypedTemplateFacadeGenerator` producing zero-dependency static Java renderer facades (`XxxTemplate.render(output, ...)`). Added contract manifest discovery and typed facade compilation options across `viet-template-maven-plugin` and `viet-template-gradle-plugin`.
+    - **M24.6 (Compatibility & Architecture Freeze)**: Verified 100% test parity across all modules, zero breaking changes against 1.0.0 API/ABI baselines, 0 unclassified types, and documented architectural parity.

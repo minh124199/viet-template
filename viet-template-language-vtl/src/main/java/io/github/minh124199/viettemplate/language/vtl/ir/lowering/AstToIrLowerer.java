@@ -89,6 +89,7 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -451,13 +452,16 @@ public final class AstToIrLowerer {
       Class<?> c = ct.javaClass().get();
       if (List.class.isAssignableFrom(c) && RandomAccess.class.isAssignableFrom(c)) {
         plan = LoopPlan.LIST_INDEXED;
-        elemType = ct.typeArguments().isEmpty() ? VTypes.DYNAMIC : ct.typeArguments().get(0);
+        elemType = VTypes.elementType(iterType);
       } else if (Iterator.class.isAssignableFrom(c)) {
         plan = LoopPlan.ITERATOR;
-        elemType = ct.typeArguments().isEmpty() ? VTypes.DYNAMIC : ct.typeArguments().get(0);
+        elemType = VTypes.elementType(iterType);
       } else if (Iterable.class.isAssignableFrom(c)) {
         plan = LoopPlan.ITERABLE;
-        elemType = ct.typeArguments().isEmpty() ? VTypes.DYNAMIC : ct.typeArguments().get(0);
+        elemType = VTypes.elementType(iterType);
+      } else if (Map.class.isAssignableFrom(c)) {
+        plan = LoopPlan.ITERABLE;
+        elemType = VTypes.elementType(iterType);
       } else {
         plan = LoopPlan.DYNAMIC;
         elemType = VTypes.DYNAMIC;
@@ -470,7 +474,11 @@ public final class AstToIrLowerer {
     Scope loopScope = new Scope(scope);
     IrLocal elemLocal =
         loopScope.defineLocal(foreach.loopVariable().rootName(), elemType, foreach.span());
-    IrLocal loopStateLocal = loopScope.defineLocal("foreach", VTypes.DYNAMIC, foreach.span());
+    VType foreachType =
+        io.github.minh124199.viettemplate.language.vtl.semantics.type.VType.ClassType.of(
+            io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata.class,
+            io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability.NON_NULL);
+    IrLocal loopStateLocal = loopScope.defineLocal("foreach", foreachType, foreach.span());
 
     IrBlock body = lowerBlock(foreach.body(), loopScope, foreach.span());
     Optional<IrLocal> observableLoopState =
@@ -666,7 +674,9 @@ public final class AstToIrLowerer {
         AccessPlan plan;
         VType resType;
 
-        if (optRes.isPresent() && optRes.get().isFound()) {
+        if (optRes.isPresent()
+            && optRes.get().isFound()
+            && isReceiverCompatible(current.type(), optRes.get())) {
           MemberResolution res = optRes.get();
           resType = res.resultType();
           plan = buildAccessPlan(res, prop.propertyName());
@@ -690,7 +700,10 @@ public final class AstToIrLowerer {
         }
 
         Optional<MethodResolution> optRes = analysis.methodResolutionOf(call);
-        if (optRes.isPresent() && optRes.get().isResolved()) {
+        if (optRes.isPresent()
+            && optRes.get().isResolved()
+            && call.arguments().isEmpty()
+            && isReceiverCompatible(current.type(), optRes.get())) {
           MethodResolution res = optRes.get();
           Method targetMethod = res.targetMethod().orElseThrow();
           current =
@@ -717,6 +730,45 @@ public final class AstToIrLowerer {
     }
 
     return current;
+  }
+
+  private boolean isReceiverCompatible(VType receiverType, MemberResolution res) {
+    if (!res.isFound()) {
+      return false;
+    }
+    if (res.kind() == MemberResolution.Kind.MAP_ENTRY) {
+      if (receiverType instanceof VType.ClassType ct && ct.javaClass().isPresent()) {
+        return Map.class.isAssignableFrom(ct.javaClass().get());
+      }
+      return false;
+    }
+    if (res.targetMember().isEmpty()) {
+      return false;
+    }
+    java.lang.reflect.Member member = res.targetMember().get();
+    Class<?> declaring = member.getDeclaringClass();
+    if (!Modifier.isPublic(member.getModifiers()) || !Modifier.isPublic(declaring.getModifiers())) {
+      return false;
+    }
+    if (receiverType instanceof VType.ClassType ct && ct.javaClass().isPresent()) {
+      return declaring.isAssignableFrom(ct.javaClass().get());
+    }
+    return false;
+  }
+
+  private boolean isReceiverCompatible(VType receiverType, MethodResolution res) {
+    if (!res.isResolved() || res.targetMethod().isEmpty()) {
+      return false;
+    }
+    Method method = res.targetMethod().get();
+    Class<?> declaring = method.getDeclaringClass();
+    if (!Modifier.isPublic(method.getModifiers()) || !Modifier.isPublic(declaring.getModifiers())) {
+      return false;
+    }
+    if (receiverType instanceof VType.ClassType ct && ct.javaClass().isPresent()) {
+      return declaring.isAssignableFrom(ct.javaClass().get());
+    }
+    return false;
   }
 
   private AccessPlan buildAccessPlan(MemberResolution res, String propertyName) {
@@ -824,6 +876,11 @@ public final class AstToIrLowerer {
       }
       IrLocal existing = resolveLocal(name);
       if (existing != null) {
+        if (!existing.type().equals(type)) {
+          IrLocal updated = new IrLocal(name, type, existing.slot(), span);
+          locals.put(name, updated);
+          return updated;
+        }
         return existing;
       }
       IrLocal created = new IrLocal(name, type, nextLocalSlot++, span);

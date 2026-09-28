@@ -146,7 +146,7 @@ public final class VtlTemplateEngine implements TemplateEngine, AutoCloseable {
             this.optimizationLevel,
             this.executionTier,
             this.interpreterOptions.securityPolicy().policyFingerprint(),
-            this.semanticOptions.modelSchema().parameters().toString(),
+            this.semanticOptions.modelSchema().fingerprint(),
             this.interpreterOptions.profile().name() + ":" + this.semanticOptions.profile().name());
 
     if (enableWatcher && repository instanceof FilesystemTemplateRepository fsRepo) {
