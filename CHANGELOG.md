@@ -10,14 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Milestone M25: Multi-Argument Static Invocation, Runtime Divergence Guards, and Single-Evaluation Semantics**:
   - **Static Multi-Argument Method Resolution (`viet-template-language-vtl`)**:
-    - Expanded `MethodResolver` with deterministic overload scoring: exact reference types, boxed/unboxed types, and primitive widening (`int` -> `long`/`double`).
+    - Expanded `MethodResolver` with deterministic overload resolution across exact reference matches, boxed/unboxed types, and strict primitive widening (`byte` -> `short`, `int`, `long`, `float`, `double`; `int` -> `long`, `float`, `double`).
+    - Enforced exact dynamic linker overload parity: when multiple method candidates exist for a given name and arity, compilation preserves dynamic dispatch (`IrDynamicDispatch`) to guarantee 100% semantic equivalence with runtime `DynamicLinker` across all JVMs and reflection orders.
     - Statically ambiguous overloads or unresolved methods safely fall back to dynamic site linkage without failing template compilation.
     - Integrated `OptimizationContext` and `LinkerAccessPolicy` in `DirectAccessorBindingPass` to ensure member security policies are strictly enforced before static binding.
   - **Guarded Bytecode Compilation & Scratch-Slot Allocation (`viet-template-vtl-interpreter`)**:
     - Emitted direct `invokevirtual` and `invokeinterface` instructions for multi-argument methods with runtime receiver and parameter type guards.
     - Implemented single-evaluation ordering: receiver and all argument expressions are evaluated exactly once into local scratch slots prior to null checks and type guards, preventing expression side effects from repeating on guard fallback.
-    - Implemented deterministic scratch-slot allocation accounting for JVM primitive widths (2 slots for `long`/`double`, 1 slot for reference/int/float/boolean).
-    - Preserved 100% exact semantic equivalence between AOT bytecode compilation and IR interpreter (`IrInterpreter`).
+    - Implemented deterministic scratch-slot allocation assigning 1 local variable slot per reference register (`astore`/`aload`), with category-2 values (`long`/`double`) processed on the operand stack during argument evaluation.
+    - Preserved 100% exact semantic equivalence between AOT bytecode compilation, dynamic bytecode execution, and IR interpreter (`IrInterpreter`).
   - **Evidence-Driven Root-Slot ABI Profiling (`viet-template-benchmarks`)**:
     - Added dedicated JMH benchmark suite `TypedSpecializationBenchmark` covering arities 0, 1, 2, 4, 8, primitive widening, overload resolution, divergence guards, and root-slot lookup.
     - Measured 2.6× to 4.1× throughput uplift and 68.8% allocation reduction (384.8 B/op to 120.0 B/op) on multi-argument invocations.
