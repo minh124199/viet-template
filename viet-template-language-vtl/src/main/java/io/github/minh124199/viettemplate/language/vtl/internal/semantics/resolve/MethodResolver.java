@@ -60,12 +60,13 @@ public final class MethodResolver {
     List<MethodScore> matches = new ArrayList<>();
     Set<String> candidateNames = new LinkedHashSet<>();
     List<Method> candidates = new ArrayList<>();
+    int permittedMatchingArityMethods = 0;
 
     for (Method method : clazz.getMethods()) {
       if (!Modifier.isPublic(method.getModifiers()) || Modifier.isStatic(method.getModifiers())) {
         continue;
       }
-      if (method.isBridge() || method.isSynthetic() || method.isVarArgs()) {
+      if (method.isBridge() || method.isSynthetic()) {
         continue;
       }
       if (!policy.isMethodPermitted(clazz, method)
@@ -75,7 +76,10 @@ public final class MethodResolver {
       candidateNames.add(method.getName());
       if (method.getName().equals(methodName)
           && method.getParameterCount() == argumentTypes.size()) {
-        candidates.add(method);
+        permittedMatchingArityMethods++;
+        if (!method.isVarArgs()) {
+          candidates.add(method);
+        }
       }
     }
 
@@ -108,12 +112,32 @@ public final class MethodResolver {
           targetMethod.getReturnType() == void.class
               ? VTypes.DYNAMIC
               : VTypes.fromJavaType(targetMethod.getGenericReturnType(), Nullability.NULLABLE);
-      long distinctSignatures =
-          candidates.stream()
-              .map(m -> java.util.Arrays.toString(m.getParameterTypes()))
-              .distinct()
-              .count();
-      return MethodResolution.resolved(returnType, targetMethod, (int) distinctSignatures);
+
+      boolean hasCharWidening = false;
+      Class<?>[] ptypes = targetMethod.getParameterTypes();
+      for (int i = 0; i < argumentTypes.size(); i++) {
+        VType at = argumentTypes.get(i);
+        Class<?> pt = ptypes[i];
+        if (pt.isPrimitive() && pt != char.class) {
+          if (at instanceof VType.PrimitiveType prim
+              && prim.kind().primitiveClass() == char.class) {
+            hasCharWidening = true;
+            break;
+          }
+          if (at instanceof VType.ClassType ct
+              && ct.javaClass().isPresent()
+              && ct.javaClass().get() == Character.class) {
+            hasCharWidening = true;
+            break;
+          }
+        }
+      }
+      if (hasCharWidening) {
+        return MethodResolution.dynamic(returnType);
+      }
+
+      int totalCandidates = Math.max(candidates.size(), permittedMatchingArityMethods);
+      return MethodResolution.resolved(returnType, targetMethod, totalCandidates);
     }
 
     // Typo suggestion
@@ -260,6 +284,9 @@ public final class MethodResolver {
     if (from == short.class) {
       return to == int.class || to == long.class || to == float.class || to == double.class;
     }
+    if (from == char.class) {
+      return to == int.class || to == long.class || to == float.class || to == double.class;
+    }
     if (from == int.class) {
       return to == long.class || to == float.class || to == double.class;
     }
@@ -281,6 +308,12 @@ public final class MethodResolver {
       if (to == double.class) return 5;
     }
     if (from == short.class) {
+      if (to == int.class) return 1;
+      if (to == long.class) return 2;
+      if (to == float.class) return 3;
+      if (to == double.class) return 4;
+    }
+    if (from == char.class) {
       if (to == int.class) return 1;
       if (to == long.class) return 2;
       if (to == float.class) return 3;
