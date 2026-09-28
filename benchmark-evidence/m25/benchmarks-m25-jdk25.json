@@ -5,7 +5,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -13,9 +13,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -23,29 +23,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 1.5212478138094997E9,
+            "score" : 9.496189237985916E8,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 1.4832848070996783E9,
-                "50.0" : 1.5212478138094997E9,
-                "90.0" : 1.5592108205193214E9,
-                "95.0" : 1.5592108205193214E9,
-                "99.0" : 1.5592108205193214E9,
-                "99.9" : 1.5592108205193214E9,
-                "99.99" : 1.5592108205193214E9,
-                "99.999" : 1.5592108205193214E9,
-                "99.9999" : 1.5592108205193214E9,
-                "100.0" : 1.5592108205193214E9
+                "0.0" : 9.100504298821796E8,
+                "50.0" : 9.496189237985916E8,
+                "90.0" : 9.891874177150037E8,
+                "95.0" : 9.891874177150037E8,
+                "99.0" : 9.891874177150037E8,
+                "99.9" : 9.891874177150037E8,
+                "99.99" : 9.891874177150037E8,
+                "99.999" : 9.891874177150037E8,
+                "99.9999" : 9.891874177150037E8,
+                "100.0" : 9.891874177150037E8
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    1.5592108205193214E9,
-                    1.4832848070996783E9
+                    9.100504298821796E8,
+                    9.891874177150037E8
                 ]
             ]
         },
@@ -58,7 +58,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -66,9 +66,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -76,29 +76,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 9203799.120302968,
+            "score" : 1.6037224422947401E7,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 8857907.200554417,
-                "50.0" : 9203799.120302968,
-                "90.0" : 9549691.040051516,
-                "95.0" : 9549691.040051516,
-                "99.0" : 9549691.040051516,
-                "99.9" : 9549691.040051516,
-                "99.99" : 9549691.040051516,
-                "99.999" : 9549691.040051516,
-                "99.9999" : 9549691.040051516,
-                "100.0" : 9549691.040051516
+                "0.0" : 1.4491196583351027E7,
+                "50.0" : 1.6037224422947401E7,
+                "90.0" : 1.7583252262543775E7,
+                "95.0" : 1.7583252262543775E7,
+                "99.0" : 1.7583252262543775E7,
+                "99.9" : 1.7583252262543775E7,
+                "99.99" : 1.7583252262543775E7,
+                "99.999" : 1.7583252262543775E7,
+                "99.9999" : 1.7583252262543775E7,
+                "100.0" : 1.7583252262543775E7
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    9549691.040051516,
-                    8857907.200554417
+                    1.4491196583351027E7,
+                    1.7583252262543775E7
                 ]
             ]
         },
@@ -111,7 +111,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -119,9 +119,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -129,29 +129,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 1.1534164750910915E7,
+            "score" : 2.153355835825675E7,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 1.1186850971106345E7,
-                "50.0" : 1.1534164750910915E7,
-                "90.0" : 1.1881478530715486E7,
-                "95.0" : 1.1881478530715486E7,
-                "99.0" : 1.1881478530715486E7,
-                "99.9" : 1.1881478530715486E7,
-                "99.99" : 1.1881478530715486E7,
-                "99.999" : 1.1881478530715486E7,
-                "99.9999" : 1.1881478530715486E7,
-                "100.0" : 1.1881478530715486E7
+                "0.0" : 2.0215481214420483E7,
+                "50.0" : 2.153355835825675E7,
+                "90.0" : 2.2851635502093013E7,
+                "95.0" : 2.2851635502093013E7,
+                "99.0" : 2.2851635502093013E7,
+                "99.9" : 2.2851635502093013E7,
+                "99.99" : 2.2851635502093013E7,
+                "99.999" : 2.2851635502093013E7,
+                "99.9999" : 2.2851635502093013E7,
+                "100.0" : 2.2851635502093013E7
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    1.1881478530715486E7,
-                    1.1186850971106345E7
+                    2.0215481214420483E7,
+                    2.2851635502093013E7
                 ]
             ]
         },
@@ -164,7 +164,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -172,9 +172,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -182,29 +182,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 1.1567619119712669E8,
+            "score" : 9.61624957404638E7,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 1.1511054943086532E8,
-                "50.0" : 1.1567619119712669E8,
-                "90.0" : 1.1624183296338807E8,
-                "95.0" : 1.1624183296338807E8,
-                "99.0" : 1.1624183296338807E8,
-                "99.9" : 1.1624183296338807E8,
-                "99.99" : 1.1624183296338807E8,
-                "99.999" : 1.1624183296338807E8,
-                "99.9999" : 1.1624183296338807E8,
-                "100.0" : 1.1624183296338807E8
+                "0.0" : 9.572559282866244E7,
+                "50.0" : 9.61624957404638E7,
+                "90.0" : 9.659939865226516E7,
+                "95.0" : 9.659939865226516E7,
+                "99.0" : 9.659939865226516E7,
+                "99.9" : 9.659939865226516E7,
+                "99.99" : 9.659939865226516E7,
+                "99.999" : 9.659939865226516E7,
+                "99.9999" : 9.659939865226516E7,
+                "100.0" : 9.659939865226516E7
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    1.1511054943086532E8,
-                    1.1624183296338807E8
+                    9.572559282866244E7,
+                    9.659939865226516E7
                 ]
             ]
         },
@@ -217,7 +217,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -225,9 +225,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -235,29 +235,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 2903370.720383185,
+            "score" : 4289768.455288043,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 2842623.236786032,
-                "50.0" : 2903370.720383185,
-                "90.0" : 2964118.203980338,
-                "95.0" : 2964118.203980338,
-                "99.0" : 2964118.203980338,
-                "99.9" : 2964118.203980338,
-                "99.99" : 2964118.203980338,
-                "99.999" : 2964118.203980338,
-                "99.9999" : 2964118.203980338,
-                "100.0" : 2964118.203980338
+                "0.0" : 4018891.4461178537,
+                "50.0" : 4289768.455288043,
+                "90.0" : 4560645.464458232,
+                "95.0" : 4560645.464458232,
+                "99.0" : 4560645.464458232,
+                "99.9" : 4560645.464458232,
+                "99.99" : 4560645.464458232,
+                "99.999" : 4560645.464458232,
+                "99.9999" : 4560645.464458232,
+                "100.0" : 4560645.464458232
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    2842623.236786032,
-                    2964118.203980338
+                    4560645.464458232,
+                    4018891.4461178537
                 ]
             ]
         },
@@ -270,7 +270,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -278,9 +278,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -288,29 +288,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 1.0496384013817746E7,
+            "score" : 1.8755370933093786E7,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 1.0483909336802235E7,
-                "50.0" : 1.0496384013817746E7,
-                "90.0" : 1.050885869083326E7,
-                "95.0" : 1.050885869083326E7,
-                "99.0" : 1.050885869083326E7,
-                "99.9" : 1.050885869083326E7,
-                "99.99" : 1.050885869083326E7,
-                "99.999" : 1.050885869083326E7,
-                "99.9999" : 1.050885869083326E7,
-                "100.0" : 1.050885869083326E7
+                "0.0" : 1.841449906194455E7,
+                "50.0" : 1.8755370933093786E7,
+                "90.0" : 1.9096242804243017E7,
+                "95.0" : 1.9096242804243017E7,
+                "99.0" : 1.9096242804243017E7,
+                "99.9" : 1.9096242804243017E7,
+                "99.99" : 1.9096242804243017E7,
+                "99.999" : 1.9096242804243017E7,
+                "99.9999" : 1.9096242804243017E7,
+                "100.0" : 1.9096242804243017E7
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    1.0483909336802235E7,
-                    1.050885869083326E7
+                    1.9096242804243017E7,
+                    1.841449906194455E7
                 ]
             ]
         },
@@ -323,7 +323,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -331,9 +331,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -341,29 +341,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 1.3445659757911034E9,
+            "score" : 9.787882394173563E8,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 1.3161564633110867E9,
-                "50.0" : 1.3445659757911034E9,
-                "90.0" : 1.3729754882711203E9,
-                "95.0" : 1.3729754882711203E9,
-                "99.0" : 1.3729754882711203E9,
-                "99.9" : 1.3729754882711203E9,
-                "99.99" : 1.3729754882711203E9,
-                "99.999" : 1.3729754882711203E9,
-                "99.9999" : 1.3729754882711203E9,
-                "100.0" : 1.3729754882711203E9
+                "0.0" : 9.272420135190707E8,
+                "50.0" : 9.787882394173563E8,
+                "90.0" : 1.0303344653156416E9,
+                "95.0" : 1.0303344653156416E9,
+                "99.0" : 1.0303344653156416E9,
+                "99.9" : 1.0303344653156416E9,
+                "99.99" : 1.0303344653156416E9,
+                "99.999" : 1.0303344653156416E9,
+                "99.9999" : 1.0303344653156416E9,
+                "100.0" : 1.0303344653156416E9
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    1.3161564633110867E9,
-                    1.3729754882711203E9
+                    9.272420135190707E8,
+                    1.0303344653156416E9
                 ]
             ]
         },
@@ -376,7 +376,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -384,9 +384,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -394,29 +394,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 3007881.4191813087,
+            "score" : 3291290.266238006,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 2933819.997630283,
-                "50.0" : 3007881.4191813087,
-                "90.0" : 3081942.8407323346,
-                "95.0" : 3081942.8407323346,
-                "99.0" : 3081942.8407323346,
-                "99.9" : 3081942.8407323346,
-                "99.99" : 3081942.8407323346,
-                "99.999" : 3081942.8407323346,
-                "99.9999" : 3081942.8407323346,
-                "100.0" : 3081942.8407323346
+                "0.0" : 2871069.237181752,
+                "50.0" : 3291290.266238006,
+                "90.0" : 3711511.2952942597,
+                "95.0" : 3711511.2952942597,
+                "99.0" : 3711511.2952942597,
+                "99.9" : 3711511.2952942597,
+                "99.99" : 3711511.2952942597,
+                "99.999" : 3711511.2952942597,
+                "99.9999" : 3711511.2952942597,
+                "100.0" : 3711511.2952942597
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    3081942.8407323346,
-                    2933819.997630283
+                    2871069.237181752,
+                    3711511.2952942597
                 ]
             ]
         },
@@ -429,7 +429,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -437,9 +437,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -447,29 +447,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 1.0444752012073034E7,
+            "score" : 2.1040416176949702E7,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 9967571.469453273,
-                "50.0" : 1.0444752012073034E7,
-                "90.0" : 1.0921932554692796E7,
-                "95.0" : 1.0921932554692796E7,
-                "99.0" : 1.0921932554692796E7,
-                "99.9" : 1.0921932554692796E7,
-                "99.99" : 1.0921932554692796E7,
-                "99.999" : 1.0921932554692796E7,
-                "99.9999" : 1.0921932554692796E7,
-                "100.0" : 1.0921932554692796E7
+                "0.0" : 2.041268831480571E7,
+                "50.0" : 2.1040416176949702E7,
+                "90.0" : 2.1668144039093696E7,
+                "95.0" : 2.1668144039093696E7,
+                "99.0" : 2.1668144039093696E7,
+                "99.9" : 2.1668144039093696E7,
+                "99.99" : 2.1668144039093696E7,
+                "99.999" : 2.1668144039093696E7,
+                "99.9999" : 2.1668144039093696E7,
+                "100.0" : 2.1668144039093696E7
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    1.0921932554692796E7,
-                    9967571.469453273
+                    2.041268831480571E7,
+                    2.1668144039093696E7
                 ]
             ]
         },
@@ -482,7 +482,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -490,9 +490,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -500,29 +500,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 1.0195498409534562E7,
+            "score" : 2.1052198478321172E7,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 9927310.782987623,
-                "50.0" : 1.0195498409534562E7,
-                "90.0" : 1.04636860360815E7,
-                "95.0" : 1.04636860360815E7,
-                "99.0" : 1.04636860360815E7,
-                "99.9" : 1.04636860360815E7,
-                "99.99" : 1.04636860360815E7,
-                "99.999" : 1.04636860360815E7,
-                "99.9999" : 1.04636860360815E7,
-                "100.0" : 1.04636860360815E7
+                "0.0" : 2.059959818927864E7,
+                "50.0" : 2.1052198478321172E7,
+                "90.0" : 2.15047987673637E7,
+                "95.0" : 2.15047987673637E7,
+                "99.0" : 2.15047987673637E7,
+                "99.9" : 2.15047987673637E7,
+                "99.99" : 2.15047987673637E7,
+                "99.999" : 2.15047987673637E7,
+                "99.9999" : 2.15047987673637E7,
+                "100.0" : 2.15047987673637E7
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    1.04636860360815E7,
-                    9927310.782987623
+                    2.059959818927864E7,
+                    2.15047987673637E7
                 ]
             ]
         },
@@ -535,7 +535,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -543,9 +543,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -553,29 +553,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 2029671.2589086527,
+            "score" : 2549136.64969307,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 2029294.0512537495,
-                "50.0" : 2029671.2589086527,
-                "90.0" : 2030048.466563556,
-                "95.0" : 2030048.466563556,
-                "99.0" : 2030048.466563556,
-                "99.9" : 2030048.466563556,
-                "99.99" : 2030048.466563556,
-                "99.999" : 2030048.466563556,
-                "99.9999" : 2030048.466563556,
-                "100.0" : 2030048.466563556
+                "0.0" : 2298438.3000355647,
+                "50.0" : 2549136.64969307,
+                "90.0" : 2799834.9993505753,
+                "95.0" : 2799834.9993505753,
+                "99.0" : 2799834.9993505753,
+                "99.9" : 2799834.9993505753,
+                "99.99" : 2799834.9993505753,
+                "99.999" : 2799834.9993505753,
+                "99.9999" : 2799834.9993505753,
+                "100.0" : 2799834.9993505753
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    2030048.466563556,
-                    2029294.0512537495
+                    2799834.9993505753,
+                    2298438.3000355647
                 ]
             ]
         },
@@ -588,7 +588,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -596,9 +596,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -606,29 +606,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 5307855.052604573,
+            "score" : 1.0007704041295424E7,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 5244568.528123513,
-                "50.0" : 5307855.052604573,
-                "90.0" : 5371141.577085634,
-                "95.0" : 5371141.577085634,
-                "99.0" : 5371141.577085634,
-                "99.9" : 5371141.577085634,
-                "99.99" : 5371141.577085634,
-                "99.999" : 5371141.577085634,
-                "99.9999" : 5371141.577085634,
-                "100.0" : 5371141.577085634
+                "0.0" : 9543592.076957934,
+                "50.0" : 1.0007704041295424E7,
+                "90.0" : 1.0471816005632913E7,
+                "95.0" : 1.0471816005632913E7,
+                "99.0" : 1.0471816005632913E7,
+                "99.9" : 1.0471816005632913E7,
+                "99.99" : 1.0471816005632913E7,
+                "99.999" : 1.0471816005632913E7,
+                "99.9999" : 1.0471816005632913E7,
+                "100.0" : 1.0471816005632913E7
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    5371141.577085634,
-                    5244568.528123513
+                    9543592.076957934,
+                    1.0471816005632913E7
                 ]
             ]
         },
@@ -641,7 +641,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -649,9 +649,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -659,29 +659,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 1.1926202282782984E9,
+            "score" : 9.243950683432609E8,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 1.1897313226328657E9,
-                "50.0" : 1.1926202282782984E9,
-                "90.0" : 1.1955091339237313E9,
-                "95.0" : 1.1955091339237313E9,
-                "99.0" : 1.1955091339237313E9,
-                "99.9" : 1.1955091339237313E9,
-                "99.99" : 1.1955091339237313E9,
-                "99.999" : 1.1955091339237313E9,
-                "99.9999" : 1.1955091339237313E9,
-                "100.0" : 1.1955091339237313E9
+                "0.0" : 8.827722467396799E8,
+                "50.0" : 9.243950683432609E8,
+                "90.0" : 9.660178899468418E8,
+                "95.0" : 9.660178899468418E8,
+                "99.0" : 9.660178899468418E8,
+                "99.9" : 9.660178899468418E8,
+                "99.99" : 9.660178899468418E8,
+                "99.999" : 9.660178899468418E8,
+                "99.9999" : 9.660178899468418E8,
+                "100.0" : 9.660178899468418E8
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    1.1955091339237313E9,
-                    1.1897313226328657E9
+                    8.827722467396799E8,
+                    9.660178899468418E8
                 ]
             ]
         },
@@ -694,7 +694,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -702,9 +702,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -712,29 +712,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 2731378.649239641,
+            "score" : 2671556.069365726,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 2672891.719187212,
-                "50.0" : 2731378.649239641,
-                "90.0" : 2789865.57929207,
-                "95.0" : 2789865.57929207,
-                "99.0" : 2789865.57929207,
-                "99.9" : 2789865.57929207,
-                "99.99" : 2789865.57929207,
-                "99.999" : 2789865.57929207,
-                "99.9999" : 2789865.57929207,
-                "100.0" : 2789865.57929207
+                "0.0" : 2535182.2079658005,
+                "50.0" : 2671556.069365726,
+                "90.0" : 2807929.9307656516,
+                "95.0" : 2807929.9307656516,
+                "99.0" : 2807929.9307656516,
+                "99.9" : 2807929.9307656516,
+                "99.99" : 2807929.9307656516,
+                "99.999" : 2807929.9307656516,
+                "99.9999" : 2807929.9307656516,
+                "100.0" : 2807929.9307656516
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    2789865.57929207,
-                    2672891.719187212
+                    2535182.2079658005,
+                    2807929.9307656516
                 ]
             ]
         },
@@ -747,7 +747,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -755,9 +755,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -765,29 +765,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 1.0466761557682255E7,
+            "score" : 1.9216925194409877E7,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 1.015900258293295E7,
-                "50.0" : 1.0466761557682255E7,
-                "90.0" : 1.077452053243156E7,
-                "95.0" : 1.077452053243156E7,
-                "99.0" : 1.077452053243156E7,
-                "99.9" : 1.077452053243156E7,
-                "99.99" : 1.077452053243156E7,
-                "99.999" : 1.077452053243156E7,
-                "99.9999" : 1.077452053243156E7,
-                "100.0" : 1.077452053243156E7
+                "0.0" : 1.8533552997507073E7,
+                "50.0" : 1.9216925194409877E7,
+                "90.0" : 1.9900297391312677E7,
+                "95.0" : 1.9900297391312677E7,
+                "99.0" : 1.9900297391312677E7,
+                "99.9" : 1.9900297391312677E7,
+                "99.99" : 1.9900297391312677E7,
+                "99.999" : 1.9900297391312677E7,
+                "99.9999" : 1.9900297391312677E7,
+                "100.0" : 1.9900297391312677E7
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    1.015900258293295E7,
-                    1.077452053243156E7
+                    1.9900297391312677E7,
+                    1.8533552997507073E7
                 ]
             ]
         },
@@ -800,7 +800,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -808,9 +808,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -818,29 +818,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 1951409.9159792552,
+            "score" : 2613827.9826525617,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 1879736.8111921404,
-                "50.0" : 1951409.9159792552,
-                "90.0" : 2023083.02076637,
-                "95.0" : 2023083.02076637,
-                "99.0" : 2023083.02076637,
-                "99.9" : 2023083.02076637,
-                "99.99" : 2023083.02076637,
-                "99.999" : 2023083.02076637,
-                "99.9999" : 2023083.02076637,
-                "100.0" : 2023083.02076637
+                "0.0" : 2475077.8360910187,
+                "50.0" : 2613827.9826525617,
+                "90.0" : 2752578.1292141047,
+                "95.0" : 2752578.1292141047,
+                "99.0" : 2752578.1292141047,
+                "99.9" : 2752578.1292141047,
+                "99.99" : 2752578.1292141047,
+                "99.999" : 2752578.1292141047,
+                "99.9999" : 2752578.1292141047,
+                "100.0" : 2752578.1292141047
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    2023083.02076637,
-                    1879736.8111921404
+                    2475077.8360910187,
+                    2752578.1292141047
                 ]
             ]
         },
@@ -853,7 +853,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -861,9 +861,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -871,29 +871,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 5270064.438533514,
+            "score" : 8836718.459740827,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 5085588.557751993,
-                "50.0" : 5270064.438533514,
-                "90.0" : 5454540.319315035,
-                "95.0" : 5454540.319315035,
-                "99.0" : 5454540.319315035,
-                "99.9" : 5454540.319315035,
-                "99.99" : 5454540.319315035,
-                "99.999" : 5454540.319315035,
-                "99.9999" : 5454540.319315035,
-                "100.0" : 5454540.319315035
+                "0.0" : 8488170.534371259,
+                "50.0" : 8836718.459740827,
+                "90.0" : 9185266.385110395,
+                "95.0" : 9185266.385110395,
+                "99.0" : 9185266.385110395,
+                "99.9" : 9185266.385110395,
+                "99.99" : 9185266.385110395,
+                "99.999" : 9185266.385110395,
+                "99.9999" : 9185266.385110395,
+                "100.0" : 9185266.385110395
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    5454540.319315035,
-                    5085588.557751993
+                    8488170.534371259,
+                    9185266.385110395
                 ]
             ]
         },
@@ -906,7 +906,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -914,9 +914,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -924,29 +924,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 2099511.339234341,
+            "score" : 2760616.419925306,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 1993661.3377687256,
-                "50.0" : 2099511.339234341,
-                "90.0" : 2205361.3406999563,
-                "95.0" : 2205361.3406999563,
-                "99.0" : 2205361.3406999563,
-                "99.9" : 2205361.3406999563,
-                "99.99" : 2205361.3406999563,
-                "99.999" : 2205361.3406999563,
-                "99.9999" : 2205361.3406999563,
-                "100.0" : 2205361.3406999563
+                "0.0" : 2338714.895586956,
+                "50.0" : 2760616.419925306,
+                "90.0" : 3182517.9442636557,
+                "95.0" : 3182517.9442636557,
+                "99.0" : 3182517.9442636557,
+                "99.9" : 3182517.9442636557,
+                "99.99" : 3182517.9442636557,
+                "99.999" : 3182517.9442636557,
+                "99.9999" : 3182517.9442636557,
+                "100.0" : 3182517.9442636557
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    2205361.3406999563,
-                    1993661.3377687256
+                    3182517.9442636557,
+                    2338714.895586956
                 ]
             ]
         },
@@ -959,7 +959,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -967,9 +967,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -977,29 +977,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 2028237.8667471902,
+            "score" : 2817595.884857561,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 1982965.6625993014,
-                "50.0" : 2028237.8667471902,
-                "90.0" : 2073510.0708950793,
-                "95.0" : 2073510.0708950793,
-                "99.0" : 2073510.0708950793,
-                "99.9" : 2073510.0708950793,
-                "99.99" : 2073510.0708950793,
-                "99.999" : 2073510.0708950793,
-                "99.9999" : 2073510.0708950793,
-                "100.0" : 2073510.0708950793
+                "0.0" : 2679586.9350624233,
+                "50.0" : 2817595.884857561,
+                "90.0" : 2955604.8346526986,
+                "95.0" : 2955604.8346526986,
+                "99.0" : 2955604.8346526986,
+                "99.9" : 2955604.8346526986,
+                "99.99" : 2955604.8346526986,
+                "99.999" : 2955604.8346526986,
+                "99.9999" : 2955604.8346526986,
+                "100.0" : 2955604.8346526986
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    2073510.0708950793,
-                    1982965.6625993014
+                    2955604.8346526986,
+                    2679586.9350624233
                 ]
             ]
         },
@@ -1012,7 +1012,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -1020,9 +1020,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -1030,29 +1030,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 4137807.09391373,
+            "score" : 7779959.695462951,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 4066854.942344222,
-                "50.0" : 4137807.09391373,
-                "90.0" : 4208759.245483237,
-                "95.0" : 4208759.245483237,
-                "99.0" : 4208759.245483237,
-                "99.9" : 4208759.245483237,
-                "99.99" : 4208759.245483237,
-                "99.999" : 4208759.245483237,
-                "99.9999" : 4208759.245483237,
-                "100.0" : 4208759.245483237
+                "0.0" : 7416499.719234232,
+                "50.0" : 7779959.695462951,
+                "90.0" : 8143419.671691672,
+                "95.0" : 8143419.671691672,
+                "99.0" : 8143419.671691672,
+                "99.9" : 8143419.671691672,
+                "99.99" : 8143419.671691672,
+                "99.999" : 8143419.671691672,
+                "99.9999" : 8143419.671691672,
+                "100.0" : 8143419.671691672
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    4208759.245483237,
-                    4066854.942344222
+                    7416499.719234232,
+                    8143419.671691672
                 ]
             ]
         },
@@ -1065,7 +1065,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -1073,9 +1073,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -1083,29 +1083,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 9004068.34824794,
+            "score" : 1.7510614073387176E7,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 8755726.68370137,
-                "50.0" : 9004068.34824794,
-                "90.0" : 9252410.01279451,
-                "95.0" : 9252410.01279451,
-                "99.0" : 9252410.01279451,
-                "99.9" : 9252410.01279451,
-                "99.99" : 9252410.01279451,
-                "99.999" : 9252410.01279451,
-                "99.9999" : 9252410.01279451,
-                "100.0" : 9252410.01279451
+                "0.0" : 1.619635237842209E7,
+                "50.0" : 1.7510614073387176E7,
+                "90.0" : 1.882487576835226E7,
+                "95.0" : 1.882487576835226E7,
+                "99.0" : 1.882487576835226E7,
+                "99.9" : 1.882487576835226E7,
+                "99.99" : 1.882487576835226E7,
+                "99.999" : 1.882487576835226E7,
+                "99.9999" : 1.882487576835226E7,
+                "100.0" : 1.882487576835226E7
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    8755726.68370137,
-                    9252410.01279451
+                    1.619635237842209E7,
+                    1.882487576835226E7
                 ]
             ]
         },
@@ -1118,7 +1118,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -1126,9 +1126,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -1136,29 +1136,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 1.1711992582330446E9,
+            "score" : 9.039539250181465E8,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 1.1698611448659768E9,
-                "50.0" : 1.1711992582330446E9,
-                "90.0" : 1.1725373716001124E9,
-                "95.0" : 1.1725373716001124E9,
-                "99.0" : 1.1725373716001124E9,
-                "99.9" : 1.1725373716001124E9,
-                "99.99" : 1.1725373716001124E9,
-                "99.999" : 1.1725373716001124E9,
-                "99.9999" : 1.1725373716001124E9,
-                "100.0" : 1.1725373716001124E9
+                "0.0" : 9.021473924334912E8,
+                "50.0" : 9.039539250181465E8,
+                "90.0" : 9.057604576028017E8,
+                "95.0" : 9.057604576028017E8,
+                "99.0" : 9.057604576028017E8,
+                "99.9" : 9.057604576028017E8,
+                "99.99" : 9.057604576028017E8,
+                "99.999" : 9.057604576028017E8,
+                "99.9999" : 9.057604576028017E8,
+                "100.0" : 9.057604576028017E8
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    1.1698611448659768E9,
-                    1.1725373716001124E9
+                    9.021473924334912E8,
+                    9.057604576028017E8
                 ]
             ]
         },
@@ -1171,7 +1171,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -1179,9 +1179,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -1189,29 +1189,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 9865964.24678597,
+            "score" : 1.994362403893646E7,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 9768158.913207829,
-                "50.0" : 9865964.24678597,
-                "90.0" : 9963769.580364112,
-                "95.0" : 9963769.580364112,
-                "99.0" : 9963769.580364112,
-                "99.9" : 9963769.580364112,
-                "99.99" : 9963769.580364112,
-                "99.999" : 9963769.580364112,
-                "99.9999" : 9963769.580364112,
-                "100.0" : 9963769.580364112
+                "0.0" : 1.958802453288655E7,
+                "50.0" : 1.994362403893646E7,
+                "90.0" : 2.0299223544986364E7,
+                "95.0" : 2.0299223544986364E7,
+                "99.0" : 2.0299223544986364E7,
+                "99.9" : 2.0299223544986364E7,
+                "99.99" : 2.0299223544986364E7,
+                "99.999" : 2.0299223544986364E7,
+                "99.9999" : 2.0299223544986364E7,
+                "100.0" : 2.0299223544986364E7
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    9963769.580364112,
-                    9768158.913207829
+                    1.958802453288655E7,
+                    2.0299223544986364E7
                 ]
             ]
         },
@@ -1224,7 +1224,7 @@
         "mode" : "thrpt",
         "threads" : 1,
         "forks" : 1,
-        "jvm" : "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+        "jvm" : "/home/lynguyen/opt/graalvm-jdk-25/bin/java",
         "jvmArgs" : [
             "-server",
             "-Xms2g",
@@ -1232,9 +1232,9 @@
             "-XX:+AlwaysPreTouch",
             "-XX:+UseG1GC"
         ],
-        "jdkVersion" : "21.0.12.1",
-        "vmName" : "OpenJDK 64-Bit Server VM",
-        "vmVersion" : "21.0.12.1+1",
+        "jdkVersion" : "25.0.4",
+        "vmName" : "Java HotSpot(TM) 64-Bit Server VM",
+        "vmVersion" : "25.0.4+7-LTS-jvmci-b01",
         "warmupIterations" : 1,
         "warmupTime" : "1 s",
         "warmupBatchSize" : 1,
@@ -1242,29 +1242,29 @@
         "measurementTime" : "1 s",
         "measurementBatchSize" : 1,
         "primaryMetric" : {
-            "score" : 1.0134811129239414E7,
+            "score" : 1.910585445211398E7,
             "scoreError" : "NaN",
             "scoreConfidence" : [
                 "NaN",
                 "NaN"
             ],
             "scorePercentiles" : {
-                "0.0" : 1.0006105090899235E7,
-                "50.0" : 1.0134811129239414E7,
-                "90.0" : 1.0263517167579595E7,
-                "95.0" : 1.0263517167579595E7,
-                "99.0" : 1.0263517167579595E7,
-                "99.9" : 1.0263517167579595E7,
-                "99.99" : 1.0263517167579595E7,
-                "99.999" : 1.0263517167579595E7,
-                "99.9999" : 1.0263517167579595E7,
-                "100.0" : 1.0263517167579595E7
+                "0.0" : 1.8805173422917664E7,
+                "50.0" : 1.910585445211398E7,
+                "90.0" : 1.9406535481310293E7,
+                "95.0" : 1.9406535481310293E7,
+                "99.0" : 1.9406535481310293E7,
+                "99.9" : 1.9406535481310293E7,
+                "99.99" : 1.9406535481310293E7,
+                "99.999" : 1.9406535481310293E7,
+                "99.9999" : 1.9406535481310293E7,
+                "100.0" : 1.9406535481310293E7
             },
             "scoreUnit" : "ops/s",
             "rawData" : [
                 [
-                    1.0263517167579595E7,
-                    1.0006105090899235E7
+                    1.9406535481310293E7,
+                    1.8805173422917664E7
                 ]
             ]
         },

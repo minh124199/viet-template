@@ -87,6 +87,10 @@ public class TypedSpecializationBenchmark {
     public String compute(double a, double b) {
       return "double,double:" + (a + b);
     }
+
+    public String widen(double a, double b) {
+      return "widen:" + (a + b);
+    }
   }
 
   public static class AlternateBenchmarkService {
@@ -227,14 +231,23 @@ public class TypedSpecializationBenchmark {
     ctx05 = RenderContext.of("svc", svc);
 
     // M25_06
-    t06_typed = compile("m06_t.vtl", "$svc.compute(10, 2.5)", svcContract);
-    t06_dynamic = compile("m06_d.vtl", "$svc.compute(10, 2.5)", null);
+    t06_typed = compile("m06_t.vtl", "$svc.widen(10, 2.5)", svcContract);
+    t06_dynamic = compile("m06_d.vtl", "$svc.widen(10, 2.5)", null);
     ctx06 = RenderContext.of("svc", svc);
 
     // M25_07
     t07_typed = compile("m07_t.vtl", "$svc.compute(10, 20)", svcContract);
     t07_dynamic = compile("m07_d.vtl", "$svc.compute(10, 20)", null);
     ctx07 = RenderContext.of("svc", svc);
+
+    // Verify semantic equivalence across typed and dynamic templates
+    verifyEquivalence(t01_typed, t01_dynamic, ctx01);
+    verifyEquivalence(t02_typed, t02_dynamic, ctx02);
+    verifyEquivalence(t03_typed, t03_dynamic, ctx03);
+    verifyEquivalence(t04_typed, t04_dynamic, ctx04);
+    verifyEquivalence(t05_typed, t05_dynamic, ctx05);
+    verifyEquivalence(t06_typed, t06_dynamic, ctx06);
+    verifyEquivalence(t07_typed, t07_dynamic, ctx07);
 
     // M25_08
     t08_typed = compile("m08_t.vtl", "$svc.add(10, 20)", svcContract);
@@ -252,6 +265,28 @@ public class TypedSpecializationBenchmark {
 
     // M25_10
     ctx10 = RenderContext.of("svc", svc, "a", 10, "b", 20);
+  }
+
+  private static void verifyEquivalence(
+      CompiledTemplate typed, CompiledTemplate dynamic, RenderContext ctx) {
+    try {
+      io.github.minh124199.viettemplate.runtime.StringTemplateOutput outT =
+          new io.github.minh124199.viettemplate.runtime.StringTemplateOutput();
+      io.github.minh124199.viettemplate.runtime.StringTemplateOutput outD =
+          new io.github.minh124199.viettemplate.runtime.StringTemplateOutput();
+      typed.render(ctx, outT);
+      dynamic.render(ctx, outD);
+      if (!outT.toString().equals(outD.toString())) {
+        throw new IllegalStateException(
+            "Semantic divergence detected between typed and dynamic template! typed='"
+                + outT
+                + "', dynamic='"
+                + outD
+                + "'");
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private static CompiledTemplate compile(
