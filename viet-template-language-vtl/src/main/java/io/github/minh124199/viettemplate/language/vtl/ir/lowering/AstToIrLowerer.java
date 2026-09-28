@@ -702,7 +702,6 @@ public final class AstToIrLowerer {
         Optional<MethodResolution> optRes = analysis.methodResolutionOf(call);
         if (optRes.isPresent()
             && optRes.get().isResolved()
-            && call.arguments().isEmpty()
             && isReceiverCompatible(current.type(), optRes.get())) {
           MethodResolution res = optRes.get();
           Method targetMethod = res.targetMethod().orElseThrow();

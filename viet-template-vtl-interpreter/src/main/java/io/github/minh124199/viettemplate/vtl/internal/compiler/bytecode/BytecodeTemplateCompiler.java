@@ -3,6 +3,8 @@ package io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode;
 import io.github.minh124199.viettemplate.api.CompiledTemplate;
 import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.DiagnosticCode;
+import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
+import io.github.minh124199.viettemplate.api.SecurityPolicyFingerprint;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateCompilationException;
 import io.github.minh124199.viettemplate.api.TemplateId;
@@ -35,6 +37,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBreak;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBudgetCheck;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallMacro;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrCallTemplate;
+import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrEvaluate;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrIf;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrLoop;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrNoOp;
@@ -48,6 +51,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteConst;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteValue;
 import io.github.minh124199.viettemplate.language.vtl.ir.verifier.IrVerifier;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite;
+import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
 import io.github.minh124199.viettemplate.runtime.linker.MemberOperation;
 import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.BackendCapabilities;
@@ -135,7 +139,11 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     }
 
     // 2. Optimize template according to configured options
-    IrTemplate optimized = IrOptimizer.optimize(template, options.optimizationOptions());
+    MemberAccessPolicy secPolicy =
+        options.securityPolicy() != null
+            ? toMemberAccessPolicy(options.securityPolicy())
+            : MemberAccessPolicy.standard();
+    IrTemplate optimized = IrOptimizer.optimize(template, options.optimizationOptions(), secPolicy);
     IrVerifier.verify(optimized);
 
     // 3. Determine compilation capability status
@@ -167,6 +175,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
     // 5. Code generation context
     int totalLocals = calculateTotalLocals(optimized);
+    int maxScratchDepth = calculateMaxScratchDepth(optimized);
+    int maxStack = maxScratchDepth <= 2 ? 16 : Math.max(32, 16 + maxScratchDepth * 2);
     IrSlotLayout.SlotLayout layout = IrSlotLayout.layout(optimized);
     int maxSemanticSlot = -1;
     for (IrParameter p : optimized.parameters()) {
@@ -190,7 +200,14 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
     CompilerContext context =
         new CompilerContext(
-            optimized, options, internalName, fqcn, fingerprint, baseTempSlot, scratchSlot);
+            optimized,
+            options,
+            internalName,
+            fqcn,
+            fingerprint,
+            baseTempSlot,
+            scratchSlot,
+            totalLocals);
 
     // 6. Build bytecode
     ClassFileWriter cf = new ClassFileWriter(internalName, "java/lang/Object");
@@ -240,7 +257,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
     // Initialize local slots and parameters in render method
     render.setMaxLocals(totalLocals);
-    render.setMaxStack(16);
+    render.setMaxStack(maxStack);
 
     for (int i = 3; i < totalLocals; i++) {
       render.aconst_null();
@@ -283,7 +300,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
               methodName,
               "(Lio/github/minh124199/viettemplate/api/RenderContext;Lio/github/minh124199/viettemplate/api/TemplateOutput;[Ljava/lang/Object;)V");
       funcMw.setMaxLocals(totalLocals);
-      funcMw.setMaxStack(16);
+      funcMw.setMaxStack(maxStack);
 
       for (int i = 4; i < totalLocals; i++) {
         funcMw.aconst_null();
@@ -484,11 +501,119 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     int baseTempSlot =
         Math.max(SLOT_OFFSET, Math.max(layout.frameSize(), maxSemanticSlot + 1) + SLOT_OFFSET);
     int scratchSlot = baseTempSlot + (2 * maxLoopDepth);
-    int totalLocals = scratchSlot + 1;
+    int maxScratchDepth = calculateMaxScratchDepth(template);
+    int scratchSlotsCount = Math.max(1, maxScratchDepth);
+    int totalLocals = scratchSlot + scratchSlotsCount;
     if (scratchSlot >= totalLocals) {
       throw new IllegalStateException("totalLocals must be strictly greater than scratchSlot");
     }
     return totalLocals;
+  }
+
+  private static int calculateExprScratchDepth(IrExpression expr) {
+    if (expr == null) return 0;
+    if (expr instanceof IrGetProperty prop) {
+      return Math.max(1, calculateExprScratchDepth(prop.receiver()));
+    }
+    if (expr instanceof IrDynamicDispatch dyn) {
+      if (dyn.receiver().isEmpty()) return 0;
+      int depth = calculateExprScratchDepth(dyn.receiver().get());
+      int numArgs = dyn.arguments().size();
+      for (int i = 0; i < numArgs; i++) {
+        depth = Math.max(depth, 1 + i + calculateExprScratchDepth(dyn.arguments().get(i)));
+      }
+      return Math.max(depth, 1 + numArgs);
+    }
+    if (expr instanceof IrInvokeAllowedMethod inv) {
+      int depth = calculateExprScratchDepth(inv.receiver());
+      int numArgs = inv.arguments().size();
+      for (int i = 0; i < numArgs; i++) {
+        depth = Math.max(depth, 1 + i + calculateExprScratchDepth(inv.arguments().get(i)));
+      }
+      return Math.max(depth, 1 + numArgs);
+    }
+    if (expr instanceof IrBinaryOp bin) {
+      return Math.max(
+          calculateExprScratchDepth(bin.left()), 1 + calculateExprScratchDepth(bin.right()));
+    }
+    if (expr instanceof IrUnaryOp un) {
+      return calculateExprScratchDepth(un.operand());
+    }
+    if (expr instanceof IrIndexGet idx) {
+      return Math.max(
+          calculateExprScratchDepth(idx.receiver()), 1 + calculateExprScratchDepth(idx.index()));
+    }
+    if (expr instanceof IrTruthiness tr) {
+      return calculateExprScratchDepth(tr.expression());
+    }
+    if (expr instanceof IrIsNull isNull) {
+      return Math.max(1, calculateExprScratchDepth(isNull.expression()));
+    }
+    if (expr instanceof IrAlternateValue alt) {
+      return Math.max(
+          calculateExprScratchDepth(alt.primary()), 1 + calculateExprScratchDepth(alt.fallback()));
+    }
+    if (expr instanceof IrConvert conv) {
+      return calculateExprScratchDepth(conv.expression());
+    }
+    return 0;
+  }
+
+  private static int calculateStmtScratchDepth(IrStatement stmt) {
+    if (stmt instanceof IrWriteValue wv) {
+      return calculateExprScratchDepth(wv.value());
+    }
+    if (stmt instanceof IrStoreLocal sl) {
+      return calculateExprScratchDepth(sl.value());
+    }
+    if (stmt instanceof IrSetProperty sp) {
+      return Math.max(
+          calculateExprScratchDepth(sp.target()), 1 + calculateExprScratchDepth(sp.value()));
+    }
+    if (stmt instanceof IrSetIndex si) {
+      return Math.max(
+          calculateExprScratchDepth(si.target()),
+          Math.max(
+              1 + calculateExprScratchDepth(si.index()),
+              2 + calculateExprScratchDepth(si.value())));
+    }
+    if (stmt instanceof IrEvaluate ev) {
+      return calculateExprScratchDepth(ev.expression());
+    }
+    if (stmt instanceof IrIf ifStmt) {
+      int d = calculateExprScratchDepth(ifStmt.condition());
+      d = Math.max(d, calculateBlockScratchDepth(ifStmt.thenBlock()));
+      if (ifStmt.elseBlock().isPresent()) {
+        d = Math.max(d, calculateBlockScratchDepth(ifStmt.elseBlock().get()));
+      }
+      return d;
+    }
+    if (stmt instanceof IrLoop loop) {
+      int d = calculateExprScratchDepth(loop.iterable());
+      d = Math.max(d, calculateBlockScratchDepth(loop.body()));
+      if (loop.elseBody().isPresent()) {
+        d = Math.max(d, calculateBlockScratchDepth(loop.elseBody().get()));
+      }
+      return d;
+    }
+    return 0;
+  }
+
+  private static int calculateBlockScratchDepth(IrBlock block) {
+    if (block == null) return 0;
+    int max = 0;
+    for (IrStatement stmt : block.statements()) {
+      max = Math.max(max, calculateStmtScratchDepth(stmt));
+    }
+    return max;
+  }
+
+  private static int calculateMaxScratchDepth(IrTemplate template) {
+    int max = calculateBlockScratchDepth(template.root());
+    for (IrFunction fn : template.functions()) {
+      max = Math.max(max, calculateBlockScratchDepth(fn.body()));
+    }
+    return max;
   }
 
   private static int scanMaxSlot(IrBlock block) {
@@ -859,8 +984,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     mw.iconst(siteIdx);
     mw.aaload();
 
-    compileExpression(sp.target(), mw, context);
-    compileExpression(sp.value(), mw, context);
+    compileExpression(sp.target(), mw, context, 0);
+    compileExpression(sp.value(), mw, context, 1);
 
     mw.invokestatic(
         "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
@@ -878,9 +1003,9 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     mw.iconst(siteIdx);
     mw.aaload();
 
-    compileExpression(si.target(), mw, context);
-    compileExpression(si.index(), mw, context);
-    compileExpression(si.value(), mw, context);
+    compileExpression(si.target(), mw, context, 0);
+    compileExpression(si.index(), mw, context, 1);
+    compileExpression(si.value(), mw, context, 2);
 
     mw.invokestatic(
         "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
@@ -890,6 +1015,14 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
   private static void compileExpression(
       IrExpression expr, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+    compileExpression(expr, mw, context, 0);
+  }
+
+  private static void compileExpression(
+      IrExpression expr,
+      ClassFileWriter.MethodWriter mw,
+      CompilerContext context,
+      int scratchOffset) {
     if (expr instanceof IrConst c) {
       compileConst(c, mw);
     } else if (expr instanceof IrLoadLocal load) {
@@ -897,17 +1030,17 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     } else if (expr instanceof IrLoadParam param) {
       mw.aload(param.slot() + SLOT_OFFSET);
     } else if (expr instanceof IrGetProperty prop) {
-      compileGetProperty(prop, mw, context);
+      compileGetProperty(prop, mw, context, scratchOffset);
     } else if (expr instanceof IrDynamicDispatch dyn) {
-      compileDynamicDispatch(dyn, mw, context);
+      compileDynamicDispatch(dyn, mw, context, scratchOffset);
     } else if (expr instanceof IrIndexGet idx) {
-      compileIndexGet(idx, mw, context);
+      compileIndexGet(idx, mw, context, scratchOffset);
     } else if (expr instanceof IrBinaryOp bin) {
-      compileBinaryOp(bin, mw, context);
+      compileBinaryOp(bin, mw, context, scratchOffset);
     } else if (expr instanceof IrUnaryOp un) {
-      compileUnaryOp(un, mw, context);
+      compileUnaryOp(un, mw, context, scratchOffset);
     } else if (expr instanceof IrTruthiness tr) {
-      compileExpression(tr.expression(), mw, context);
+      compileExpression(tr.expression(), mw, context, scratchOffset);
       mw.iconst(tr.emptyCheck() ? 1 : 0);
       mw.invokestatic(
           "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
@@ -915,18 +1048,18 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
           "(Ljava/lang/Object;Z)Z");
       mw.invokestatic("java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;");
     } else if (expr instanceof IrIsNull isNull) {
-      compileIsNull(isNull, mw, context);
+      compileIsNull(isNull, mw, context, scratchOffset);
     } else if (expr instanceof IrAlternateValue alt) {
-      compileExpression(alt.primary(), mw, context);
-      compileExpression(alt.fallback(), mw, context);
+      compileExpression(alt.primary(), mw, context, scratchOffset);
+      compileExpression(alt.fallback(), mw, context, scratchOffset + 1);
       mw.invokestatic(
           "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
           "alternateValue",
           "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
     } else if (expr instanceof IrInvokeAllowedMethod inv) {
-      compileInvokeAllowedMethod(inv, mw, context);
+      compileInvokeAllowedMethod(inv, mw, context, scratchOffset);
     } else if (expr instanceof IrConvert conv) {
-      compileExpression(conv.expression(), mw, context);
+      compileExpression(conv.expression(), mw, context, scratchOffset);
     } else {
       mw.aconst_null();
     }
@@ -956,15 +1089,18 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   }
 
   private static void compileGetProperty(
-      IrGetProperty prop, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+      IrGetProperty prop,
+      ClassFileWriter.MethodWriter mw,
+      CompilerContext context,
+      int scratchOffset) {
     AccessPlan plan = prop.accessPlan();
-    int scratchSlot = context.scratchSlot;
+    int scratchSlot = context.scratchSlotBase + scratchOffset;
 
     if (plan instanceof AccessPlan.DirectRecord rec) {
       ClassFileWriter.Label nullLabel = mw.newLabel();
       ClassFileWriter.Label dynamicLabel = mw.newLabel();
       ClassFileWriter.Label endLabel = mw.newLabel();
-      compileExpression(prop.receiver(), mw, context);
+      compileExpression(prop.receiver(), mw, context, scratchOffset);
       mw.astore(scratchSlot);
       mw.aload(scratchSlot);
       mw.ifnull(nullLabel);
@@ -1004,7 +1140,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       ClassFileWriter.Label nullLabel = mw.newLabel();
       ClassFileWriter.Label dynamicLabel = mw.newLabel();
       ClassFileWriter.Label endLabel = mw.newLabel();
-      compileExpression(prop.receiver(), mw, context);
+      compileExpression(prop.receiver(), mw, context, scratchOffset);
       mw.astore(scratchSlot);
       mw.aload(scratchSlot);
       mw.ifnull(nullLabel);
@@ -1048,7 +1184,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       ClassFileWriter.Label nullLabel = mw.newLabel();
       ClassFileWriter.Label dynamicLabel = mw.newLabel();
       ClassFileWriter.Label endLabel = mw.newLabel();
-      compileExpression(prop.receiver(), mw, context);
+      compileExpression(prop.receiver(), mw, context, scratchOffset);
       mw.astore(scratchSlot);
       mw.aload(scratchSlot);
       mw.ifnull(nullLabel);
@@ -1088,7 +1224,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       ClassFileWriter.Label nullLabel = mw.newLabel();
       ClassFileWriter.Label dynamicLabel = mw.newLabel();
       ClassFileWriter.Label endLabel = mw.newLabel();
-      compileExpression(prop.receiver(), mw, context);
+      compileExpression(prop.receiver(), mw, context, scratchOffset);
       mw.astore(scratchSlot);
       mw.aload(scratchSlot);
       mw.ifnull(nullLabel);
@@ -1132,7 +1268,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
           "[Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;");
       mw.iconst(siteIdx);
       mw.aaload();
-      compileExpression(prop.receiver(), mw, context);
+      compileExpression(prop.receiver(), mw, context, scratchOffset);
       mw.invokestatic(
           "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
           "dynamicGetProperty",
@@ -1164,29 +1300,140 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   }
 
   private static void compileInvokeAllowedMethod(
-      IrInvokeAllowedMethod inv, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+      IrInvokeAllowedMethod inv,
+      ClassFileWriter.MethodWriter mw,
+      CompilerContext context,
+      int scratchOffset) {
     Method m = inv.targetMethod();
     Class<?> ownerClass = m.getDeclaringClass();
     String owner = ownerClass.getName().replace('.', '/');
     Class<?>[] ptypes = m.getParameterTypes();
-    int scratchSlot = context.scratchSlot;
+    int numArgs = inv.arguments().size();
+
+    int slotRecv = context.scratchSlotBase + scratchOffset;
+    int[] slotArgs = new int[numArgs];
+    for (int i = 0; i < numArgs; i++) {
+      slotArgs[i] = context.scratchSlotBase + scratchOffset + 1 + i;
+    }
 
     ClassFileWriter.Label nullLabel = mw.newLabel();
     ClassFileWriter.Label dynamicLabel = mw.newLabel();
     ClassFileWriter.Label endLabel = mw.newLabel();
 
-    compileExpression(inv.receiver(), mw, context);
-    mw.astore(scratchSlot);
-    mw.aload(scratchSlot);
+    // 1. Evaluate receiver expression
+    compileExpression(inv.receiver(), mw, context, scratchOffset);
+    mw.astore(slotRecv);
+
+    // 2. Evaluate each argument expression exactly once left-to-right into dedicated scratch slots
+    for (int i = 0; i < numArgs; i++) {
+      compileExpression(inv.arguments().get(i), mw, context, scratchOffset + 1 + i);
+      mw.astore(slotArgs[i]);
+    }
+
+    // 3. Receiver null check: return null when receiver is null (all arguments were evaluated once)
+    mw.aload(slotRecv);
     mw.ifnull(nullLabel);
-    mw.aload(scratchSlot);
+
+    // 4. Runtime guards
+    // Guard 4a: Receiver type check
+    mw.aload(slotRecv);
     mw.instanceofOp(owner);
     mw.ifeq(dynamicLabel);
 
-    mw.aload(scratchSlot);
+    // Guard 4b: Argument type checks (widening-only, no narrowing!)
+    for (int i = 0; i < numArgs; i++) {
+      Class<?> ptype = ptypes[i];
+      int argSlot = slotArgs[i];
+      if (ptype.isPrimitive()) {
+        mw.aload(argSlot);
+        mw.ifnull(dynamicLabel);
+        if (ptype == boolean.class) {
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Boolean");
+          mw.ifeq(dynamicLabel);
+        } else if (ptype == char.class) {
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Character");
+          mw.ifeq(dynamicLabel);
+        } else if (ptype == byte.class) {
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Byte");
+          mw.ifeq(dynamicLabel);
+        } else if (ptype == short.class) {
+          ClassFileWriter.Label shortOk = mw.newLabel();
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Short");
+          mw.ifne(shortOk);
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Byte");
+          mw.ifeq(dynamicLabel);
+          mw.bindLabel(shortOk);
+        } else if (ptype == int.class) {
+          ClassFileWriter.Label intOk = mw.newLabel();
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Integer");
+          mw.ifne(intOk);
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Short");
+          mw.ifne(intOk);
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Byte");
+          mw.ifeq(dynamicLabel);
+          mw.bindLabel(intOk);
+        } else if (ptype == long.class) {
+          ClassFileWriter.Label longOk = mw.newLabel();
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Long");
+          mw.ifne(longOk);
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Integer");
+          mw.ifne(longOk);
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Short");
+          mw.ifne(longOk);
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Byte");
+          mw.ifeq(dynamicLabel);
+          mw.bindLabel(longOk);
+        } else if (ptype == float.class) {
+          ClassFileWriter.Label floatOk = mw.newLabel();
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Float");
+          mw.ifne(floatOk);
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Long");
+          mw.ifne(floatOk);
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Integer");
+          mw.ifne(floatOk);
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Short");
+          mw.ifne(floatOk);
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Byte");
+          mw.ifeq(dynamicLabel);
+          mw.bindLabel(floatOk);
+        } else if (ptype == double.class) {
+          mw.aload(argSlot);
+          mw.instanceofOp("java/lang/Number");
+          mw.ifeq(dynamicLabel);
+        }
+      } else if (ptype != Object.class) {
+        ClassFileWriter.Label argOk = mw.newLabel();
+        mw.aload(argSlot);
+        mw.ifnull(argOk);
+        mw.aload(argSlot);
+        mw.instanceofOp(ptype.getName().replace('.', '/'));
+        mw.ifeq(dynamicLabel);
+        mw.bindLabel(argOk);
+      }
+    }
+
+    // 5. Direct invocation path (zero heap allocations)
+    mw.aload(slotRecv);
     mw.checkcast(owner);
-    for (int i = 0; i < inv.arguments().size(); i++) {
-      compileExpression(inv.arguments().get(i), mw, context);
+    for (int i = 0; i < numArgs; i++) {
+      mw.aload(slotArgs[i]);
       unboxIfPrimitive(ptypes[i], mw);
     }
     StringBuilder descBuilder = new StringBuilder("(");
@@ -1209,11 +1456,11 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     } else {
       boxIfPrimitive(m.getReturnType(), mw);
     }
-    mw.astore(scratchSlot);
+    mw.astore(slotRecv);
     mw.gotoOp(endLabel);
 
+    // 6. Dynamic fallback path (single-evaluation preserved, pack slots into Object[])
     mw.bindLabel(dynamicLabel);
-    int numArgs = inv.arguments().size();
     int siteIdx = context.registerDynamicSite(m.getName(), MemberOperation.METHOD_CALL, numArgs);
     mw.getstatic(
         context.internalName,
@@ -1221,25 +1468,30 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         "[Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;");
     mw.iconst(siteIdx);
     mw.aaload();
-    mw.aload(scratchSlot);
+    mw.aload(slotRecv);
     mw.iconst(numArgs);
     mw.anewarray("java/lang/Object");
     for (int i = 0; i < numArgs; i++) {
       mw.dup();
       mw.iconst(i);
-      compileExpression(inv.arguments().get(i), mw, context);
+      mw.aload(slotArgs[i]);
       mw.aastore();
     }
     mw.invokestatic(
         "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
         "dynamicInvokeMethod",
         "(Lio/github/minh124199/viettemplate/runtime/linker/DynamicCallSite;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;");
-    mw.astore(scratchSlot);
+    mw.astore(slotRecv);
     mw.gotoOp(endLabel);
 
+    // 7. Null path
     mw.bindLabel(nullLabel);
+    mw.aconst_null();
+    mw.astore(slotRecv);
+
+    // 8. End path
     mw.bindLabel(endLabel);
-    mw.aload(scratchSlot);
+    mw.aload(slotRecv);
   }
 
   private static void unboxIfPrimitive(Class<?> clazz, ClassFileWriter.MethodWriter mw) {
@@ -1275,7 +1527,10 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   }
 
   private static void compileDynamicDispatch(
-      IrDynamicDispatch dyn, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+      IrDynamicDispatch dyn,
+      ClassFileWriter.MethodWriter mw,
+      CompilerContext context,
+      int scratchOffset) {
     if (dyn.receiver().isEmpty()) {
       // Root context parameter lookup
       mw.aload(1); // context
@@ -1298,7 +1553,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     mw.iconst(siteIdx);
     mw.aaload();
 
-    compileExpression(dyn.receiver().get(), mw, context);
+    compileExpression(dyn.receiver().get(), mw, context, scratchOffset);
 
     int numArgs = dyn.arguments().size();
     mw.iconst(numArgs);
@@ -1307,7 +1562,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     for (int i = 0; i < numArgs; i++) {
       mw.dup();
       mw.iconst(i);
-      compileExpression(dyn.arguments().get(i), mw, context);
+      compileExpression(dyn.arguments().get(i), mw, context, scratchOffset + 1 + i);
       mw.aastore();
     }
 
@@ -1318,7 +1573,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   }
 
   private static void compileIndexGet(
-      IrIndexGet idx, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+      IrIndexGet idx, ClassFileWriter.MethodWriter mw, CompilerContext context, int scratchOffset) {
     int siteIdx = context.registerDynamicSite("getIndex", MemberOperation.INDEX_GET, 1);
     mw.getstatic(
         context.internalName,
@@ -1327,8 +1582,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     mw.iconst(siteIdx);
     mw.aaload();
 
-    compileExpression(idx.receiver(), mw, context);
-    compileExpression(idx.index(), mw, context);
+    compileExpression(idx.receiver(), mw, context, scratchOffset);
+    compileExpression(idx.index(), mw, context, scratchOffset + 1);
 
     mw.invokestatic(
         "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
@@ -1337,11 +1592,11 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   }
 
   private static void compileBinaryOp(
-      IrBinaryOp bin, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+      IrBinaryOp bin, ClassFileWriter.MethodWriter mw, CompilerContext context, int scratchOffset) {
     if (bin.type()
         instanceof io.github.minh124199.viettemplate.language.vtl.semantics.type.VType.ArrayType) {
-      compileExpression(bin.left(), mw, context);
-      compileExpression(bin.right(), mw, context);
+      compileExpression(bin.left(), mw, context, scratchOffset);
+      compileExpression(bin.right(), mw, context, scratchOffset + 1);
       mw.iconst(10000); // maxRangeSize
       mw.ldc(context.template.id().value());
       SourceSpan span = bin.span();
@@ -1358,11 +1613,11 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     }
 
     if (bin.op() == BinaryOpKind.AND) {
-      int scratchSlot = context.scratchSlot;
+      int scratchSlot = context.scratchSlotBase + scratchOffset;
       ClassFileWriter.Label falseLabel = mw.newLabel();
       ClassFileWriter.Label endLabel = mw.newLabel();
 
-      compileExpression(bin.left(), mw, context);
+      compileExpression(bin.left(), mw, context, scratchOffset);
       mw.iconst(1); // emptyCheck = true
       mw.invokestatic(
           "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
@@ -1370,7 +1625,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
           "(Ljava/lang/Object;Z)Z");
       mw.ifeq(falseLabel);
 
-      compileExpression(bin.right(), mw, context);
+      compileExpression(bin.right(), mw, context, scratchOffset);
       mw.iconst(1); // emptyCheck = true
       mw.invokestatic(
           "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
@@ -1392,11 +1647,11 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     }
 
     if (bin.op() == BinaryOpKind.OR) {
-      int scratchSlot = context.scratchSlot;
+      int scratchSlot = context.scratchSlotBase + scratchOffset;
       ClassFileWriter.Label trueLabel = mw.newLabel();
       ClassFileWriter.Label endLabel = mw.newLabel();
 
-      compileExpression(bin.left(), mw, context);
+      compileExpression(bin.left(), mw, context, scratchOffset);
       mw.iconst(1); // emptyCheck = true
       mw.invokestatic(
           "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
@@ -1404,7 +1659,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
           "(Ljava/lang/Object;Z)Z");
       mw.ifne(trueLabel);
 
-      compileExpression(bin.right(), mw, context);
+      compileExpression(bin.right(), mw, context, scratchOffset);
       mw.iconst(1); // emptyCheck = true
       mw.invokestatic(
           "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
@@ -1425,8 +1680,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       return;
     }
 
-    compileExpression(bin.left(), mw, context);
-    compileExpression(bin.right(), mw, context);
+    compileExpression(bin.left(), mw, context, scratchOffset);
+    compileExpression(bin.right(), mw, context, scratchOffset + 1);
     mw.iconst(bin.op().ordinal());
     mw.ldc(context.template.id().value());
     SourceSpan span = bin.span();
@@ -1446,8 +1701,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   }
 
   private static void compileUnaryOp(
-      IrUnaryOp un, ClassFileWriter.MethodWriter mw, CompilerContext context) {
-    compileExpression(un.operand(), mw, context);
+      IrUnaryOp un, ClassFileWriter.MethodWriter mw, CompilerContext context, int scratchOffset) {
+    compileExpression(un.operand(), mw, context, scratchOffset);
     mw.iconst(un.op().ordinal());
     mw.ldc(context.template.id().value());
     SourceSpan span = un.span();
@@ -1463,12 +1718,15 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   }
 
   private static void compileIsNull(
-      IrIsNull isNull, ClassFileWriter.MethodWriter mw, CompilerContext context) {
-    int scratchSlot = context.scratchSlot;
+      IrIsNull isNull,
+      ClassFileWriter.MethodWriter mw,
+      CompilerContext context,
+      int scratchOffset) {
+    int scratchSlot = context.scratchSlotBase + scratchOffset;
     ClassFileWriter.Label isNullLabel = mw.newLabel();
     ClassFileWriter.Label endLabel = mw.newLabel();
 
-    compileExpression(isNull.expression(), mw, context);
+    compileExpression(isNull.expression(), mw, context, scratchOffset);
     mw.ifnull(isNullLabel);
     mw.getstatic("java/lang/Boolean", "FALSE", "Ljava/lang/Boolean;");
     mw.astore(scratchSlot);
@@ -1516,6 +1774,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     final IrSlotLayout.SlotLayout layout;
     final int baseTempSlot;
     final int scratchSlot;
+    final int scratchSlotBase;
+    final int totalLocals;
 
     CompilerContext(
         IrTemplate template,
@@ -1525,6 +1785,26 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         String fingerprint,
         int baseTempSlot,
         int scratchSlot) {
+      this(
+          template,
+          options,
+          internalName,
+          fqcn,
+          fingerprint,
+          baseTempSlot,
+          scratchSlot,
+          scratchSlot + 1);
+    }
+
+    CompilerContext(
+        IrTemplate template,
+        BackendOptions options,
+        String internalName,
+        String fqcn,
+        String fingerprint,
+        int baseTempSlot,
+        int scratchSlot,
+        int totalLocals) {
       this.template = template;
       this.templateId = template.id().value();
       this.options = options;
@@ -1542,6 +1822,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       }
       this.baseTempSlot = baseTempSlot;
       this.scratchSlot = scratchSlot;
+      this.scratchSlotBase = scratchSlot;
+      this.totalLocals = totalLocals;
     }
 
     int registerDynamicSite(String memberName, MemberOperation operation, int arity) {
@@ -1619,5 +1901,63 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       }
     }
     return false;
+  }
+
+  private static MemberAccessPolicy toMemberAccessPolicy(LinkerAccessPolicy linkerPolicy) {
+    if (linkerPolicy == null) {
+      return MemberAccessPolicy.standard();
+    }
+    return new MemberAccessPolicy() {
+      @Override
+      public boolean isClassPermitted(Class<?> clazz) {
+        return linkerPolicy.isClassPermitted(clazz);
+      }
+
+      @Override
+      public boolean isMethodPermitted(Class<?> receiverClass, String methodName, int arity) {
+        return linkerPolicy.isClassPermitted(receiverClass);
+      }
+
+      @Override
+      public boolean isMethodPermitted(Class<?> receiverClass, Method method) {
+        return method != null
+            && linkerPolicy.isClassPermitted(method.getDeclaringClass())
+            && linkerPolicy.isMethodPermitted(receiverClass, method);
+      }
+
+      @Override
+      public boolean isPropertyPermitted(Class<?> receiverClass, String propertyName) {
+        return linkerPolicy.isPropertyPermitted(receiverClass, propertyName);
+      }
+
+      @Override
+      public boolean isFieldPermitted(Class<?> receiverClass, String fieldName) {
+        return linkerPolicy.isClassPermitted(receiverClass);
+      }
+
+      @Override
+      public boolean isFieldPermitted(Class<?> receiverClass, Field field) {
+        return field != null
+            && linkerPolicy.isClassPermitted(field.getDeclaringClass())
+            && linkerPolicy.isFieldPermitted(receiverClass, field);
+      }
+
+      @Override
+      public boolean isPropertyMutationPermitted(Class<?> receiverClass, String propertyName) {
+        return linkerPolicy.isPropertyMutationPermitted(receiverClass, propertyName);
+      }
+
+      @Override
+      public boolean isIndexMutationPermitted(Class<?> receiverClass) {
+        return linkerPolicy.isIndexMutationPermitted(receiverClass);
+      }
+
+      @Override
+      public SecurityPolicyFingerprint fingerprint() {
+        String id = linkerPolicy.policyId();
+        return SecurityPolicyFingerprint.of(
+            id != null && !id.isBlank() ? id : "custom-linker-policy");
+      }
+    };
   }
 }
