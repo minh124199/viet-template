@@ -14,6 +14,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,7 @@ public final class ModelSchema {
   private final Map<String, ModelParameter> parameters;
 
   private ModelSchema(Map<String, ModelParameter> parameters) {
-    this.parameters = Map.copyOf(parameters);
+    this.parameters = Collections.unmodifiableMap(new LinkedHashMap<>(parameters));
   }
 
   public static ModelSchema empty() {
@@ -121,8 +122,11 @@ public final class ModelSchema {
     if (!interfaceClass.isInterface()) {
       throw new IllegalArgumentException("Class is not an interface: " + interfaceClass.getName());
     }
+    List<Method> methods = new ArrayList<>(List.of(interfaceClass.getMethods()));
+    methods.sort(
+        Comparator.comparing(Method::getName).thenComparing(m -> m.getReturnType().getName()));
     Map<String, ModelParameter> map = new LinkedHashMap<>();
-    for (Method method : interfaceClass.getMethods()) {
+    for (Method method : methods) {
       if (method.getParameterCount() != 0
           || Modifier.isStatic(method.getModifiers())
           || method.getDeclaringClass() == Object.class) {
@@ -144,8 +148,11 @@ public final class ModelSchema {
       return fromInterface(clazz);
     }
     // For standard classes, inspect public zero-arg getters
+    List<Method> methods = new ArrayList<>(List.of(clazz.getMethods()));
+    methods.sort(
+        Comparator.comparing(Method::getName).thenComparing(m -> m.getReturnType().getName()));
     Map<String, ModelParameter> map = new LinkedHashMap<>();
-    for (Method method : clazz.getMethods()) {
+    for (Method method : methods) {
       if (method.getParameterCount() != 0
           || Modifier.isStatic(method.getModifiers())
           || method.getDeclaringClass() == Object.class) {

@@ -44,6 +44,8 @@ for maven_class in "${MAVEN_CLASSES}"/*.class; do
     fi
     if ! cmp -s "${maven_class}" "${gradle_class}"; then
         echo "[FAIL] Bytecode mismatch for ${class_name} between Maven and Gradle!"
+        echo "--- Disassembly comparison ---"
+        diff -u <(javap -c -p -v "${maven_class}") <(javap -c -p -v "${gradle_class}") || true
         exit 1
     fi
     echo "[PASS] Bytecode identical for ${class_name}"
