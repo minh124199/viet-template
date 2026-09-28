@@ -173,4 +173,43 @@ class TemplateContractTest {
     TemplateParameter param = TemplateParameter.fromGenericType("items", m.getGenericReturnType());
     assertThat(param.typeArguments()).containsExactly(SampleItem.class);
   }
+
+  @Test
+  void typeVariableRetainsSymbolicName() throws Exception {
+    class Box<T> {
+      public T getValue() {
+        return null;
+      }
+    }
+    java.lang.reflect.Method m = Box.class.getMethod("getValue");
+    TemplateType tt = TemplateType.fromGenericType(m.getGenericReturnType());
+    assertThat(tt).isInstanceOf(TemplateType.NamedType.class);
+    assertThat(tt.typeName()).isEqualTo("T");
+    assertThat(tt.rawClass()).isEqualTo(Object.class);
+  }
+
+  @Test
+  void genericArrayTypePreservesComponent() throws Exception {
+    class ArrayHolder<E> {
+      public List<E>[] getArray() {
+        return null;
+      }
+    }
+    java.lang.reflect.Method m = ArrayHolder.class.getMethod("getArray");
+    TemplateType tt = TemplateType.fromGenericType(m.getGenericReturnType());
+    assertThat(tt).isInstanceOf(TemplateType.ArrayType.class);
+    assertThat(tt.typeName()).isEqualTo("java.util.List<E>[]");
+  }
+
+  @Test
+  void primitiveAndMultiDimensionalArrays() {
+    TemplateType intArr = TemplateType.of(int[].class);
+    assertThat(intArr.typeName()).isEqualTo("int[]");
+    assertThat(intArr.rawClass()).isEqualTo(int[].class);
+    assertThat(intArr.isArray()).isTrue();
+
+    TemplateType matrix = TemplateType.of(String[][].class);
+    assertThat(matrix.typeName()).isEqualTo("java.lang.String[][]");
+    assertThat(matrix.rawClass()).isEqualTo(String[][].class);
+  }
 }

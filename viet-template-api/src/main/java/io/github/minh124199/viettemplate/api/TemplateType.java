@@ -137,6 +137,9 @@ public sealed interface TemplateType extends Serializable
       }
       return wildcard();
     }
+    if (type instanceof java.lang.reflect.TypeVariable<?> tv) {
+      return named(tv.getName());
+    }
     return of(Object.class);
   }
 
