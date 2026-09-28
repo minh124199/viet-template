@@ -1174,15 +1174,6 @@ final class IrInterpreter {
           InterpreterDiagnosticCodes.INVALID_METHOD,
           cause);
     } catch (Exception e) {
-      try {
-        List<EvaluationValue> evalArgs = new ArrayList<>(args.length);
-        for (Object a : args) {
-          evalArgs.add(EvaluationValue.of(a));
-        }
-        return frame.referenceAccess.invokeMethod(
-            recv, inv.methodName(), evalArgs, inv.span(), frame.templateId);
-      } catch (Exception ignored) {
-      }
       throw new TemplateRenderException(
           "Error invoking method '"
               + inv.methodName()
