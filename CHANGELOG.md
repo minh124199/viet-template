@@ -7,13 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.1] - Unreleased
+## [1.0.1] - 2026-09-28
 
 ### Fixed
 - Capture template freshness before loading source so an atomic template replacement during loading cannot cache stale content with the replacement's freshness token (#40).
 
 ### Release Engineering
-- Develop on `1.0.1-SNAPSHOT` against the immutable `v1.0.0` baseline. Product fixes require a patch release; they do not reopen the historical RC3-to-GA freeze or change published 1.0.0 artifacts.
+- Post-GA patch release targeting `1.0.1` against the immutable `v1.0.0` baseline. Product fixes require a patch release; they do not reopen the historical RC3-to-GA freeze or change published 1.0.0 artifacts.
 
 ## [1.0.0] - 2026-09-26
 
