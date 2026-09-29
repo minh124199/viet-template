@@ -5,6 +5,7 @@ import io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic;
 import io.github.minh124199.viettemplate.aot.TemplateAotRequest;
 import io.github.minh124199.viettemplate.aot.TemplateAotResult;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
+import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -133,9 +134,13 @@ public class VietTemplateCompileMojo extends AbstractMojo {
             .failOnWarning(failOnWarning)
             .incremental(incremental);
 
-    if (typeChecking != null && !typeChecking.isBlank()) {
-      requestBuilder.typeChecking(typeChecking);
+    TypeCheckingMode mode;
+    try {
+      mode = TypeCheckingConfigParser.parse(typeChecking);
+    } catch (IllegalArgumentException e) {
+      throw new MojoExecutionException(e.getMessage(), e);
     }
+    requestBuilder.typeCheckingMode(mode);
 
     if (includes != null && !includes.isEmpty()) {
       requestBuilder.includePatterns(includes);

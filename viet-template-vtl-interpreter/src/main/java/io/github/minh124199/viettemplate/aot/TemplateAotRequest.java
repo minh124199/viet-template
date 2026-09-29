@@ -294,9 +294,8 @@ public final class TemplateAotRequest {
       return this;
     }
 
-    public Builder typeChecking(String typeChecking) {
-      this.typeCheckingMode = TypeCheckingMode.parse(typeChecking);
-      return this;
+    public Builder typeChecking(TypeCheckingMode typeCheckingMode) {
+      return typeCheckingMode(typeCheckingMode);
     }
 
     public Builder sourceDirectory(Path sourceDirectory) {

@@ -5,6 +5,7 @@ import io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic;
 import io.github.minh124199.viettemplate.aot.TemplateAotRequest;
 import io.github.minh124199.viettemplate.aot.TemplateAotResult;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
+import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -156,9 +157,8 @@ public abstract class VietTemplateGenerateFacadesTask extends DefaultTask {
             .generateTypedFacades(true)
             .generatedSourcesDirectory(genSourcesDir.toPath());
 
-    if (typeChecking != null && !typeChecking.isBlank()) {
-      reqBuilder.typeChecking(typeChecking);
-    }
+    TypeCheckingMode mode = TypeCheckingConfigParser.parse(typeChecking);
+    reqBuilder.typeCheckingMode(mode);
 
     List<String> incl = getIncludes().getOrNull();
     if (incl != null && !incl.isEmpty()) {

@@ -597,7 +597,6 @@ TYPE public final class io.github.minh124199.viettemplate.api.TypeCheckingMode e
   MEMBER public static final io.github.minh124199.viettemplate.api.TypeCheckingMode ERROR
   MEMBER public static final io.github.minh124199.viettemplate.api.TypeCheckingMode OFF
   MEMBER public static final io.github.minh124199.viettemplate.api.TypeCheckingMode WARN
-  MEMBER public static io.github.minh124199.viettemplate.api.TypeCheckingMode parse(java.lang.String)
   MEMBER public static io.github.minh124199.viettemplate.api.TypeCheckingMode valueOf(java.lang.String)
   MEMBER public static io.github.minh124199.viettemplate.api.TypeCheckingMode[] values()
 
