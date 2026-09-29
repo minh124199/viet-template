@@ -5,6 +5,7 @@ import io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic;
 import io.github.minh124199.viettemplate.aot.TemplateAotRequest;
 import io.github.minh124199.viettemplate.aot.TemplateAotResult;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
+import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import java.io.File;
 import java.nio.charset.Charset;
 import java.util.List;
@@ -41,6 +42,7 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
     getFailOnWarning().convention(false);
     getIncremental().convention(true);
     getGenerateTypedFacades().convention(false);
+    getTypeChecking().convention("OFF");
   }
 
   @InputDirectory
@@ -92,6 +94,10 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
   @Optional
   public abstract Property<Boolean> getGenerateTypedFacades();
 
+  @Input
+  @Optional
+  public abstract Property<String> getTypeChecking();
+
   @TaskAction
   public void compileTemplates() {
     File srcDir = getSourceDirectory().getAsFile().getOrNull();
@@ -125,6 +131,7 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
     String pkg = getPackagePrefix().getOrElse("io.github.minh124199.viettemplate.generated");
     boolean failWarn = getFailOnWarning().getOrElse(false);
     boolean incr = getIncremental().getOrElse(true);
+    String typeChecking = getTypeChecking().getOrElse("OFF");
 
     TemplateAotRequest.Builder reqBuilder =
         TemplateAotRequest.builder()
@@ -135,6 +142,14 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
             .packagePrefix(pkg)
             .failOnWarning(failWarn)
             .incremental(incr);
+
+    TypeCheckingMode mode;
+    try {
+      mode = TypeCheckingConfigParser.parse(typeChecking);
+    } catch (IllegalArgumentException e) {
+      throw new GradleException(e.getMessage(), e);
+    }
+    reqBuilder.typeCheckingMode(mode);
 
     List<String> incl = getIncludes().getOrNull();
     if (incl != null && !incl.isEmpty()) {

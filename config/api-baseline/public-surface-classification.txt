@@ -96,6 +96,7 @@ io.github.minh124199.viettemplate.api.TemplateType$NamedType STABLE_API
 io.github.minh124199.viettemplate.api.TemplateType$ParameterizedType STABLE_API
 io.github.minh124199.viettemplate.api.TemplateType$PrimitiveType STABLE_API
 io.github.minh124199.viettemplate.api.TemplateType$WildcardType STABLE_API
+io.github.minh124199.viettemplate.api.TypeCheckingMode STABLE_API
 io.github.minh124199.viettemplate.api.UndefinedReferencePolicy STABLE_API
 io.github.minh124199.viettemplate.api.ValueOrigin STABLE_API
 io.github.minh124199.viettemplate.language.vtl.VtlFeatureState EXPERIMENTAL

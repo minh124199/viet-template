@@ -592,6 +592,14 @@ TYPE public final class io.github.minh124199.viettemplate.api.TemplateType$Wildc
   MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateType> upperBound()
   MEMBER public static final io.github.minh124199.viettemplate.api.TemplateType$WildcardType UNBOUNDED
 
+TYPE public final class io.github.minh124199.viettemplate.api.TypeCheckingMode extends java.lang.Enum<io.github.minh124199.viettemplate.api.TypeCheckingMode>
+  MEMBER public boolean isEnabled()
+  MEMBER public static final io.github.minh124199.viettemplate.api.TypeCheckingMode ERROR
+  MEMBER public static final io.github.minh124199.viettemplate.api.TypeCheckingMode OFF
+  MEMBER public static final io.github.minh124199.viettemplate.api.TypeCheckingMode WARN
+  MEMBER public static io.github.minh124199.viettemplate.api.TypeCheckingMode valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.api.TypeCheckingMode[] values()
+
 TYPE public final class io.github.minh124199.viettemplate.api.UndefinedReferencePolicy extends java.lang.Enum<io.github.minh124199.viettemplate.api.UndefinedReferencePolicy>
   MEMBER public static final io.github.minh124199.viettemplate.api.UndefinedReferencePolicy ERROR
   MEMBER public static final io.github.minh124199.viettemplate.api.UndefinedReferencePolicy SILENT

@@ -5,6 +5,7 @@ import io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic;
 import io.github.minh124199.viettemplate.aot.TemplateAotRequest;
 import io.github.minh124199.viettemplate.aot.TemplateAotResult;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
+import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -49,6 +50,7 @@ public abstract class VietTemplateGenerateFacadesTask extends DefaultTask {
     getPackagePrefix().convention("io.github.minh124199.viettemplate.generated");
     getFailOnWarning().convention(false);
     getGenerateTypedFacades().convention(false);
+    getTypeChecking().convention("OFF");
   }
 
   @Input
@@ -92,6 +94,10 @@ public abstract class VietTemplateGenerateFacadesTask extends DefaultTask {
   @Input
   @Optional
   public abstract Property<Boolean> getFailOnWarning();
+
+  @Input
+  @Optional
+  public abstract Property<String> getTypeChecking();
 
   @TaskAction
   public void generateFacades() {
@@ -139,6 +145,7 @@ public abstract class VietTemplateGenerateFacadesTask extends DefaultTask {
 
     String pkg = getPackagePrefix().getOrElse("io.github.minh124199.viettemplate.generated");
     boolean failWarn = getFailOnWarning().getOrElse(false);
+    String typeChecking = getTypeChecking().getOrElse("OFF");
 
     TemplateAotRequest.Builder reqBuilder =
         TemplateAotRequest.builder()
@@ -149,6 +156,14 @@ public abstract class VietTemplateGenerateFacadesTask extends DefaultTask {
             .failOnWarning(failWarn)
             .generateTypedFacades(true)
             .generatedSourcesDirectory(genSourcesDir.toPath());
+
+    TypeCheckingMode mode;
+    try {
+      mode = TypeCheckingConfigParser.parse(typeChecking);
+    } catch (IllegalArgumentException e) {
+      throw new GradleException(e.getMessage(), e);
+    }
+    reqBuilder.typeCheckingMode(mode);
 
     List<String> incl = getIncludes().getOrNull();
     if (incl != null && !incl.isEmpty()) {

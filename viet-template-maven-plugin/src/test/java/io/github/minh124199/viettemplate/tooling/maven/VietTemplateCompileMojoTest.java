@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -125,6 +126,84 @@ class VietTemplateCompileMojoTest {
     VietTemplateCompileMojo mojo = new VietTemplateCompileMojo();
     mojo.setSourceDirectory(tempDir.resolve("non-existent").toFile());
     mojo.setOutputDirectory(tempDir.resolve("target/classes").toFile());
+
+    assertThatCode(mojo::execute).doesNotThrowAnyException();
+  }
+
+  @Test
+  @DisplayName("TypeChecking ERROR fails compilation on contract mismatch")
+  void testTypeCheckingErrorFailsCompilation(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src/main/viet-template");
+    Path outDir = tempDir.resolve("target/classes");
+    Files.createDirectories(srcDir);
+    Files.writeString(
+        srcDir.resolve("user.vtl"), "User: $user.invalidProp", StandardCharsets.UTF_8);
+    Files.writeString(srcDir.resolve("user.vtl.contract"), "user=String\n", StandardCharsets.UTF_8);
+
+    VietTemplateCompileMojo mojo = new VietTemplateCompileMojo();
+    mojo.setSourceDirectory(srcDir.toFile());
+    mojo.setOutputDirectory(outDir.toFile());
+    mojo.setResourceOutputDirectory(outDir.toFile());
+    mojo.setTypeChecking("ERROR");
+
+    assertThatThrownBy(mojo::execute)
+        .isInstanceOf(MojoFailureException.class)
+        .hasMessageContaining("Viet Template AOT compilation failed");
+  }
+
+  @Test
+  @DisplayName("TypeChecking WARN allows compilation to succeed on contract mismatch")
+  void testTypeCheckingWarnSucceeds(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src/main/viet-template");
+    Path outDir = tempDir.resolve("target/classes");
+    Files.createDirectories(srcDir);
+    Files.writeString(
+        srcDir.resolve("user.vtl"), "User: $user.invalidProp", StandardCharsets.UTF_8);
+    Files.writeString(srcDir.resolve("user.vtl.contract"), "user=String\n", StandardCharsets.UTF_8);
+
+    VietTemplateCompileMojo mojo = new VietTemplateCompileMojo();
+    mojo.setSourceDirectory(srcDir.toFile());
+    mojo.setOutputDirectory(outDir.toFile());
+    mojo.setResourceOutputDirectory(outDir.toFile());
+    mojo.setTypeChecking("WARN");
+
+    assertThatCode(mojo::execute).doesNotThrowAnyException();
+  }
+
+  @Test
+  @DisplayName("Invalid typeChecking configuration throws MojoExecutionException")
+  void testTypeCheckingInvalidThrowsMojoExecutionException(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src/main/viet-template");
+    Path outDir = tempDir.resolve("target/classes");
+    Files.createDirectories(srcDir);
+    Files.writeString(srcDir.resolve("user.vtl"), "Hello $name", StandardCharsets.UTF_8);
+
+    VietTemplateCompileMojo mojo = new VietTemplateCompileMojo();
+    mojo.setSourceDirectory(srcDir.toFile());
+    mojo.setOutputDirectory(outDir.toFile());
+    mojo.setResourceOutputDirectory(outDir.toFile());
+    mojo.setTypeChecking("invalid-mode");
+
+    assertThatThrownBy(mojo::execute)
+        .isInstanceOf(MojoExecutionException.class)
+        .hasMessageContaining("Invalid typeChecking configuration: 'invalid-mode'");
+  }
+
+  @Test
+  @DisplayName("TypeChecking ERROR allows advisory nullable dereference warning to succeed")
+  void testTypeCheckingErrorAllowsNullableAdvisoryWarning(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src/main/viet-template");
+    Path outDir = tempDir.resolve("target/classes");
+    Files.createDirectories(srcDir);
+    Files.writeString(srcDir.resolve("user.vtl"), "User: $user.length()", StandardCharsets.UTF_8);
+    Files.writeString(
+        srcDir.resolve("user.vtl.contract"), "nullable user=String\n", StandardCharsets.UTF_8);
+
+    VietTemplateCompileMojo mojo = new VietTemplateCompileMojo();
+    mojo.setSourceDirectory(srcDir.toFile());
+    mojo.setOutputDirectory(outDir.toFile());
+    mojo.setResourceOutputDirectory(outDir.toFile());
+    mojo.setTypeChecking("ERROR");
 
     assertThatCode(mojo::execute).doesNotThrowAnyException();
   }

@@ -81,13 +81,13 @@ public final class ModelSchema {
     }
     if (templateType instanceof io.github.minh124199.viettemplate.api.TemplateType.ArrayType at) {
       return new VType.ArrayType(
-          convertTemplateType(at.componentType(), Nullability.NULLABLE), nullability);
+          convertTemplateType(at.componentType(), Nullability.UNKNOWN), nullability);
     }
     if (templateType
         instanceof io.github.minh124199.viettemplate.api.TemplateType.ParameterizedType pt) {
       List<VType> args = new ArrayList<>();
       for (io.github.minh124199.viettemplate.api.TemplateType arg : pt.typeArguments()) {
-        args.add(convertTemplateType(arg, Nullability.NULLABLE));
+        args.add(convertTemplateType(arg, Nullability.UNKNOWN));
       }
       return VType.ClassType.of(pt.rawClass(), args, nullability);
     }

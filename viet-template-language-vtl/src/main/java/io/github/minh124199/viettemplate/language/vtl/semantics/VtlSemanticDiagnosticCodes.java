@@ -12,6 +12,7 @@ final class VtlSemanticDiagnosticCodes {
   public static final DiagnosticCode INVALID_ASSIGNMENT = DiagnosticCode.of("VTLS", "2102");
   public static final DiagnosticCode TYPE_MISMATCH = DiagnosticCode.of("VTLS", "2103");
   public static final DiagnosticCode INVALID_ITERABLE = DiagnosticCode.of("VTLS", "2106");
+  public static final DiagnosticCode NULLABLE_DEREFERENCE = DiagnosticCode.of("VTLS", "2107");
 
   private VtlSemanticDiagnosticCodes() {}
 }

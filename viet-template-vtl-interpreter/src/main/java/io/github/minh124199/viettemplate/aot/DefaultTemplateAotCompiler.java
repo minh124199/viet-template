@@ -180,8 +180,13 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
 
       String contentHash =
           contract == null
-              ? sha256Hex(sourceText)
-              : sha256Hex(sourceText + "\n---CONTRACT---\n" + contract.fingerprint());
+              ? sha256Hex(sourceText + "\n---TYPECHECKING---\n" + request.typeCheckingMode())
+              : sha256Hex(
+                  sourceText
+                      + "\n---CONTRACT---\n"
+                      + contract.fingerprint()
+                      + "\n---TYPECHECKING---\n"
+                      + request.typeCheckingMode());
       StateEntry prev = previousState.get(templateId);
 
       boolean isUpToDate = false;
@@ -218,7 +223,10 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
 
       ModelSchema modelSchema = contract != null ? ModelSchema.fromContract(contract) : null;
       VtlSemanticOptions.Builder semanticOptionsBuilder =
-          VtlSemanticOptions.builder().profile(VtlProfile.VTL_CORE).allowArbitraryMethods(true);
+          VtlSemanticOptions.builder()
+              .profile(VtlProfile.VTL_CORE)
+              .allowArbitraryMethods(true)
+              .typeCheckingMode(request.typeCheckingMode());
       if (modelSchema != null) {
         semanticOptionsBuilder.modelSchema(modelSchema);
       }

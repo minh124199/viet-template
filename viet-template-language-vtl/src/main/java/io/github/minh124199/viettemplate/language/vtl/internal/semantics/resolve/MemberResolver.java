@@ -44,15 +44,18 @@ public final class MemberResolver {
     Objects.requireNonNull(propertyName, "propertyName must not be null");
     MemberAccessPolicy effectivePolicy = policy != null ? policy : MemberAccessPolicy.standard();
 
-    if (propertyName.equals("class")) {
-      return MemberResolution.notFound(VTypes.ERROR, Optional.empty());
-    }
-
     if (receiverType instanceof VType.DynamicType) {
       return MemberResolution.dynamic(VTypes.DYNAMIC);
     }
     if (receiverType instanceof VType.ErrorType) {
       return MemberResolution.notFound(VTypes.ERROR, Optional.empty());
+    }
+
+    if (receiverType instanceof VType.ArrayType) {
+      if ("length".equals(propertyName) || "size".equals(propertyName)) {
+        return MemberResolution.of(MemberResolution.Kind.GETTER, VTypes.INT, null);
+      }
+      return MemberResolution.notFound(VTypes.ERROR, Optional.of("length"));
     }
 
     if (receiverType instanceof VType.ClassType ct && ct.javaClass().isPresent()) {
@@ -68,8 +71,20 @@ public final class MemberResolver {
       VType.ClassType receiverType,
       String propertyName,
       MemberAccessPolicy policy) {
-    if (!policy.isClassPermitted(clazz) || !policy.isPropertyPermitted(clazz, propertyName)) {
-      return MemberResolution.notFound(VTypes.ERROR, Optional.empty());
+    if (!policy.isClassPermitted(clazz)) {
+      return MemberResolution.denied(
+          "Access to class " + clazz.getName() + " is denied by security policy");
+    }
+    if (!policy.isPropertyPermitted(clazz, propertyName)) {
+      return MemberResolution.denied(
+          "Access to property '" + propertyName + "' is denied by security policy");
+    }
+
+    if (clazz.isArray()) {
+      if ("length".equals(propertyName) || "size".equals(propertyName)) {
+        return MemberResolution.of(MemberResolution.Kind.GETTER, VTypes.INT, null);
+      }
+      return MemberResolution.notFound(VTypes.ERROR, Optional.of("length"));
     }
 
     Set<String> candidates = new LinkedHashSet<>();
@@ -80,13 +95,15 @@ public final class MemberResolver {
         candidates.add(rc.getName());
         if (rc.getName().equals(propertyName)) {
           if (!policy.isClassPermitted(rc.getType())) {
-            return MemberResolution.notFound(VTypes.ERROR, Optional.empty());
+            return MemberResolution.denied(
+                "Access to class " + rc.getType().getName() + " is denied by security policy");
           }
           Method accessor = rc.getAccessor();
           if (accessor != null && !policy.isMethodPermitted(clazz, accessor)) {
-            return MemberResolution.notFound(VTypes.ERROR, Optional.empty());
+            return MemberResolution.denied(
+                "Access to record component '" + rc.getName() + "' is denied by security policy");
           }
-          VType type = VTypes.fromJavaType(rc.getGenericType(), Nullability.NULLABLE);
+          VType type = VTypes.fromJavaType(rc.getGenericType(), Nullability.UNKNOWN);
           return MemberResolution.of(
               MemberResolution.Kind.RECORD_COMPONENT, type, rc.getAccessor());
         }
@@ -99,10 +116,12 @@ public final class MemberResolver {
       Method m = clazz.getMethod(getterName);
       if (Modifier.isPublic(m.getModifiers())
           && m.getParameterCount() == 0
-          && m.getReturnType() != void.class
-          && policy.isMethodPermitted(clazz, m)
-          && policy.isClassPermitted(m.getReturnType())) {
-        VType type = VTypes.fromJavaType(m.getGenericReturnType(), Nullability.NULLABLE);
+          && m.getReturnType() != void.class) {
+        if (!policy.isMethodPermitted(clazz, m) || !policy.isClassPermitted(m.getReturnType())) {
+          return MemberResolution.denied(
+              "Access to property '" + propertyName + "' is denied by security policy");
+        }
+        VType type = VTypes.fromJavaType(m.getGenericReturnType(), Nullability.UNKNOWN);
         return MemberResolution.of(MemberResolution.Kind.GETTER, type, m);
       }
     } catch (NoSuchMethodException ignored) {
@@ -114,10 +133,12 @@ public final class MemberResolver {
       Method m = clazz.getMethod(booleanGetterName);
       if (Modifier.isPublic(m.getModifiers())
           && m.getParameterCount() == 0
-          && (m.getReturnType() == boolean.class || m.getReturnType() == Boolean.class)
-          && policy.isMethodPermitted(clazz, m)
-          && policy.isClassPermitted(m.getReturnType())) {
-        VType type = VTypes.fromJavaType(m.getGenericReturnType(), Nullability.NULLABLE);
+          && (m.getReturnType() == boolean.class || m.getReturnType() == Boolean.class)) {
+        if (!policy.isMethodPermitted(clazz, m) || !policy.isClassPermitted(m.getReturnType())) {
+          return MemberResolution.denied(
+              "Access to property '" + propertyName + "' is denied by security policy");
+        }
+        VType type = VTypes.fromJavaType(m.getGenericReturnType(), Nullability.UNKNOWN);
         return MemberResolution.of(MemberResolution.Kind.BOOLEAN_GETTER, type, m);
       }
     } catch (NoSuchMethodException ignored) {
@@ -129,10 +150,12 @@ public final class MemberResolver {
       if (Modifier.isPublic(m.getModifiers())
           && m.getParameterCount() == 0
           && m.getReturnType() != void.class
-          && m.getDeclaringClass() != Object.class
-          && policy.isMethodPermitted(clazz, m)
-          && policy.isClassPermitted(m.getReturnType())) {
-        VType type = VTypes.fromJavaType(m.getGenericReturnType(), Nullability.NULLABLE);
+          && m.getDeclaringClass() != Object.class) {
+        if (!policy.isMethodPermitted(clazz, m) || !policy.isClassPermitted(m.getReturnType())) {
+          return MemberResolution.denied(
+              "Access to property '" + propertyName + "' is denied by security policy");
+        }
+        VType type = VTypes.fromJavaType(m.getGenericReturnType(), Nullability.UNKNOWN);
         return MemberResolution.of(MemberResolution.Kind.GETTER, type, m);
       }
     } catch (NoSuchMethodException ignored) {
@@ -141,11 +164,12 @@ public final class MemberResolver {
     // 5. Public field
     try {
       Field f = clazz.getField(propertyName);
-      if (Modifier.isPublic(f.getModifiers())
-          && !Modifier.isStatic(f.getModifiers())
-          && policy.isFieldPermitted(clazz, f)
-          && policy.isClassPermitted(f.getType())) {
-        VType type = VTypes.fromJavaType(f.getGenericType(), Nullability.NULLABLE);
+      if (Modifier.isPublic(f.getModifiers()) && !Modifier.isStatic(f.getModifiers())) {
+        if (!policy.isFieldPermitted(clazz, f) || !policy.isClassPermitted(f.getType())) {
+          return MemberResolution.denied(
+              "Access to field '" + propertyName + "' is denied by security policy");
+        }
+        VType type = VTypes.fromJavaType(f.getGenericType(), Nullability.UNKNOWN);
         return MemberResolution.of(MemberResolution.Kind.FIELD, type, f);
       }
     } catch (NoSuchFieldException ignored) {

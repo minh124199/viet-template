@@ -132,6 +132,19 @@ Emitted during static semantic analysis when typed model declarations (`#* @vtlv
 - **Likely Cause**: Attempting to loop over a scalar or non-iterable object.
 - **Recommended Fix**: Loop over a `List`, `Set`, `Map`, or array property.
 
+#### `VTLS:2107` (`NULLABLE_DEREFERENCE`)
+- **Category**: `VTLS`
+- **Phase**: Compile-Time
+- **Severity**: Warning (Advisory; does not fail compilation under `WARN` or `ERROR`)
+- **When Emitted**: Member access or method invocation performed on a reference declared or inferred as nullable (`nullable=true`) without quiet reference syntax.
+- **Example**:
+  ```vtl
+  #* @vtlvariable name="user" type="com.example.UserDto" nullable="true" *#
+  <p>$user.name</p>
+  ```
+- **Likely Cause**: Navigating properties or invoking methods on a potentially null receiver without null-safe syntax or flow guards.
+- **Recommended Fix**: Use quiet reference syntax (`$!user.name`), navigate inside a null check (`#if($user)` or `#if($user != null)`), or declare receiver as non-nullable if null is impossible.
+
 ---
 
 ### 2.3 SECURITY Diagnostics (Compile-Time & Runtime)

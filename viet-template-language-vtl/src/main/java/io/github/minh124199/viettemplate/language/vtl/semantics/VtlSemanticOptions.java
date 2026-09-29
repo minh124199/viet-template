@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.language.vtl.semantics;
 
 import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
+import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema;
 import java.util.Objects;
@@ -9,13 +10,14 @@ import java.util.Objects;
 public record VtlSemanticOptions(
     VtlProfile profile,
     ModelSchema modelSchema,
-    boolean strictMode,
+    TypeCheckingMode typeCheckingMode,
     boolean allowArbitraryMethods,
     MemberAccessPolicy memberAccessPolicy) {
 
   public VtlSemanticOptions {
     Objects.requireNonNull(profile, "profile must not be null");
     Objects.requireNonNull(modelSchema, "modelSchema must not be null");
+    typeCheckingMode = typeCheckingMode != null ? typeCheckingMode : TypeCheckingMode.OFF;
     memberAccessPolicy =
         memberAccessPolicy != null ? memberAccessPolicy : MemberAccessPolicy.standard();
   }
@@ -24,25 +26,69 @@ public record VtlSemanticOptions(
       VtlProfile profile,
       ModelSchema modelSchema,
       boolean strictMode,
+      boolean allowArbitraryMethods,
+      MemberAccessPolicy memberAccessPolicy) {
+    this(
+        profile,
+        modelSchema,
+        strictMode ? TypeCheckingMode.ERROR : TypeCheckingMode.OFF,
+        allowArbitraryMethods,
+        memberAccessPolicy);
+  }
+
+  public VtlSemanticOptions(
+      VtlProfile profile,
+      ModelSchema modelSchema,
+      boolean strictMode,
       boolean allowArbitraryMethods) {
-    this(profile, modelSchema, strictMode, allowArbitraryMethods, MemberAccessPolicy.standard());
+    this(
+        profile,
+        modelSchema,
+        strictMode ? TypeCheckingMode.ERROR : TypeCheckingMode.OFF,
+        allowArbitraryMethods,
+        MemberAccessPolicy.standard());
+  }
+
+  public VtlSemanticOptions(
+      VtlProfile profile,
+      ModelSchema modelSchema,
+      TypeCheckingMode typeCheckingMode,
+      boolean allowArbitraryMethods) {
+    this(
+        profile,
+        modelSchema,
+        typeCheckingMode,
+        allowArbitraryMethods,
+        MemberAccessPolicy.standard());
+  }
+
+  public boolean strictMode() {
+    return typeCheckingMode != TypeCheckingMode.OFF;
   }
 
   public static VtlSemanticOptions defaults() {
     return new VtlSemanticOptions(
-        VtlProfile.VTL_CORE, ModelSchema.empty(), false, false, MemberAccessPolicy.standard());
+        VtlProfile.VTL_CORE,
+        ModelSchema.empty(),
+        TypeCheckingMode.OFF,
+        false,
+        MemberAccessPolicy.standard());
   }
 
   public static VtlSemanticOptions of(ModelSchema modelSchema) {
     return new VtlSemanticOptions(
-        VtlProfile.VTL_CORE, modelSchema, true, false, MemberAccessPolicy.standard());
+        VtlProfile.VTL_CORE,
+        modelSchema,
+        TypeCheckingMode.ERROR,
+        false,
+        MemberAccessPolicy.standard());
   }
 
   public static VtlSemanticOptions of(VtlProfile profile, ModelSchema modelSchema) {
     return new VtlSemanticOptions(
         profile,
         modelSchema,
-        true,
+        TypeCheckingMode.ERROR,
         profile.isArbitraryMethodsAllowed(),
         MemberAccessPolicy.standard());
   }
@@ -51,7 +97,7 @@ public record VtlSemanticOptions(
     return new Builder()
         .profile(profile)
         .modelSchema(modelSchema)
-        .strictMode(strictMode)
+        .typeCheckingMode(typeCheckingMode)
         .allowArbitraryMethods(allowArbitraryMethods)
         .memberAccessPolicy(memberAccessPolicy);
   }
@@ -63,7 +109,7 @@ public record VtlSemanticOptions(
   public static final class Builder {
     private VtlProfile profile = VtlProfile.VTL_CORE;
     private ModelSchema modelSchema = ModelSchema.empty();
-    private boolean strictMode = false;
+    private TypeCheckingMode typeCheckingMode = TypeCheckingMode.OFF;
     private Boolean allowArbitraryMethods = null;
     private MemberAccessPolicy memberAccessPolicy = MemberAccessPolicy.standard();
 
@@ -79,8 +125,13 @@ public record VtlSemanticOptions(
       return this;
     }
 
+    public Builder typeCheckingMode(TypeCheckingMode typeCheckingMode) {
+      this.typeCheckingMode = typeCheckingMode != null ? typeCheckingMode : TypeCheckingMode.OFF;
+      return this;
+    }
+
     public Builder strictMode(boolean strictMode) {
-      this.strictMode = strictMode;
+      this.typeCheckingMode = strictMode ? TypeCheckingMode.ERROR : TypeCheckingMode.OFF;
       return this;
     }
 
@@ -103,7 +154,7 @@ public record VtlSemanticOptions(
       return new VtlSemanticOptions(
           profile,
           modelSchema,
-          strictMode,
+          typeCheckingMode,
           allow,
           memberAccessPolicy != null ? memberAccessPolicy : MemberAccessPolicy.standard());
     }

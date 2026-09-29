@@ -793,7 +793,8 @@ public final class AstToIrLowerer {
         Method method = (Method) res.targetMember().orElseThrow();
         yield new AccessPlan.ExtensionCall(method.getDeclaringClass(), method.getName(), method);
       }
-      case DYNAMIC, NOT_FOUND -> new AccessPlan.DynamicCallSite(nextCallSiteId++, propertyName);
+      case DYNAMIC, NOT_FOUND, DENIED ->
+          new AccessPlan.DynamicCallSite(nextCallSiteId++, propertyName);
     };
   }
 

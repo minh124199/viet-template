@@ -65,14 +65,15 @@ CATEGORY_C:CODE_3
         with self.assertRaises(FileNotFoundError):
             verify_diag.parse_baseline(nonexistent)
 
-    def test_default_baseline_exists_and_contains_exact_31_codes(self):
+    def test_default_baseline_exists_and_contains_exact_32_codes(self):
         default_baseline = ROOT / "config/api-baseline/diagnostic-codes-1.0.txt"
         self.assertTrue(default_baseline.exists(), f"Baseline file missing: {default_baseline}")
         codes = verify_diag.parse_baseline(default_baseline)
-        self.assertEqual(len(codes), 31)
+        self.assertEqual(len(codes), 32)
         self.assertIn("LIMIT:LIMIT_EXCEEDED", codes)
         self.assertIn("SECURITY:ACCESS_DENIED", codes)
         self.assertIn("VTLSEC:2401", codes)
+        self.assertIn("VTLS:2107", codes)
         self.assertNotIn("LIMIT:EXCEEDED", codes)
 
     # =========================================================================
@@ -255,7 +256,7 @@ class Test {
         )
         self.assertFalse(passed_exact)
         self.assertEqual(report_exact["status"], "FAILED")
-        self.assertTrue(any("Expected exactly 31" in e for e in errors_exact))
+        self.assertTrue(any(f"Expected exactly {verify_diag.EXPECTED_DIAGNOSTIC_CODE_COUNT}" in e for e in errors_exact))
 
     # =========================================================================
     # 4. Current Repository Verification Tests
@@ -274,8 +275,8 @@ class Test {
 
         self.assertTrue(passed, f"Verification failed with errors: {errors}")
         self.assertEqual(report["status"], "PASSED")
-        self.assertEqual(report["totalDiscovered"], 31)
-        self.assertEqual(report["totalBaseline"], 31)
+        self.assertEqual(report["totalDiscovered"], 32)
+        self.assertEqual(report["totalBaseline"], 32)
         self.assertEqual(report["missingCodes"], [])
         self.assertEqual(report["extraCodes"], [])
         self.assertTrue(report["exactMatch"])

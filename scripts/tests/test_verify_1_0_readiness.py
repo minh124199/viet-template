@@ -132,7 +132,8 @@ class IndividualCheckAssertionTests(unittest.TestCase):
         )
         self.assertTrue(passed, f"verify_diagnostic_codes failed with: {errors}")
         self.assertEqual(errors, [])
-        self.assertEqual(details["canonicalCodesCount"], 31)
+        additive_dc = len(getattr(verify_readiness, "ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES", set()))
+        self.assertEqual(details["canonicalCodesCount"], 31 + additive_dc)
         self.assertEqual(details["unregisteredCodes"], 0)
 
     def test_check_framework_support_passes_on_real_repo(self):
