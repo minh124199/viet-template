@@ -128,4 +128,44 @@ class VietTemplateCompileMojoTest {
 
     assertThatCode(mojo::execute).doesNotThrowAnyException();
   }
+
+  @Test
+  @DisplayName("TypeChecking ERROR fails compilation on contract mismatch")
+  void testTypeCheckingErrorFailsCompilation(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src/main/viet-template");
+    Path outDir = tempDir.resolve("target/classes");
+    Files.createDirectories(srcDir);
+    Files.writeString(
+        srcDir.resolve("user.vtl"), "User: $user.invalidProp", StandardCharsets.UTF_8);
+    Files.writeString(srcDir.resolve("user.vtl.contract"), "user=String\n", StandardCharsets.UTF_8);
+
+    VietTemplateCompileMojo mojo = new VietTemplateCompileMojo();
+    mojo.setSourceDirectory(srcDir.toFile());
+    mojo.setOutputDirectory(outDir.toFile());
+    mojo.setResourceOutputDirectory(outDir.toFile());
+    mojo.setTypeChecking("ERROR");
+
+    assertThatThrownBy(mojo::execute)
+        .isInstanceOf(MojoFailureException.class)
+        .hasMessageContaining("Viet Template AOT compilation failed");
+  }
+
+  @Test
+  @DisplayName("TypeChecking WARN allows compilation to succeed on contract mismatch")
+  void testTypeCheckingWarnSucceeds(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src/main/viet-template");
+    Path outDir = tempDir.resolve("target/classes");
+    Files.createDirectories(srcDir);
+    Files.writeString(
+        srcDir.resolve("user.vtl"), "User: $user.invalidProp", StandardCharsets.UTF_8);
+    Files.writeString(srcDir.resolve("user.vtl.contract"), "user=String\n", StandardCharsets.UTF_8);
+
+    VietTemplateCompileMojo mojo = new VietTemplateCompileMojo();
+    mojo.setSourceDirectory(srcDir.toFile());
+    mojo.setOutputDirectory(outDir.toFile());
+    mojo.setResourceOutputDirectory(outDir.toFile());
+    mojo.setTypeChecking("WARN");
+
+    assertThatCode(mojo::execute).doesNotThrowAnyException();
+  }
 }

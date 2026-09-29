@@ -66,6 +66,9 @@ public class VietTemplateCompileMojo extends AbstractMojo {
   @Parameter(defaultValue = "false", property = "viet-template.generateTypedFacades")
   private boolean generateTypedFacades = false;
 
+  @Parameter(defaultValue = "OFF", property = "viet-template.typeChecking")
+  private String typeChecking = "OFF";
+
   @Parameter(
       defaultValue = "${project.build.directory}/generated-sources/viet-template",
       property = "viet-template.generatedSourcesDirectory")
@@ -129,6 +132,10 @@ public class VietTemplateCompileMojo extends AbstractMojo {
             .packagePrefix(packagePrefix)
             .failOnWarning(failOnWarning)
             .incremental(incremental);
+
+    if (typeChecking != null && !typeChecking.isBlank()) {
+      requestBuilder.typeChecking(typeChecking);
+    }
 
     if (includes != null && !includes.isEmpty()) {
       requestBuilder.includePatterns(includes);
@@ -320,5 +327,13 @@ public class VietTemplateCompileMojo extends AbstractMojo {
 
   public void setGeneratedSourcesDirectory(File generatedSourcesDirectory) {
     this.generatedSourcesDirectory = generatedSourcesDirectory;
+  }
+
+  public String getTypeChecking() {
+    return typeChecking;
+  }
+
+  public void setTypeChecking(String typeChecking) {
+    this.typeChecking = typeChecking;
   }
 }

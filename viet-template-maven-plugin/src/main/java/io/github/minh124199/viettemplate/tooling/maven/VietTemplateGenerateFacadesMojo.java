@@ -65,6 +65,9 @@ public class VietTemplateGenerateFacadesMojo extends AbstractMojo {
   @Parameter(defaultValue = "false", property = "viet-template.failOnWarning")
   private boolean failOnWarning = false;
 
+  @Parameter(defaultValue = "OFF", property = "viet-template.typeChecking")
+  private String typeChecking = "OFF";
+
   @Parameter(defaultValue = "false", property = "viet-template.skip")
   private boolean skip = false;
 
@@ -116,6 +119,10 @@ public class VietTemplateGenerateFacadesMojo extends AbstractMojo {
             .failOnWarning(failOnWarning)
             .generateTypedFacades(true)
             .generatedSourcesDirectory(generatedSourcesDirectory.toPath());
+
+    if (typeChecking != null && !typeChecking.isBlank()) {
+      requestBuilder.typeChecking(typeChecking);
+    }
 
     if (includes != null && !includes.isEmpty()) {
       requestBuilder.includePatterns(includes);
@@ -268,5 +275,13 @@ public class VietTemplateGenerateFacadesMojo extends AbstractMojo {
 
   public void setProject(MavenProject project) {
     this.project = project;
+  }
+
+  public String getTypeChecking() {
+    return typeChecking;
+  }
+
+  public void setTypeChecking(String typeChecking) {
+    this.typeChecking = typeChecking;
   }
 }
