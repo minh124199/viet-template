@@ -94,6 +94,9 @@ vietTemplate {
 
     // Fail build if template warnings occur
     failOnWarning.set(false)
+
+    // Static Contract Validation: OFF (default), WARN, or ERROR
+    typeChecking.set("OFF")
 }
 ```
 

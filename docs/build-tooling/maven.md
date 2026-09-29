@@ -105,6 +105,9 @@ Add the plugin to the `<build><plugins>` section of your `pom.xml`:
         
         <encoding>UTF-8</encoding>
         <failOnWarning>false</failOnWarning>
+
+        <!-- Static Contract Validation: OFF (default), WARN, or ERROR -->
+        <typeChecking>OFF</typeChecking>
     </configuration>
 </plugin>
 ```

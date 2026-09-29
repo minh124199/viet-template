@@ -232,7 +232,7 @@ Explore the complete documentation suite organized by topic:
 - **[3-State Undefined & Null Semantics](docs/language/undefined-null-semantics.md)** — Precise behavior of `UNDEFINED`, `DEFINED_NULL`, and `DEFINED_VALUE`.
 - **[Foreach & Scopes](docs/language/foreach-and-scopes.md)** — Loop metadata (`$foreach.index`, `$foreach.hasNext`), break semantics, and frame scoping.
 - **[Macros & Layouts](docs/language/macros-and-layouts.md)** — Velocimacros, global libraries, and two-stage layout rendering.
-- **[Typed Models](docs/language/typed-models.md)** — Static model definitions via `#* @vtlvariable *#` and compile-time verification.
+- **[Typed Models & Strict Contract Validation](docs/language/typed-models.md)** — Optional static contracts (`TemplateContract`), strict type checking (`OFF`, `WARN`, `ERROR`), and compile-time diagnostics.
 
 ### Migration from Apache Velocity
 - **[Velocity Migration Guide](docs/migration/velocity-migration-guide.md)** — End-to-end migration roadmap, tools, and best practices.

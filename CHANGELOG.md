@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Milestone M26: Strict Typed Mode, Nullable Navigation Analysis, Build-Time Contract Diagnostics, and Maven/Gradle Parity**:
+  - **Opt-In Strict Typed Contract Validation (`TypeCheckingMode`)**:
+    - Introduced `TypeCheckingMode` (`OFF`, `WARN`, `ERROR`) in `viet-template-api` as a frozen `STABLE_API` enum governing static semantic validation and build-time failure semantics.
+    - Default remains `OFF`: 100% backward-compatible dynamic execution for existing templates and pipelines without contracts or with partial contracts.
+    - Preserved the core guiding principle: *Reject what can be proven wrong. Do not reject merely because the compiler cannot prove something right.*
+  - **Diagnostic Taxonomy & Semantic Enforcement (`viet-template-language-vtl`)**:
+    - Emitted canonical diagnostic codes from the frozen 31-code baseline: `VTLS:2101` (`UNRESOLVED_ROOT`), `VTLS:2102` (`INVALID_ASSIGNMENT`), `VTLS:2103` (`TYPE_MISMATCH`), `VTLS:2104` (`PROPERTY_NOT_FOUND`), `VTLS:2105` (`METHOD_NOT_FOUND`), and `VTLSEC:2401` (`SECURITY_DENIED`).
+    - Authoritative root-parameter validation: undeclared root references emit `VTLS:2101` when an authoritative contract is present; empty contracts remain permissive (`DYNAMIC / UNKNOWN`).
+    - Property, method, and arity validation across Java beans, records, public fields, arrays, and pseudo-properties (`size`, `length`) with Levenshtein typo suggestions.
+    - Dynamic escape hatches: `Map` keys, dynamic types, and unresolved generic type variables remain dynamic without false-positive rejections.
+    - Method overload parity: overloaded candidates with dynamic or multiple viable matches safely preserve dynamic dispatch without ambiguous compile errors; provably incompatible argument types emit `VTLS:2103`.
+    - Upstream error suppression prevents diagnostic cascades.
+  - **Conservative Nullable Navigation Analysis & Flow Refinement**:
+    - Nullable receivers (`nullable=true`) dereferenced without quiet reference syntax emit advisory `VTLS:2103` warnings under `WARN` and `ERROR` without failing the build.
+    - Quiet references (`$!user.name`) suppress nullable dereference warnings.
+    - Branch flow refinement: `#if($user)` or `#if($user != null)` automatically refines variable nullability to non-null in the active branch body.
+  - **Security Policy Precedence**:
+    - Security denials (`VTLSEC:2401`) take strict precedence over property/method not found diagnostics.
+    - Restricted classes and methods are excluded from typo suggestion candidate sets, preventing policy leakage.
+  - **Build Tooling & Incremental Cache Parity (`maven-plugin`, `gradle-plugin`)**:
+    - Propagated `TypeCheckingMode` through `TemplateAotRequest` into incremental compilation cache keys.
+    - Exposed `typeChecking` option in `VietTemplateCompileMojo` and `VietTemplateGenerateFacadesMojo` (Maven).
+    - Exposed `typeChecking` property in `VietTemplateExtension`, `VietTemplateCompileTask`, and `VietTemplateGenerateFacadesTask` (Gradle).
+    - Validated configuration cache, incremental compilation invalidation, and diagnostic parity across CLI and programmatic runners.
+
 - **Milestone M25: Multi-Argument Static Invocation, Runtime Divergence Guards, and Single-Evaluation Semantics**:
   - **Static Multi-Argument Method Resolution (`viet-template-language-vtl`)**:
     - Expanded `MethodResolver` with deterministic overload resolution across exact reference matches, boxed/unboxed types, and strict primitive widening (`byte` -> `short`, `int`, `long`, `float`, `double`; `int` -> `long`, `float`, `double`).
