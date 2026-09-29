@@ -79,6 +79,10 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask",
 }
 
+ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {
+    "VTLS:2107",
+}
+
 
 # =============================================================================
 # Helper Utilities
@@ -563,7 +567,8 @@ def verify_diagnostic_codes(
         return False, {}, [f"Failed to load diagnostic codes baseline: {exc}"]
 
     expected_dc = manifest.get("diagnosticCodes", {})
-    exp_count = expected_dc.get("canonicalCodesCount", 31)
+    additive_dc_count = len(ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES)
+    exp_count = expected_dc.get("canonicalCodesCount", 31) + additive_dc_count
     exp_codes = expected_dc.get("codes")
 
     details.update({
@@ -576,13 +581,12 @@ def verify_diagnostic_codes(
 
     if exp_codes is not None:
         exp_codes_set = set(exp_codes)
-        if codes != exp_codes_set:
-            missing = exp_codes_set - codes
-            extra = codes - exp_codes_set
-            if missing:
-                errors.append(f"Canonical diagnostic codes missing from baseline: {missing}")
-            if extra:
-                errors.append(f"Unregistered diagnostic codes found in baseline: {extra}")
+        missing = exp_codes_set - codes
+        extra = (codes - exp_codes_set) - ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES
+        if missing:
+            errors.append(f"Canonical diagnostic codes missing from baseline: {missing}")
+        if extra:
+            errors.append(f"Unregistered diagnostic codes found in baseline: {extra}")
 
     passed = len(errors) == 0
     return passed, details, errors

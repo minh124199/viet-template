@@ -534,7 +534,7 @@ public final class VtlSemanticAnalyzer {
           && !(currentType instanceof VType.ErrorType)) {
         diagnostics.add(
             Diagnostic.warning(
-                VtlSemanticDiagnosticCodes.TYPE_MISMATCH,
+                VtlSemanticDiagnosticCodes.NULLABLE_DEREFERENCE,
                 "Dereference of nullable target '"
                     + targetDesc
                     + "' may cause null pointer or evaluation failure. Use quiet reference '$!"

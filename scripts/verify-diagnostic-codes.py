@@ -24,7 +24,7 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_BASELINE = REPO_ROOT / "config/api-baseline/diagnostic-codes-1.0.txt"
 DEFAULT_REPORT = REPO_ROOT / "build/reports/diagnostic-codes.json"
-EXPECTED_DIAGNOSTIC_CODE_COUNT = 31
+EXPECTED_DIAGNOSTIC_CODE_COUNT = 32
 
 # Direct DiagnosticCode.of("CATEGORY", "ID") invocation pattern
 DIAG_OF_PATTERN = re.compile(

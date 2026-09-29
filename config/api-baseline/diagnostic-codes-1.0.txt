@@ -1,5 +1,5 @@
 # Viet Template Diagnostic Codes 1.0 Baseline
-# Total: 31 stable diagnostic codes
+# Total: 32 stable diagnostic codes
 # Format: CATEGORY:ID
 
 COMPILER:CODEGEN_ERROR
@@ -32,4 +32,5 @@ VTLS:2103
 VTLS:2104
 VTLS:2105
 VTLS:2106
+VTLS:2107
 VTLSEC:2401

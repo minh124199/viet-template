@@ -189,7 +189,7 @@ def check_diagnostic_codes() -> dict[str, Any]:
     return {
         "passed": passed,
         "exit_code": rc,
-        "canonical_codes": 31 if passed else 0,
+        "canonical_codes": 32 if passed else 0,
         "output_summary": stdout.strip().splitlines()[-1] if stdout else stderr.strip(),
     }
 

@@ -85,6 +85,10 @@ ALLOWED_ADDITIVE_1_X_ENTRYPOINTS: set[str] = {
     "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask",
 }
 
+ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {
+    "VTLS:2107",
+}
+
 
 # =============================================================================
 # Helper Parsers
@@ -450,7 +454,7 @@ def verify_diagnostic_codes(manifest: dict[str, Any], repo_root: Path) -> list[s
 
     if curr_codes != exp_codes:
         missing = set(exp_codes) - set(curr_codes)
-        extra = set(curr_codes) - set(exp_codes)
+        extra = (set(curr_codes) - set(exp_codes)) - ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES
         if missing:
             errors.append(f"Diagnostic codes missing from baseline file: {sorted(missing)}")
         if extra:
