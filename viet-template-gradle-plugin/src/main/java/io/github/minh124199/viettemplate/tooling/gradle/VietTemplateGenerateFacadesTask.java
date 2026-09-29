@@ -157,7 +157,12 @@ public abstract class VietTemplateGenerateFacadesTask extends DefaultTask {
             .generateTypedFacades(true)
             .generatedSourcesDirectory(genSourcesDir.toPath());
 
-    TypeCheckingMode mode = TypeCheckingConfigParser.parse(typeChecking);
+    TypeCheckingMode mode;
+    try {
+      mode = TypeCheckingConfigParser.parse(typeChecking);
+    } catch (IllegalArgumentException e) {
+      throw new GradleException(e.getMessage(), e);
+    }
     reqBuilder.typeCheckingMode(mode);
 
     List<String> incl = getIncludes().getOrNull();

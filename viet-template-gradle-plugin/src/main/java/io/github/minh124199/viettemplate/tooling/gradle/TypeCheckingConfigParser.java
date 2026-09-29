@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.tooling.gradle;
 
 import io.github.minh124199.viettemplate.api.TypeCheckingMode;
+import java.util.Locale;
 
 /**
  * Internal configuration parser converting Gradle string configuration into {@link
@@ -14,7 +15,7 @@ final class TypeCheckingConfigParser {
     if (value == null || value.isBlank()) {
       return TypeCheckingMode.OFF;
     }
-    String normalized = value.trim().toUpperCase();
+    String normalized = value.trim().toUpperCase(Locale.ROOT);
     return switch (normalized) {
       case "OFF" -> TypeCheckingMode.OFF;
       case "WARN", "WARNING" -> TypeCheckingMode.WARN;

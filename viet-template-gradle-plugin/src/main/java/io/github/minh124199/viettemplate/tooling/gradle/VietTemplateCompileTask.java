@@ -143,7 +143,12 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
             .failOnWarning(failWarn)
             .incremental(incr);
 
-    TypeCheckingMode mode = TypeCheckingConfigParser.parse(typeChecking);
+    TypeCheckingMode mode;
+    try {
+      mode = TypeCheckingConfigParser.parse(typeChecking);
+    } catch (IllegalArgumentException e) {
+      throw new GradleException(e.getMessage(), e);
+    }
     reqBuilder.typeCheckingMode(mode);
 
     List<String> incl = getIncludes().getOrNull();
