@@ -1,9 +1,14 @@
 package io.github.minh124199.viettemplate.language.vtl.semantics;
 
 import io.github.minh124199.viettemplate.api.Diagnostic;
+import io.github.minh124199.viettemplate.api.DiagnosticCode;
+import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
+import io.github.minh124199.viettemplate.api.SourceSpan;
+import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlAccessStep;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlAssignmentTarget;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlBinaryExpression;
+import io.github.minh124199.viettemplate.language.vtl.ast.VtlBinaryOperator;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlBlockDirectiveCallNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlBooleanLiteralExpression;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlBreakDirectiveNode;
@@ -36,6 +41,7 @@ import io.github.minh124199.viettemplate.language.vtl.ast.VtlStopDirectiveNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlStringLiteralExpression;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlUnaryExpression;
+import io.github.minh124199.viettemplate.language.vtl.internal.ast.VtlUnaryOperator;
 import io.github.minh124199.viettemplate.language.vtl.internal.semantics.capability.TemplateCapabilities;
 import io.github.minh124199.viettemplate.language.vtl.internal.semantics.model.ModelParameter;
 import io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.LevenshteinDistance;
@@ -54,10 +60,12 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /** Semantic analyzer performing symbol resolution, type checking, and capability calculation. */
 public final class VtlSemanticAnalyzer {
@@ -103,7 +111,7 @@ public final class VtlSemanticAnalyzer {
     }
 
     // 3. Build capabilities and result
-    if (!diagnostics.isEmpty()) {
+    if (diagnostics.stream().anyMatch(d -> d.severity() == DiagnosticSeverity.ERROR)) {
       capabilitiesBuilder.setHasErrors(true);
     }
     TemplateCapabilities capabilities = capabilitiesBuilder.build();
@@ -200,12 +208,12 @@ public final class VtlSemanticAnalyzer {
       if (ref.steps().isEmpty()) {
         String varName = ref.rootName();
         // Check root model immutability
-        if (symbolTable.rootScope().resolveCurrent(varName).isPresent() && options.strictMode()) {
-          diagnostics.add(
-              Diagnostic.error(
-                  VtlSemanticDiagnosticCodes.INVALID_ASSIGNMENT,
-                  "Cannot mutate declared root model parameter '$" + varName + "'",
-                  set.span()));
+        if (symbolTable.rootScope().resolveCurrent(varName).isPresent()
+            && options.typeCheckingMode().isEnabled()) {
+          reportStrictIssue(
+              VtlSemanticDiagnosticCodes.INVALID_ASSIGNMENT,
+              "Cannot mutate declared root model parameter '$" + varName + "'",
+              set.span());
         }
         symbolTable.define(Symbol.local(varName, rhsType, set.span()));
       } else {
@@ -218,14 +226,26 @@ public final class VtlSemanticAnalyzer {
   private void analyzeIf(VtlIfDirectiveNode ifNode) {
     for (VtlIfBranch branch : ifNode.branches()) {
       analyzeExpression(branch.condition());
+      symbolTable.enterScope(ScopeKind.LOCAL);
+      for (String varName : extractNotNullVariables(branch.condition())) {
+        refineNonNull(varName);
+      }
       for (VtlNode child : branch.body()) {
         analyzeNode(child);
       }
+      symbolTable.exitScope();
     }
     if (ifNode.elseBody().isPresent()) {
+      symbolTable.enterScope(ScopeKind.LOCAL);
+      if (ifNode.branches().size() == 1) {
+        for (String varName : extractNullVariables(ifNode.branches().get(0).condition())) {
+          refineNonNull(varName);
+        }
+      }
       for (VtlNode child : ifNode.elseBody().get()) {
         analyzeNode(child);
       }
+      symbolTable.exitScope();
     }
   }
 
@@ -381,6 +401,17 @@ public final class VtlSemanticAnalyzer {
     }
 
     if (expr instanceof VtlBinaryExpression bin) {
+      if (bin.operator() == VtlBinaryOperator.LOGICAL_AND) {
+        VType left = analyzeExpression(bin.left());
+        symbolTable.enterScope(ScopeKind.LOCAL);
+        for (String varName : extractNotNullVariables(bin.left())) {
+          refineNonNull(varName);
+        }
+        VType right = analyzeExpression(bin.right());
+        symbolTable.exitScope();
+        expressionTypes.put(bin, VTypes.BOOLEAN);
+        return VTypes.BOOLEAN;
+      }
       VType left = analyzeExpression(bin.left());
       VType right = analyzeExpression(bin.right());
       VType res =
@@ -477,29 +508,55 @@ public final class VtlSemanticAnalyzer {
       currentType = optSym.get().type();
     } else {
       capabilitiesBuilder.setUsesUnknownModelTypes(true);
-      if (options.strictMode() && !options.modelSchema().isEmpty()) {
+      if (options.typeCheckingMode().isEnabled() && !options.modelSchema().isEmpty()) {
         Optional<String> suggestion =
             LevenshteinDistance.findClosestMatch(rootName, options.modelSchema().parameterNames());
         String msg = "Root reference '$" + rootName + "' is not declared in the model schema";
         if (suggestion.isPresent()) {
           msg += ". Did you mean '$" + suggestion.get() + "'?";
         }
-        diagnostics.add(
-            Diagnostic.error(VtlSemanticDiagnosticCodes.UNRESOLVED_ROOT, msg, ref.span()));
-        currentType = VTypes.ERROR;
+        reportStrictIssue(VtlSemanticDiagnosticCodes.UNRESOLVED_ROOT, msg, ref.span());
+        currentType =
+            options.typeCheckingMode() == TypeCheckingMode.ERROR ? VTypes.ERROR : VTypes.DYNAMIC;
       } else {
         currentType = VTypes.DYNAMIC;
       }
     }
 
+    String targetDesc = "$" + rootName;
+    boolean warnedNullable = false;
     for (VtlAccessStep step : ref.steps()) {
+      if (!ref.isQuiet()
+          && !warnedNullable
+          && options.typeCheckingMode().isEnabled()
+          && currentType.nullability() == Nullability.NULLABLE
+          && !(currentType instanceof VType.DynamicType)
+          && !(currentType instanceof VType.ErrorType)) {
+        diagnostics.add(
+            Diagnostic.warning(
+                VtlSemanticDiagnosticCodes.TYPE_MISMATCH,
+                "Dereference of nullable target '"
+                    + targetDesc
+                    + "' may cause null pointer or evaluation failure. Use quiet reference '$!"
+                    + rootName
+                    + "' or guard with #if("
+                    + targetDesc
+                    + ")",
+                step.span()));
+        warnedNullable = true;
+      }
+
+      if (currentType instanceof VType.ErrorType) {
+        currentType = VTypes.ERROR;
+        continue;
+      }
+
       if (step instanceof VtlAccessStep.PropertyAccess prop) {
+        targetDesc += "." + prop.propertyName();
         if (currentType instanceof VType.DynamicType) {
           capabilitiesBuilder.setRequiresDynamicMemberResolution(true);
           memberResolutions.put(prop, MemberResolution.dynamic(VTypes.DYNAMIC));
           currentType = VTypes.DYNAMIC;
-        } else if (currentType instanceof VType.ErrorType) {
-          currentType = VTypes.ERROR;
         } else {
           MemberResolution res =
               MemberResolver.resolveProperty(
@@ -507,6 +564,13 @@ public final class VtlSemanticAnalyzer {
           memberResolutions.put(prop, res);
           if (res.isFound()) {
             currentType = res.resultType();
+          } else if (res.kind() == MemberResolution.Kind.DENIED) {
+            diagnostics.add(
+                Diagnostic.error(
+                    VtlSemanticDiagnosticCodes.SECURITY_DENIED,
+                    res.diagnosticMessage().orElse("Access denied by security policy"),
+                    prop.span()));
+            currentType = VTypes.ERROR;
           } else {
             String msg =
                 "Property '"
@@ -516,12 +580,17 @@ public final class VtlSemanticAnalyzer {
             if (res.typoSuggestion().isPresent()) {
               msg += ". Did you mean '" + res.typoSuggestion().get() + "'?";
             }
-            diagnostics.add(
-                Diagnostic.error(VtlSemanticDiagnosticCodes.PROPERTY_NOT_FOUND, msg, prop.span()));
-            currentType = VTypes.ERROR;
+            reportStrictIssue(VtlSemanticDiagnosticCodes.PROPERTY_NOT_FOUND, msg, prop.span());
+            if (options.typeCheckingMode() == TypeCheckingMode.ERROR) {
+              currentType = VTypes.ERROR;
+            } else {
+              capabilitiesBuilder.setRequiresDynamicMemberResolution(true);
+              currentType = VTypes.DYNAMIC;
+            }
           }
         }
       } else if (step instanceof VtlAccessStep.MethodCall call) {
+        targetDesc += "." + call.methodName() + "()";
         capabilitiesBuilder.setRequiresArbitraryMethodCalls(true);
         List<VType> argTypes = new ArrayList<>();
         for (VtlExpression arg : call.arguments()) {
@@ -552,36 +621,93 @@ public final class VtlSemanticAnalyzer {
             currentType = VTypes.ERROR;
           } else if (res.kind() == MethodResolution.Kind.DYNAMIC) {
             currentType = VTypes.DYNAMIC;
-          } else {
-            String msg =
-                "Method '"
-                    + call.methodName()
-                    + "' with "
-                    + argTypes.size()
-                    + " argument(s) does not exist on type "
-                    + currentType.typeName();
-            if (res.typoSuggestion().isPresent()) {
-              msg += ". Did you mean '" + res.typoSuggestion().get() + "'?";
+          } else if (res.kind() == MethodResolution.Kind.ARITY_MISMATCH) {
+            reportStrictIssue(
+                VtlSemanticDiagnosticCodes.METHOD_NOT_FOUND,
+                res.diagnosticMessage().orElse("Method arity mismatch"),
+                call.span());
+            currentType =
+                options.typeCheckingMode() == TypeCheckingMode.ERROR
+                    ? VTypes.ERROR
+                    : VTypes.DYNAMIC;
+          } else if (res.kind() == MethodResolution.Kind.INCOMPATIBLE_ARGUMENTS) {
+            SourceSpan diagSpan = call.span();
+            if (res.incompatibleArgIndex() >= 0
+                && res.incompatibleArgIndex() < call.arguments().size()) {
+              diagSpan = call.arguments().get(res.incompatibleArgIndex()).span();
             }
-            diagnostics.add(
-                Diagnostic.error(VtlSemanticDiagnosticCodes.METHOD_NOT_FOUND, msg, call.span()));
-            currentType = VTypes.ERROR;
+            reportStrictIssue(
+                VtlSemanticDiagnosticCodes.TYPE_MISMATCH,
+                res.diagnosticMessage().orElse("Incompatible argument types for method"),
+                diagSpan);
+            currentType =
+                options.typeCheckingMode() == TypeCheckingMode.ERROR
+                    ? VTypes.ERROR
+                    : VTypes.DYNAMIC;
+          } else {
+            if (argTypes.stream().anyMatch(t -> t instanceof VType.ErrorType)) {
+              currentType = VTypes.ERROR;
+            } else {
+              String msg =
+                  "Method '"
+                      + call.methodName()
+                      + "' with "
+                      + argTypes.size()
+                      + " argument(s) does not exist on type "
+                      + currentType.typeName();
+              if (res.typoSuggestion().isPresent()) {
+                msg += ". Did you mean '" + res.typoSuggestion().get() + "'?";
+              }
+              reportStrictIssue(VtlSemanticDiagnosticCodes.METHOD_NOT_FOUND, msg, call.span());
+              currentType =
+                  options.typeCheckingMode() == TypeCheckingMode.ERROR
+                      ? VTypes.ERROR
+                      : VTypes.DYNAMIC;
+            }
           }
         }
       } else if (step instanceof VtlAccessStep.IndexAccess idx) {
-        analyzeExpression(idx.indexExpression());
+        targetDesc += "[...]";
+        VType indexType = analyzeExpression(idx.indexExpression());
         if (currentType instanceof VType.ArrayType at) {
+          if (options.typeCheckingMode().isEnabled()
+              && !indexType.isDynamic()
+              && !(indexType instanceof VType.PrimitiveType pt && pt.kind().isIntegral())
+              && !(indexType instanceof VType.ClassType ct && isIntegralClass(ct))) {
+            reportStrictIssue(
+                VtlSemanticDiagnosticCodes.TYPE_MISMATCH,
+                "Array index must be an integer, but was " + indexType.typeName(),
+                idx.indexExpression().span());
+          }
           currentType = at.componentType();
         } else if (currentType instanceof VType.ClassType ct && ct.javaClass().isPresent()) {
           Class<?> c = ct.javaClass().get();
           if (List.class.isAssignableFrom(c)) {
+            if (options.typeCheckingMode().isEnabled()
+                && !indexType.isDynamic()
+                && !(indexType instanceof VType.PrimitiveType pt && pt.kind().isIntegral())
+                && !(indexType instanceof VType.ClassType ct2 && isIntegralClass(ct2))) {
+              reportStrictIssue(
+                  VtlSemanticDiagnosticCodes.TYPE_MISMATCH,
+                  "List index must be an integer, but was " + indexType.typeName(),
+                  idx.indexExpression().span());
+            }
             currentType = ct.typeArguments().isEmpty() ? VTypes.DYNAMIC : ct.typeArguments().get(0);
           } else if (Map.class.isAssignableFrom(c)) {
             currentType =
                 ct.typeArguments().size() >= 2 ? ct.typeArguments().get(1) : VTypes.DYNAMIC;
           } else {
+            if (options.typeCheckingMode().isEnabled()) {
+              reportStrictIssue(
+                  VtlSemanticDiagnosticCodes.TYPE_MISMATCH,
+                  "Type " + currentType.typeName() + " does not support indexing",
+                  idx.span());
+            }
             capabilitiesBuilder.setRequiresDynamicMemberResolution(true);
-            currentType = VTypes.DYNAMIC;
+            currentType =
+                options.typeCheckingMode() == TypeCheckingMode.ERROR
+                    ? VTypes.ERROR
+                    : VTypes.DYNAMIC;
           }
         } else {
           capabilitiesBuilder.setRequiresDynamicMemberResolution(true);
@@ -592,9 +718,119 @@ public final class VtlSemanticAnalyzer {
 
     if (ref.alternateValue().isPresent()) {
       VType altType = analyzeExpression(ref.alternateValue().get());
-      currentType = new VType.UnionType(List.of(currentType, altType), Nullability.NULLABLE);
+      Nullability unionNullability =
+          (currentType.nullability() == Nullability.NON_NULL
+                  || altType.nullability() == Nullability.NON_NULL)
+              ? Nullability.NON_NULL
+              : Nullability.NULLABLE;
+      currentType = new VType.UnionType(List.of(currentType, altType), unionNullability);
     }
 
     return currentType;
+  }
+
+  private boolean isNullExpr(VtlExpression expr) {
+    if (expr instanceof VtlNullLiteralExpression) {
+      return true;
+    }
+    if (expr instanceof VtlReferenceExpression ref && ref.reference().steps().isEmpty()) {
+      return "null".equals(ref.reference().rootName());
+    }
+    return false;
+  }
+
+  private Set<String> extractNotNullVariables(VtlExpression expr) {
+    Set<String> vars = new LinkedHashSet<>();
+    collectNotNullVariables(expr, vars);
+    return vars;
+  }
+
+  private void collectNotNullVariables(VtlExpression expr, Set<String> vars) {
+    if (expr instanceof VtlReferenceExpression refExpr && refExpr.reference().steps().isEmpty()) {
+      vars.add(refExpr.reference().rootName());
+      return;
+    }
+    if (expr instanceof VtlBinaryExpression bin) {
+      if (bin.operator() == VtlBinaryOperator.LOGICAL_AND) {
+        collectNotNullVariables(bin.left(), vars);
+        collectNotNullVariables(bin.right(), vars);
+        return;
+      }
+      if (bin.operator() == VtlBinaryOperator.NOT_EQUAL) {
+        if (bin.left() instanceof VtlReferenceExpression ref
+            && ref.reference().steps().isEmpty()
+            && isNullExpr(bin.right())) {
+          vars.add(ref.reference().rootName());
+          return;
+        }
+        if (bin.right() instanceof VtlReferenceExpression ref
+            && ref.reference().steps().isEmpty()
+            && isNullExpr(bin.left())) {
+          vars.add(ref.reference().rootName());
+          return;
+        }
+      }
+    }
+    if (expr instanceof VtlGroupedExpression grp) {
+      collectNotNullVariables(grp.expression(), vars);
+    }
+  }
+
+  private Set<String> extractNullVariables(VtlExpression expr) {
+    Set<String> vars = new LinkedHashSet<>();
+    collectNullVariables(expr, vars);
+    return vars;
+  }
+
+  private void collectNullVariables(VtlExpression expr, Set<String> vars) {
+    if (expr instanceof VtlUnaryExpression un && un.operator() == VtlUnaryOperator.NOT) {
+      collectNotNullVariables(un.operand(), vars);
+      return;
+    }
+    if (expr instanceof VtlBinaryExpression bin) {
+      if (bin.operator() == VtlBinaryOperator.EQUAL) {
+        if (bin.left() instanceof VtlReferenceExpression ref
+            && ref.reference().steps().isEmpty()
+            && isNullExpr(bin.right())) {
+          vars.add(ref.reference().rootName());
+          return;
+        }
+        if (bin.right() instanceof VtlReferenceExpression ref
+            && ref.reference().steps().isEmpty()
+            && isNullExpr(bin.left())) {
+          vars.add(ref.reference().rootName());
+          return;
+        }
+      }
+    }
+    if (expr instanceof VtlGroupedExpression grp) {
+      collectNullVariables(grp.expression(), vars);
+    }
+  }
+
+  private void refineNonNull(String varName) {
+    symbolTable
+        .resolve(varName)
+        .ifPresent(
+            sym -> {
+              if (sym.type().nullability() == Nullability.NULLABLE) {
+                VType nonNullType = sym.type().withNullability(Nullability.NON_NULL);
+                symbolTable.define(sym.withType(nonNullType));
+              }
+            });
+  }
+
+  private void reportStrictIssue(DiagnosticCode code, String message, SourceSpan span) {
+    if (options.typeCheckingMode() == TypeCheckingMode.ERROR) {
+      diagnostics.add(Diagnostic.error(code, message, span));
+    } else if (options.typeCheckingMode() == TypeCheckingMode.WARN) {
+      diagnostics.add(Diagnostic.warning(code, message, span));
+    }
+  }
+
+  private static boolean isIntegralClass(VType.ClassType ct) {
+    if (ct.javaClass().isEmpty()) return false;
+    Class<?> c = ct.javaClass().get();
+    return c == Integer.class || c == Long.class || c == Short.class || c == Byte.class;
   }
 }
