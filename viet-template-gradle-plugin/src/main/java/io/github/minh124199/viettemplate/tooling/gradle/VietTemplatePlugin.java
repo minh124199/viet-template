@@ -60,6 +60,7 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   facadeTask
                       .getGenerateTypedFacades()
                       .convention(extension.getGenerateTypedFacades());
+                  facadeTask.getTypeChecking().convention(extension.getTypeChecking());
                   facadeTask.onlyIf(t -> facadeTask.getGenerateTypedFacades().getOrElse(false));
                 });
 
@@ -90,6 +91,7 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   compileTask
                       .getGenerateTypedFacades()
                       .convention(extension.getGenerateTypedFacades());
+                  compileTask.getTypeChecking().convention(extension.getTypeChecking());
                 });
 
     // When java plugin applied:

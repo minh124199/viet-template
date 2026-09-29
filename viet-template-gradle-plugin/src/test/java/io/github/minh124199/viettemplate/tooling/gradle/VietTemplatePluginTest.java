@@ -55,6 +55,7 @@ class VietTemplatePluginTest {
     assertThat(extension.getFailOnWarning().get()).isFalse();
     assertThat(extension.getIncremental().get()).isTrue();
     assertThat(extension.getGenerateTypedFacades().get()).isFalse();
+    assertThat(extension.getTypeChecking().get()).isEqualTo("OFF");
 
     // Verify task
     Task taskObj = project.getTasks().findByName(VietTemplatePlugin.TASK_NAME);
@@ -73,6 +74,7 @@ class VietTemplatePluginTest {
         .isEqualTo(
             tempDir.resolve("build/generated/viet-template/sources").toFile().getCanonicalFile());
     assertThat(task.getGenerateTypedFacades().get()).isFalse();
+    assertThat(task.getTypeChecking().get()).isEqualTo("OFF");
 
     // Verify task dependencies
     assertThat(task.getDependsOn()).contains(JavaPlugin.COMPILE_JAVA_TASK_NAME);
@@ -83,6 +85,8 @@ class VietTemplatePluginTest {
     Task facadeTaskObj =
         project.getTasks().findByName(VietTemplatePlugin.GENERATE_FACADES_TASK_NAME);
     assertThat(facadeTaskObj).isInstanceOf(VietTemplateGenerateFacadesTask.class);
+    VietTemplateGenerateFacadesTask facadeTask = (VietTemplateGenerateFacadesTask) facadeTaskObj;
+    assertThat(facadeTask.getTypeChecking().get()).isEqualTo("OFF");
     Task compileJavaTask = project.getTasks().getByName(JavaPlugin.COMPILE_JAVA_TASK_NAME);
     assertThat(compileJavaTask.getDependsOn()).contains(facadeTaskObj);
   }
@@ -173,5 +177,80 @@ class VietTemplatePluginTest {
     assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME).getOutcome())
         .isEqualTo(TaskOutcome.FAILED);
     assertThat(result.getOutput()).contains("Viet Template AOT compilation failed");
+  }
+
+  @Test
+  @DisplayName("TypeChecking ERROR fails build on contract mismatch via GradleRunner")
+  void testTypeCheckingErrorWithGradleRunner(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"test-typecheck-error\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n"
+            + "vietTemplate {\n"
+            + "    typeChecking.set(\"ERROR\")\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path templateDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(templateDir);
+    Files.writeString(
+        templateDir.resolve("user.vtl"), "User: $user.invalidProp", StandardCharsets.UTF_8);
+    Files.writeString(
+        templateDir.resolve("user.vtl.contract"), "user=String\n", StandardCharsets.UTF_8);
+
+    BuildResult result =
+        createRunner(projectDir).withArguments(VietTemplatePlugin.TASK_NAME).buildAndFail();
+
+    assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME)).isNotNull();
+    assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.FAILED);
+    assertThat(result.getOutput()).contains("Viet Template AOT compilation failed");
+  }
+
+  @Test
+  @DisplayName("TypeChecking WARN allows build to succeed on contract mismatch via GradleRunner")
+  void testTypeCheckingWarnWithGradleRunner(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"test-typecheck-warn\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n"
+            + "vietTemplate {\n"
+            + "    typeChecking.set(\"WARN\")\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path templateDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(templateDir);
+    Files.writeString(
+        templateDir.resolve("user.vtl"), "User: $user.invalidProp", StandardCharsets.UTF_8);
+    Files.writeString(
+        templateDir.resolve("user.vtl.contract"), "user=String\n", StandardCharsets.UTF_8);
+
+    BuildResult result =
+        createRunner(projectDir).withArguments(VietTemplatePlugin.TASK_NAME).build();
+
+    assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME)).isNotNull();
+    assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
   }
 }

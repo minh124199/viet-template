@@ -23,6 +23,7 @@ public abstract class VietTemplateExtension {
     getFailOnWarning().convention(false);
     getIncremental().convention(true);
     getGenerateTypedFacades().convention(false);
+    getTypeChecking().convention("OFF");
     getGeneratedSourcesDirectory().convention(objects.directoryProperty());
   }
 
@@ -47,4 +48,6 @@ public abstract class VietTemplateExtension {
   public abstract Property<Boolean> getIncremental();
 
   public abstract Property<Boolean> getGenerateTypedFacades();
+
+  public abstract Property<String> getTypeChecking();
 }

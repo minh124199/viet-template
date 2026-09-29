@@ -41,6 +41,7 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
     getFailOnWarning().convention(false);
     getIncremental().convention(true);
     getGenerateTypedFacades().convention(false);
+    getTypeChecking().convention("OFF");
   }
 
   @InputDirectory
@@ -92,6 +93,10 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
   @Optional
   public abstract Property<Boolean> getGenerateTypedFacades();
 
+  @Input
+  @Optional
+  public abstract Property<String> getTypeChecking();
+
   @TaskAction
   public void compileTemplates() {
     File srcDir = getSourceDirectory().getAsFile().getOrNull();
@@ -125,6 +130,7 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
     String pkg = getPackagePrefix().getOrElse("io.github.minh124199.viettemplate.generated");
     boolean failWarn = getFailOnWarning().getOrElse(false);
     boolean incr = getIncremental().getOrElse(true);
+    String typeChecking = getTypeChecking().getOrElse("OFF");
 
     TemplateAotRequest.Builder reqBuilder =
         TemplateAotRequest.builder()
@@ -135,6 +141,10 @@ public abstract class VietTemplateCompileTask extends DefaultTask {
             .packagePrefix(pkg)
             .failOnWarning(failWarn)
             .incremental(incr);
+
+    if (typeChecking != null && !typeChecking.isBlank()) {
+      reqBuilder.typeChecking(typeChecking);
+    }
 
     List<String> incl = getIncludes().getOrNull();
     if (incl != null && !incl.isEmpty()) {
