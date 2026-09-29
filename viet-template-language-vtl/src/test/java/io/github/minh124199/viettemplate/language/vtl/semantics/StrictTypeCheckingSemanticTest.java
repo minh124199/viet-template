@@ -121,7 +121,7 @@ class StrictTypeCheckingSemanticTest {
 
   @Test
   @DisplayName(
-      "Nullable reference dereference emits advisory VTLS2103 warning under WARN and ERROR")
+      "Nullable reference dereference emits advisory VTLS2107 warning under WARN and ERROR")
   void nullableDereferenceAdvisoryWarning() {
     VtlParseResult parsed = parse("$user.name");
     ModelSchema schema =
@@ -139,7 +139,8 @@ class StrictTypeCheckingSemanticTest {
     assertThat(warnResult.diagnostics()).hasSize(1);
     assertThat(warnResult.diagnostics().get(0).severity()).isEqualTo(DiagnosticSeverity.WARNING);
     assertThat(warnResult.diagnostics().get(0).code())
-        .isEqualTo(VtlSemanticDiagnosticCodes.TYPE_MISMATCH);
+        .isEqualTo(VtlSemanticDiagnosticCodes.NULLABLE_DEREFERENCE);
+    assertThat(warnResult.diagnostics().get(0).code().qualifiedCode()).isEqualTo("VTLS:2107");
     assertThat(warnResult.diagnostics().get(0).message())
         .contains("Dereference of nullable target '$user'");
 
@@ -154,6 +155,9 @@ class StrictTypeCheckingSemanticTest {
     assertThat(errResult.hasErrors()).isFalse();
     assertThat(errResult.diagnostics()).hasSize(1);
     assertThat(errResult.diagnostics().get(0).severity()).isEqualTo(DiagnosticSeverity.WARNING);
+    assertThat(errResult.diagnostics().get(0).code())
+        .isEqualTo(VtlSemanticDiagnosticCodes.NULLABLE_DEREFERENCE);
+    assertThat(errResult.diagnostics().get(0).code().qualifiedCode()).isEqualTo("VTLS:2107");
 
     // Under OFF: suppressed
     VtlSemanticOptions offOptions =
@@ -165,6 +169,52 @@ class StrictTypeCheckingSemanticTest {
     SemanticAnalysisResult offResult = VtlSemanticAnalyzer.analyze(parsed.template(), offOptions);
     assertThat(offResult.hasErrors()).isFalse();
     assertThat(offResult.diagnostics()).isEmpty();
+  }
+
+  @Test
+  @DisplayName(
+      "Machine-consumable distinction: argument incompatibility emits VTLS:2103 while nullable"
+          + " dereference emits VTLS:2107")
+  void machineConsumableDistinctionBetweenTypeMismatchAndNullable() {
+    // 1. Argument type mismatch emits VTLS:2103 (ERROR)
+    VtlParseResult mismatchParsed = parse("$user.compute('not-an-int', 42)");
+    ModelSchema schemaMismatch =
+        ModelSchema.of(Map.of("user", VType.ClassType.of(TestUser.class, Nullability.NON_NULL)));
+    VtlSemanticOptions errorOptions =
+        VtlSemanticOptions.builder()
+            .profile(VtlProfile.VTL_DYNAMIC)
+            .modelSchema(schemaMismatch)
+            .typeCheckingMode(TypeCheckingMode.ERROR)
+            .build();
+    SemanticAnalysisResult mismatchResult =
+        VtlSemanticAnalyzer.analyze(mismatchParsed.template(), errorOptions);
+    assertThat(mismatchResult.hasErrors()).isTrue();
+    assertThat(mismatchResult.diagnostics()).isNotEmpty();
+    var mismatchDiag = mismatchResult.diagnostics().get(0);
+    assertThat(mismatchDiag.code()).isEqualTo(VtlSemanticDiagnosticCodes.TYPE_MISMATCH);
+    assertThat(mismatchDiag.code().qualifiedCode()).isEqualTo("VTLS:2103");
+    assertThat(mismatchDiag.code()).isNotEqualTo(VtlSemanticDiagnosticCodes.NULLABLE_DEREFERENCE);
+
+    // 2. Nullable dereference emits VTLS:2107 (WARNING), never VTLS:2103
+    VtlParseResult nullableParsed = parse("$nullableUser.name");
+    ModelSchema schemaNullable =
+        ModelSchema.of(
+            Map.of("nullableUser", VType.ClassType.of(TestUser.class, Nullability.NULLABLE)));
+    VtlSemanticOptions nullableOptions =
+        VtlSemanticOptions.builder()
+            .profile(VtlProfile.VTL_DYNAMIC)
+            .modelSchema(schemaNullable)
+            .typeCheckingMode(TypeCheckingMode.ERROR)
+            .build();
+    SemanticAnalysisResult nullableResult =
+        VtlSemanticAnalyzer.analyze(nullableParsed.template(), nullableOptions);
+    assertThat(nullableResult.hasErrors()).isFalse();
+    assertThat(nullableResult.diagnostics()).hasSize(1);
+    var nullableDiag = nullableResult.diagnostics().get(0);
+    assertThat(nullableDiag.code()).isEqualTo(VtlSemanticDiagnosticCodes.NULLABLE_DEREFERENCE);
+    assertThat(nullableDiag.code().qualifiedCode()).isEqualTo("VTLS:2107");
+    assertThat(nullableDiag.code()).isNotEqualTo(VtlSemanticDiagnosticCodes.TYPE_MISMATCH);
+    assertThat(nullableDiag.severity()).isEqualTo(DiagnosticSeverity.WARNING);
   }
 
   @Test
@@ -230,6 +280,30 @@ class StrictTypeCheckingSemanticTest {
     VtlParseResult parsed = parse("#if(!$user)None#else$user.name#end");
     ModelSchema schema =
         ModelSchema.of(Map.of("user", VType.ClassType.of(TestUser.class, Nullability.NULLABLE)));
+
+    VtlSemanticOptions options =
+        VtlSemanticOptions.builder()
+            .profile(VtlProfile.VTL_CORE)
+            .modelSchema(schema)
+            .typeCheckingMode(TypeCheckingMode.ERROR)
+            .build();
+
+    SemanticAnalysisResult result = VtlSemanticAnalyzer.analyze(parsed.template(), options);
+    assertThat(result.hasErrors()).isFalse();
+    assertThat(result.diagnostics()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("Flow refinement via #if($user && $other) refines nullability in body")
+  void flowRefinementWithLogicalAnd() {
+    VtlParseResult parsed = parse("#if($user && $other)$user.name#end");
+    ModelSchema schema =
+        ModelSchema.of(
+            Map.of(
+                "user",
+                VType.ClassType.of(TestUser.class, Nullability.NULLABLE),
+                "other",
+                VTypes.BOOLEAN));
 
     VtlSemanticOptions options =
         VtlSemanticOptions.builder()

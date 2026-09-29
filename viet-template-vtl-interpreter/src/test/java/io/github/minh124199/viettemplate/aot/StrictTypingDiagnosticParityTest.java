@@ -3,6 +3,7 @@ package io.github.minh124199.viettemplate.aot;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.minh124199.viettemplate.api.Diagnostic;
+import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
 import io.github.minh124199.viettemplate.api.TemplateContract;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateParameter;
@@ -141,5 +142,58 @@ class StrictTypingDiagnosticParityTest {
       assertThat(aotDiag.message()).isEqualTo(semDiag.message());
       assertThat(aotDiag.startLine()).isGreaterThan(0);
     }
+  }
+
+  @Test
+  @DisplayName("Nullable dereference parity: VTLS:2107 matches across semantic and AOT tiers")
+  void testNullableSemanticAndAotParity(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src");
+    Path outDir = tempDir.resolve("out");
+    Files.createDirectories(srcDir);
+
+    String content = "Hello $user.name";
+    Path templatePath = srcDir.resolve("test.vtl");
+    Files.writeString(templatePath, content, StandardCharsets.UTF_8);
+
+    TemplateId id = TemplateId.of("test.vtl");
+    TemplateContract contract =
+        TemplateContract.of(id, List.of(TemplateParameter.of("user", Customer.class, true)));
+
+    // 1. Semantic
+    SourceText source = SourceText.from(content, id);
+    VtlParseResult parseResult = VtlParser.parse(source, VtlParserOptions.DEFAULT);
+    ModelSchema schema =
+        ModelSchema.of(Map.of("user", VType.ClassType.of(Customer.class, Nullability.NULLABLE)));
+    VtlSemanticOptions semanticOptions =
+        VtlSemanticOptions.builder()
+            .profile(VtlProfile.VTL_DYNAMIC)
+            .modelSchema(schema)
+            .typeCheckingMode(TypeCheckingMode.ERROR)
+            .build();
+    SemanticAnalysisResult semanticResult =
+        VtlSemanticAnalyzer.analyze(parseResult.template(), semanticOptions);
+
+    // 2. AOT
+    TemplateAotCompiler compiler = TemplateAotCompiler.create();
+    TemplateAotRequest request =
+        TemplateAotRequest.builder()
+            .sourceDirectory(srcDir)
+            .outputDirectory(outDir)
+            .contracts(Map.of(id, contract))
+            .typeChecking(TypeCheckingMode.ERROR)
+            .build();
+    TemplateAotResult aotResult = compiler.compile(request);
+
+    assertThat(aotResult.diagnostics()).hasSize(1);
+    assertThat(semanticResult.diagnostics()).hasSize(1);
+    Diagnostic semDiag = semanticResult.diagnostics().get(0);
+    TemplateAotDiagnostic aotDiag = aotResult.diagnostics().get(0);
+
+    assertThat(semDiag.code().qualifiedCode()).isEqualTo("VTLS:2107");
+    assertThat(aotDiag.code().qualifiedCode()).isEqualTo("VTLS:2107");
+    assertThat(aotDiag.code()).isEqualTo(semDiag.code());
+    assertThat(aotDiag.severity()).isEqualTo(DiagnosticSeverity.WARNING);
+    assertThat(semDiag.severity()).isEqualTo(DiagnosticSeverity.WARNING);
+    assertThat(aotDiag.message()).isEqualTo(semDiag.message());
   }
 }

@@ -253,4 +253,78 @@ class VietTemplatePluginTest {
     assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME).getOutcome())
         .isEqualTo(TaskOutcome.SUCCESS);
   }
+
+  @Test
+  @DisplayName("Invalid typeChecking configuration fails build via GradleRunner")
+  void testTypeCheckingInvalidFailsBuildWithClearMessage(@TempDir Path projectDir)
+      throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"test-typecheck-invalid\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n"
+            + "vietTemplate {\n"
+            + "    typeChecking.set(\"invalid-mode\")\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path templateDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(templateDir);
+    Files.writeString(templateDir.resolve("user.vtl"), "Hello $name", StandardCharsets.UTF_8);
+
+    BuildResult result =
+        createRunner(projectDir).withArguments(VietTemplatePlugin.TASK_NAME).buildAndFail();
+
+    assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME)).isNotNull();
+    assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.FAILED);
+    assertThat(result.getOutput()).contains("Invalid typeChecking configuration: 'invalid-mode'");
+  }
+
+  @Test
+  @DisplayName(
+      "TypeChecking ERROR allows advisory nullable dereference warning to succeed via GradleRunner")
+  void testTypeCheckingErrorAllowsNullableWarning(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"test-typecheck-nullable-error\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n"
+            + "vietTemplate {\n"
+            + "    typeChecking.set(\"ERROR\")\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path templateDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(templateDir);
+    Files.writeString(
+        templateDir.resolve("user.vtl"), "User: $user.length()", StandardCharsets.UTF_8);
+    Files.writeString(
+        templateDir.resolve("user.vtl.contract"), "nullable user=String\n", StandardCharsets.UTF_8);
+
+    BuildResult result =
+        createRunner(projectDir).withArguments(VietTemplatePlugin.TASK_NAME).build();
+
+    assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME)).isNotNull();
+    assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+  }
 }

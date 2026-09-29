@@ -28,6 +28,14 @@ class TypeCheckingModeAotTest {
     public String getFullName() {
       return fullName;
     }
+
+    public String getName() {
+      return fullName;
+    }
+
+    public int compute(int a, int b) {
+      return a + b;
+    }
   }
 
   @Test
@@ -178,13 +186,13 @@ class TypeCheckingModeAotTest {
   }
 
   @Test
-  @DisplayName("Builder typeChecking string overload parses case-insensitively")
-  void testBuilderTypeCheckingString() {
+  @DisplayName("Builder typeChecking overload configures mode cleanly")
+  void testBuilderTypeCheckingEnum() {
     TemplateAotRequest r1 =
         TemplateAotRequest.builder()
             .sourceDirectory(Path.of("."))
             .outputDirectory(Path.of("."))
-            .typeChecking("warn")
+            .typeChecking(TypeCheckingMode.WARN)
             .build();
     assertThat(r1.typeCheckingMode()).isEqualTo(TypeCheckingMode.WARN);
 
@@ -192,7 +200,7 @@ class TypeCheckingModeAotTest {
         TemplateAotRequest.builder()
             .sourceDirectory(Path.of("."))
             .outputDirectory(Path.of("."))
-            .typeChecking("ERROR")
+            .typeChecking(TypeCheckingMode.ERROR)
             .build();
     assertThat(r2.typeCheckingMode()).isEqualTo(TypeCheckingMode.ERROR);
 
@@ -200,7 +208,7 @@ class TypeCheckingModeAotTest {
         TemplateAotRequest.builder()
             .sourceDirectory(Path.of("."))
             .outputDirectory(Path.of("."))
-            .typeChecking("off")
+            .typeChecking(TypeCheckingMode.OFF)
             .build();
     assertThat(r3.typeCheckingMode()).isEqualTo(TypeCheckingMode.OFF);
 
@@ -210,5 +218,79 @@ class TypeCheckingModeAotTest {
             .outputDirectory(Path.of("."))
             .build();
     assertThat(r4.typeCheckingMode()).isEqualTo(TypeCheckingMode.OFF);
+  }
+
+  @Test
+  @DisplayName("Nullable dereference warning VTLS:2107 does not fail compilation under ERROR mode")
+  void testNullableAdvisoryWarningDoesNotFailCompilation(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src");
+    Path outDir = tempDir.resolve("out");
+    Files.createDirectories(srcDir);
+
+    Path template = srcDir.resolve("user.vtl");
+    Files.writeString(template, "User: $user.name", StandardCharsets.UTF_8);
+
+    TemplateId id = TemplateId.of("user.vtl");
+    TemplateContract contract =
+        TemplateContract.of(id, List.of(TemplateParameter.of("user", CustomerBean.class, true)));
+
+    TemplateAotCompiler compiler = TemplateAotCompiler.create();
+    TemplateAotRequest request =
+        TemplateAotRequest.builder()
+            .sourceDirectory(srcDir)
+            .outputDirectory(outDir)
+            .contracts(Map.of(id, contract))
+            .typeChecking(TypeCheckingMode.ERROR)
+            .build();
+
+    TemplateAotResult result = compiler.compile(request);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.hasErrors()).isFalse();
+    assertThat(result.hasWarnings()).isTrue();
+    assertThat(result.diagnostics())
+        .anyMatch(
+            d ->
+                d.severity() == DiagnosticSeverity.WARNING
+                    && d.code().qualifiedCode().equals("VTLS:2107"));
+    assertThat(result.diagnostics()).noneMatch(d -> d.code().qualifiedCode().equals("VTLS:2103"));
+    assertThat(result.compiledCount()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("Type mismatch VTLS:2103 fails compilation under ERROR mode")
+  void testTypeMismatchFailsCompilationUnderErrorMode(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src");
+    Path outDir = tempDir.resolve("out");
+    Files.createDirectories(srcDir);
+
+    Path template = srcDir.resolve("user.vtl");
+    Files.writeString(
+        template, "Calculate: $user.compute('not-an-int', 42)", StandardCharsets.UTF_8);
+
+    TemplateId id = TemplateId.of("user.vtl");
+    TemplateContract contract =
+        TemplateContract.of(id, List.of(TemplateParameter.of("user", CustomerBean.class, false)));
+
+    TemplateAotCompiler compiler = TemplateAotCompiler.create();
+    TemplateAotRequest request =
+        TemplateAotRequest.builder()
+            .sourceDirectory(srcDir)
+            .outputDirectory(outDir)
+            .contracts(Map.of(id, contract))
+            .typeChecking(TypeCheckingMode.ERROR)
+            .build();
+
+    TemplateAotResult result = compiler.compile(request);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.hasErrors()).isTrue();
+    assertThat(result.diagnostics())
+        .anyMatch(
+            d ->
+                d.severity() == DiagnosticSeverity.ERROR
+                    && d.code().qualifiedCode().equals("VTLS:2103"));
+    assertThat(result.diagnostics()).noneMatch(d -> d.code().qualifiedCode().equals("VTLS:2107"));
+    assertThat(result.compiledCount()).isEqualTo(0);
   }
 }
