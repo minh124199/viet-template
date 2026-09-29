@@ -1,6 +1,8 @@
 package io.github.minh124199.viettemplate.language.vtl.ir.optimization;
 
 import io.github.minh124199.viettemplate.language.vtl.internal.ir.plan.DynamicKind;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MethodResolution;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MethodResolver;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
@@ -27,6 +29,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrSetProperty
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStatement;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStoreLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteValue;
+import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import java.lang.reflect.Field;
@@ -269,7 +272,10 @@ final class DirectAccessorBindingPass implements IrOptimizationPass {
       String propertyName,
       IrDynamicDispatch dyn,
       OptimizationContext context) {
-    if (DENIED_METHODS.contains(propertyName)) {
+    if (DENIED_METHODS.contains(propertyName)
+        || isDeniedClass(clazz)
+        || !context.securityPolicy().isClassPermitted(clazz)
+        || !context.securityPolicy().isPropertyPermitted(clazz, propertyName)) {
       return null;
     }
 
@@ -278,7 +284,9 @@ final class DirectAccessorBindingPass implements IrOptimizationPass {
       for (RecordComponent rc : clazz.getRecordComponents()) {
         if (rc.getName().equals(propertyName)) {
           Method accessor = rc.getAccessor();
-          if (Modifier.isPublic(accessor.getModifiers())) {
+          if (Modifier.isPublic(accessor.getModifiers())
+              && context.securityPolicy().isMethodPermitted(clazz, accessor)
+              && context.securityPolicy().isClassPermitted(rc.getType())) {
             context.statistics().recordAccessorBound();
             return new IrGetProperty(
                 rec,
@@ -315,7 +323,9 @@ final class DirectAccessorBindingPass implements IrOptimizationPass {
       if (m.getParameterCount() == 0 && Modifier.isPublic(m.getModifiers())) {
         if (m.getName().equals(getName)
             || (m.getName().equals(isName) && m.getReturnType() == boolean.class)) {
-          if (!DENIED_METHODS.contains(m.getName())) {
+          if (!DENIED_METHODS.contains(m.getName())
+              && context.securityPolicy().isMethodPermitted(clazz, m)
+              && context.securityPolicy().isClassPermitted(m.getReturnType())) {
             context.statistics().recordAccessorBound();
             return new IrGetProperty(
                 rec,
@@ -332,7 +342,10 @@ final class DirectAccessorBindingPass implements IrOptimizationPass {
     // 4. Public Field
     try {
       Field f = clazz.getField(propertyName);
-      if (Modifier.isPublic(f.getModifiers()) && !Modifier.isStatic(f.getModifiers())) {
+      if (Modifier.isPublic(f.getModifiers())
+          && !Modifier.isStatic(f.getModifiers())
+          && context.securityPolicy().isFieldPermitted(clazz, f)
+          && context.securityPolicy().isClassPermitted(f.getType())) {
         context.statistics().recordAccessorBound();
         return new IrGetProperty(
             rec,
@@ -355,19 +368,36 @@ final class DirectAccessorBindingPass implements IrOptimizationPass {
       List<IrExpression> args,
       IrDynamicDispatch dyn,
       OptimizationContext context) {
-    if (DENIED_METHODS.contains(methodName)) {
+    if (isDeniedClass(clazz)
+        || DENIED_METHODS.contains(methodName)
+        || !context.securityPolicy().isClassPermitted(clazz)
+        || !context.securityPolicy().isMethodPermitted(clazz, methodName, args.size())) {
       return null;
     }
 
-    int arity = args.size();
-    for (Method m : clazz.getMethods()) {
-      if (m.getName().equals(methodName)
-          && m.getParameterCount() == arity
-          && Modifier.isPublic(m.getModifiers())) {
-        context.statistics().recordAccessorBound();
-        return new IrInvokeAllowedMethod(
-            rec, methodName, args, m, VTypes.fromJavaClass(m.getReturnType()), dyn.span());
+    VType receiverType =
+        rec.type() instanceof VType.ClassType
+            ? rec.type()
+            : VType.ClassType.of(clazz, Nullability.NON_NULL);
+    List<VType> argTypes = new ArrayList<>();
+    for (IrExpression arg : args) {
+      argTypes.add(arg.type());
+    }
+
+    MethodResolution res =
+        MethodResolver.resolveMethod(receiverType, methodName, argTypes, context.securityPolicy());
+    if (res.isResolved() && res.isSpecializationStable() && res.targetMethod().isPresent()) {
+      Method targetMethod = res.targetMethod().get();
+      if (DENIED_METHODS.contains(targetMethod.getName())
+          || isDeniedClass(targetMethod.getDeclaringClass())
+          || !context.securityPolicy().isClassPermitted(targetMethod.getDeclaringClass())
+          || !context.securityPolicy().isMethodPermitted(clazz, targetMethod)
+          || !context.securityPolicy().isClassPermitted(targetMethod.getReturnType())) {
+        return null;
       }
+      context.statistics().recordAccessorBound();
+      return new IrInvokeAllowedMethod(
+          rec, methodName, args, targetMethod, res.returnType(), dyn.span());
     }
 
     return null;

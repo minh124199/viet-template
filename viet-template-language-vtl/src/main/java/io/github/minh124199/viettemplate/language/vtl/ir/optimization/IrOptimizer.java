@@ -38,15 +38,31 @@ public final class IrOptimizer {
     return optimizeWithStats(template, options).template();
   }
 
+  /** Optimizes the given template using custom options and security policy. */
+  public static IrTemplate optimize(
+      IrTemplate template,
+      IrOptimizationOptions options,
+      io.github.minh124199.viettemplate.api.MemberAccessPolicy securityPolicy) {
+    return optimizeWithStats(template, options, securityPolicy).template();
+  }
+
   /**
    * Optimizes the given template and returns both the transformed {@link IrTemplate} and collected
    * {@link OptimizationStatistics}.
    */
   static OptimizationResult optimizeWithStats(IrTemplate template, IrOptimizationOptions options) {
+    return optimizeWithStats(
+        template, options, io.github.minh124199.viettemplate.api.MemberAccessPolicy.standard());
+  }
+
+  static OptimizationResult optimizeWithStats(
+      IrTemplate template,
+      IrOptimizationOptions options,
+      io.github.minh124199.viettemplate.api.MemberAccessPolicy securityPolicy) {
     Objects.requireNonNull(template, "template must not be null");
     Objects.requireNonNull(options, "options must not be null");
 
-    OptimizationContext context = new OptimizationContext(template, options);
+    OptimizationContext context = new OptimizationContext(template, options, securityPolicy);
     IrTemplate current = new AssignVariableSlots().run(template, context); // O45 (mandatory)
 
     if (options.level() == OptimizationLevel.O0) {

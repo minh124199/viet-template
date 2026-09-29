@@ -1,5 +1,6 @@
 package io.github.minh124199.viettemplate.language.vtl.ir.optimization;
 
+import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrParameter;
@@ -16,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 final class OptimizationContext {
 
   private final IrOptimizationOptions options;
+  private final MemberAccessPolicy securityPolicy;
   private final OptimizationStatistics statistics;
   private final IrConstantPool constantPool;
   private final AtomicInteger nextSlot;
@@ -23,8 +25,14 @@ final class OptimizationContext {
   private final AtomicInteger nextChunkFunctionId;
 
   OptimizationContext(IrTemplate template, IrOptimizationOptions options) {
+    this(template, options, MemberAccessPolicy.standard());
+  }
+
+  OptimizationContext(
+      IrTemplate template, IrOptimizationOptions options, MemberAccessPolicy securityPolicy) {
     Objects.requireNonNull(template, "template must not be null");
     this.options = Objects.requireNonNull(options, "options must not be null");
+    this.securityPolicy = securityPolicy != null ? securityPolicy : MemberAccessPolicy.standard();
     this.statistics = new OptimizationStatistics();
     this.constantPool = template.constants();
 
@@ -71,6 +79,7 @@ final class OptimizationContext {
     this.options = Objects.requireNonNull(options, "options must not be null");
     this.statistics = Objects.requireNonNull(statistics, "statistics must not be null");
     this.constantPool = Objects.requireNonNull(constantPool, "constantPool must not be null");
+    this.securityPolicy = MemberAccessPolicy.standard();
     this.nextSlot = new AtomicInteger(initialSlot);
     this.nextCallSiteId = new AtomicInteger(initialCallSiteId);
     this.nextChunkFunctionId = new AtomicInteger(1);
@@ -78,6 +87,10 @@ final class OptimizationContext {
 
   IrOptimizationOptions options() {
     return options;
+  }
+
+  MemberAccessPolicy securityPolicy() {
+    return securityPolicy;
   }
 
   OptimizationStatistics statistics() {

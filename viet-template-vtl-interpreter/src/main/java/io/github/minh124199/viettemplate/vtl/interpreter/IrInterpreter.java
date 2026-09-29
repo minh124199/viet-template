@@ -70,6 +70,7 @@ import io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBr
 import io.github.minh124199.viettemplate.vtl.internal.interpreter.*;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -1074,15 +1075,76 @@ final class IrInterpreter {
   private static Object evaluateInvokeAllowedMethod(
       IrInvokeAllowedMethod inv, InterpretedFrame frame) {
     Object recv = unwrap(evaluateExpression(inv.receiver(), frame));
-    if (recv == null) {
-      return EvaluationValue.definedNull();
-    }
     Object[] args = new Object[inv.arguments().size()];
     for (int i = 0; i < args.length; i++) {
       args[i] = unwrap(evaluateExpression(inv.arguments().get(i), frame));
     }
+    if (recv == null) {
+      return EvaluationValue.definedNull();
+    }
+
+    Method m = inv.targetMethod();
+    Class<?> ownerClass = m.getDeclaringClass();
+    if (!ownerClass.isInstance(recv)) {
+      List<EvaluationValue> evalArgs = new ArrayList<>(args.length);
+      for (Object a : args) {
+        evalArgs.add(EvaluationValue.of(a));
+      }
+      return frame.referenceAccess.invokeMethod(
+          recv, inv.methodName(), evalArgs, inv.span(), frame.templateId);
+    }
+
+    Class<?>[] ptypes = m.getParameterTypes();
+    Object[] convertedArgs = new Object[args.length];
+    boolean match = true;
+    for (int i = 0; i < args.length; i++) {
+      Object a = args[i];
+      Class<?> ptype = ptypes[i];
+      if (a == null) {
+        if (ptype.isPrimitive()) {
+          match = false;
+          break;
+        }
+        convertedArgs[i] = null;
+      } else if (boxType(ptype).isInstance(a)) {
+        convertedArgs[i] = a;
+      } else if (ptype.isPrimitive() && a instanceof Number num) {
+        if (ptype == double.class) {
+          convertedArgs[i] = num.doubleValue();
+        } else if (ptype == float.class && !(a instanceof Double)) {
+          convertedArgs[i] = num.floatValue();
+        } else if (ptype == long.class && !(a instanceof Double || a instanceof Float)) {
+          convertedArgs[i] = num.longValue();
+        } else if (ptype == int.class
+            && (a instanceof Integer || a instanceof Short || a instanceof Byte)) {
+          convertedArgs[i] = num.intValue();
+        } else if (ptype == short.class && (a instanceof Short || a instanceof Byte)) {
+          convertedArgs[i] = num.shortValue();
+        } else if (ptype == byte.class && a instanceof Byte) {
+          convertedArgs[i] = num.byteValue();
+        } else {
+          match = false;
+          break;
+        }
+      } else if (!ptype.isPrimitive() && ptype.isInstance(a)) {
+        convertedArgs[i] = a;
+      } else {
+        match = false;
+        break;
+      }
+    }
+
+    if (!match) {
+      List<EvaluationValue> evalArgs = new ArrayList<>(args.length);
+      for (Object a : args) {
+        evalArgs.add(EvaluationValue.of(a));
+      }
+      return frame.referenceAccess.invokeMethod(
+          recv, inv.methodName(), evalArgs, inv.span(), frame.templateId);
+    }
+
     try {
-      return inv.targetMethod().invoke(recv, args);
+      return m.invoke(recv, convertedArgs);
     } catch (ControlSignal cs) {
       throw cs;
     } catch (VirtualMachineError | ThreadDeath fatal) {
@@ -1122,6 +1184,19 @@ final class IrInterpreter {
           InterpreterDiagnosticCodes.INVALID_METHOD,
           e);
     }
+  }
+
+  private static Class<?> boxType(Class<?> type) {
+    if (!type.isPrimitive()) return type;
+    if (type == int.class) return Integer.class;
+    if (type == long.class) return Long.class;
+    if (type == double.class) return Double.class;
+    if (type == float.class) return Float.class;
+    if (type == short.class) return Short.class;
+    if (type == byte.class) return Byte.class;
+    if (type == boolean.class) return Boolean.class;
+    if (type == char.class) return Character.class;
+    return type;
   }
 
   private static Object evaluateIndexGet(IrIndexGet idx, InterpretedFrame frame) {
