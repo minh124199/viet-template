@@ -2,6 +2,7 @@ package io.github.minh124199.viettemplate.aot;
 
 import io.github.minh124199.viettemplate.api.TemplateContract;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -29,6 +30,7 @@ public final class TemplateAotRequest {
   private final boolean generateTypedFacades;
   private final Path generatedSourcesDirectory;
   private final ClassLoader classLoader;
+  private final TypeCheckingMode typeCheckingMode;
 
   TemplateAotRequest(
       List<Path> sourceDirectories,
@@ -55,7 +57,8 @@ public final class TemplateAotRequest {
         Map.of(),
         false,
         null,
-        null);
+        null,
+        TypeCheckingMode.OFF);
   }
 
   TemplateAotRequest(
@@ -73,6 +76,40 @@ public final class TemplateAotRequest {
       boolean generateTypedFacades,
       Path generatedSourcesDirectory,
       ClassLoader classLoader) {
+    this(
+        sourceDirectories,
+        outputDirectory,
+        resourceOutputDirectory,
+        includePatterns,
+        excludePatterns,
+        encoding,
+        packagePrefix,
+        failOnWarning,
+        incremental,
+        stateFile,
+        contracts,
+        generateTypedFacades,
+        generatedSourcesDirectory,
+        classLoader,
+        TypeCheckingMode.OFF);
+  }
+
+  TemplateAotRequest(
+      List<Path> sourceDirectories,
+      Path outputDirectory,
+      Path resourceOutputDirectory,
+      List<String> includePatterns,
+      List<String> excludePatterns,
+      Charset encoding,
+      String packagePrefix,
+      boolean failOnWarning,
+      boolean incremental,
+      Path stateFile,
+      Map<TemplateId, TemplateContract> contracts,
+      boolean generateTypedFacades,
+      Path generatedSourcesDirectory,
+      ClassLoader classLoader,
+      TypeCheckingMode typeCheckingMode) {
     this.sourceDirectories =
         List.copyOf(
             Objects.requireNonNull(sourceDirectories, "sourceDirectories must not be null"));
@@ -94,6 +131,7 @@ public final class TemplateAotRequest {
     this.generateTypedFacades = generateTypedFacades;
     this.generatedSourcesDirectory = generatedSourcesDirectory;
     this.classLoader = classLoader;
+    this.typeCheckingMode = typeCheckingMode != null ? typeCheckingMode : TypeCheckingMode.OFF;
   }
 
   public static Builder builder() {
@@ -156,6 +194,10 @@ public final class TemplateAotRequest {
     return Optional.ofNullable(classLoader);
   }
 
+  public TypeCheckingMode typeCheckingMode() {
+    return typeCheckingMode;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -163,6 +205,7 @@ public final class TemplateAotRequest {
     return failOnWarning == that.failOnWarning
         && incremental == that.incremental
         && generateTypedFacades == that.generateTypedFacades
+        && typeCheckingMode == that.typeCheckingMode
         && Objects.equals(sourceDirectories, that.sourceDirectories)
         && Objects.equals(outputDirectory, that.outputDirectory)
         && Objects.equals(resourceOutputDirectory, that.resourceOutputDirectory)
@@ -190,7 +233,8 @@ public final class TemplateAotRequest {
         stateFile,
         contracts,
         generateTypedFacades,
-        generatedSourcesDirectory);
+        generatedSourcesDirectory,
+        typeCheckingMode);
   }
 
   @Override
@@ -221,6 +265,8 @@ public final class TemplateAotRequest {
         + incremental
         + ", stateFile="
         + stateFile
+        + ", typeCheckingMode="
+        + typeCheckingMode
         + '}';
   }
 
@@ -239,8 +285,19 @@ public final class TemplateAotRequest {
     private boolean generateTypedFacades = false;
     private Path generatedSourcesDirectory;
     private ClassLoader classLoader;
+    private TypeCheckingMode typeCheckingMode = TypeCheckingMode.OFF;
 
     private Builder() {}
+
+    public Builder typeCheckingMode(TypeCheckingMode typeCheckingMode) {
+      this.typeCheckingMode = typeCheckingMode != null ? typeCheckingMode : TypeCheckingMode.OFF;
+      return this;
+    }
+
+    public Builder typeChecking(String typeChecking) {
+      this.typeCheckingMode = TypeCheckingMode.parse(typeChecking);
+      return this;
+    }
 
     public Builder sourceDirectory(Path sourceDirectory) {
       Objects.requireNonNull(sourceDirectory, "sourceDirectory must not be null");
@@ -402,7 +459,8 @@ public final class TemplateAotRequest {
           contracts,
           generateTypedFacades,
           generatedSourcesDirectory,
-          classLoader);
+          classLoader,
+          typeCheckingMode);
     }
   }
 
