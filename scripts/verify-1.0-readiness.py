@@ -74,6 +74,7 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.api.TemplateType$ParameterizedType",
     "io.github.minh124199.viettemplate.api.TemplateType$PrimitiveType",
     "io.github.minh124199.viettemplate.api.TemplateType$WildcardType",
+    "io.github.minh124199.viettemplate.api.TypeCheckingMode",
     "io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateFacadesMojo",
     "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask",
 }
