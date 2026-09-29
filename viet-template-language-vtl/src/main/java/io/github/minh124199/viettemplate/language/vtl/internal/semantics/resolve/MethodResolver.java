@@ -47,6 +47,10 @@ public final class MethodResolver {
 
   private static MethodResolution resolveClassMethod(
       Class<?> clazz, String methodName, List<VType> argumentTypes, MemberAccessPolicy policy) {
+    if (argumentTypes.stream().anyMatch(t -> t instanceof VType.ErrorType)) {
+      return MethodResolution.notFound(VTypes.ERROR, Optional.empty());
+    }
+
     // 1. Security Check
     if (!policy.isClassPermitted(clazz)) {
       return MethodResolution.denied(
@@ -60,6 +64,7 @@ public final class MethodResolver {
     List<MethodScore> matches = new ArrayList<>();
     Set<String> candidateNames = new LinkedHashSet<>();
     List<Method> candidates = new ArrayList<>();
+    Set<Integer> candidateArities = new LinkedHashSet<>();
     int permittedMatchingArityMethods = 0;
 
     for (Method method : clazz.getMethods()) {
@@ -74,13 +79,35 @@ public final class MethodResolver {
         continue;
       }
       candidateNames.add(method.getName());
-      if (method.getName().equals(methodName)
-          && method.getParameterCount() == argumentTypes.size()) {
-        permittedMatchingArityMethods++;
-        if (!method.isVarArgs()) {
-          candidates.add(method);
+      if (method.getName().equals(methodName)) {
+        candidateArities.add(method.getParameterCount());
+        if (method.getParameterCount() == argumentTypes.size()) {
+          permittedMatchingArityMethods++;
+          if (!method.isVarArgs()) {
+            candidates.add(method);
+          }
         }
       }
+    }
+
+    if (!candidateNames.contains(methodName)) {
+      Optional<String> suggestion =
+          LevenshteinDistance.findClosestMatch(methodName, candidateNames);
+      return MethodResolution.notFound(VTypes.ERROR, suggestion);
+    }
+
+    if (permittedMatchingArityMethods == 0) {
+      List<Integer> arities = candidateArities.stream().sorted().toList();
+      String msg =
+          "Method '"
+              + methodName
+              + "' on type "
+              + clazz.getName()
+              + " expects "
+              + arities
+              + " argument(s), but was called with "
+              + argumentTypes.size();
+      return MethodResolution.arityMismatch(msg, arities);
     }
 
     boolean hasDynamicArg = argumentTypes.stream().anyMatch(t -> t instanceof VType.DynamicType);
@@ -111,7 +138,7 @@ public final class MethodResolver {
       VType returnType =
           targetMethod.getReturnType() == void.class
               ? VTypes.DYNAMIC
-              : VTypes.fromJavaType(targetMethod.getGenericReturnType(), Nullability.NULLABLE);
+              : VTypes.fromJavaType(targetMethod.getGenericReturnType(), Nullability.UNKNOWN);
 
       boolean hasCharWidening = false;
       Class<?>[] ptypes = targetMethod.getParameterTypes();
@@ -140,9 +167,30 @@ public final class MethodResolver {
       return MethodResolution.resolved(returnType, targetMethod, totalCandidates);
     }
 
-    // Typo suggestion
-    Optional<String> suggestion = LevenshteinDistance.findClosestMatch(methodName, candidateNames);
-    return MethodResolution.notFound(VTypes.ERROR, suggestion);
+    if (!candidates.isEmpty()) {
+      int incompatibleArgIndex = -1;
+      for (int i = 0; i < argumentTypes.size(); i++) {
+        final int argIdx = i;
+        VType argType = argumentTypes.get(argIdx);
+        boolean allFail =
+            candidates.stream()
+                .allMatch(m -> scoreArgument(m.getParameterTypes()[argIdx], argType) < 0);
+        if (allFail) {
+          incompatibleArgIndex = argIdx;
+          break;
+        }
+      }
+      String msg =
+          "Method '"
+              + methodName
+              + "' on type "
+              + clazz.getName()
+              + " cannot be called with argument types "
+              + argumentTypes.stream().map(VType::typeName).toList();
+      return MethodResolution.incompatibleArguments(msg, incompatibleArgIndex);
+    }
+
+    return MethodResolution.dynamic(VTypes.DYNAMIC);
   }
 
   public static Optional<Method> findPublicMethod(Method method, Class<?> targetClass) {

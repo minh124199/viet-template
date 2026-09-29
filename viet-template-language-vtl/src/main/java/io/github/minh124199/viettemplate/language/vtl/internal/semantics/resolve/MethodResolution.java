@@ -3,6 +3,7 @@ package io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolv
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -13,12 +14,16 @@ public record MethodResolution(
     Optional<Method> targetMethod,
     Optional<String> diagnosticMessage,
     Optional<String> typoSuggestion,
-    int candidateCount) {
+    int candidateCount,
+    List<Integer> candidateArities,
+    int incompatibleArgIndex) {
 
   public enum Kind {
     RESOLVED,
     DENIED_BY_POLICY,
     METHOD_NOT_FOUND,
+    ARITY_MISMATCH,
+    INCOMPATIBLE_ARGUMENTS,
     DYNAMIC
   }
 
@@ -28,6 +33,25 @@ public record MethodResolution(
     Objects.requireNonNull(targetMethod, "targetMethod must not be null");
     Objects.requireNonNull(diagnosticMessage, "diagnosticMessage must not be null");
     Objects.requireNonNull(typoSuggestion, "typoSuggestion must not be null");
+    candidateArities = candidateArities != null ? List.copyOf(candidateArities) : List.of();
+  }
+
+  public MethodResolution(
+      Kind kind,
+      VType returnType,
+      Optional<Method> targetMethod,
+      Optional<String> diagnosticMessage,
+      Optional<String> typoSuggestion,
+      int candidateCount) {
+    this(
+        kind,
+        returnType,
+        targetMethod,
+        diagnosticMessage,
+        typoSuggestion,
+        candidateCount,
+        List.of(),
+        -1);
   }
 
   public MethodResolution(
@@ -42,7 +66,9 @@ public record MethodResolution(
         targetMethod,
         diagnosticMessage,
         typoSuggestion,
-        kind == Kind.RESOLVED ? 1 : 0);
+        kind == Kind.RESOLVED ? 1 : 0,
+        List.of(),
+        -1);
   }
 
   public static MethodResolution resolved(VType returnType, Method targetMethod) {
@@ -57,12 +83,21 @@ public record MethodResolution(
         Optional.of(targetMethod),
         Optional.empty(),
         Optional.empty(),
-        candidateCount);
+        candidateCount,
+        List.of(),
+        -1);
   }
 
   public static MethodResolution dynamic(VType returnType) {
     return new MethodResolution(
-        Kind.DYNAMIC, returnType, Optional.empty(), Optional.empty(), Optional.empty(), 0);
+        Kind.DYNAMIC,
+        returnType,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        0,
+        List.of(),
+        -1);
   }
 
   public static MethodResolution denied(String reason) {
@@ -72,12 +107,45 @@ public record MethodResolution(
         Optional.empty(),
         Optional.of(reason),
         Optional.empty(),
-        0);
+        0,
+        List.of(),
+        -1);
   }
 
   public static MethodResolution notFound(VType errorType, Optional<String> suggestion) {
     return new MethodResolution(
-        Kind.METHOD_NOT_FOUND, errorType, Optional.empty(), Optional.empty(), suggestion, 0);
+        Kind.METHOD_NOT_FOUND,
+        errorType,
+        Optional.empty(),
+        Optional.empty(),
+        suggestion,
+        0,
+        List.of(),
+        -1);
+  }
+
+  public static MethodResolution arityMismatch(String message, List<Integer> candidateArities) {
+    return new MethodResolution(
+        Kind.ARITY_MISMATCH,
+        VTypes.ERROR,
+        Optional.empty(),
+        Optional.of(message),
+        Optional.empty(),
+        candidateArities.size(),
+        candidateArities,
+        -1);
+  }
+
+  public static MethodResolution incompatibleArguments(String message, int incompatibleArgIndex) {
+    return new MethodResolution(
+        Kind.INCOMPATIBLE_ARGUMENTS,
+        VTypes.ERROR,
+        Optional.empty(),
+        Optional.of(message),
+        Optional.empty(),
+        0,
+        List.of(),
+        incompatibleArgIndex);
   }
 
   public boolean isResolved() {

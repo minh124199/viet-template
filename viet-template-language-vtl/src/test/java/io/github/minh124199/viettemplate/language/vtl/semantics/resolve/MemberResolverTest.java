@@ -37,7 +37,7 @@ class MemberResolverTest {
     assertThat(nameRes.isFound()).isTrue();
     assertThat(nameRes.kind()).isEqualTo(MemberResolution.Kind.RECORD_COMPONENT);
     assertThat(nameRes.resultType())
-        .isEqualTo(VType.ClassType.of(String.class, Nullability.NULLABLE));
+        .isEqualTo(VType.ClassType.of(String.class, Nullability.UNKNOWN));
 
     MemberResolution ageRes = MemberResolver.resolveProperty(userType, "age");
     assertThat(ageRes.isFound()).isTrue();
@@ -57,7 +57,7 @@ class MemberResolverTest {
     assertThat(emailRes.isFound()).isTrue();
     assertThat(emailRes.kind()).isEqualTo(MemberResolution.Kind.GETTER);
     assertThat(emailRes.resultType())
-        .isEqualTo(VType.ClassType.of(String.class, Nullability.NULLABLE));
+        .isEqualTo(VType.ClassType.of(String.class, Nullability.UNKNOWN));
 
     MemberResolution verifiedRes = MemberResolver.resolveProperty(personType, "verified");
     assertThat(verifiedRes.isFound()).isTrue();
@@ -99,7 +99,7 @@ class MemberResolverTest {
     VType userType = VType.ClassType.of(User.class, Nullability.NON_NULL);
     MemberResolution classRes = MemberResolver.resolveProperty(userType, "class");
     assertThat(classRes.isFound()).isFalse();
-    assertThat(classRes.kind()).isEqualTo(MemberResolution.Kind.NOT_FOUND);
+    assertThat(classRes.kind()).isEqualTo(MemberResolution.Kind.DENIED);
 
     MemberResolution getClassRes = MemberResolver.resolveProperty(userType, "getClass");
     assertThat(getClassRes.isFound()).isFalse();
@@ -110,5 +110,6 @@ class MemberResolverTest {
     VType systemType = VType.ClassType.of(System.class, Nullability.NON_NULL);
     MemberResolution sysRes = MemberResolver.resolveProperty(systemType, "currentTimeMillis");
     assertThat(sysRes.isFound()).isFalse();
+    assertThat(sysRes.kind()).isEqualTo(MemberResolution.Kind.DENIED);
   }
 }

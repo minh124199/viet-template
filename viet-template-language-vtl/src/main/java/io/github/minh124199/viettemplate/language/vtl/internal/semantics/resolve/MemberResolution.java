@@ -1,13 +1,18 @@
 package io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve;
 
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
+import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import java.lang.reflect.Member;
 import java.util.Objects;
 import java.util.Optional;
 
 /** Result of resolving a property access step on a receiver type. */
 public record MemberResolution(
-    Kind kind, VType resultType, Optional<Member> targetMember, Optional<String> typoSuggestion) {
+    Kind kind,
+    VType resultType,
+    Optional<Member> targetMember,
+    Optional<String> typoSuggestion,
+    Optional<String> diagnosticMessage) {
 
   public enum Kind {
     RECORD_COMPONENT,
@@ -17,6 +22,7 @@ public record MemberResolution(
     EXTENSION,
     MAP_ENTRY,
     DYNAMIC,
+    DENIED,
     NOT_FOUND
   }
 
@@ -25,22 +31,39 @@ public record MemberResolution(
     Objects.requireNonNull(resultType, "resultType must not be null");
     Objects.requireNonNull(targetMember, "targetMember must not be null");
     Objects.requireNonNull(typoSuggestion, "typoSuggestion must not be null");
+    Objects.requireNonNull(diagnosticMessage, "diagnosticMessage must not be null");
+  }
+
+  public MemberResolution(
+      Kind kind, VType resultType, Optional<Member> targetMember, Optional<String> typoSuggestion) {
+    this(kind, resultType, targetMember, typoSuggestion, Optional.empty());
   }
 
   public static MemberResolution of(Kind kind, VType resultType, Member targetMember) {
     return new MemberResolution(
-        kind, resultType, Optional.ofNullable(targetMember), Optional.empty());
+        kind, resultType, Optional.ofNullable(targetMember), Optional.empty(), Optional.empty());
   }
 
   public static MemberResolution dynamic(VType resultType) {
-    return new MemberResolution(Kind.DYNAMIC, resultType, Optional.empty(), Optional.empty());
+    return new MemberResolution(
+        Kind.DYNAMIC, resultType, Optional.empty(), Optional.empty(), Optional.empty());
   }
 
   public static MemberResolution notFound(VType errorType, Optional<String> suggestion) {
-    return new MemberResolution(Kind.NOT_FOUND, errorType, Optional.empty(), suggestion);
+    return new MemberResolution(
+        Kind.NOT_FOUND, errorType, Optional.empty(), suggestion, Optional.empty());
+  }
+
+  public static MemberResolution denied(String message) {
+    return new MemberResolution(
+        Kind.DENIED,
+        VTypes.ERROR,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.ofNullable(message));
   }
 
   public boolean isFound() {
-    return kind != Kind.NOT_FOUND;
+    return kind != Kind.NOT_FOUND && kind != Kind.DENIED;
   }
 }
