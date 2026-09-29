@@ -49,6 +49,7 @@ When templates are compiled via `viet-template-maven-plugin` or `viet-template-g
 | `VTLS:2104` | `PROPERTY_NOT_FOUND` | Property does not exist on the declared receiver class. | `$user.nonExistentField` |
 | `VTLS:2105` | `METHOD_NOT_FOUND` | Method name or arity does not match declared methods. | `$user.calculate(1, 2, 3)` |
 | `VTLS:2106` | `INVALID_ITERABLE` | Target of `#foreach` is not an iterable, collection, or array. | `#foreach($x in $user.age)` where age is `int`. |
+| `VTLS:2107` | `NULLABLE_DEREFERENCE` | Nullable receiver dereferenced without quiet reference syntax. | `$user.name` where `$user` is nullable. |
 | `VTLSEC:2401` | `SECURITY_DENIED` | Method or property access violates `MemberAccessPolicy`. | `$user.getClass()` |
 
 ---
@@ -113,7 +114,7 @@ Viet Template strictly distinguishes between:
 ### 6.3 Nullable Navigation Analysis & Flow Refinements
 
 When a parameter or property is declared nullable (`nullable=true`):
-- Dereferencing a nullable target (`$user.name`) emits an advisory `VTLS:2103` warning under `WARN` and `ERROR` mode. Because Viet Template is null-tolerant, this warning is advisory and does not fail compilation.
+- Dereferencing a nullable target (`$user.name`) emits an advisory `VTLS:2107` warning under `WARN` and `ERROR` mode. Because Viet Template is null-tolerant, this warning is advisory and does not fail compilation.
 - **Quiet Reference Suppression**: Syntax explicitly intended for null suppression (`$!user.name`) suppresses the nullable dereference warning.
 - **Flow Refinement**: Guarding a reference with `#if($user)` or `#if($user != null)` automatically refines the nullability in the branch body, suppressing nullable warnings.
 
