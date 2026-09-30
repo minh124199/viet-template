@@ -138,4 +138,30 @@ class VietTemplateGenerateTypeScriptMojoTest {
     String dts = Files.readString(dtsFile, StandardCharsets.UTF_8);
     assertThat(dts).contains("title: string;");
   }
+
+  @Test
+  @DisplayName("Cleans up stale .d.ts files when corresponding schema is deleted")
+  void testStaleFileCleanup(@TempDir Path tempDir) throws Exception {
+    Path schemaDir = tempDir.resolve("target/generated-resources/viet-template/schemas");
+    Path tsOutputDir = tempDir.resolve("target/generated-sources/viet-template/typescript");
+    Files.createDirectories(schemaDir);
+    Files.createDirectories(tsOutputDir);
+
+    // Create a stale .d.ts file that has no corresponding schema
+    Path staleFile = tsOutputDir.resolve("old-template.d.ts");
+    Files.writeString(staleFile, "// stale", StandardCharsets.UTF_8);
+
+    // Create an active schema
+    Files.writeString(
+        schemaDir.resolve("order-view.vt-schema.json"), SAMPLE_SCHEMA, StandardCharsets.UTF_8);
+
+    VietTemplateGenerateTypeScriptMojo mojo = new VietTemplateGenerateTypeScriptMojo();
+    mojo.setSchemaDirectory(schemaDir.toFile());
+    mojo.setTypeScriptOutputDirectory(tsOutputDir.toFile());
+
+    assertThatCode(mojo::execute).doesNotThrowAnyException();
+
+    assertThat(tsOutputDir.resolve("order-view.d.ts")).isRegularFile();
+    assertThat(staleFile).doesNotExist();
+  }
 }

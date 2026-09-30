@@ -78,9 +78,27 @@ public abstract class VietTemplateGenerateTypeScriptTask extends DefaultTask {
 
     try {
       Files.createDirectories(outDirPath);
+      java.util.Set<Path> generatedFiles = new java.util.HashSet<>();
       for (Path schemaFile : schemaFiles) {
         Path generatedFile = TypeScriptDeclarationProjector.projectToFile(schemaFile, outDirPath);
+        generatedFiles.add(generatedFile.toAbsolutePath().normalize());
         getLogger().debug("Generated TypeScript declaration: {}", generatedFile);
+      }
+
+      // Clean up stale generated .d.ts files
+      try (Stream<Path> existing = Files.walk(outDirPath)) {
+        existing
+            .filter(Files::isRegularFile)
+            .filter(p -> p.getFileName().toString().endsWith(".d.ts"))
+            .filter(p -> !generatedFiles.contains(p.toAbsolutePath().normalize()))
+            .forEach(
+                p -> {
+                  try {
+                    Files.deleteIfExists(p);
+                    getLogger().debug("Cleaned up stale TypeScript declaration: {}", p);
+                  } catch (IOException ignored) {
+                  }
+                });
       }
     } catch (IOException | RuntimeException e) {
       throw new GradleException(

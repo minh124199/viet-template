@@ -37,6 +37,41 @@ public final class TypeScriptDeclarationProjector {
   public static final int EXPECTED_SCHEMA_VERSION = 1;
   public static final String DTS_FILE_EXTENSION = ".d.ts";
 
+  private static final Set<String> VALID_PRIMITIVES =
+      Set.of("boolean", "byte", "short", "char", "int", "long", "float", "double", "void");
+
+  private static final Set<String> KNOWN_JAVA_NAMES =
+      Set.of(
+          "Object",
+          "String",
+          "Number",
+          "Boolean",
+          "Byte",
+          "Short",
+          "Integer",
+          "Long",
+          "Float",
+          "Double",
+          "Character",
+          "Void",
+          "CharSequence",
+          "List",
+          "Set",
+          "Map",
+          "Collection",
+          "Iterable",
+          "Optional",
+          "Date",
+          "UUID",
+          "Instant",
+          "LocalDate",
+          "LocalDateTime",
+          "LocalTime",
+          "OffsetDateTime",
+          "ZonedDateTime",
+          "BigDecimal",
+          "BigInteger");
+
   private static final Set<String> TS_RESERVED_WORDS =
       Set.of(
           "break",
@@ -110,7 +145,10 @@ public final class TypeScriptDeclarationProjector {
           "unique",
           "infer",
           "override",
-          "satisfies");
+          "satisfies",
+          "record",
+          "map",
+          "array");
 
   private TypeScriptDeclarationProjector() {}
 
@@ -191,7 +229,13 @@ public final class TypeScriptDeclarationProjector {
     int dot = normalized.lastIndexOf('.');
     String baseName = (dot > 0) ? normalized.substring(0, dot) : normalized;
     String dtsRelativePath = baseName + DTS_FILE_EXTENSION;
-    return baseOutputDir.resolve(dtsRelativePath).normalize();
+    Path resolved = baseOutputDir.resolve(dtsRelativePath).normalize();
+    Path normalizedBase = baseOutputDir.toAbsolutePath().normalize();
+    if (!resolved.toAbsolutePath().normalize().startsWith(normalizedBase)) {
+      throw new IllegalArgumentException(
+          "Path traversal detected in templateId: " + templateIdValue);
+    }
+    return resolved;
   }
 
   // =========================================================================
@@ -204,10 +248,11 @@ public final class TypeScriptDeclarationProjector {
 
     // 2. Discover generic type variables per declared type
     Map<String, List<String>> typeParametersPerType = new HashMap<>();
+    Set<String> declaredFqcns = envelope.types().keySet();
     for (Map.Entry<String, TypeDef> entry : envelope.types().entrySet()) {
       Set<String> typeVars = new TreeSet<>();
       for (PropertyDef prop : entry.getValue().properties()) {
-        collectTypeVariables(prop.type(), typeVars);
+        collectTypeVariables(prop.type(), typeVars, declaredFqcns, typeSymbolTable);
       }
       typeParametersPerType.put(entry.getKey(), new ArrayList<>(typeVars));
     }
@@ -215,7 +260,7 @@ public final class TypeScriptDeclarationProjector {
     // 3. Discover generic type variables on root parameters
     Set<String> rootTypeVars = new TreeSet<>();
     for (ParameterDef param : envelope.parameters()) {
-      collectTypeVariables(param.type(), rootTypeVars);
+      collectTypeVariables(param.type(), rootTypeVars, declaredFqcns, typeSymbolTable);
     }
     List<String> rootTypeParameters = new ArrayList<>(rootTypeVars);
 
@@ -241,7 +286,12 @@ public final class TypeScriptDeclarationProjector {
 
       sb.append("export interface ").append(tsName);
       if (!typeParams.isEmpty()) {
-        sb.append("<").append(String.join(", ", typeParams)).append(">");
+        sb.append("<");
+        for (int i = 0; i < typeParams.size(); i++) {
+          if (i > 0) sb.append(", ");
+          sb.append(typeParams.get(i)).append(" = unknown");
+        }
+        sb.append(">");
       }
       sb.append(" {\n");
 
@@ -251,7 +301,11 @@ public final class TypeScriptDeclarationProjector {
       for (PropertyDef prop : sortedProps) {
         String propName = formatPropertyName(prop.name());
         String propType = projectTypeRef(prop.type(), typeSymbolTable);
-        sb.append("  ").append(propName).append(": ").append(propType);
+        sb.append("  ").append(propName);
+        if (prop.optional()) {
+          sb.append("?");
+        }
+        sb.append(": ").append(propType);
         if (prop.nullable()) {
           sb.append(" | null");
         }
@@ -298,27 +352,58 @@ public final class TypeScriptDeclarationProjector {
     return sb.toString();
   }
 
-  private static void collectTypeVariables(TypeRef type, Set<String> typeVars) {
+  private static void collectTypeVariables(
+      TypeRef type,
+      Set<String> typeVars,
+      Set<String> declaredFqcns,
+      Map<String, String> typeSymbolTable) {
     if (type instanceof NamedTypeRef nt) {
-      if (nt.arguments().isEmpty() && isTypeVariableCandidate(nt.name())) {
-        typeVars.add(nt.name());
+      if (isTypeVariable(nt, declaredFqcns, typeSymbolTable)) {
+        typeVars.add(sanitizeTypeName(nt.name()));
       }
       for (TypeRef arg : nt.arguments()) {
-        collectTypeVariables(arg, typeVars);
+        collectTypeVariables(arg, typeVars, declaredFqcns, typeSymbolTable);
       }
     } else if (type instanceof ParameterizedTypeRef pt) {
       for (TypeRef arg : pt.arguments()) {
-        collectTypeVariables(arg, typeVars);
+        collectTypeVariables(arg, typeVars, declaredFqcns, typeSymbolTable);
       }
     } else if (type instanceof ArrayTypeRef at) {
-      collectTypeVariables(at.componentType(), typeVars);
+      collectTypeVariables(at.componentType(), typeVars, declaredFqcns, typeSymbolTable);
     } else if (type instanceof WildcardTypeRef wt) {
-      wt.bound().ifPresent(b -> collectTypeVariables(b, typeVars));
+      wt.bound().ifPresent(b -> collectTypeVariables(b, typeVars, declaredFqcns, typeSymbolTable));
     }
   }
 
-  private static boolean isTypeVariableCandidate(String name) {
-    return name.length() <= 3 && Character.isUpperCase(name.charAt(0));
+  static boolean isTypeVariable(
+      NamedTypeRef nt, Set<String> declaredFqcns, Map<String, String> typeSymbolTable) {
+    if (!nt.arguments().isEmpty()) {
+      return false;
+    }
+    String name = nt.name();
+    if (name == null || name.isBlank() || name.contains(".")) {
+      return false;
+    }
+    if (declaredFqcns.contains(name) || typeSymbolTable.containsValue(name)) {
+      return false;
+    }
+    for (String fqcn : declaredFqcns) {
+      if (extractSimpleName(fqcn).equals(name)) {
+        return false;
+      }
+    }
+    if (VALID_PRIMITIVES.contains(name) || KNOWN_JAVA_NAMES.contains(name)) {
+      return false;
+    }
+    if (!Character.isJavaIdentifierStart(name.charAt(0))) {
+      return false;
+    }
+    for (int i = 1; i < name.length(); i++) {
+      if (!Character.isJavaIdentifierPart(name.charAt(i))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   // =========================================================================
@@ -340,13 +425,14 @@ public final class TypeScriptDeclarationProjector {
 
     Map<String, String> resolved = new HashMap<>();
     Set<String> assignedNames = new HashSet<>();
+    assignedNames.add("TemplateParameters");
 
     for (String fqcn : sortedFqcns) {
       String candidate = candidateNames.get(fqcn);
       List<String> collisions = byCandidate.get(candidate);
 
       String finalName;
-      if (collisions.size() == 1) {
+      if (collisions.size() == 1 && !"TemplateParameters".equals(candidate)) {
         finalName = sanitizeTypeName(candidate);
       } else {
         // Disambiguate by converting package/nesting separators into valid identifier
@@ -457,7 +543,10 @@ public final class TypeScriptDeclarationProjector {
             "java.lang.Integer",
             "java.lang.Long",
             "java.lang.Float",
-            "java.lang.Double" ->
+            "java.lang.Double",
+            "java.lang.Number",
+            "java.math.BigDecimal",
+            "java.math.BigInteger" ->
             "number";
         case "java.lang.Character" -> "string";
         case "java.lang.Void" -> "void";
@@ -472,9 +561,38 @@ public final class TypeScriptDeclarationProjector {
             "java.util.Date",
             "java.util.UUID" ->
             "string";
+        case "java.util.List",
+            "java.util.Collection",
+            "java.lang.Iterable",
+            "java.util.Iterable",
+            "java.util.ArrayList",
+            "java.util.LinkedList",
+            "java.util.SequencedCollection" ->
+            "unknown[]";
+        case "java.util.Set",
+            "java.util.HashSet",
+            "java.util.LinkedHashSet",
+            "java.util.TreeSet",
+            "java.util.SortedSet",
+            "java.util.NavigableSet",
+            "java.util.SequencedSet" ->
+            "Set<unknown>";
+        case "java.util.Map",
+            "java.util.HashMap",
+            "java.util.LinkedHashMap",
+            "java.util.TreeMap",
+            "java.util.ConcurrentHashMap",
+            "java.util.SortedMap",
+            "java.util.NavigableMap",
+            "java.util.SequencedMap" ->
+            "Record<string, unknown>";
+        case "java.util.Optional" -> "unknown | null";
         default -> {
           if (typeSymbolTable.containsKey(fqcn)) {
             yield typeSymbolTable.get(fqcn);
+          }
+          if (typeSymbolTable.containsValue(fqcn)) {
+            yield fqcn;
           }
           // Unknown reference class fallback
           yield "unknown";
@@ -486,10 +604,7 @@ public final class TypeScriptDeclarationProjector {
       String raw = pt.rawType();
       List<TypeRef> args = pt.arguments();
 
-      if ("java.util.List".equals(raw)
-          || "java.util.Collection".equals(raw)
-          || "java.lang.Iterable".equals(raw)
-          || "java.util.Iterable".equals(raw)) {
+      if (isListType(raw)) {
         if (args.isEmpty()) {
           return "unknown[]";
         }
@@ -497,14 +612,14 @@ public final class TypeScriptDeclarationProjector {
         return wrapArrayElement(elem) + "[]";
       }
 
-      if ("java.util.Set".equals(raw)) {
+      if (isSetType(raw)) {
         if (args.isEmpty()) {
           return "Set<unknown>";
         }
         return "Set<" + projectTypeRef(args.get(0), typeSymbolTable) + ">";
       }
 
-      if ("java.util.Map".equals(raw)) {
+      if (isMapType(raw)) {
         if (args.size() >= 2) {
           String keyType = projectTypeRef(args.get(0), typeSymbolTable);
           String valType = projectTypeRef(args.get(1), typeSymbolTable);
@@ -519,6 +634,34 @@ public final class TypeScriptDeclarationProjector {
         return "Record<string, unknown>";
       }
 
+      if ("java.util.Optional".equals(raw)) {
+        if (args.isEmpty()) {
+          return "unknown | null";
+        }
+        return projectTypeRef(args.get(0), typeSymbolTable) + " | null";
+      }
+
+      if ("java.util.Map$Entry".equals(raw) || "java.util.Map.Entry".equals(raw)) {
+        if (args.size() >= 2) {
+          String k = projectTypeRef(args.get(0), typeSymbolTable);
+          String v = projectTypeRef(args.get(1), typeSymbolTable);
+          return "{"
+              + formatPropertyName("key")
+              + ": "
+              + k
+              + "; "
+              + formatPropertyName("value")
+              + ": "
+              + v
+              + "}";
+        }
+        return "{"
+            + formatPropertyName("key")
+            + ": unknown; "
+            + formatPropertyName("value")
+            + ": unknown}";
+      }
+
       if (typeSymbolTable.containsKey(raw)) {
         String baseName = typeSymbolTable.get(raw);
         if (args.isEmpty()) {
@@ -529,6 +672,17 @@ public final class TypeScriptDeclarationProjector {
           argStrings.add(projectTypeRef(a, typeSymbolTable));
         }
         return baseName + "<" + String.join(", ", argStrings) + ">";
+      }
+
+      if (typeSymbolTable.containsValue(raw)) {
+        if (args.isEmpty()) {
+          return raw;
+        }
+        List<String> argStrings = new ArrayList<>();
+        for (TypeRef a : args) {
+          argStrings.add(projectTypeRef(a, typeSymbolTable));
+        }
+        return raw + "<" + String.join(", ", argStrings) + ">";
       }
 
       // Unrecognized parameterized type fallback
@@ -550,13 +704,34 @@ public final class TypeScriptDeclarationProjector {
 
     if (type instanceof NamedTypeRef nt) {
       if (nt.arguments().isEmpty()) {
+        if (typeSymbolTable.containsKey(nt.name())) {
+          return typeSymbolTable.get(nt.name());
+        }
+        for (Map.Entry<String, String> entry : typeSymbolTable.entrySet()) {
+          if (extractSimpleName(entry.getKey()).equals(nt.name())) {
+            return entry.getValue();
+          }
+        }
         return sanitizeTypeName(nt.name());
+      }
+      String baseName;
+      if (typeSymbolTable.containsKey(nt.name())) {
+        baseName = typeSymbolTable.get(nt.name());
+      } else {
+        String match = null;
+        for (Map.Entry<String, String> entry : typeSymbolTable.entrySet()) {
+          if (extractSimpleName(entry.getKey()).equals(nt.name())) {
+            match = entry.getValue();
+            break;
+          }
+        }
+        baseName = match != null ? match : sanitizeTypeName(nt.name());
       }
       List<String> argStrings = new ArrayList<>();
       for (TypeRef a : nt.arguments()) {
         argStrings.add(projectTypeRef(a, typeSymbolTable));
       }
-      return sanitizeTypeName(nt.name()) + "<" + String.join(", ", argStrings) + ">";
+      return baseName + "<" + String.join(", ", argStrings) + ">";
     }
 
     if (type instanceof DynamicTypeRef) {
@@ -566,7 +741,41 @@ public final class TypeScriptDeclarationProjector {
     throw new IllegalArgumentException("Unsupported TypeRef kind: " + type.getClass().getName());
   }
 
+  private static boolean isListType(String raw) {
+    return "java.util.List".equals(raw)
+        || "java.util.Collection".equals(raw)
+        || "java.lang.Iterable".equals(raw)
+        || "java.util.Iterable".equals(raw)
+        || "java.util.ArrayList".equals(raw)
+        || "java.util.LinkedList".equals(raw)
+        || "java.util.SequencedCollection".equals(raw);
+  }
+
+  private static boolean isSetType(String raw) {
+    return "java.util.Set".equals(raw)
+        || "java.util.HashSet".equals(raw)
+        || "java.util.LinkedHashSet".equals(raw)
+        || "java.util.TreeSet".equals(raw)
+        || "java.util.SortedSet".equals(raw)
+        || "java.util.NavigableSet".equals(raw)
+        || "java.util.SequencedSet".equals(raw);
+  }
+
+  private static boolean isMapType(String raw) {
+    return "java.util.Map".equals(raw)
+        || "java.util.HashMap".equals(raw)
+        || "java.util.LinkedHashMap".equals(raw)
+        || "java.util.TreeMap".equals(raw)
+        || "java.util.ConcurrentHashMap".equals(raw)
+        || "java.util.SortedMap".equals(raw)
+        || "java.util.NavigableMap".equals(raw)
+        || "java.util.SequencedMap".equals(raw);
+  }
+
   private static String wrapArrayElement(String elemType) {
+    if (elemType.startsWith("(") && elemType.endsWith(")")) {
+      return elemType;
+    }
     if (elemType.contains(" | ")) {
       return "(" + elemType + ")";
     }
@@ -608,7 +817,11 @@ public final class TypeScriptDeclarationProjector {
 
   record DynamicTypeRef() implements TypeRef {}
 
-  record PropertyDef(String name, TypeRef type, boolean nullable) {}
+  record PropertyDef(String name, TypeRef type, boolean nullable, boolean optional) {
+    public PropertyDef(String name, TypeRef type, boolean nullable) {
+      this(name, type, nullable, false);
+    }
+  }
 
   record TypeDef(String kind, List<PropertyDef> properties) {
     public TypeDef {
@@ -939,6 +1152,7 @@ public final class TypeScriptDeclarationProjector {
           throw new IllegalArgumentException("Each parameter entry must be a JSON object");
         }
         String pName = requireString(pobj, "name", "parameter name");
+        validateParameterName(pName);
         if (paramNames.contains(pName)) {
           throw new IllegalArgumentException("Duplicate parameter name in schema: '" + pName + "'");
         }
@@ -946,6 +1160,14 @@ public final class TypeScriptDeclarationProjector {
 
         TypeRef pType = validateTypeRef(requireObject(pobj, "type", "parameter type"));
         boolean pNullable = requireBoolean(pobj, "nullable", "parameter nullable");
+        if (pType instanceof PrimitiveTypeRef pt && pNullable) {
+          throw new IllegalArgumentException(
+              "Impossible nullability state: primitive type '"
+                  + pt.name()
+                  + "' cannot be nullable for parameter '"
+                  + pName
+                  + "'");
+        }
         boolean pOptional = pobj.get("optional") instanceof JsonBoolean jb ? jb.value() : false;
 
         parameters.add(new ParameterDef(pName, pType, pNullable, pOptional));
@@ -977,6 +1199,10 @@ public final class TypeScriptDeclarationProjector {
               throw new IllegalArgumentException("Property entry must be an object in " + fqcn);
             }
             String propName = requireString(propObj, "name", "property name");
+            if (propName.isBlank()) {
+              throw new IllegalArgumentException(
+                  "Property name must not be blank in type '" + fqcn + "'");
+            }
             if (propNames.contains(propName)) {
               throw new IllegalArgumentException(
                   "Duplicate property name '" + propName + "' in type '" + fqcn + "'");
@@ -984,7 +1210,19 @@ public final class TypeScriptDeclarationProjector {
             propNames.add(propName);
             TypeRef propType = validateTypeRef(requireObject(propObj, "type", "property type"));
             boolean propNullable = requireBoolean(propObj, "nullable", "property nullable");
-            properties.add(new PropertyDef(propName, propType, propNullable));
+            if (propType instanceof PrimitiveTypeRef pt && propNullable) {
+              throw new IllegalArgumentException(
+                  "Impossible nullability state: primitive type '"
+                      + pt.name()
+                      + "' cannot be nullable for property '"
+                      + propName
+                      + "' in type '"
+                      + fqcn
+                      + "'");
+            }
+            boolean propOptional =
+                propObj.get("optional") instanceof JsonBoolean jb ? jb.value() : false;
+            properties.add(new PropertyDef(propName, propType, propNullable, propOptional));
           }
         }
         types.put(fqcn, new TypeDef(kind, properties));
@@ -993,11 +1231,26 @@ public final class TypeScriptDeclarationProjector {
       return new SchemaEnvelope(format, ver, templateId, fingerprint, parameters, types);
     }
 
+    private static void validateParameterName(String name) {
+      if (name == null || name.isBlank()) {
+        throw new IllegalArgumentException("Parameter name must not be blank");
+      }
+      for (int i = 0; i < name.length(); i++) {
+        char c = name.charAt(i);
+        if (c < 0x20 || c == '"' || c == '\\') {
+          throw new IllegalArgumentException("Invalid parameter name: '" + name + "'");
+        }
+      }
+    }
+
     private static TypeRef validateTypeRef(JsonObject obj) {
       String kind = requireString(obj, "kind", "type kind");
       return switch (kind) {
         case "primitive" -> {
           String name = requireString(obj, "name", "primitive name");
+          if (!VALID_PRIMITIVES.contains(name)) {
+            throw new IllegalArgumentException("Invalid primitive type name: '" + name + "'");
+          }
           yield new PrimitiveTypeRef(name);
         }
         case "class" -> {

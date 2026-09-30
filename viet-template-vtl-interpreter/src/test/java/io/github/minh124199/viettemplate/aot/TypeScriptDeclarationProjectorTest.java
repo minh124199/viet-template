@@ -476,20 +476,35 @@ class TypeScriptDeclarationProjectorTest {
             "templateId": "test/nullability.vtl",
             "contractFingerprint": "fp:test",
             "parameters": [
-              {"name": "reqNonNull", "type": {"kind": "primitive", "name": "int"}, "nullable": false, "optional": false},
-              {"name": "reqNullable", "type": {"kind": "primitive", "name": "int"}, "nullable": true, "optional": false},
-              {"name": "optNonNull", "type": {"kind": "primitive", "name": "int"}, "nullable": false, "optional": true},
-              {"name": "optNullable", "type": {"kind": "primitive", "name": "int"}, "nullable": true, "optional": true}
+              {"name": "reqNonNull", "type": {"kind": "class", "name": "java.lang.String"}, "nullable": false, "optional": false},
+              {"name": "reqNullable", "type": {"kind": "class", "name": "java.lang.String"}, "nullable": true, "optional": false},
+              {"name": "optNonNull", "type": {"kind": "class", "name": "java.lang.String"}, "nullable": false, "optional": true},
+              {"name": "optNullable", "type": {"kind": "class", "name": "java.lang.String"}, "nullable": true, "optional": true}
             ],
-            "types": {}
+            "types": {
+              "com.example.Item": {
+                "kind": "record",
+                "properties": [
+                  {"name": "pReqNonNull", "type": {"kind": "class", "name": "java.lang.String"}, "nullable": false, "optional": false},
+                  {"name": "pReqNullable", "type": {"kind": "class", "name": "java.lang.String"}, "nullable": true, "optional": false},
+                  {"name": "pOptNonNull", "type": {"kind": "class", "name": "java.lang.String"}, "nullable": false, "optional": true},
+                  {"name": "pOptNullable", "type": {"kind": "class", "name": "java.lang.String"}, "nullable": true, "optional": true}
+                ]
+              }
+            }
           }
           """;
 
       String dts = TypeScriptDeclarationProjector.project(schema);
-      assertThat(dts).contains("reqNonNull: number;");
-      assertThat(dts).contains("reqNullable: number | null;");
-      assertThat(dts).contains("optNonNull?: number;");
-      assertThat(dts).contains("optNullable?: number | null;");
+      assertThat(dts).contains("reqNonNull: string;");
+      assertThat(dts).contains("reqNullable: string | null;");
+      assertThat(dts).contains("optNonNull?: string;");
+      assertThat(dts).contains("optNullable?: string | null;");
+
+      assertThat(dts).contains("pReqNonNull: string;");
+      assertThat(dts).contains("pReqNullable: string | null;");
+      assertThat(dts).contains("pOptNonNull?: string;");
+      assertThat(dts).contains("pOptNullable?: string | null;");
     }
   }
 
@@ -586,6 +601,140 @@ class TypeScriptDeclarationProjectorTest {
       String dts = TypeScriptDeclarationProjector.project(schema);
       assertThat(dts).contains("export interface _Class {");
       assertThat(dts).contains("model: _Class;");
+    }
+
+    @Test
+    @DisplayName("Domain model named TemplateParameters does not collide with root interface")
+    void testTemplateParametersNameCollision() {
+      String schema =
+          """
+          {
+            "format": "viet-template-contract-schema/1",
+            "schemaVersion": 1,
+            "templateId": "test/tp-collision.vtl",
+            "contractFingerprint": "fp:test",
+            "parameters": [
+              {"name": "params", "type": {"kind": "class", "name": "com.example.TemplateParameters"}, "nullable": false, "optional": false}
+            ],
+            "types": {
+              "com.example.TemplateParameters": {
+                "kind": "record",
+                "properties": [{"name": "id", "type": {"kind": "primitive", "name": "long"}, "nullable": false}]
+              }
+            }
+          }
+          """;
+
+      String dts = TypeScriptDeclarationProjector.project(schema);
+      assertThat(dts).contains("export interface com_example_TemplateParameters {");
+      assertThat(dts).contains("export interface TemplateParameters {");
+      assertThat(dts).contains("params: com_example_TemplateParameters;");
+    }
+
+    @Test
+    @DisplayName("Reserved keywords used as type variables are safely sanitized")
+    void testReservedWordsInTypeParameters() {
+      String schema =
+          """
+          {
+            "format": "viet-template-contract-schema/1",
+            "schemaVersion": 1,
+            "templateId": "test/reserved-typevar.vtl",
+            "contractFingerprint": "fp:test",
+            "parameters": [
+              {"name": "item", "type": {"kind": "named", "name": "class"}, "nullable": false, "optional": false}
+            ],
+            "types": {}
+          }
+          """;
+
+      String dts = TypeScriptDeclarationProjector.project(schema);
+      assertThat(dts).contains("export interface TemplateParameters<_class = unknown> {");
+      assertThat(dts).contains("item: _class;");
+    }
+
+    @Test
+    @DisplayName("Domain models matching TypeScript built-ins like Record are prefixed")
+    void testTsBuiltinNameDisambiguation() {
+      String schema =
+          """
+          {
+            "format": "viet-template-contract-schema/1",
+            "schemaVersion": 1,
+            "templateId": "test/builtin-collision.vtl",
+            "contractFingerprint": "fp:test",
+            "parameters": [
+              {"name": "rec", "type": {"kind": "class", "name": "com.example.Record"}, "nullable": false, "optional": false}
+            ],
+            "types": {
+              "com.example.Record": {
+                "kind": "record",
+                "properties": [{"name": "title", "type": {"kind": "class", "name": "java.lang.String"}, "nullable": false}]
+              }
+            }
+          }
+          """;
+
+      String dts = TypeScriptDeclarationProjector.project(schema);
+      assertThat(dts).contains("export interface _Record {");
+      assertThat(dts).contains("rec: _Record;");
+    }
+
+    @Test
+    @DisplayName("Multi-character type variables and generic interfaces project correctly")
+    void testMultiCharTypeVariablesAndGenericInterfaces() {
+      String schema =
+          """
+          {
+            "format": "viet-template-contract-schema/1",
+            "schemaVersion": 1,
+            "templateId": "test/generic-box.vtl",
+            "contractFingerprint": "fp:test",
+            "parameters": [
+              {
+                "name": "stringBox",
+                "type": {
+                  "kind": "parameterized",
+                  "rawType": "com.example.Box",
+                  "arguments": [{"kind": "class", "name": "java.lang.String"}]
+                },
+                "nullable": false,
+                "optional": false
+              },
+              {
+                "name": "rawBox",
+                "type": {
+                  "kind": "class",
+                  "name": "com.example.Box"
+                },
+                "nullable": false,
+                "optional": false
+              },
+              {
+                "name": "payload",
+                "type": {"kind": "named", "name": "Payload"},
+                "nullable": false,
+                "optional": false
+              }
+            ],
+            "types": {
+              "com.example.Box": {
+                "kind": "record",
+                "properties": [
+                  {"name": "item", "type": {"kind": "named", "name": "Item"}, "nullable": false}
+                ]
+              }
+            }
+          }
+          """;
+
+      String dts = TypeScriptDeclarationProjector.project(schema);
+      assertThat(dts).contains("export interface Box<Item = unknown> {");
+      assertThat(dts).contains("  item: Item;");
+      assertThat(dts).contains("export interface TemplateParameters<Payload = unknown> {");
+      assertThat(dts).contains("  payload: Payload;");
+      assertThat(dts).contains("  rawBox: Box;");
+      assertThat(dts).contains("  stringBox: Box<string>;");
     }
   }
 
@@ -772,6 +921,242 @@ class TypeScriptDeclarationProjectorTest {
       assertThatThrownBy(() -> TypeScriptDeclarationProjector.project(garbage))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("Unexpected trailing character after JSON root");
+    }
+
+    @Test
+    @DisplayName("Rejects impossible nullability state on primitive parameter")
+    void testImpossibleNullabilityPrimitiveParameter() {
+      String schema =
+          """
+          {
+            "format": "viet-template-contract-schema/1",
+            "schemaVersion": 1,
+            "templateId": "test/impossible-null.vtl",
+            "contractFingerprint": "fp:test",
+            "parameters": [
+              {"name": "count", "type": {"kind": "primitive", "name": "int"}, "nullable": true, "optional": false}
+            ],
+            "types": {}
+          }
+          """;
+
+      assertThatThrownBy(() -> TypeScriptDeclarationProjector.project(schema))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining(
+              "Impossible nullability state: primitive type 'int' cannot be nullable for parameter"
+                  + " 'count'");
+    }
+
+    @Test
+    @DisplayName("Rejects impossible nullability state on primitive property in types")
+    void testImpossibleNullabilityPrimitiveProperty() {
+      String schema =
+          """
+          {
+            "format": "viet-template-contract-schema/1",
+            "schemaVersion": 1,
+            "templateId": "test/impossible-null-prop.vtl",
+            "contractFingerprint": "fp:test",
+            "parameters": [
+              {"name": "user", "type": {"kind": "class", "name": "com.example.User"}, "nullable": false, "optional": false}
+            ],
+            "types": {
+              "com.example.User": {
+                "kind": "record",
+                "properties": [
+                  {"name": "id", "type": {"kind": "primitive", "name": "long"}, "nullable": true}
+                ]
+              }
+            }
+          }
+          """;
+
+      assertThatThrownBy(() -> TypeScriptDeclarationProjector.project(schema))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining(
+              "Impossible nullability state: primitive type 'long' cannot be nullable for property"
+                  + " 'id'");
+    }
+
+    @Test
+    @DisplayName("Rejects invalid primitive type name")
+    void testInvalidPrimitiveName() {
+      String schema =
+          """
+          {
+            "format": "viet-template-contract-schema/1",
+            "schemaVersion": 1,
+            "templateId": "test/bad-primitive.vtl",
+            "contractFingerprint": "fp:test",
+            "parameters": [
+              {"name": "foo", "type": {"kind": "primitive", "name": "not_a_primitive"}, "nullable": false, "optional": false}
+            ],
+            "types": {}
+          }
+          """;
+
+      assertThatThrownBy(() -> TypeScriptDeclarationProjector.project(schema))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Invalid primitive type name: 'not_a_primitive'");
+    }
+
+    @Test
+    @DisplayName("Rejects blank or invalid parameter name")
+    void testInvalidParameterName() {
+      String schemaBlank =
+          """
+          {
+            "format": "viet-template-contract-schema/1",
+            "schemaVersion": 1,
+            "templateId": "test/bad-param.vtl",
+            "contractFingerprint": "fp:test",
+            "parameters": [
+              {"name": "   ", "type": {"kind": "class", "name": "java.lang.String"}, "nullable": false, "optional": false}
+            ],
+            "types": {}
+          }
+          """;
+
+      assertThatThrownBy(() -> TypeScriptDeclarationProjector.project(schemaBlank))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Parameter name must not be blank");
+
+      String schemaNewline =
+          """
+          {
+            "format": "viet-template-contract-schema/1",
+            "schemaVersion": 1,
+            "templateId": "test/bad-param2.vtl",
+            "contractFingerprint": "fp:test",
+            "parameters": [
+              {"name": "bad\\nname", "type": {"kind": "class", "name": "java.lang.String"}, "nullable": false, "optional": false}
+            ],
+            "types": {}
+          }
+          """;
+
+      assertThatThrownBy(() -> TypeScriptDeclarationProjector.project(schemaNewline))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Invalid parameter name");
+    }
+
+    @Test
+    @DisplayName("Rejects blank property name in type definition")
+    void testBlankPropertyName() {
+      String schema =
+          """
+          {
+            "format": "viet-template-contract-schema/1",
+            "schemaVersion": 1,
+            "templateId": "test/blank-prop.vtl",
+            "contractFingerprint": "fp:test",
+            "parameters": [
+              {"name": "m", "type": {"kind": "class", "name": "com.example.Model"}, "nullable": false, "optional": false}
+            ],
+            "types": {
+              "com.example.Model": {
+                "kind": "record",
+                "properties": [
+                  {"name": "   ", "type": {"kind": "class", "name": "java.lang.String"}, "nullable": false}
+                ]
+              }
+            }
+          }
+          """;
+
+      assertThatThrownBy(() -> TypeScriptDeclarationProjector.project(schema))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Property name must not be blank in type 'com.example.Model'");
+    }
+
+    @Test
+    @DisplayName("Rejects path traversal in deriveDeclarationFilePath")
+    void testPathTraversalInTemplateId(@TempDir Path tempDir) {
+      assertThatThrownBy(
+              () ->
+                  TypeScriptDeclarationProjector.deriveDeclarationFilePath(
+                      tempDir, "../../secret.vtl"))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Path traversal detected in templateId");
+    }
+
+    @Test
+    @DisplayName("Maps raw and specialized collection and numeric Java classes")
+    void testRawAndSpecializedCollections() {
+      String schema =
+          """
+          {
+            "format": "viet-template-contract-schema/1",
+            "schemaVersion": 1,
+            "templateId": "test/collections.vtl",
+            "contractFingerprint": "fp:test",
+            "parameters": [
+              {"name": "rawList", "type": {"kind": "class", "name": "java.util.List"}, "nullable": false, "optional": false},
+              {"name": "rawMap", "type": {"kind": "class", "name": "java.util.Map"}, "nullable": false, "optional": false},
+              {"name": "rawSet", "type": {"kind": "class", "name": "java.util.Set"}, "nullable": false, "optional": false},
+              {
+                "name": "arrayList",
+                "type": {
+                  "kind": "parameterized",
+                  "rawType": "java.util.ArrayList",
+                  "arguments": [{"kind": "class", "name": "java.lang.String"}]
+                },
+                "nullable": false,
+                "optional": false
+              },
+              {
+                "name": "hashMap",
+                "type": {
+                  "kind": "parameterized",
+                  "rawType": "java.util.HashMap",
+                  "arguments": [
+                    {"kind": "class", "name": "java.lang.String"},
+                    {"kind": "class", "name": "java.lang.Number"}
+                  ]
+                },
+                "nullable": false,
+                "optional": false
+              },
+              {
+                "name": "hashSet",
+                "type": {
+                  "kind": "parameterized",
+                  "rawType": "java.util.HashSet",
+                  "arguments": [{"kind": "class", "name": "java.lang.String"}]
+                },
+                "nullable": false,
+                "optional": false
+              },
+              {
+                "name": "bigDecimal",
+                "type": {"kind": "class", "name": "java.math.BigDecimal"},
+                "nullable": false,
+                "optional": false
+              },
+              {
+                "name": "opt",
+                "type": {
+                  "kind": "parameterized",
+                  "rawType": "java.util.Optional",
+                  "arguments": [{"kind": "class", "name": "java.lang.String"}]
+                },
+                "nullable": false,
+                "optional": false
+              }
+            ],
+            "types": {}
+          }
+          """;
+
+      String dts = TypeScriptDeclarationProjector.project(schema);
+      assertThat(dts).contains("rawList: unknown[];");
+      assertThat(dts).contains("rawMap: Record<string, unknown>;");
+      assertThat(dts).contains("rawSet: Set<unknown>;");
+      assertThat(dts).contains("arrayList: string[];");
+      assertThat(dts).contains("hashMap: Record<string, number>;");
+      assertThat(dts).contains("hashSet: Set<string>;");
+      assertThat(dts).contains("bigDecimal: number;");
+      assertThat(dts).contains("opt: string | null;");
     }
   }
 }

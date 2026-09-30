@@ -77,22 +77,27 @@ JVM primitive types are projected to TypeScript equivalents:
 
 ### 3.2 Boxed Primitives & String (`class`)
 
-Standard Java wrapper types and strings are mapped directly:
+Standard Java wrapper types, numbers, and strings are mapped directly:
 
-| Java Reference Class | TypeScript Type |
-|---|---|
-| `java.lang.Boolean` | `boolean` |
-| `java.lang.Byte` | `number` |
-| `java.lang.Short` | `number` |
-| `java.lang.Integer` | `number` |
-| `java.lang.Long` | `number` |
-| `java.lang.Float` | `number` |
-| `java.lang.Double` | `number` |
-| `java.lang.Character` | `string` |
-| `java.lang.Void` | `void` |
-| `java.lang.String` | `string` |
-| `java.lang.CharSequence` | `string` |
-| `java.lang.Object` | `unknown` |
+| Java Reference Class | TypeScript Type | Semantic Notes |
+|---|---|---|
+| `java.lang.Boolean` | `boolean` | Direct equivalence |
+| `java.lang.Byte` | `number` | Numeric mapping |
+| `java.lang.Short` | `number` | Numeric mapping |
+| `java.lang.Integer` | `number` | Numeric mapping |
+| `java.lang.Long` | `number` | Numeric mapping |
+| `java.lang.Float` | `number` | Numeric mapping |
+| `java.lang.Double` | `number` | Numeric mapping |
+| `java.lang.Number` | `number` | Abstract number base |
+| `java.math.BigDecimal` | `number` | Numeric mapping for arbitrary precision numbers |
+| `java.math.BigInteger` | `number` | Numeric mapping for arbitrary precision integers |
+| `java.lang.Character` | `string` | Character string |
+| `java.lang.Void` | `void` | Direct equivalence |
+| `java.lang.String` | `string` | Direct equivalence |
+| `java.lang.CharSequence` | `string` | String sequence |
+| `java.lang.Object` | `unknown` | Top type |
+| `java.util.Optional<T>` | `T \| null` | Unwrapped optional value or null |
+| `java.util.Map.Entry<K, V>` | `{ key: K; value: V; }` | Key-value entry record |
 
 ### 3.3 Dynamic Types (`dynamic`)
 
@@ -114,19 +119,18 @@ Array types are projected to `T[]`:
 
 ### 3.5 Collections & Parameterized Types (`parameterized`)
 
-Common Java collection and map types are projected to their canonical TypeScript representations:
+Common Java collection, set, list, and map types are projected to their canonical TypeScript representations:
 
-| Java Type | TypeScript Representation | Rationale |
+| Java Type / Subclasses | TypeScript Representation | Rationale |
 |---|---|---|
-| `java.util.List<T>` | `T[]` | JSON arrays are the standard serialization of Java lists |
-| `java.util.Collection<T>` | `T[]` | Array is the standard ordered iterable collection |
-| `java.util.Iterable<T>` | `T[]` | Iteration target in templates |
-| `java.util.Set<T>` | `Set<T>` | Preserves Set semantics |
-| `java.util.Map<K, V>` (K is `string`) | `Record<string, V>` | Standard JSON object key-value dictionary |
-| `java.util.Map<K, V>` (K is `number`) | `Record<number, V>` | Numeric-indexed dictionary |
-| `java.util.Map<K, V>` (other K) | `Map<K, V>` | Built-in ES6 Map interface |
-| Raw `Map` (no args) | `Record<string, unknown>` | Safe fallback for untyped map |
-| Raw `List` (no args) | `unknown[]` | Safe fallback for untyped list |
+| `java.util.List<T>`, `java.util.Collection<T>`, `java.util.Iterable<T>`, `java.util.ArrayList<T>`, `java.util.LinkedList<T>`, `java.util.Vector<T>` | `T[]` | JSON arrays are the standard serialization of Java lists and collections |
+| `java.util.Set<T>`, `java.util.HashSet<T>`, `java.util.LinkedHashSet<T>`, `java.util.TreeSet<T>`, `java.util.SortedSet<T>`, `java.util.NavigableSet<T>` | `Set<T>` | Preserves Set semantics |
+| `java.util.Map<K, V>`, `java.util.HashMap<K, V>`, `java.util.LinkedHashMap<K, V>`, `java.util.TreeMap<K, V>`, `java.util.concurrent.ConcurrentHashMap<K, V>`, `java.util.SortedMap<K, V>`, `java.util.NavigableMap<K, V>`, `java.util.concurrent.ConcurrentMap<K, V>` (K is `string`) | `Record<string, V>` | Standard JSON object key-value dictionary |
+| Maps with numeric key (K is `number`) | `Record<number, V>` | Numeric-indexed dictionary |
+| Maps with other key types (other K) | `Map<K, V>` | Built-in ES6 Map interface |
+| Raw `Map` (no type arguments) | `Record<string, unknown>` | Safe fallback for untyped map |
+| Raw `List`, `Collection`, `Iterable` (no type arguments) | `unknown[]` | Safe fallback for untyped collection |
+| Raw `Set` (no type arguments) | `Set<unknown>` | Safe fallback for untyped set |
 
 For custom parameterized types (`Foo<T>`):
 - If `rawType` is defined in the schema's `types` catalog: projected as `Foo<T>`.
@@ -144,7 +148,9 @@ Java wildcards are projected according to variance semantics:
 
 ### 3.7 Named Types & Type Variables (`named`)
 
-- Symbolic type variables (e.g. `T`, `E`, `K`, `V` not defined in `types`) project to TypeScript type parameters: `<T = unknown>` on `TemplateParameters` and `<T>` on generic interfaces.
+- Symbolic type variables (any valid identifier not defined in the schema's `types` catalog, e.g. `T`, `E`, `K`, `V`, `Item`, `Payload`) project to TypeScript type parameters. There is no artificial length restriction on type variable identifiers.
+- If a type variable name matches a TypeScript reserved keyword (e.g. `class`, `function`), it is safely sanitized by prefixing with `T_` (e.g. `T_class`).
+- On declared generic interfaces, type parameters default to `unknown`: `<T = unknown>` (e.g. `export interface Box<T = unknown>`), ensuring ambient `.d.ts` consumers can reference unparameterized types without compile errors under `noImplicitAny`.
 - References to named types with arguments project to `Name<Arg1, Arg2>`.
 
 ---
@@ -161,6 +167,12 @@ M27 contract schemas explicitly distinguish between **nullable** (can the value 
 | `true` | `false` | `prop: T \| null;` | Value must be passed, but can be `null` |
 | `false` | `true` | `prop?: T;` | Property may be omitted; if passed, non-null |
 | `true` | `true` | `prop?: T \| null;` | Property may be omitted; if passed, can be `null` |
+
+### 4.2 Impossible Nullability & Schema Validation
+
+1. **Impossible Nullability State**: In Java, primitive types (`boolean`, `byte`, `short`, `int`, `long`, `float`, `double`, `char`, `void`) can never hold `null`. A contract schema declaring `kind: "primitive"` with `nullable: true` is an impossible nullability state and is rejected immediately with an `IllegalArgumentException`.
+2. **Primitive Name Validation**: Primitive types must match one of the 9 canonical JVM primitives. Unknown primitive types are rejected.
+3. **Identifier & Property Name Validation**: Parameter and property names must not be empty or blank, and must not contain unescaped control characters or unescaped quotes.
 
 ---
 
@@ -215,7 +227,9 @@ export interface TemplateParameters {
    - `com.a.User` -> `com_a_User`
    - `com.b.User` -> `com_b_User`
    All references in parameters and property types are updated consistently.
-4. **Reserved Type Names**: If a candidate type name matches a TypeScript reserved keyword (`class`, `interface`, `type`, `function`, etc.), it is prefixed with `_` (e.g. `_Class`).
+4. **Reserved Type Names**:
+   - If a candidate type name matches a TypeScript reserved keyword (`class`, `interface`, `type`, `function`, etc.), it is prefixed with `_` (e.g. `_Class`).
+   - The name `"TemplateParameters"` is reserved for the root template interface. Any schema type with candidate name `TemplateParameters` in `types` is disambiguated (e.g. `_TemplateParameters`) to prevent shadowing the parameter contract.
 
 ### 6.2 Property Name Quoting
 - Valid TypeScript identifiers (`^[a-zA-Z_$][a-zA-Z0-9_$]*$`) that are not reserved keywords are emitted unquoted: `active: boolean;`.
@@ -241,6 +255,7 @@ export interface TemplateParameters {
    - Properties inside each interface are emitted in ascending alphabetical order by property name.
    - Root `TemplateParameters` properties are emitted in ascending alphabetical order by parameter name.
 6. **No Environmental Variance**: No timestamps, absolute file paths, or random identifiers are ever emitted.
+7. **Path Traversal Prevention**: Declaration file paths derived from `templateId` are strictly validated to prevent directory traversal (`..` or root references) outside the destination directory.
 
 ---
 
@@ -251,12 +266,15 @@ export interface TemplateParameters {
 - **Phase**: `process-classes` (runs after `generate-schemas`)
 - **Default Schema Directory**: `${project.build.directory}/generated-resources/viet-template/schemas`
 - **Default Output Directory**: `${project.build.directory}/generated-sources/viet-template/typescript`
+- **Stale Output Cleanup**: Scans the output directory and deletes any orphaned `.d.ts` files that no longer correspond to an active `.vt-schema.json`.
 
 ### 8.2 Gradle Plugin (`viet-template-gradle-plugin`)
 - **Task**: `generateVietTemplateTypeScript`
 - **Wiring**: Runs after `generateVietTemplateSchemas`
 - **Default Output Directory**: `layout.buildDirectory.dir("generated/viet-template/typescript")`
 - **Extension Property**: `vietTemplate.typeScriptOutputDirectory`
+- **Stale Output Cleanup**: Cleans up stale `.d.ts` files in the output directory when corresponding templates or schemas are removed.
 
 ### 8.3 Tooling Parity
 Given identical input schemas, Maven and Gradle produce byte-for-byte identical `.d.ts` files with identical SHA-256 hashes.
+

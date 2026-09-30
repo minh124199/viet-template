@@ -119,4 +119,48 @@ class VietTemplateGenerateTypeScriptTaskTest {
       assertThat(tsDir).isEmptyDirectory();
     }
   }
+
+  @Test
+  @DisplayName("Cleans up stale .d.ts files when corresponding template is removed")
+  void testStaleFileCleanup(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"test-stale-project\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path templateDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(templateDir);
+    Files.writeString(
+        templateDir.resolve("order-view.vtl"), "Order #$orderId", StandardCharsets.UTF_8);
+    Files.writeString(
+        templateDir.resolve("order-view.vtl.contract"), "orderId=long\n", StandardCharsets.UTF_8);
+
+    Path tsDir = projectDir.resolve("build/generated/viet-template/typescript");
+    Files.createDirectories(tsDir);
+    Path staleDts = tsDir.resolve("stale.d.ts");
+    Files.writeString(staleDts, "// stale", StandardCharsets.UTF_8);
+
+    BuildResult result =
+        createRunner(projectDir)
+            .withArguments(VietTemplatePlugin.GENERATE_TYPESCRIPT_TASK_NAME)
+            .build();
+
+    assertThat(result.task(":" + VietTemplatePlugin.GENERATE_TYPESCRIPT_TASK_NAME)).isNotNull();
+    assertThat(result.task(":" + VietTemplatePlugin.GENERATE_TYPESCRIPT_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+
+    assertThat(tsDir.resolve("order-view.d.ts")).isRegularFile();
+    assertThat(staleDts).doesNotExist();
+  }
 }

@@ -87,9 +87,27 @@ public class VietTemplateGenerateTypeScriptMojo extends AbstractMojo {
     Path outDirPath = typeScriptOutputDirectory.toPath();
     try {
       Files.createDirectories(outDirPath);
+      java.util.Set<Path> generatedFiles = new java.util.HashSet<>();
       for (Path schemaFile : schemaFiles) {
         Path generatedFile = TypeScriptDeclarationProjector.projectToFile(schemaFile, outDirPath);
+        generatedFiles.add(generatedFile.toAbsolutePath().normalize());
         getLog().debug("Generated TypeScript declaration: " + generatedFile);
+      }
+
+      // Clean up stale generated .d.ts files
+      try (Stream<Path> existing = Files.walk(outDirPath)) {
+        existing
+            .filter(Files::isRegularFile)
+            .filter(p -> p.getFileName().toString().endsWith(".d.ts"))
+            .filter(p -> !generatedFiles.contains(p.toAbsolutePath().normalize()))
+            .forEach(
+                p -> {
+                  try {
+                    Files.deleteIfExists(p);
+                    getLog().debug("Cleaned up stale TypeScript declaration: " + p);
+                  } catch (IOException ignored) {
+                  }
+                });
       }
     } catch (IOException | RuntimeException e) {
       throw new MojoFailureException(
