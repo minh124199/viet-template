@@ -1,6 +1,6 @@
 # Support Matrix & Compatibility
 
-This document outlines the official environment support matrix for **Viet Template 1.0.0-RC1**, including JDK runtimes, build tooling, framework integrations, and execution environments.
+This document outlines the official environment support matrix for **Viet Template 1.0.0 GA**, including JDK runtimes, build tooling, framework integrations, and execution environments.
 
 ---
 
@@ -21,18 +21,18 @@ Viet Template enforces a hard baseline of **Java 21**. All production classes an
 
 Both Apache Maven and Gradle are supported as first-class build tools with verified build parity.
 
-| Build Tool | Declared Minimum | RC-Tested Versions | Canonical RC Version | Plugin Coordinates |
+| Build Tool | Declared Minimum | Verified Versions | Canonical Version | Plugin Coordinates |
 |---|---|---|---|---|
-| **Apache Maven** | `3.8.0` | `3.9.9` | `3.9.9` (wrapper) | `io.github.minh124199:viet-template-maven-plugin:1.0.0-RC1` |
-| **Gradle** | `8.5` | `9.7.1` | `9.7.1` (wrapper) | `io.github.minh124199.viet-template:1.0.0-RC1` |
+| **Apache Maven** | `3.8.0` | `3.9.9` | `3.9.9` (wrapper) | `io.github.minh124199:viet-template-maven-plugin:1.0.0` |
+| **Gradle** | `8.5` | `9.7.1` | `9.7.1` (wrapper) | `io.github.minh124199.viet-template:1.0.0` |
 
 ---
 
 ## 3. Framework Integrations & Compatibility Matrix
 
-Viet Template specifies exact compatibility boundaries with explicit Declared Minimum, RC-Tested, and Canonical RC versions:
+Viet Template specifies exact compatibility boundaries with explicit Declared Minimum, Verified, and Canonical versions:
 
-| Framework / Tool | Declared Minimum | RC-Tested Versions | Canonical RC Version | Native Image Status | Integration Modules |
+| Framework / Tool | Declared Minimum | Verified Versions | Canonical Version | Native Image Status | Integration Modules |
 |---|---|---|---|---|---|
 | **Spring Boot** | `3.3.0` | `3.3.5`, `4.1.1` | `4.1.1` | Supported (Oracle GraalVM 25.0.4+7.1) | `viet-template-spring-boot-starter`, `viet-template-spring-boot-autoconfigure` |
 | **Spring Framework** | `6.1.0` | `6.1.14`, `7.0.9` | `7.0.9` | Supported (Oracle GraalVM 25.0.4+7.1) | `viet-template-spring` |

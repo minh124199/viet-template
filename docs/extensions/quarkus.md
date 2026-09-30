@@ -18,16 +18,16 @@ Viet Template provides first-class, idiomatic integration with [Quarkus](https:/
 Add the `viet-template-quarkus` extension dependency to your `pom.xml`:
 
 ```xml
-<!-- Published Prerelease (1.0.0-RC1) -->
+<!-- Latest Published Stable: 1.0.0 -->
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-quarkus</artifactId>
-    <version>1.0.0-RC1</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
 > [!NOTE]
-> The Quarkus extension (`viet-template-quarkus` and `viet-template-quarkus-deployment`) was introduced in the 1.0 candidate line (`1.0.0-RC1`). No `0.2.2` artifact exists on Maven Central for Quarkus.
+> The Quarkus extension (`viet-template-quarkus` and `viet-template-quarkus-deployment`) is published as part of the 1.0.0 GA release.
 
 The Quarkus Maven plugin automatically discovers the deployment artifact `viet-template-quarkus-deployment` via `META-INF/quarkus-extension.properties`.
 
@@ -36,8 +36,8 @@ The Quarkus Maven plugin automatically discovers the deployment artifact `viet-t
 In `build.gradle.kts`:
 
 ```kotlin
-// Published Prerelease (1.0.0-RC1)
-implementation("io.github.minh124199:viet-template-quarkus:1.0.0-RC1")
+// Latest Published Stable: 1.0.0
+implementation("io.github.minh124199:viet-template-quarkus:1.0.0")
 ```
 
 ---

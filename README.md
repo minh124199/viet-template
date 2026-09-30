@@ -28,7 +28,8 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 
 | Dimension | Detail |
 |---|---|
-| **Latest Published Stable Release** | `1.0.0` (Published: 2026-09-26; available on Maven Central & GitHub Releases) |
+| **Latest Published Stable Release** | `1.0.0` (GA: 2026-09-26; patch release: `1.0.1` on 2026-09-28; available on Maven Central & GitHub Releases) |
+| **Active Development** | `1.1.0-SNAPSHOT` (Milestones M20–M29 completed on `main`) |
 | **Java Baseline** | Java 21 LTS (`--release 21`, major version 65) |
 | **Primary Target** | Java 25 (optimized memory & runtime qualification) |
 | **Maven Group ID** | `io.github.minh124199` |
@@ -42,7 +43,7 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 
 ## Framework & Build Tool Compatibility
 
-| Integration | Declared Minimum | RC-Tested Versions | Canonical RC Version | Native Status |
+| Integration | Declared Minimum | Verified Versions | Canonical Version | Native Status |
 |---|---|---|---|---|
 | **Spring Boot** | `3.3.0` | `3.3.5`, `4.1.1` | `4.1.1` | Supported (Oracle GraalVM 25.0.4+7.1) |
 | **Spring Framework** | `6.1.0` | `6.1.14`, `7.0.9` | `7.0.9` | Supported (Oracle GraalVM 25.0.4+7.1) |
@@ -95,7 +96,7 @@ import io.github.minh124199.viettemplate.api.TemplateEngine;
 import java.util.List;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         TemplateEngine engine = TemplateEngine.builder()
             .repository(ClasspathTemplateRepository.of("templates/"))
             .memberAccessPolicy(MemberAccessPolicy.standard())
@@ -155,14 +156,14 @@ public class WebController {
 
 ### 3. Quarkus 3 Extension
 
-Add the extension dependency (introduced in `1.0.0-RC1`):
+Add the extension dependency:
 
 ```xml
-<!-- Quarkus extension is available starting in 1.0.0-RC1 (not present in 0.2.2) -->
+<!-- Latest Published Stable: 1.0.0 -->
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-quarkus</artifactId>
-    <version>1.0.0-RC1</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -201,7 +202,7 @@ See the comprehensive [Apache Velocity Migration Guide](docs/migration/velocity-
 
 ## Comparative Performance Highlights
 
-Evaluated across workloads **C01–C08** in JMH benchmarks on **Java 21** and **Java 25** (OpenJDK, `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC`):
+Evaluated across workloads **C01–C08** in JMH 1.37 benchmarks on a reference Linux x86_64 host (Intel Core i5-8350U @ 1.70GHz, 4 physical cores / 8 logical threads, 12 GB RAM, Linux 7.2.4-3-cachyos) across **Java 21 LTS** (OpenJDK 21.0.12.1+1) and **Java 25** (Oracle GraalVM 25.0.4+7.1) using standardized flags (`-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC`; canonical 1.0.0 baseline commit `b951021`):
 
 | Workload | Viet-IR | Viet-AOT | Apache Velocity 2.4.1 | Quarkus Qute 3.39.4 | jte 3.2.4 | Thymeleaf 3.1.5 |
 |---|---|---|---|---|---|---|
@@ -211,11 +212,11 @@ Evaluated across workloads **C01–C08** in JMH benchmarks on **Java 21** and **
 | **C04 Conditionals** (J25) | 1.50M ops/s | **6.63M ops/s** | 1.25M ops/s | 2.79M ops/s | 6.70M ops/s | 277.4K ops/s |
 | **C07 Nested Loop** (J25) | 99.9K ops/s | **547.9K ops/s** | 220.8K ops/s | 432.8K ops/s | 3.22M ops/s | 52.3K ops/s |
 
-- **Velocity Modernization Payoff**: Viet-AOT outperforms Apache Velocity 2.4.1 on **every single workload**, delivering up to **5.3x throughput**.
-- **Competitive Compiled Standing**: Viet-AOT leads Qute and jte on raw static HTML rendering (55.3M ops/s) and matches jte on conditionals (6.6M ops/s).
-- **Superior Memory Footprint**: Allocates as little as **176 bytes/op** on static output on Java 25.
+- **Velocity Modernization Payoff**: Under the evaluated benchmark configuration, Viet-AOT achieved higher throughput than Apache Velocity 2.4.1 across all C01–C08 scenarios, delivering up to **5.3x higher throughput** on conditional logic (C04).
+- **Compiled Standing**: Under the evaluated benchmark environment, Viet-AOT achieved higher throughput on raw static HTML rendering (**55.30M ops/s**) than tested alternatives and reached parity with jte 3.2.4 on conditional logic (**6.63M vs 6.70M ops/s**). On deep reflection graphs and collection iterations, jte leads compiled throughput.
+- **Low Memory Allocation**: Allocated as few as **176 bytes/op** on static output (C01) on Java 25 (fewer bytes per operation than all tested alternatives).
 
-Read the complete evidence report in [docs/performance/comparative-benchmarks.md](docs/performance/comparative-benchmarks.md).
+For full methodology, allocation metrics, confidence intervals, and Java 21 results, see [Comparative Engine Benchmarks](docs/performance/comparative-benchmarks.md).
 
 ---
 
@@ -251,6 +252,11 @@ Explore the complete documentation suite organized by topic:
 - **[Apache Maven Plugin](docs/build-tooling/maven.md)** — Build-time AOT precompilation and verification via `viet-template-maven-plugin`.
 - **[Gradle Plugin](docs/build-tooling/gradle.md)** — Gradle Kotlin/Groovy DSL plugin configuration (`plugins { id("io.github.minh124199.viet-template") version "1.0.0" }`) and incremental build-cache.
 
+### Developer Tooling & Schemas
+- **[Canonical Tooling Schemas](docs/schema/contract-schema-v1.md)** — Language-neutral JSON schema format (`*.vt-schema.json`) for template parameters and types.
+- **[TypeScript Declaration Projection](docs/schema/typescript-projection-v1.md)** — Automated, deterministic generation of TypeScript declaration files (`*.d.ts`) from contract schemas.
+- **[Language Server Protocol (LSP)](docs/tooling/language-server-foundation.md)** — Language server implementation providing diagnostics, autocompletion, hover, and definition navigation.
+
 ### Framework Integrations
 - **[Spring Boot Integration Guide](docs/spring/spring-boot-integration.md)** — Spring Boot 4 / Framework 7 starter, property catalog, and reactive view resolution.
 - **[Spring Security Integration](docs/36-spring-security-integration.md)** — `$security` and `$csrf` template facades with contextual escaping.
@@ -260,10 +266,15 @@ Explore the complete documentation suite organized by topic:
 - **[Diagnostics & Error Catalog](docs/diagnostics/error-catalog.md)** — Complete catalog of parse-time, compile-time, and runtime error codes with remedies.
 - **[Extension Guide & SPIs](docs/extensions/extension-guide.md)** — Implement custom loaders, escapers, member resolvers, and engine customizers.
 
+### Performance & Benchmarks
+- **[Comparative Engine Benchmarks](docs/performance/comparative-benchmarks.md)** — C01–C08 throughput and allocation results across Java 21 and Java 25.
+- **[1.1 Performance Foundation](docs/performance/1.1-performance-foundation.md)** — 1.0.0 canonical performance baseline, hotspot analysis, and 1.1 optimization ranking.
+- **[M25 Typed Specialization Benchmarks](docs/performance/1.1-m25-specialization-benchmarks.md)** — Multi-argument direct dispatch, runtime divergence guards, and root-slot profiling evidence.
+- **[Benchmark Plan](docs/15-benchmark-plan.md)** — JMH methodology and 7-part DSA acceptance rule.
+
 ### Architecture & Readiness
 - **[1.0 Readiness Gap Analysis](docs/1.0-readiness-gap-analysis.md)** — 15-point readiness audit and public surface encapsulation roadmap.
 - **[System Architecture](docs/01-system-architecture.md)** — Pipeline architecture from AST lowering to bytecode execution.
-- **[Benchmark Plan](docs/15-benchmark-plan.md)** — JMH methodology and 7-part DSA acceptance rule.
 - **[Project Charter](docs/00-project-charter.md)** — Design goals, scope, and non-goals.
 - **[Implementation Roadmap](docs/18-roadmap.md)** — Phased development roadmap.
 - **[Implementation Checklist](docs/20-implementation-checklist.md)** — Engineering milestone checklist.

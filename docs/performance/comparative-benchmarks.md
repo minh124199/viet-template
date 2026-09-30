@@ -85,12 +85,12 @@ Each table cell reports: `throughput ± JMH error (ops/s); memory allocation (B/
 - **Analysis**:
   - In common dynamic rendering patterns—scalar variables (**C02**) and conditional branching (**C04**)—Viet-IR achieves **1.46x to 1.73x** the throughput of Apache Velocity 2.4.1 (1.85M vs 1.07M ops/s on Java 25).
   - In complex loop traversals (**C05**, **C06**, **C07**) and deep reflection property chains (**C03**), Viet-IR exhibits lower throughput than Velocity (approximately 0.5x to 0.7x Velocity) due to Viet-IR's mandatory security sandbox (`MemberAccessPolicy`), boundary checks, and full 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`).
-  - Across all workloads, Viet-IR strictly outperforms **Thymeleaf 3.1.5** by **3x to 6x**.
+  - Across all workloads, Viet-IR achieved **3x to 6x higher throughput** than **Thymeleaf 3.1.5** under this benchmark configuration.
 
 ### Gate 2: Viet-AOT vs Apache Velocity 2.4.1 (Modernization Payoff)
-- **Status**: **PASS (Decisive Win)**
+- **Status**: **PASS (Higher Throughput Across C01–C08)**
 - **Analysis**:
-  - Viet-AOT decisively outperforms Apache Velocity 2.4.1 across **every single workload (C01–C08)** on both Java 21 and Java 25:
+  - Viet-AOT achieved higher throughput than Apache Velocity 2.4.1 across **every single workload (C01–C08)** on both Java 21 and Java 25 under this benchmark configuration:
     - **C01 (Static HTML)**: **3.69x faster** (55.30M vs 14.99M ops/s on J25).
     - **C02 (Scalar Variables)**: **2.12x faster** (2.27M vs 1.07M ops/s on J25).
     - **C03 (Deep Chains)**: **3.10x faster** (924.9K vs 298.8K ops/s on J25).
@@ -111,22 +111,22 @@ Each table cell reports: `throughput ± JMH error (ops/s); memory allocation (B/
     - **C07 (Nested Loop)**: Viet-AOT leads Qute by **1.27x** (547.9K vs 432.8K ops/s on J25).
     - **C02, C03, C06, C08**: Viet-AOT and Qute are essentially on par within single-digit percentage margins.
   - **Against jte 3.2.4**:
-    - Viet-AOT decisively beats jte on raw static HTML streaming (**55.30M vs 9.26M ops/s** on J25) and matches jte on conditional evaluation (**6.63M vs 6.70M ops/s** on J25).
+    - Viet-AOT achieved higher throughput than jte on raw static HTML streaming (**55.30M vs 9.26M ops/s** on J25) and reached parity with jte on conditional evaluation (**6.63M vs 6.70M ops/s** on J25).
     - jte leads in deep property chains (**C03**) and high-volume loop generation (**C06**) because jte relies on non-sandboxed direct Java source compilation with unchecked primitive getter calls and pre-allocated binary chunk buffers.
 
 ### Gate 4: Memory & GC Allocation Efficiency
-- **Status**: **PASS (Superior Footprint)**
+- **Status**: **PASS (Measured Lower Allocation Rate)**
 - **Analysis**:
-  - **Static Output Allocation**: On Java 25, Viet-AOT allocates only **176 B/op** on static HTML (C01), compared to 704 B/op for Velocity, 328 B/op for Qute, 776 B/op for jte, and 2,176 B/op for Thymeleaf.
-  - **AOT vs Interpreter Memory Reduction**: Viet-AOT reduces heap allocation by **50% to 75%** relative to Viet-IR across all workloads (e.g. C03 drops from 5,840 B/op to 1,488 B/op; C07 drops from 9,080 B/op to 2,120 B/op).
-  - Zero allocation churn is observed for repeated static segments due to pre-encoded UTF-8 byte array pooling.
+  - **Static Output Allocation**: On Java 25, Viet-AOT allocated fewer bytes per operation (**176 B/op** on static HTML C01) than Velocity (704 B/op), Qute (328 B/op), jte (776 B/op), and Thymeleaf (2,176 B/op).
+  - **AOT vs Interpreter Memory Reduction**: Viet-AOT allocated 50% to 75% fewer bytes per operation relative to Viet-IR across all workloads under this benchmark configuration (e.g. C03 drops from 5,840 B/op to 1,488 B/op; C07 drops from 9,080 B/op to 2,120 B/op).
+  - Zero allocation churn was observed for repeated static segments due to pre-encoded UTF-8 byte array pooling.
 
 ---
 
 ## 5. Architectural Tradeoffs: Where Viet Template Wins & Trails
 
 ### Where Viet Template Excels
-1. **Static HTML & Literal Streaming**: Viet-AOT pre-compiles string literals into compact UTF-8 byte arrays, emitting them via bulk stream writes. It outperforms all tested engines (including jte and Qute) on pure static fragments (55.3M ops/s).
+1. **Static HTML & Literal Streaming**: Viet-AOT pre-compiles string literals into compact UTF-8 byte arrays, emitting them via bulk stream writes. It achieved higher throughput than all tested engines (including jte and Qute) on pure static fragments under this benchmark configuration (55.3M ops/s).
 2. **Predictable Conditional Branching**: Branch instructions in bytecode are mapped directly to JVM jumps without boxing or intermediate boolean carrier objects, matching native Java speed (6.6M ops/s).
 3. **Turnkey Velocity Drop-in with AOT Speed**: Unlike jte or Qute (which require rewriting templates in Java-like or custom syntax), Viet Template gives developers 100% Velocity-compatible VTL syntax while running at modern compiled bytecode speeds.
 

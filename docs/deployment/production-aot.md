@@ -67,11 +67,11 @@ Add `viet-template-maven-plugin` to your `pom.xml`:
 ```xml
 <build>
     <plugins>
-        <!-- Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1 -->
+        <!-- Latest Published Stable: 1.0.0 -->
         <plugin>
             <groupId>io.github.minh124199</groupId>
             <artifactId>viet-template-maven-plugin</artifactId>
-            <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
+            <version>1.0.0</version>
             <executions>
                 <execution>
                     <goals>
@@ -97,8 +97,8 @@ Apply `io.github.minh124199.viet-template` in your `build.gradle.kts`:
 
 ```kotlin
 plugins {
-    // Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0
-    id("io.github.minh124199.viet-template") version "1.0.0" // or "0.2.2"
+    // Latest Published Stable: 1.0.0
+    id("io.github.minh124199.viet-template") version "1.0.0"
 }
 
 vietTemplate {

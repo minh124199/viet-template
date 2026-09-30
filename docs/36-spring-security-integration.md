@@ -3,7 +3,7 @@
 ## 1. Executive Summary
 
 - **Module**: `viet-template-spring-security` (Optional Framework Integration)
-- **Status**: **PRODUCTION READY (1.0.0-RC1 Published Candidate Baseline)**
+- **Status**: **PRODUCTION READY (1.0.0 GA)**
 - **Artifact Strategy**:
   - Exactly **one** `viet-template-spring-security` artifact for all supported Spring Security generations.
   - Java 21 bytecode (`--release 21`, classfile major version 65).
@@ -247,18 +247,18 @@ To enable Spring Security integration in a Spring Boot application:
 **Maven (`pom.xml`)**:
 ```xml
 <dependencies>
-    <!-- Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1 -->
+    <!-- Latest Published Stable: 1.0.0 -->
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-spring-boot-starter</artifactId>
-        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
+        <version>1.0.0</version>
     </dependency>
 
     <!-- Spring Security Module -->
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-spring-security</artifactId>
-        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
+        <version>1.0.0</version>
     </dependency>
 
     <!-- Spring Boot Security Starter -->
@@ -272,9 +272,9 @@ To enable Spring Security integration in a Spring Boot application:
 **Gradle (`build.gradle.kts`)**:
 ```kotlin
 dependencies {
-    // Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1
-    implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.2") // or 1.0.0-RC1
-    implementation("io.github.minh124199:viet-template-spring-security:0.2.2") // or 1.0.0-RC1
+    // Latest Published Stable: 1.0.0
+    implementation("io.github.minh124199:viet-template-spring-boot-starter:1.0.0")
+    implementation("io.github.minh124199:viet-template-spring-security:1.0.0")
     implementation("org.springframework.boot:spring-boot-starter-security")
 }
 ```

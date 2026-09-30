@@ -69,7 +69,7 @@ To adhere to the Java-first design policy and avoid premature complexity:
 
 Release `0.2.0` introduces the next major internal runtime evolution, transitioning variable resolution from string-based hash lookups to compiler-assigned flat array slots and indexing the compilation cache for scalable invalidation.
 
-**Release Status**: 0.2.2 is the latest published stable release (published 2026-09-20; 0.2.1 on 2026-09-17, 0.2.0 on 2026-09-12). Version 0.2.3 was prepared across POMs but held without tagging or publication (`PREPARED_HELD`). The supported stable line is `0.2.x`. Version `1.0.0-RC1` was published on 2026-09-24 as the active release candidate undergoing public soak, targeting 1.0.0 GA.
+**Release Status**: Version 1.0.0 GA was published on 2026-09-26 as the canonical stable release, followed by patch release 1.0.1 on 2026-09-28. Version 0.2.2 (published 2026-09-20; 0.2.1 on 2026-09-17, 0.2.0 on 2026-09-12) represents the historical 0.2.x line. Version 0.2.3 was prepared across POMs but held without tagging or publication (`PREPARED_HELD`). Active development is on `1.1.0-SNAPSHOT` (Milestones M20–M29 completed).
 
 **Post-release infrastructure status**: 0.2.x release infrastructure hardening is COMPLETE. Central
 submission, publication monitoring, public-coordinate verification, consumer smoke testing, and
@@ -321,7 +321,7 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
   - **0.2.3 Status**: Historical release prepared across POMs but held without tagging or publication (`PREPARED_HELD`).
   - **0.3.0 Development Line**: Completed public surface encapsulation (M1–M3.5), runtime architecture (M4), warmed-lookup simplification (M5), exception semantics hardening (M6), 1.0 candidate contract reconciliation (M7.9), and 1.0 candidate contract freeze (M8.1).
   - **1.0.0-RC1 (Published Prerelease / Release Candidate)**: Published to Maven Central and GitHub Releases on 2026-09-24, candidate contract frozen, provenance reconciled, and undergoing public RC soak.
-  - **1.0.0 GA**: General Availability release locking permanent SemVer binary backwards compatibility following RC soak (M9).
+  - **1.0.0 GA**: General Availability release locking permanent SemVer binary backwards compatibility following RC soak (published 2026-09-26, commit b951021; patch release 1.0.1 on 2026-09-28, commit a6d96e3).
 
 ---
 

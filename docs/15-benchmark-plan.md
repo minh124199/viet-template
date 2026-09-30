@@ -522,10 +522,10 @@ benchmarks are in `viet-template-benchmarks/src/main/java/.../benchmarks/compara
 
 | Engine | Version | Track | Adapter |
 |---|---|---|---|
-| Viet Template (IR) | 0.2.2-SNAPSHOT | Track A (Dynamic) | `VietIrAdapter` |
+| Viet Template (IR) | 1.0.0 | Track A (Dynamic) | `VietIrAdapter` |
 | Apache Velocity | 2.4.1 | Track A (Dynamic) | `VelocityAdapter` |
 | Thymeleaf | 3.1.5.RELEASE | Track A (Dynamic) | `ThymeleafAdapter` |
-| Viet Template (AOT) | 0.2.2-SNAPSHOT | Track B (Compiled) | `VietAotAdapter` |
+| Viet Template (AOT) | 1.0.0 | Track B (Compiled) | `VietAotAdapter` |
 | Quarkus Qute | 3.39.4 | Track B (Compiled) | `QuteAdapter` |
 | jte | 3.2.4 | Track B (Compiled) | `JteAdapter` |
 
