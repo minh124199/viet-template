@@ -13,6 +13,7 @@ public class VietTemplatePlugin implements Plugin<Project> {
   public static final String EXTENSION_NAME = "vietTemplate";
   public static final String TASK_NAME = "compileVietTemplates";
   public static final String GENERATE_FACADES_TASK_NAME = "generateVietTemplateFacades";
+  public static final String GENERATE_SCHEMAS_TASK_NAME = "generateVietTemplateSchemas";
 
   @Override
   public void apply(Project project) {
@@ -23,6 +24,8 @@ public class VietTemplatePlugin implements Plugin<Project> {
     // sourceDirectory: src/main/viet-template
     // outputDirectory: layout.buildDirectory.dir("generated/viet-template/classes")
     // resourceOutputDirectory: layout.buildDirectory.dir("generated/viet-template/resources")
+    // generatedSourcesDirectory: layout.buildDirectory.dir("generated/viet-template/sources")
+    // schemaOutputDirectory: layout.buildDirectory.dir("generated/viet-template/schemas")
     extension
         .getSourceDirectory()
         .convention(project.getLayout().getProjectDirectory().dir("src/main/viet-template"));
@@ -36,6 +39,9 @@ public class VietTemplatePlugin implements Plugin<Project> {
     extension
         .getGeneratedSourcesDirectory()
         .convention(project.getLayout().getBuildDirectory().dir("generated/viet-template/sources"));
+    extension
+        .getSchemaOutputDirectory()
+        .convention(project.getLayout().getBuildDirectory().dir("generated/viet-template/schemas"));
 
     TaskProvider<VietTemplateGenerateFacadesTask> generateFacadesTask =
         project
@@ -94,6 +100,29 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   compileTask.getTypeChecking().convention(extension.getTypeChecking());
                 });
 
+    TaskProvider<VietTemplateGenerateSchemasTask> generateSchemasTask =
+        project
+            .getTasks()
+            .register(
+                GENERATE_SCHEMAS_TASK_NAME,
+                VietTemplateGenerateSchemasTask.class,
+                schemasTask -> {
+                  schemasTask.setDescription(
+                      "Generates canonical contract schemas (*.vt-schema.json) for Viet Template"
+                          + " contracts Ahead-Of-Time.");
+                  schemasTask.setGroup("build");
+
+                  schemasTask.getSourceDirectory().convention(extension.getSourceDirectory());
+                  schemasTask
+                      .getSchemaOutputDirectory()
+                      .convention(extension.getSchemaOutputDirectory());
+                  schemasTask.getIncludes().convention(extension.getIncludes());
+                  schemasTask.getExcludes().convention(extension.getExcludes());
+                  schemasTask.getEncoding().convention(extension.getEncoding());
+                  schemasTask.getPackagePrefix().convention(extension.getPackagePrefix());
+                  schemasTask.getFailOnWarning().convention(extension.getFailOnWarning());
+                });
+
     // When java plugin applied:
     // sourceSets.named("main").get().getOutput().dir(task.getOutputDirectory())
     // sourceSets.named("main").get().getResources().srcDir(task.getResourceOutputDirectory())
@@ -130,6 +159,19 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   .getTasks()
                   .named(JavaPlugin.CLASSES_TASK_NAME)
                   .configure(t -> t.dependsOn(compileTask));
+
+              VietTemplateGenerateSchemasTask schemasTask = generateSchemasTask.get();
+              schemasTask
+                  .getClasspath()
+                  .from(
+                      mainSourceSet.getCompileClasspath(),
+                      mainSourceSet.getOutput().getClassesDirs());
+              schemasTask.dependsOn(JavaPlugin.COMPILE_JAVA_TASK_NAME);
+              mainSourceSet.getOutput().dir(schemasTask.getSchemaOutputDirectory());
+              project
+                  .getTasks()
+                  .named(JavaPlugin.CLASSES_TASK_NAME)
+                  .configure(t -> t.dependsOn(schemasTask));
             });
   }
 }

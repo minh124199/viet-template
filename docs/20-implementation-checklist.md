@@ -1049,3 +1049,16 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **S9.** Build Tooling & Incremental Cache Parity: Exposed `typeChecking` configuration across Maven (`VietTemplateCompileMojo`, `VietTemplateGenerateFacadesMojo`) and Gradle (`VietTemplateCompileTask`, `VietTemplateGenerateFacadesTask`, `VietTemplateExtension`). Validated incremental cache invalidation when mode changes.
 - [x] **S10.** Full Qualification & Parity Verification: Verified 100% test pass across all modules, zero breaking changes to 1.0.0 API/ABI baselines, 0 unclassified types, all 7 governance verifiers green, and zero regressions in the 301-scenario Apache Velocity differential TCK.
 
+### Deliverable T: Canonical Tooling Schema Foundation, Deterministic JSON & Parity (Milestone M27 / 1.1.0)
+
+- [x] **T1.** Canonical Serialized Schema Specification: Established `*.vt-schema.json` specification with `format = viet-template-contract-schema/1`, `schemaVersion = 1`, and schema URL `https://viet-template.github.io/schemas/contract-v1.json`.
+- [x] **T2.** Complete Type System AST: Serialized primitive types, classes, parameterized generic collections, single- and multi-dimensional arrays, wildcard bounds (`extends`, `super`), and named types into a discriminating JSON model.
+- [x] **T3.** Bounded Member Discovery: Extracted record components and JavaBean getters with lexicographical property sorting and JDK package exclusion (`java.*`, `javax.*`, `jakarta.*`, `sun.*`, `jdk.*`).
+- [x] **T4.** Recursive Graph Cycle Detection: Implemented cycle detection for recursive graphs (`Node -> Node`, `Parent -> Child -> Parent`) bounded by maximum depth (32).
+- [x] **T5.** Security Policy Invariant: Applied `MemberAccessPolicy.standard()` at discovery time prior to serialization, blocking reflection, `getClass()`, `ClassLoader`, `Runtime`, `Process`, and engine internals.
+- [x] **T6.** Zero-Dependency Deterministic JSON Serializer: Implemented high-performance serializer with UTF-8 encoding, LF line endings, 2-space indentation, and fixed key order.
+- [x] **T7.** Maven Schema Generation Mojo: Implemented `VietTemplateGenerateSchemasMojo` (`generate-schemas` goal) running in `process-classes` phase.
+- [x] **T8.** Gradle Schema Generation Task: Implemented `VietTemplateGenerateSchemasTask` (`generateVietTemplateSchemas` task) and exposed `schemaOutputDirectory` on `VietTemplateExtension`.
+- [x] **T9.** Build Tool Parity Verification: Verified byte-for-byte SHA-256 equivalence across Maven and Gradle outputs on identical inputs.
+- [x] **T10.** Full Qualification & Baseline Preservation: Verified 100% test pass, zero breaking changes to 1.0.0 API/ABI surfaces, 0 unclassified types, all 8 governance verifiers green, and zero regressions.
+

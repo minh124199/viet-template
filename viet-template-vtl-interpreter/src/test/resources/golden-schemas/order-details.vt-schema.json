@@ -1,0 +1,49 @@
+{
+  "$schema": "https://viet-template.github.io/schemas/contract-v1.json",
+  "format": "viet-template-contract-schema/1",
+  "schemaVersion": 1,
+  "templateId": "orders/order-details.vtl",
+  "contractFingerprint": "vt-contract:v1:66125111cc9d7aba61f61caf428b25cb9c36010b6f6f4ad87ee9c47257e8b8ac",
+  "parameters": [
+    {
+      "name": "order",
+      "type": {
+        "kind": "class",
+        "name": "io.github.minh124199.viettemplate.aot.TemplateContractSchemaGeneratorTest$SimpleRecord"
+      },
+      "nullable": false,
+      "optional": false
+    }
+  ],
+  "types": {
+    "io.github.minh124199.viettemplate.aot.TemplateContractSchemaGeneratorTest$SimpleRecord": {
+      "kind": "record",
+      "properties": [
+        {
+          "name": "active",
+          "type": {
+            "kind": "primitive",
+            "name": "boolean"
+          },
+          "nullable": false
+        },
+        {
+          "name": "age",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          },
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": {
+            "kind": "class",
+            "name": "java.lang.String"
+          },
+          "nullable": true
+        }
+      ]
+    }
+  }
+}
