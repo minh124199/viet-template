@@ -100,6 +100,18 @@
       "description": "Maven Mojo goal generating typed Java facades during generate-sources phase."
     },
     {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateSchemasMojo",
+      "module": "viet-template-maven-plugin",
+      "entrypointKind": "MAVEN_MOJO",
+      "metadataSource": "@Mojo(name = \"generate-schemas\") / META-INF/maven/plugin.xml",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": false,
+      "userJavaApi": false,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Maven Mojo goal generating canonical contract schemas (*.vt-schema.json) during process-classes phase."
+    },
+    {
       "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask",
       "module": "viet-template-gradle-plugin",
       "entrypointKind": "GRADLE_TASK",
@@ -110,6 +122,18 @@
       "userJavaApi": true,
       "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
       "description": "Gradle task type generating typed Java facades ahead of compileJava."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateSchemasTask",
+      "module": "viet-template-gradle-plugin",
+      "entrypointKind": "GRADLE_TASK",
+      "metadataSource": "Registered by VietTemplatePlugin as generateVietTemplateSchemas task",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": true,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Gradle task type generating canonical contract schemas (*.vt-schema.json) Ahead-Of-Time."
     },
     {
       "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension",

@@ -317,9 +317,11 @@ io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateViewResolver ST
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateCompileTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask BUILD_TOOL_ENTRYPOINT
+io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateSchemasTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplatePlugin BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateCompileMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateFacadesMojo BUILD_TOOL_ENTRYPOINT
+io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateSchemasMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge GENERATED_RUNTIME_ABI
 io.github.minh124199.viettemplate.vtl.engine.EngineFingerprint INTERNAL_CROSS_PACKAGE
 io.github.minh124199.viettemplate.vtl.engine.VtlTemplate STABLE_API

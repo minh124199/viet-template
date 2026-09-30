@@ -31,6 +31,9 @@ public final class TemplateAotRequest {
   private final Path generatedSourcesDirectory;
   private final ClassLoader classLoader;
   private final TypeCheckingMode typeCheckingMode;
+  private final boolean generateSchemas;
+  private final Path schemaOutputDirectory;
+  private final boolean compileBytecode;
 
   TemplateAotRequest(
       List<Path> sourceDirectories,
@@ -58,7 +61,10 @@ public final class TemplateAotRequest {
         false,
         null,
         null,
-        TypeCheckingMode.OFF);
+        TypeCheckingMode.OFF,
+        false,
+        null,
+        true);
   }
 
   TemplateAotRequest(
@@ -91,7 +97,10 @@ public final class TemplateAotRequest {
         generateTypedFacades,
         generatedSourcesDirectory,
         classLoader,
-        TypeCheckingMode.OFF);
+        TypeCheckingMode.OFF,
+        false,
+        null,
+        true);
   }
 
   TemplateAotRequest(
@@ -110,6 +119,46 @@ public final class TemplateAotRequest {
       Path generatedSourcesDirectory,
       ClassLoader classLoader,
       TypeCheckingMode typeCheckingMode) {
+    this(
+        sourceDirectories,
+        outputDirectory,
+        resourceOutputDirectory,
+        includePatterns,
+        excludePatterns,
+        encoding,
+        packagePrefix,
+        failOnWarning,
+        incremental,
+        stateFile,
+        contracts,
+        generateTypedFacades,
+        generatedSourcesDirectory,
+        classLoader,
+        typeCheckingMode,
+        false,
+        null,
+        true);
+  }
+
+  TemplateAotRequest(
+      List<Path> sourceDirectories,
+      Path outputDirectory,
+      Path resourceOutputDirectory,
+      List<String> includePatterns,
+      List<String> excludePatterns,
+      Charset encoding,
+      String packagePrefix,
+      boolean failOnWarning,
+      boolean incremental,
+      Path stateFile,
+      Map<TemplateId, TemplateContract> contracts,
+      boolean generateTypedFacades,
+      Path generatedSourcesDirectory,
+      ClassLoader classLoader,
+      TypeCheckingMode typeCheckingMode,
+      boolean generateSchemas,
+      Path schemaOutputDirectory,
+      boolean compileBytecode) {
     this.sourceDirectories =
         List.copyOf(
             Objects.requireNonNull(sourceDirectories, "sourceDirectories must not be null"));
@@ -132,6 +181,9 @@ public final class TemplateAotRequest {
     this.generatedSourcesDirectory = generatedSourcesDirectory;
     this.classLoader = classLoader;
     this.typeCheckingMode = typeCheckingMode != null ? typeCheckingMode : TypeCheckingMode.OFF;
+    this.generateSchemas = generateSchemas;
+    this.schemaOutputDirectory = schemaOutputDirectory;
+    this.compileBytecode = compileBytecode;
   }
 
   public static Builder builder() {
@@ -198,6 +250,18 @@ public final class TemplateAotRequest {
     return typeCheckingMode;
   }
 
+  public boolean generateSchemas() {
+    return generateSchemas;
+  }
+
+  public Optional<Path> schemaOutputDirectory() {
+    return Optional.ofNullable(schemaOutputDirectory);
+  }
+
+  public boolean compileBytecode() {
+    return compileBytecode;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -205,6 +269,8 @@ public final class TemplateAotRequest {
     return failOnWarning == that.failOnWarning
         && incremental == that.incremental
         && generateTypedFacades == that.generateTypedFacades
+        && generateSchemas == that.generateSchemas
+        && compileBytecode == that.compileBytecode
         && typeCheckingMode == that.typeCheckingMode
         && Objects.equals(sourceDirectories, that.sourceDirectories)
         && Objects.equals(outputDirectory, that.outputDirectory)
@@ -215,7 +281,8 @@ public final class TemplateAotRequest {
         && Objects.equals(packagePrefix, that.packagePrefix)
         && Objects.equals(stateFile, that.stateFile)
         && Objects.equals(contracts, that.contracts)
-        && Objects.equals(generatedSourcesDirectory, that.generatedSourcesDirectory);
+        && Objects.equals(generatedSourcesDirectory, that.generatedSourcesDirectory)
+        && Objects.equals(schemaOutputDirectory, that.schemaOutputDirectory);
   }
 
   @Override
@@ -234,7 +301,10 @@ public final class TemplateAotRequest {
         contracts,
         generateTypedFacades,
         generatedSourcesDirectory,
-        typeCheckingMode);
+        typeCheckingMode,
+        generateSchemas,
+        schemaOutputDirectory,
+        compileBytecode);
   }
 
   @Override
@@ -252,6 +322,12 @@ public final class TemplateAotRequest {
         + contracts.size()
         + ", generateTypedFacades="
         + generateTypedFacades
+        + ", generateSchemas="
+        + generateSchemas
+        + ", compileBytecode="
+        + compileBytecode
+        + ", schemaOutputDirectory="
+        + schemaOutputDirectory
         + ", excludePatterns="
         + excludePatterns
         + ", encoding="
@@ -286,6 +362,9 @@ public final class TemplateAotRequest {
     private Path generatedSourcesDirectory;
     private ClassLoader classLoader;
     private TypeCheckingMode typeCheckingMode = TypeCheckingMode.OFF;
+    private boolean generateSchemas = false;
+    private Path schemaOutputDirectory;
+    private boolean compileBytecode = true;
 
     private Builder() {}
 
@@ -437,16 +516,35 @@ public final class TemplateAotRequest {
       return this;
     }
 
+    public Builder generateSchemas(boolean generateSchemas) {
+      this.generateSchemas = generateSchemas;
+      return this;
+    }
+
+    public Builder schemaOutputDirectory(Path schemaOutputDirectory) {
+      this.schemaOutputDirectory = schemaOutputDirectory;
+      return this;
+    }
+
+    public Builder compileBytecode(boolean compileBytecode) {
+      this.compileBytecode = compileBytecode;
+      return this;
+    }
+
     public TemplateAotRequest build() {
-      Objects.requireNonNull(outputDirectory, "outputDirectory must not be null");
+      Path outDir = outputDirectory;
+      if (outDir == null && !compileBytecode && schemaOutputDirectory != null) {
+        outDir = schemaOutputDirectory;
+      }
+      Objects.requireNonNull(outDir, "outputDirectory must not be null");
       if (sourceDirectories.isEmpty()) {
         throw new IllegalArgumentException("At least one source directory must be specified");
       }
       validatePackagePrefix(packagePrefix.trim());
-      Path resOut = (resourceOutputDirectory != null) ? resourceOutputDirectory : outputDirectory;
+      Path resOut = (resourceOutputDirectory != null) ? resourceOutputDirectory : outDir;
       return new TemplateAotRequest(
           sourceDirectories,
-          outputDirectory,
+          outDir,
           resOut,
           includePatterns,
           excludePatterns,
@@ -459,7 +557,10 @@ public final class TemplateAotRequest {
           generateTypedFacades,
           generatedSourcesDirectory,
           classLoader,
-          typeCheckingMode);
+          typeCheckingMode,
+          generateSchemas,
+          schemaOutputDirectory,
+          compileBytecode);
     }
   }
 

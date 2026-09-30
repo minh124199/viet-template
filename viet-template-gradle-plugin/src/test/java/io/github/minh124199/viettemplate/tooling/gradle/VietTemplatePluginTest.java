@@ -89,6 +89,20 @@ class VietTemplatePluginTest {
     assertThat(facadeTask.getTypeChecking().get()).isEqualTo("OFF");
     Task compileJavaTask = project.getTasks().getByName(JavaPlugin.COMPILE_JAVA_TASK_NAME);
     assertThat(compileJavaTask.getDependsOn()).contains(facadeTaskObj);
+
+    // Verify schemas task and extension
+    assertThat(extension.getSchemaOutputDirectory().get().getAsFile().getCanonicalFile())
+        .isEqualTo(
+            tempDir.resolve("build/generated/viet-template/schemas").toFile().getCanonicalFile());
+    Task schemasTaskObj =
+        project.getTasks().findByName(VietTemplatePlugin.GENERATE_SCHEMAS_TASK_NAME);
+    assertThat(schemasTaskObj).isInstanceOf(VietTemplateGenerateSchemasTask.class);
+    VietTemplateGenerateSchemasTask schemasTask = (VietTemplateGenerateSchemasTask) schemasTaskObj;
+    assertThat(schemasTask.getSchemaOutputDirectory().get().getAsFile().getCanonicalFile())
+        .isEqualTo(
+            tempDir.resolve("build/generated/viet-template/schemas").toFile().getCanonicalFile());
+    assertThat(schemasTask.getDependsOn()).contains(JavaPlugin.COMPILE_JAVA_TASK_NAME);
+    assertThat(classesTask.getDependsOn()).contains(schemasTaskObj);
   }
 
   @Test

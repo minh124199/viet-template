@@ -34,10 +34,12 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /** Package-private default implementation of {@link TemplateAotCompiler}. */
@@ -147,8 +149,10 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
       }
     }
 
+    Set<TemplateId> processedTemplates = new HashSet<>();
     for (DiscoveredTemplate dt : sortedTemplates) {
       TemplateId templateId = dt.templateId();
+      processedTemplates.add(templateId);
       Path sourceFile = dt.file();
 
       String sourceText;
@@ -176,6 +180,34 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
             TemplateContractReader.findCompanion(
                     sourceFile, templateId, request.classLoader().orElse(null))
                 .orElse(null);
+      }
+
+      if (request.generateSchemas() && contract != null) {
+        Path schemaDir =
+            request
+                .schemaOutputDirectory()
+                .orElseGet(() -> resourceOutputDir.resolve("META-INF/viet-template/schemas"));
+        try {
+          TemplateContractSchemaGenerator.generateSchemaFile(contract, schemaDir);
+        } catch (IOException e) {
+          allDiagnostics.add(
+              new TemplateAotDiagnostic(
+                  templateId,
+                  dt.relPath(),
+                  DiagnosticSeverity.ERROR,
+                  DiagnosticCode.of("VTLAOT", "1102"),
+                  "Failed to generate contract schema: " + e.getMessage(),
+                  -1,
+                  -1,
+                  -1,
+                  -1));
+          compilationFailed = true;
+        }
+      }
+
+      if (!request.compileBytecode()) {
+        compiledCount++;
+        continue;
       }
 
       String contentHash =
@@ -318,6 +350,36 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
       }
     }
 
+    if (request.generateSchemas()) {
+      for (Map.Entry<TemplateId, TemplateContract> entry : request.contracts().entrySet()) {
+        if (!processedTemplates.contains(entry.getKey())) {
+          Path schemaDir =
+              request
+                  .schemaOutputDirectory()
+                  .orElseGet(() -> resourceOutputDir.resolve("META-INF/viet-template/schemas"));
+          try {
+            TemplateContractSchemaGenerator.generateSchemaFile(entry.getValue(), schemaDir);
+            if (!request.compileBytecode()) {
+              compiledCount++;
+            }
+          } catch (IOException e) {
+            allDiagnostics.add(
+                new TemplateAotDiagnostic(
+                    entry.getKey(),
+                    entry.getKey().value(),
+                    DiagnosticSeverity.ERROR,
+                    DiagnosticCode.of("VTLAOT", "1102"),
+                    "Failed to generate contract schema: " + e.getMessage(),
+                    -1,
+                    -1,
+                    -1,
+                    -1));
+            compilationFailed = true;
+          }
+        }
+      }
+    }
+
     boolean hasErrors =
         compilationFailed
             || allDiagnostics.stream().anyMatch(d -> d.severity() == DiagnosticSeverity.ERROR);
@@ -326,6 +388,10 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
 
     if (hasErrors || (request.failOnWarning() && hasWarnings)) {
       return TemplateAotResult.failure(allDiagnostics, artifacts, compiledCount, skippedCount, 0);
+    }
+
+    if (!request.compileBytecode()) {
+      return TemplateAotResult.success(compiledCount, skippedCount, 0, artifacts, allDiagnostics);
     }
 
     // Compilation succeeded without fatal issues: write outputs and delete stale files

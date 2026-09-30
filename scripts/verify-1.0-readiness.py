@@ -77,6 +77,8 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.api.TypeCheckingMode",
     "io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateFacadesMojo",
     "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask",
+    "io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateSchemasMojo",
+    "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateSchemasTask",
 }
 
 ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {

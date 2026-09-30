@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Milestone M27: Canonical Tooling Schema Foundation, Deterministic JSON, and Maven/Gradle Parity**:
+  - **Canonical Contract Schema Specification (`*.vt-schema.json`)**:
+    - Established language-neutral serialized contract schema specification (`format = viet-template-contract-schema/1`, `schemaVersion = 1`, `$schema = https://viet-template.github.io/schemas/contract-v1.json`) derived from public `TemplateContract` / `TemplateType` models.
+    - Serialized schema envelope containing `templateId`, canonical `contractFingerprint` computed via `TemplateContract.computeCanonicalFingerprint()`, sorted `parameters`, and bounded, security-filtered `types`.
+  - **Complete Type System Fidelity**:
+    - Fully represented Java primitive types (`boolean`, `byte`, `short`, `char`, `int`, `long`, `float`, `double`), reference classes, parameterized generic collections, single- and multi-dimensional arrays, wildcards (`?`, `extends`, `super`), and named types into a typed JSON AST.
+  - **Bounded Member Discovery & Cycle Protection**:
+    - Discovered public record components and JavaBean properties with deterministic sorting.
+    - Excluded standard JDK library types (`java.*`, `javax.*`, `jakarta.*`, `sun.*`, `jdk.*`) from expansive type dumping.
+    - Cycle detection for self-referential (`Node -> Node`) and mutually recursive (`Parent -> Child -> Parent`) models bounded to maximum depth 32.
+  - **Security Filtering at Discovery Time**:
+    - Applied `MemberAccessPolicy.standard()` at member discovery time prior to serialization, blocking reflection, `getClass()`, `ClassLoader`, `Runtime`, `Process`, and engine internals while preserving valid business getters.
+  - **Deterministic Zero-Dependency Serializer**:
+    - Built a dedicated JSON serializer with zero third-party dependencies, UTF-8 encoding, LF line endings, 2-space indentation, and lexicographically ordered keys, guaranteeing 100% reproducible byte-for-byte output across platforms.
+  - **Build Tool Integration & Parity**:
+    - Implemented `VietTemplateGenerateSchemasMojo` (`generate-schemas` goal) in `viet-template-maven-plugin`.
+    - Implemented `VietTemplateGenerateSchemasTask` (`generateVietTemplateSchemas` task) and exposed `schemaOutputDirectory` in `viet-template-gradle-plugin`.
+    - Verified byte-for-byte SHA-256 equivalence across Maven and Gradle generation pipelines on identical inputs.
+
 - **Milestone M26: Strict Typed Mode, Nullable Navigation Analysis, Build-Time Contract Diagnostics, and Maven/Gradle Parity**:
   - **Opt-In Strict Typed Contract Validation (`TypeCheckingMode`)**:
     - Introduced `TypeCheckingMode` (`OFF`, `WARN`, `ERROR`) in `viet-template-api` as a frozen `STABLE_API` enum governing static semantic validation and build-time failure semantics.

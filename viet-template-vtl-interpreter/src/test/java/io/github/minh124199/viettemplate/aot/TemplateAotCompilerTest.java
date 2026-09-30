@@ -7,7 +7,9 @@ import io.github.minh124199.viettemplate.api.CompiledTemplate;
 import io.github.minh124199.viettemplate.api.DiagnosticCode;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
 import io.github.minh124199.viettemplate.api.RenderContext;
+import io.github.minh124199.viettemplate.api.TemplateContract;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import io.github.minh124199.viettemplate.api.TemplateParameter;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.*;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.TemplateClassLoader;
@@ -511,5 +513,87 @@ class TemplateAotCompilerTest {
       assertThat(d.code().category()).isNotEqualToIgnoringCase("PARSER");
       assertThat(d.formattedMessage()).doesNotContain("PARSER:UNCLOSED_DIRECTIVE");
     }
+  }
+
+  @Test
+  @DisplayName(
+      "13. Schema generation generates *.vt-schema.json and skips bytecode when compileBytecode is"
+          + " false")
+  void testSchemaGenerationWithoutBytecode(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src");
+    Path schemaDir = tempDir.resolve("schemas");
+    Files.createDirectories(srcDir);
+
+    Path templateFile = srcDir.resolve("user-card.vtl");
+    Files.writeString(templateFile, "<div>$title</div>", StandardCharsets.UTF_8);
+
+    TemplateContract contract =
+        TemplateContract.builder(TemplateId.of("user-card.vtl"))
+            .parameter(TemplateParameter.of("title", String.class, false))
+            .build();
+
+    TemplateAotCompiler compiler = TemplateAotCompiler.create();
+    TemplateAotRequest request =
+        TemplateAotRequest.builder()
+            .sourceDirectory(srcDir)
+            .schemaOutputDirectory(schemaDir)
+            .generateSchemas(true)
+            .compileBytecode(false)
+            .contract(contract.templateId(), contract)
+            .build();
+
+    TemplateAotResult result = compiler.compile(request);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.compiledCount()).isEqualTo(1);
+    assertThat(result.artifacts()).isEmpty();
+
+    Path expectedSchemaFile = schemaDir.resolve("user-card.vt-schema.json");
+    assertThat(expectedSchemaFile).isRegularFile();
+    String json = Files.readString(expectedSchemaFile, StandardCharsets.UTF_8);
+    assertThat(json).contains("\"format\": \"viet-template-contract-schema/1\"");
+    assertThat(json).contains("\"title\"");
+  }
+
+  @Test
+  @DisplayName("14. Schema generation alongside bytecode compilation when both are enabled")
+  void testSchemaGenerationWithBytecode(@TempDir Path tempDir) throws Exception {
+    Path srcDir = tempDir.resolve("src");
+    Path outDir = tempDir.resolve("out");
+    Path schemaDir = tempDir.resolve("schemas");
+    Files.createDirectories(srcDir);
+
+    Path templateFile = srcDir.resolve("item.vtl");
+    Files.writeString(templateFile, "Item: $name", StandardCharsets.UTF_8);
+
+    TemplateContract contract =
+        TemplateContract.builder(TemplateId.of("item.vtl"))
+            .parameter(TemplateParameter.of("name", String.class, false))
+            .build();
+
+    TemplateAotCompiler compiler = TemplateAotCompiler.create();
+    TemplateAotRequest request =
+        TemplateAotRequest.builder()
+            .sourceDirectory(srcDir)
+            .outputDirectory(outDir)
+            .schemaOutputDirectory(schemaDir)
+            .generateSchemas(true)
+            .compileBytecode(true)
+            .contract(contract.templateId(), contract)
+            .build();
+
+    TemplateAotResult result = compiler.compile(request);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.compiledCount()).isEqualTo(1);
+    assertThat(result.artifacts()).hasSize(1);
+
+    Path expectedSchemaFile = schemaDir.resolve("item.vt-schema.json");
+    assertThat(expectedSchemaFile).isRegularFile();
+    String json = Files.readString(expectedSchemaFile, StandardCharsets.UTF_8);
+    assertThat(json).contains("\"format\": \"viet-template-contract-schema/1\"");
+
+    Path idxFile = outDir.resolve("META-INF/viet-template/templates.idx");
+    assertThat(idxFile).isRegularFile();
   }
 }
