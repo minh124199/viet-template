@@ -1,0 +1,2 @@
+Xin chào ${nguoiDung.hoTen} 🇻🇳!
+Bạn có thông báo mới: ${nguoiDung.thongBao} 🚀.

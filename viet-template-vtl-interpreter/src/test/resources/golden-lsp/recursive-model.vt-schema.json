@@ -1,0 +1,41 @@
+{
+  "$schema": "https://viet-template.github.io/schemas/contract-v1.json",
+  "format": "viet-template-contract-schema/1",
+  "schemaVersion": 1,
+  "templateId": "golden-lsp/recursive-model.vt",
+  "contractFingerprint": "vt-contract:v1:recursive-model-fixture",
+  "parameters": [
+    {
+      "name": "root",
+      "type": {
+        "kind": "class",
+        "name": "com.example.Node"
+      },
+      "nullable": false,
+      "optional": false
+    }
+  ],
+  "types": {
+    "com.example.Node": {
+      "kind": "record",
+      "properties": [
+        {
+          "name": "next",
+          "type": {
+            "kind": "class",
+            "name": "com.example.Node"
+          },
+          "nullable": true
+        },
+        {
+          "name": "value",
+          "type": {
+            "kind": "class",
+            "name": "java.lang.String"
+          },
+          "nullable": false
+        }
+      ]
+    }
+  }
+}

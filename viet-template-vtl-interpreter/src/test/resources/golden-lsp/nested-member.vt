@@ -1,0 +1,3 @@
+#set($greeting = "Welcome")
+$greeting, ${customer.profile.displayName}!
+Your city is ${customer.address.city}, ${customer.address.zipCode}.

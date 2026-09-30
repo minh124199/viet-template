@@ -82,6 +82,7 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.aot.TypeScriptDeclarationProjector",
     "io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateTypeScriptMojo",
     "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateTypeScriptTask",
+    "io.github.minh124199.viettemplate.lsp.VietTemplateLanguageServer",
 }
 
 ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {

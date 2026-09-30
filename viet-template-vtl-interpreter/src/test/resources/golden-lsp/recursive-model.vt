@@ -1,0 +1,5 @@
+Node: ${root.value}
+#if($root.next)
+Next: ${root.next.value}
+Next.Next: ${root.next.next.value}
+#end

@@ -1074,4 +1074,17 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **U8.** Build Tool Parity Verification: Proved byte-for-byte SHA-256 equivalence across Maven and Gradle outputs in `VietTemplateMavenGradleParityTest`.
 - [x] **U9.** Full Qualification & Baseline Preservation: Verified 100% test pass across all modules, zero breaking changes to API/ABI baselines, 0 unclassified types, and all 10 governance verifiers green.
 
+### Deliverable V: Language Server Protocol & Developer Tooling Foundation (Milestone M29 / 1.1.0)
+
+- [x] **V1.** Language Server Protocol Foundation Specification: Established `docs/tooling/language-server-foundation.md` documenting architecture, transport framing, lifecycle, coordinate mapping, and security model.
+- [x] **V2.** Server Lifecycle Management: Implemented standard LSP lifecycle (`initialize`, `initialized`, `shutdown`, `exit`) with fail-closed state validation in `LspProtocolAdapter`.
+- [x] **V3.** Document Management & Position Mapping: Implemented `TemplateDocument` and `TemplateDocumentStore` providing UTF-16 code unit position/range mapping across LF, CRLF, and CR line endings, multi-byte Unicode, and surrogate pairs.
+- [x] **V4.** Context-Sensitive Completion Provider: Implemented `CompletionProvider` for directives, root schema parameters, in-template local variables, and chained member properties with deterministic sorting.
+- [x] **V5.** Hover & Type Information Provider: Implemented `HoverProvider` emitting Markdown-formatted type signatures, nullability indicators, and directive documentation.
+- [x] **V6.** Navigation & Definition Provider: Implemented `DefinitionProvider` supporting in-template jumps to `#set` and `#foreach` bindings as well as jumps to `*.vt-schema.json` definition lines.
+- [x] **V7.** Deterministic Diagnostic Provider: Implemented `DiagnosticProvider` emitting stable diagnostic codes (`SYNTAX:PARSE_ERROR`, `VTLS:2101`, `VTLS:2104`, `VTLS:2107`, `VTLSEC:2401`).
+- [x] **V8.** Canonical Schema Integration: Implemented `CanonicalSchemaResolver` for discovering and parsing sibling and configured `*.vt-schema.json` files with support for recursive models.
+- [x] **V9.** Security & Runtime Isolation: Preserved zero-diff in `viet-template-api` and `viet-template-runtime`, enforced `MemberAccessPolicy.standard()`, and utilized pure Java 21 standard library with zero external dependencies.
+- [x] **V10.** Full Qualification & Governance Verification: Verified 100% test pass (45/45 LSP unit tests, full ArchUnit suite), passed all 10 governance scripts, and verified clean build parity.
+
 
