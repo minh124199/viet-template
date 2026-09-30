@@ -361,4 +361,12 @@ Release Phase 1.1.x evolves Viet Template with optional compile-time typed templ
     - **M27.4 (Security Policy Invariant at Discovery Time)**: Applied `MemberAccessPolicy.standard()` at member discovery time prior to serialization, blocking reflection, `getClass()`, `ClassLoader`, `Runtime`, `Process`, and engine internals while preserving valid business getters.
     - **M27.5 (Deterministic Zero-Dependency Serializer)**: Implemented UTF-8 LF 2-space indented serializer with canonical key order and zero third-party dependencies, guaranteeing 100% reproducible byte-for-byte outputs.
     - **M27.6 (Build Tool Parity)**: Implemented Maven `generate-schemas` goal (`VietTemplateGenerateSchemasMojo`) and Gradle `generateVietTemplateSchemas` task (`VietTemplateGenerateSchemasTask`), proving byte-for-byte SHA-256 equivalence.
+- **Milestone M28 (TypeScript Declaration Projection (.d.ts) and Build Parity — target 1.1.0) — COMPLETE / QUALIFIED**:
+    - **M28.1 (TypeScript Declaration Projection Specification)**: Established `docs/schema/typescript-projection-v1.md` defining deterministic projection rules from M27 schema (`*.vt-schema.json`) to TypeScript declarations (`*.d.ts`).
+    - **M28.2 (Zero-Dependency Projector Engine)**: Implemented `TypeScriptDeclarationProjector` with a zero-dependency JSON parser, strict envelope validation, canonical header comment, reserved keyword and prototype collision escaping, and LF/2-space formatting.
+    - **M28.3 (Type System Mapping Fidelity)**: Deterministically projected primitive types, reference classes, parameterized generic collections, single- and multi-dimensional arrays, wildcards, and nullable parameters to TypeScript types (`string`, `number`, `boolean`, `any`, `Record<string, V>`, `T[]`, `T | null`).
+    - **M28.4 (Maven Plugin Integration)**: Implemented `VietTemplateGenerateTypeScriptMojo` (`generate-typescript` goal) running in `process-classes` phase consuming generated schemas.
+    - **M28.5 (Gradle Plugin Integration)**: Implemented `@CacheableTask` `VietTemplateGenerateTypeScriptTask` (`generateVietTemplateTypeScript` task) wired to `classes` lifecycle with `typeScriptOutputDirectory` configuration in `VietTemplateExtension`.
+    - **M28.6 (Build Tool Parity Verification)**: Verified byte-for-byte and SHA-256 digest equivalence between Maven and Gradle TypeScript outputs on identical schema inputs.
+
 
