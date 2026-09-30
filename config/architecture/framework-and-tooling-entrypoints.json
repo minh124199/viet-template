@@ -112,6 +112,18 @@
       "description": "Maven Mojo goal generating canonical contract schemas (*.vt-schema.json) during process-classes phase."
     },
     {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateTypeScriptMojo",
+      "module": "viet-template-maven-plugin",
+      "entrypointKind": "MAVEN_MOJO",
+      "metadataSource": "@Mojo(name = \"generate-typescript\") / META-INF/maven/plugin.xml",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": false,
+      "userJavaApi": false,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Maven Mojo goal generating TypeScript declaration files (*.d.ts) during process-classes phase."
+    },
+    {
       "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask",
       "module": "viet-template-gradle-plugin",
       "entrypointKind": "GRADLE_TASK",
@@ -136,6 +148,18 @@
       "description": "Gradle task type generating canonical contract schemas (*.vt-schema.json) Ahead-Of-Time."
     },
     {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateTypeScriptTask",
+      "module": "viet-template-gradle-plugin",
+      "entrypointKind": "GRADLE_TASK",
+      "metadataSource": "Registered by VietTemplatePlugin as generateVietTemplateTypeScript task",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": true,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Gradle task type generating TypeScript declaration files (*.d.ts) Ahead-Of-Time."
+    },
+    {
       "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension",
       "module": "viet-template-gradle-plugin",
       "entrypointKind": "GRADLE_EXTENSION_DSL",
@@ -146,6 +170,18 @@
       "userJavaApi": true,
       "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
       "description": "Gradle extension DSL defining user-configurable properties for template compilation."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.aot.TypeScriptDeclarationProjector",
+      "module": "viet-template-vtl-interpreter",
+      "entrypointKind": "BUILD_TOOL_HELPER",
+      "metadataSource": "Invoked by VietTemplateGenerateTypeScriptMojo and VietTemplateGenerateTypeScriptTask",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": false,
+      "fqcnStabilityRequired": false,
+      "userJavaApi": false,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Ahead-of-time TypeScript declaration projector (*.d.ts) entrypoint used by Maven and Gradle build plugins."
     },
     {
       "fqcn": "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration",

@@ -1062,3 +1062,16 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **T9.** Build Tool Parity Verification: Verified byte-for-byte SHA-256 equivalence across Maven and Gradle outputs on identical inputs.
 - [x] **T10.** Full Qualification & Baseline Preservation: Verified 100% test pass, zero breaking changes to 1.0.0 API/ABI surfaces, 0 unclassified types, all 8 governance verifiers green, and zero regressions.
 
+### Deliverable U: TypeScript Declaration Projection (.d.ts) & Build Parity (Milestone M28 / 1.1.0)
+
+- [x] **U1.** TypeScript Projection Specification: Established `docs/schema/typescript-projection-v1.md` documenting schema-to-declaration rules, identifier escaping, and deterministic formatting.
+- [x] **U2.** Zero-Dependency Projector: Implemented `TypeScriptDeclarationProjector` in `viet-template-vtl-interpreter` with handcrafted JSON parsing and strict schema envelope validation.
+- [x] **U3.** Type System Projection Fidelity: Projected primitives, records, Java beans, parameterized collections, arrays, and nullable parameters to idiomatic TypeScript declarations.
+- [x] **U4.** Keyword & Identifier Collision Protection: Escaped TypeScript reserved words and prototype collisions (`constructor`, `prototype`, `toString`, `valueOf`) safely with quoted property names.
+- [x] **U5.** Byte-for-Byte Determinism: Guaranteed deterministic ordering, UTF-8 encoding, LF line endings, 2-space indentation, and canonical header without machine-dependent metadata.
+- [x] **U6.** Maven TypeScript Generation Mojo: Implemented `VietTemplateGenerateTypeScriptMojo` (`generate-typescript` goal) in `viet-template-maven-plugin`.
+- [x] **U7.** Gradle TypeScript Generation Task: Implemented `VietTemplateGenerateTypeScriptTask` (`generateVietTemplateTypeScript` task) and extension property `typeScriptOutputDirectory` in `viet-template-gradle-plugin`.
+- [x] **U8.** Build Tool Parity Verification: Proved byte-for-byte SHA-256 equivalence across Maven and Gradle outputs in `VietTemplateMavenGradleParityTest`.
+- [x] **U9.** Full Qualification & Baseline Preservation: Verified 100% test pass across all modules, zero breaking changes to API/ABI baselines, 0 unclassified types, and all 10 governance verifiers green.
+
+

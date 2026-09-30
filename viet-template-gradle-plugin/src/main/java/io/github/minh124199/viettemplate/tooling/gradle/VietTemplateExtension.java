@@ -26,6 +26,7 @@ public abstract class VietTemplateExtension {
     getTypeChecking().convention("OFF");
     getGeneratedSourcesDirectory().convention(objects.directoryProperty());
     getSchemaOutputDirectory().convention(objects.directoryProperty());
+    getTypeScriptOutputDirectory().convention(objects.directoryProperty());
   }
 
   public abstract DirectoryProperty getSourceDirectory();
@@ -37,6 +38,8 @@ public abstract class VietTemplateExtension {
   public abstract DirectoryProperty getGeneratedSourcesDirectory();
 
   public abstract DirectoryProperty getSchemaOutputDirectory();
+
+  public abstract DirectoryProperty getTypeScriptOutputDirectory();
 
   public abstract ListProperty<String> getIncludes();
 
