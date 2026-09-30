@@ -157,4 +157,73 @@ class DiagnosticProviderTest {
                     d.code().qualifiedCode().equals("VTLSEC:2401")
                         && d.severity() == DiagnosticSeverity.ERROR));
   }
+
+  @Test
+  @DisplayName("Security violation on method call produces VTLSEC:2401 error")
+  void testMethodCallSecurityViolationDiagnostic() {
+    TemplateDocument doc = new TemplateDocument("test-diag.vt", 1, "Class: $user.getClass()");
+    List<Diagnostic> diags =
+        DiagnosticProvider.diagnostics(doc, schemaResolver, MemberAccessPolicy.standard());
+
+    assertFalse(diags.isEmpty());
+    assertTrue(
+        diags.stream()
+            .anyMatch(
+                d ->
+                    d.code().qualifiedCode().equals("VTLSEC:2401")
+                        && d.severity() == DiagnosticSeverity.ERROR));
+  }
+
+  @Test
+  @DisplayName("Unresolved property in #if condition produces VTLS:2104 error")
+  void testUnresolvedPropertyInIfCondition() {
+    TemplateDocument doc =
+        new TemplateDocument("test-diag.vt", 1, "#if($user.nonExistentProp)\nHi\n#end");
+    List<Diagnostic> diags =
+        DiagnosticProvider.diagnostics(doc, schemaResolver, MemberAccessPolicy.standard());
+
+    assertFalse(diags.isEmpty());
+    assertTrue(
+        diags.stream()
+            .anyMatch(
+                d ->
+                    d.code().qualifiedCode().equals("VTLS:2104")
+                        && d.severity() == DiagnosticSeverity.ERROR));
+  }
+
+  @Test
+  @DisplayName("Unresolved property in #foreach iterable produces VTLS:2104 error")
+  void testUnresolvedPropertyInForeachIterable() {
+    TemplateDocument doc =
+        new TemplateDocument(
+            "test-diag.vt", 1, "#foreach($item in $user.nonExistentList)\n$item\n#end");
+    List<Diagnostic> diags =
+        DiagnosticProvider.diagnostics(doc, schemaResolver, MemberAccessPolicy.standard());
+
+    assertFalse(diags.isEmpty());
+    assertTrue(
+        diags.stream()
+            .anyMatch(
+                d ->
+                    d.code().qualifiedCode().equals("VTLS:2104")
+                        && d.severity() == DiagnosticSeverity.ERROR));
+  }
+
+  @Test
+  @DisplayName("Foreach loop variable referenced outside loop produces VTLS:2101 error")
+  void testForeachVariableReferencedOutsideLoopProducesDiagnostic() {
+    String text = "#foreach($item in $user.profile)\n  $item\n#end\n$item";
+    TemplateDocument doc = new TemplateDocument("test-diag.vt", 1, text);
+    List<Diagnostic> diags =
+        DiagnosticProvider.diagnostics(doc, schemaResolver, MemberAccessPolicy.standard());
+
+    assertFalse(diags.isEmpty());
+    assertTrue(
+        diags.stream()
+            .anyMatch(
+                d ->
+                    d.code().qualifiedCode().equals("VTLS:2101")
+                        && d.severity() == DiagnosticSeverity.ERROR
+                        && d.message().contains("Unresolved root variable: $item")));
+  }
 }

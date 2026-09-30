@@ -21,13 +21,23 @@ final class TemplateDocumentStore {
       return "";
     }
     String normalized = uri.trim();
-    // Normalize Windows file URI drive letters: file:///c:/ -> file:///c:/
-    // and file:///C:/ -> file:///c:/
-    if (normalized.startsWith("file:///") && normalized.length() >= 10) {
-      char drive = normalized.charAt(8);
-      char colon = normalized.charAt(9);
-      if (colon == ':' && Character.isLetter(drive)) {
-        normalized = "file:///" + Character.toLowerCase(drive) + normalized.substring(9);
+    // Normalize Windows file URI drive letters: file:///c:/ or file:/c:/
+    if (normalized.startsWith("file:/")) {
+      int driveIndex = -1;
+      if (normalized.startsWith("file:///") && normalized.length() >= 10) {
+        driveIndex = 8;
+      } else if (!normalized.startsWith("file://") && normalized.length() >= 8) {
+        driveIndex = 6;
+      }
+      if (driveIndex >= 0 && driveIndex + 1 < normalized.length()) {
+        char drive = normalized.charAt(driveIndex);
+        char colon = normalized.charAt(driveIndex + 1);
+        if (colon == ':' && Character.isLetter(drive) && Character.isUpperCase(drive)) {
+          normalized =
+              normalized.substring(0, driveIndex)
+                  + Character.toLowerCase(drive)
+                  + normalized.substring(driveIndex + 1);
+        }
       }
     }
     return normalized;

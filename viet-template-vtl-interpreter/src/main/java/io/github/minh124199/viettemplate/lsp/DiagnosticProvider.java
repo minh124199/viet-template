@@ -106,9 +106,6 @@ final class DiagnosticProvider {
         if (setNode.target() instanceof VtlAssignmentTarget.ReferenceTarget refTarget) {
           inScopeVars.add(refTarget.reference().rootName());
         }
-      } else if (node instanceof VtlForeachDirectiveNode feNode) {
-        inScopeVars.add(feNode.loopVariable().rootName());
-        collectScopeVariables(feNode.body(), inScopeVars);
       } else if (node instanceof VtlIfDirectiveNode ifNode) {
         for (VtlIfBranch branch : ifNode.branches()) {
           collectScopeVariables(branch.body(), inScopeVars);
@@ -141,9 +138,35 @@ final class DiagnosticProvider {
             insideNullCheck,
             out);
       } else if (node instanceof VtlSetDirectiveNode setNode) {
-        if (setNode.value() instanceof VtlReferenceExpression refExpr) {
-          checkReference(
-              refExpr.reference(),
+        checkExpression(
+            setNode.value(),
+            doc,
+            schema,
+            schemaResolver,
+            policy,
+            inScopeVars,
+            insideNullCheck,
+            out);
+        if (setNode.target() instanceof VtlAssignmentTarget.ReferenceTarget refTarget) {
+          inScopeVars.add(refTarget.reference().rootName());
+        }
+      } else if (node instanceof VtlForeachDirectiveNode feNode) {
+        checkExpression(
+            feNode.iterable(),
+            doc,
+            schema,
+            schemaResolver,
+            policy,
+            inScopeVars,
+            insideNullCheck,
+            out);
+        Set<String> loopScope = new HashSet<>(inScopeVars);
+        loopScope.add(feNode.loopVariable().rootName());
+        analyzeSemantics(
+            feNode.body(), doc, schema, schemaResolver, policy, loopScope, insideNullCheck, out);
+        if (feNode.elseBody().isPresent()) {
+          analyzeSemantics(
+              feNode.elseBody().get(),
               doc,
               schema,
               schemaResolver,
@@ -152,14 +175,18 @@ final class DiagnosticProvider {
               insideNullCheck,
               out);
         }
-      } else if (node instanceof VtlForeachDirectiveNode feNode) {
-        Set<String> loopScope = new HashSet<>(inScopeVars);
-        loopScope.add(feNode.loopVariable().rootName());
-        analyzeSemantics(
-            feNode.body(), doc, schema, schemaResolver, policy, loopScope, insideNullCheck, out);
       } else if (node instanceof VtlIfDirectiveNode ifNode) {
         for (VtlIfBranch branch : ifNode.branches()) {
           boolean guarded = isNullGuardCondition(branch.condition());
+          checkExpression(
+              branch.condition(),
+              doc,
+              schema,
+              schemaResolver,
+              policy,
+              inScopeVars,
+              guarded || insideNullCheck,
+              out);
           analyzeSemantics(
               branch.body(),
               doc,
@@ -173,6 +200,71 @@ final class DiagnosticProvider {
         if (ifNode.elseBody().isPresent()) {
           analyzeSemantics(
               ifNode.elseBody().get(),
+              doc,
+              schema,
+              schemaResolver,
+              policy,
+              inScopeVars,
+              insideNullCheck,
+              out);
+        }
+      }
+    }
+  }
+
+  private static void checkExpression(
+      VtlExpression expr,
+      TemplateDocument doc,
+      SchemaEnvelope schema,
+      CanonicalSchemaResolver schemaResolver,
+      MemberAccessPolicy policy,
+      Set<String> inScopeVars,
+      boolean insideNullCheck,
+      List<Diagnostic> out) {
+    if (expr == null) return;
+    if (expr instanceof VtlReferenceExpression refExpr) {
+      checkReference(
+          refExpr.reference(),
+          doc,
+          schema,
+          schemaResolver,
+          policy,
+          inScopeVars,
+          insideNullCheck,
+          out);
+    } else if (expr instanceof VtlBinaryExpression bin) {
+      checkExpression(
+          bin.left(), doc, schema, schemaResolver, policy, inScopeVars, insideNullCheck, out);
+      checkExpression(
+          bin.right(), doc, schema, schemaResolver, policy, inScopeVars, insideNullCheck, out);
+    } else if (expr instanceof VtlUnaryExpression un) {
+      checkExpression(
+          un.operand(), doc, schema, schemaResolver, policy, inScopeVars, insideNullCheck, out);
+    } else if (expr instanceof VtlGroupedExpression grp) {
+      checkExpression(
+          grp.expression(), doc, schema, schemaResolver, policy, inScopeVars, insideNullCheck, out);
+    } else if (expr instanceof VtlListLiteralExpression list) {
+      for (VtlExpression e : list.elements()) {
+        checkExpression(e, doc, schema, schemaResolver, policy, inScopeVars, insideNullCheck, out);
+      }
+    } else if (expr instanceof VtlMapLiteralExpression map) {
+      for (VtlMapEntry entry : map.entries()) {
+        checkExpression(
+            entry.key(), doc, schema, schemaResolver, policy, inScopeVars, insideNullCheck, out);
+        checkExpression(
+            entry.value(), doc, schema, schemaResolver, policy, inScopeVars, insideNullCheck, out);
+      }
+    } else if (expr instanceof VtlRangeExpression range) {
+      checkExpression(
+          range.start(), doc, schema, schemaResolver, policy, inScopeVars, insideNullCheck, out);
+      checkExpression(
+          range.end(), doc, schema, schemaResolver, policy, inScopeVars, insideNullCheck, out);
+    } else if (expr instanceof VtlInterpolatedStringExpression interp) {
+      for (VtlInterpolatedStringExpression.VtlInterpolatedStringPart part : interp.parts()) {
+        if (part
+            instanceof VtlInterpolatedStringExpression.VtlInterpolatedStringPart.ReferencePart rp) {
+          checkReference(
+              rp.reference(),
               doc,
               schema,
               schemaResolver,
@@ -239,7 +331,18 @@ final class DiagnosticProvider {
         break;
       }
 
-      if (step instanceof VtlAccessStep.PropertyAccess prop) {
+      if (step instanceof VtlAccessStep.MethodCall mc) {
+        if (SENSITIVE_PROPERTIES.contains(mc.methodName())
+            || "getClass".equals(mc.methodName())
+            || "getClassLoader".equals(mc.methodName())) {
+          out.add(
+              Diagnostic.error(
+                  CODE_SECURITY_DENIED,
+                  "Access to method '" + mc.methodName() + "' is denied by security policy",
+                  mc.span()));
+          break;
+        }
+      } else if (step instanceof VtlAccessStep.PropertyAccess prop) {
         String typeName = extractTypeName(currentType);
         if (typeName == null) {
           break;
@@ -299,6 +402,7 @@ final class DiagnosticProvider {
   private static String extractTypeName(TypeRef type) {
     if (type instanceof ClassTypeRef ctr) return ctr.name();
     if (type instanceof NamedTypeRef ntr) return ntr.name();
+    if (type instanceof ParameterizedTypeRef ptr) return ptr.rawType();
     return null;
   }
 

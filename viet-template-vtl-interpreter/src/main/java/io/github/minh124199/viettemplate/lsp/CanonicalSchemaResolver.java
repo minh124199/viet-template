@@ -47,10 +47,11 @@ final class CanonicalSchemaResolver {
   public void registerSchema(String templateIdOrUri, String schemaJson) {
     Objects.requireNonNull(templateIdOrUri, "templateIdOrUri must not be null");
     Objects.requireNonNull(schemaJson, "schemaJson must not be null");
+    String normKey = TemplateDocumentStore.normalizeUri(templateIdOrUri);
     SchemaEnvelope env = parseSchemaJson(schemaJson);
-    schemasById.put(templateIdOrUri, env);
+    schemasById.put(normKey, env);
     if (!env.templateId().isBlank()) {
-      schemasById.put(env.templateId(), env);
+      schemasById.put(TemplateDocumentStore.normalizeUri(env.templateId()), env);
     }
   }
 
@@ -61,12 +62,13 @@ final class CanonicalSchemaResolver {
     }
     String json = Files.readString(schemaPath, StandardCharsets.UTF_8);
     SchemaEnvelope env = parseSchemaJson(json);
-    String key = schemaPath.toUri().toString();
+    String key = TemplateDocumentStore.normalizeUri(schemaPath.toUri().toString());
     schemasById.put(key, env);
     schemaFilePaths.put(key, schemaPath);
     if (!env.templateId().isBlank()) {
-      schemasById.put(env.templateId(), env);
-      schemaFilePaths.put(env.templateId(), schemaPath);
+      String normTemplateId = TemplateDocumentStore.normalizeUri(env.templateId());
+      schemasById.put(normTemplateId, env);
+      schemaFilePaths.put(normTemplateId, schemaPath);
     }
   }
 
@@ -74,7 +76,8 @@ final class CanonicalSchemaResolver {
     if (templateIdOrUri == null || templateIdOrUri.isBlank()) {
       return Optional.empty();
     }
-    SchemaEnvelope cached = schemasById.get(templateIdOrUri);
+    String normKey = TemplateDocumentStore.normalizeUri(templateIdOrUri);
+    SchemaEnvelope cached = schemasById.get(normKey);
     if (cached != null) {
       return Optional.of(cached);
     }
@@ -94,10 +97,11 @@ final class CanonicalSchemaResolver {
         }
         if (Files.isRegularFile(siblingSchema)) {
           registerSchemaFile(siblingSchema);
-          SchemaEnvelope env = schemasById.get(siblingSchema.toUri().toString());
+          String siblingKey = TemplateDocumentStore.normalizeUri(siblingSchema.toUri().toString());
+          SchemaEnvelope env = schemasById.get(siblingKey);
           if (env != null) {
-            schemasById.put(templateIdOrUri, env);
-            schemaFilePaths.put(templateIdOrUri, siblingSchema);
+            schemasById.put(normKey, env);
+            schemaFilePaths.put(normKey, siblingSchema);
             return Optional.of(env);
           }
         }
@@ -110,10 +114,11 @@ final class CanonicalSchemaResolver {
           Path inDir = schemaDirectory.resolve(base + ".vt-schema.json");
           if (Files.isRegularFile(inDir)) {
             registerSchemaFile(inDir);
-            SchemaEnvelope env = schemasById.get(inDir.toUri().toString());
+            String inDirKey = TemplateDocumentStore.normalizeUri(inDir.toUri().toString());
+            SchemaEnvelope env = schemasById.get(inDirKey);
             if (env != null) {
-              schemasById.put(templateIdOrUri, env);
-              schemaFilePaths.put(templateIdOrUri, inDir);
+              schemasById.put(normKey, env);
+              schemaFilePaths.put(normKey, inDir);
               return Optional.of(env);
             }
           }
@@ -127,7 +132,11 @@ final class CanonicalSchemaResolver {
   }
 
   public Optional<Path> getSchemaFilePath(String templateIdOrUri) {
-    return Optional.ofNullable(schemaFilePaths.get(templateIdOrUri));
+    if (templateIdOrUri == null) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(
+        schemaFilePaths.get(TemplateDocumentStore.normalizeUri(templateIdOrUri)));
   }
 
   public Optional<ParameterDef> getParameter(String templateIdOrUri, String paramName) {
@@ -144,14 +153,22 @@ final class CanonicalSchemaResolver {
     if (rootParam.isEmpty()) {
       return Optional.empty();
     }
-    TypeRef current = rootParam.get().type();
+    return resolveChainedType(templateIdOrUri, rootParam.get().type(), steps);
+  }
+
+  public Optional<TypeRef> resolveChainedType(
+      String templateIdOrUri, TypeRef baseType, List<String> steps) {
+    if (baseType == null) {
+      return Optional.empty();
+    }
     if (steps == null || steps.isEmpty()) {
-      return Optional.of(current);
+      return Optional.of(baseType);
     }
     if (steps.size() > 64) {
       return Optional.empty();
     }
 
+    TypeRef current = baseType;
     for (String step : steps) {
       String typeKey = extractTypeName(current);
       if (typeKey == null) {
@@ -217,13 +234,89 @@ final class CanonicalSchemaResolver {
 
   public Optional<Integer> findLineOfParameter(String templateIdOrUri, String paramName) {
     return resolveSchema(templateIdOrUri)
-        .map(s -> findDefinitionLine(s.rawJson(), "name", paramName));
+        .map(s -> findParameterDefinitionLine(s.rawJson(), paramName));
   }
 
   public Optional<Integer> findLineOfProperty(
       String templateIdOrUri, String typeName, String propName) {
     return resolveSchema(templateIdOrUri)
-        .map(s -> findDefinitionLine(s.rawJson(), "name", propName));
+        .map(s -> findPropertyDefinitionLine(s.rawJson(), typeName, propName));
+  }
+
+  public static int findParameterDefinitionLine(String jsonContent, String paramName) {
+    if (jsonContent == null || paramName == null) {
+      return 0;
+    }
+    String[] lines = jsonContent.split("\r?\n");
+    int paramStart = -1;
+    for (int i = 0; i < lines.length; i++) {
+      if (lines[i].contains("\"parameters\"")) {
+        paramStart = i;
+        break;
+      }
+    }
+    int start = paramStart >= 0 ? paramStart : 0;
+    String nameNeedle = "\"name\": \"" + paramName + "\"";
+    String keyNeedle = "\"" + paramName + "\":";
+    for (int i = start; i < lines.length; i++) {
+      if (paramStart >= 0 && lines[i].contains("\"types\"")) {
+        break;
+      }
+      if (lines[i].contains(nameNeedle) || lines[i].contains(keyNeedle)) {
+        return i;
+      }
+    }
+    return findDefinitionLine(jsonContent, "name", paramName);
+  }
+
+  public static int findPropertyDefinitionLine(
+      String jsonContent, String typeName, String propName) {
+    if (jsonContent == null || propName == null) {
+      return 0;
+    }
+    String[] lines = jsonContent.split("\r?\n");
+    int typesSectionStart = -1;
+    for (int i = 0; i < lines.length; i++) {
+      if (lines[i].contains("\"types\"")) {
+        typesSectionStart = i;
+        break;
+      }
+    }
+
+    int typeLine = -1;
+    if (typeName != null && !typeName.isBlank()) {
+      String simpleType = CanonicalSchemaModel.simpleName(typeName);
+      String keyPattern1 = "\"" + typeName + "\":";
+      String keyPattern2 = "\"" + simpleType + "\":";
+      String namePattern1 = "\"name\": \"" + typeName + "\"";
+      String namePattern2 = "\"name\": \"" + simpleType + "\"";
+
+      int startSearch = typesSectionStart >= 0 ? typesSectionStart : 0;
+      for (int i = startSearch; i < lines.length; i++) {
+        if (lines[i].contains(keyPattern1)
+            || lines[i].contains(keyPattern2)
+            || lines[i].contains(namePattern1)
+            || lines[i].contains(namePattern2)) {
+          typeLine = i;
+          break;
+        }
+      }
+    }
+
+    int searchStart = typeLine >= 0 ? typeLine : 0;
+    String nameNeedle = "\"name\": \"" + propName + "\"";
+    String propKeyNeedle = "\"" + propName + "\":";
+
+    for (int i = searchStart; i < lines.length; i++) {
+      if (typeLine >= 0 && i > typeLine + 150) {
+        break;
+      }
+      if (lines[i].contains(nameNeedle) || lines[i].contains(propKeyNeedle)) {
+        return i;
+      }
+    }
+
+    return findDefinitionLine(jsonContent, "name", propName);
   }
 
   public static int findDefinitionLine(String jsonContent, String targetKey, String targetValue) {
@@ -253,6 +346,9 @@ final class CanonicalSchemaResolver {
     }
     if (type instanceof NamedTypeRef ntr) {
       return ntr.name();
+    }
+    if (type instanceof ParameterizedTypeRef ptr) {
+      return ptr.rawType();
     }
     return null;
   }

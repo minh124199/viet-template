@@ -1,10 +1,7 @@
 package io.github.minh124199.viettemplate.lsp;
 
 import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
-import io.github.minh124199.viettemplate.language.vtl.ast.VtlAssignmentTarget;
-import io.github.minh124199.viettemplate.language.vtl.ast.VtlForeachDirectiveNode;
-import io.github.minh124199.viettemplate.language.vtl.ast.VtlNode;
-import io.github.minh124199.viettemplate.language.vtl.ast.VtlSetDirectiveNode;
+import io.github.minh124199.viettemplate.language.vtl.ast.*;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
 import io.github.minh124199.viettemplate.lsp.CanonicalSchemaModel.*;
@@ -60,7 +57,7 @@ final class CompletionProvider {
     // 1. Check if member access (e.g. ${user. or $user.name. or $user.na)
     MemberCompletionContext memberCtx = findMemberContext(content, offset);
     if (memberCtx != null) {
-      return completeMembers(doc.uri(), memberCtx, schemaResolver, policy);
+      return completeMembers(doc, offset, memberCtx, schemaResolver, policy);
     }
 
     // 2. Check if variable access (e.g. $ or ${ or $us or ${us)
@@ -79,32 +76,100 @@ final class CompletionProvider {
   }
 
   private static CompletionList completeMembers(
-      String uri,
+      TemplateDocument doc,
+      int offset,
       MemberCompletionContext ctx,
       CanonicalSchemaResolver schemaResolver,
       MemberAccessPolicy policy) {
     Optional<TypeRef> receiverType =
-        schemaResolver.resolveReceiverType(uri, ctx.rootName(), ctx.steps());
+        schemaResolver.resolveReceiverType(doc.uri(), ctx.rootName(), ctx.steps());
+    if (receiverType.isEmpty()) {
+      receiverType = resolveLoopVariableReceiverType(doc, offset, ctx, schemaResolver);
+    }
     if (receiverType.isEmpty()) {
       return CompletionList.empty();
     }
 
     Map<String, PropertyDef> properties =
-        schemaResolver.getAccessibleProperties(uri, receiverType.get(), policy);
+        schemaResolver.getAccessibleProperties(doc.uri(), receiverType.get(), policy);
     List<CompletionItem> items = new ArrayList<>();
     String prefix = ctx.memberPrefix();
 
     for (PropertyDef prop : properties.values()) {
       if (prefix.isEmpty() || prop.name().startsWith(prefix)) {
         String detail = prop.type().displayName() + (prop.nullable() ? " (nullable)" : "");
-        String doc = "Property of " + receiverType.get().displayName();
+        String docMsg = "Property of " + receiverType.get().displayName();
         items.add(
-            new CompletionItem(prop.name(), CompletionItemKind.PROPERTY, detail, doc, prop.name()));
+            new CompletionItem(
+                prop.name(), CompletionItemKind.PROPERTY, detail, docMsg, prop.name()));
       }
     }
 
     Collections.sort(items);
     return CompletionList.of(items);
+  }
+
+  private static Optional<TypeRef> resolveLoopVariableReceiverType(
+      TemplateDocument doc,
+      int offset,
+      MemberCompletionContext ctx,
+      CanonicalSchemaResolver schemaResolver) {
+    try {
+      VtlParseResult parsed = VtlParser.parse(doc.sourceText());
+      VtlForeachDirectiveNode feNode =
+          findEnclosingForeach(parsed.template().children(), offset, ctx.rootName());
+      if (feNode != null && feNode.iterable() instanceof VtlReferenceExpression refExpr) {
+        VtlReference iterRef = refExpr.reference();
+        List<String> iterSteps = new ArrayList<>();
+        for (VtlAccessStep s : iterRef.steps()) {
+          if (s instanceof VtlAccessStep.PropertyAccess p) {
+            iterSteps.add(p.propertyName());
+          }
+        }
+        Optional<TypeRef> iterType =
+            schemaResolver.resolveReceiverType(doc.uri(), iterRef.rootName(), iterSteps);
+        if (iterType.isPresent()) {
+          TypeRef elemType = null;
+          if (iterType.get() instanceof ParameterizedTypeRef ptr && !ptr.arguments().isEmpty()) {
+            elemType = ptr.arguments().get(0);
+          } else if (iterType.get() instanceof ArrayTypeRef atr) {
+            elemType = atr.componentType();
+          }
+          if (elemType != null) {
+            return schemaResolver.resolveChainedType(doc.uri(), elemType, ctx.steps());
+          }
+        }
+      }
+    } catch (IllegalArgumentException | IllegalStateException ignored) {
+    }
+    return Optional.empty();
+  }
+
+  private static VtlForeachDirectiveNode findEnclosingForeach(
+      List<VtlNode> nodes, int offset, String varName) {
+    if (nodes == null) return null;
+    for (VtlNode node : nodes) {
+      if (node instanceof VtlForeachDirectiveNode fe) {
+        if (fe.span().startOffset() <= offset && offset <= fe.span().endOffset()) {
+          VtlForeachDirectiveNode inner = findEnclosingForeach(fe.body(), offset, varName);
+          if (inner != null) return inner;
+          if (fe.loopVariable().rootName().equals(varName)) {
+            return fe;
+          }
+        }
+      } else if (node instanceof VtlIfDirectiveNode ifNode) {
+        for (VtlIfBranch branch : ifNode.branches()) {
+          VtlForeachDirectiveNode inner = findEnclosingForeach(branch.body(), offset, varName);
+          if (inner != null) return inner;
+        }
+        if (ifNode.elseBody().isPresent()) {
+          VtlForeachDirectiveNode inner =
+              findEnclosingForeach(ifNode.elseBody().get(), offset, varName);
+          if (inner != null) return inner;
+        }
+      }
+    }
+    return null;
   }
 
   private static CompletionList completeVariables(
@@ -131,7 +196,8 @@ final class CompletionProvider {
     // 2. Local variables and loop variables from template AST
     try {
       VtlParseResult parsed = VtlParser.parse(doc.sourceText());
-      collectLocalVariables(parsed.template().children(), offset, prefix, items);
+      collectLocalVariables(
+          parsed.template().children(), doc, offset, prefix, schemaResolver, items);
     } catch (IllegalArgumentException | IllegalStateException ignored) {
       // Best-effort local variable discovery
     }
@@ -140,7 +206,12 @@ final class CompletionProvider {
   }
 
   private static void collectLocalVariables(
-      List<VtlNode> nodes, int offset, String prefix, Set<CompletionItem> items) {
+      List<VtlNode> nodes,
+      TemplateDocument doc,
+      int offset,
+      String prefix,
+      CanonicalSchemaResolver schemaResolver,
+      Set<CompletionItem> items) {
     if (nodes == null) return;
     for (VtlNode node : nodes) {
       if (node instanceof VtlSetDirectiveNode setNode) {
@@ -157,9 +228,10 @@ final class CompletionProvider {
         if (feNode.span().startOffset() <= offset && offset <= feNode.span().endOffset()) {
           String loopVar = feNode.loopVariable().rootName();
           if (prefix.isEmpty() || loopVar.startsWith(prefix)) {
+            String typeName = HoverProvider.inferLoopVariableTypeName(feNode, doc, schemaResolver);
             items.add(
                 new CompletionItem(
-                    loopVar, CompletionItemKind.VARIABLE, "Object", "Loop item variable", loopVar));
+                    loopVar, CompletionItemKind.VARIABLE, typeName, "Loop item variable", loopVar));
           }
           if (prefix.isEmpty() || "foreach".startsWith(prefix)) {
             items.add(
@@ -171,7 +243,7 @@ final class CompletionProvider {
                     "foreach"));
           }
         }
-        collectLocalVariables(feNode.body(), offset, prefix, items);
+        collectLocalVariables(feNode.body(), doc, offset, prefix, schemaResolver, items);
       }
     }
   }

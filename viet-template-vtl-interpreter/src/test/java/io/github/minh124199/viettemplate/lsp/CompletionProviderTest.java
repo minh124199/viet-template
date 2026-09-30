@@ -137,4 +137,53 @@ class CompletionProviderTest {
     List<CompletionItem> items = list.items();
     assertTrue(items.stream().anyMatch(i -> i.label().equals("item")));
   }
+
+  @Test
+  @DisplayName(
+      "Complete members on loop variable inside #foreach when iterable is a parameterized"
+          + " collection")
+  void testCompleteMembersOnLoopVariable() {
+    String schema =
+        """
+        {
+          "format": "viet-template-contract-schema/1",
+          "schemaVersion": 1,
+          "templateId": "test-fe.vt",
+          "parameters": {
+            "users": {
+              "name": "users",
+              "type": {
+                "kind": "parameterized",
+                "rawType": "java.util.List",
+                "arguments": [{ "kind": "named", "name": "User" }]
+              }
+            }
+          },
+          "types": {
+            "User": {
+              "name": "User",
+              "properties": {
+                "id": { "name": "id", "type": { "kind": "primitive", "name": "long" } },
+                "name": { "name": "name", "type": { "kind": "class", "className": "java.lang.String" } },
+                "email": { "name": "email", "type": { "kind": "class", "className": "java.lang.String" } }
+              }
+            }
+          }
+        }
+        """;
+    schemaResolver.registerSchema("test-fe.vt", schema);
+    String text = "#foreach($u in $users)\n$u.\n#end";
+    TemplateDocument doc = new TemplateDocument("test-fe.vt", 1, text);
+
+    // Line 1: "$u." (length 3). Position (1, 3)
+    CompletionList list =
+        CompletionProvider.complete(
+            doc, Position.of(1, 3), schemaResolver, MemberAccessPolicy.standard());
+
+    List<CompletionItem> items = list.items();
+    assertEquals(3, items.size());
+    assertEquals("email", items.get(0).label());
+    assertEquals("id", items.get(1).label());
+    assertEquals("name", items.get(2).label());
+  }
 }

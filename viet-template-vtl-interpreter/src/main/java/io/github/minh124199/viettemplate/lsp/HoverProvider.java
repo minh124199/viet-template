@@ -1,6 +1,5 @@
 package io.github.minh124199.viettemplate.lsp;
 
-import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.language.vtl.ast.*;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
@@ -30,19 +29,21 @@ final class HoverProvider {
       return Optional.empty();
     }
 
-    return findHover(parsed.template().children(), offset, doc, schemaResolver);
+    List<VtlNode> rootNodes = parsed.template().children();
+    return findHover(rootNodes, rootNodes, offset, doc, schemaResolver);
   }
 
   private static Optional<HoverInfo> findHover(
-      List<VtlNode> nodes,
+      List<VtlNode> currentNodes,
+      List<VtlNode> rootNodes,
       int offset,
       TemplateDocument doc,
       CanonicalSchemaResolver schemaResolver) {
-    if (nodes == null) {
+    if (currentNodes == null) {
       return Optional.empty();
     }
 
-    for (VtlNode node : nodes) {
+    for (VtlNode node : currentNodes) {
       if (!node.span().isKnown()
           || offset < node.span().startOffset()
           || offset > node.span().endOffset()) {
@@ -50,16 +51,16 @@ final class HoverProvider {
       }
 
       if (node instanceof VtlReferenceOutputNode refOut) {
-        return hoverReference(refOut.reference(), offset, doc, schemaResolver);
+        return hoverReference(refOut.reference(), offset, doc, rootNodes, schemaResolver);
       } else if (node instanceof VtlSetDirectiveNode setNode) {
-        if (setNode.value() instanceof VtlReferenceExpression refExpr) {
-          Optional<HoverInfo> h = hoverReference(refExpr.reference(), offset, doc, schemaResolver);
-          if (h.isPresent()) return h;
-        }
-        if (setNode.target().span().startOffset() <= offset
+        if (setNode.target().span().isKnown()
+            && setNode.target().span().startOffset() <= offset
             && offset <= setNode.target().span().endOffset()
             && setNode.target() instanceof VtlAssignmentTarget.ReferenceTarget refTarget) {
-          Range range = doc.spanToRange(setNode.target().span());
+          Range range =
+              Range.of(
+                  doc.offsetToPosition(setNode.target().span().startOffset()),
+                  doc.offsetToPosition(setNode.target().span().endOffset()));
           return Optional.of(
               HoverInfo.of(
                   "**$"
@@ -67,23 +68,54 @@ final class HoverProvider {
                       + "**: `Object`\n\n*(template local variable)*",
                   range));
         }
+        Optional<HoverInfo> valHover =
+            findExpressionHover(setNode.value(), offset, doc, rootNodes, schemaResolver);
+        if (valHover.isPresent()) return valHover;
       } else if (node instanceof VtlForeachDirectiveNode feNode) {
-        if (feNode.loopVariable().span().startOffset() <= offset
+        if (feNode.loopVariable().span().isKnown()
+            && feNode.loopVariable().span().startOffset() <= offset
             && offset <= feNode.loopVariable().span().endOffset()) {
-          Range range = doc.spanToRange(feNode.loopVariable().span());
+          Range range =
+              Range.of(
+                  doc.offsetToPosition(feNode.loopVariable().span().startOffset()),
+                  doc.offsetToPosition(feNode.loopVariable().span().endOffset()));
+          String typeName = inferLoopVariableTypeName(feNode, doc, schemaResolver);
           return Optional.of(
               HoverInfo.of(
                   "**$"
                       + feNode.loopVariable().rootName()
-                      + "**: `Object`\n\n*(loop item variable)*",
+                      + "**: `"
+                      + typeName
+                      + "`\n\n*(loop item variable)*",
                   range));
         }
-        Optional<HoverInfo> bodyHover = findHover(feNode.body(), offset, doc, schemaResolver);
+        Optional<HoverInfo> iterHover =
+            findExpressionHover(feNode.iterable(), offset, doc, rootNodes, schemaResolver);
+        if (iterHover.isPresent()) return iterHover;
+
+        Optional<HoverInfo> bodyHover =
+            findHover(feNode.body(), rootNodes, offset, doc, schemaResolver);
         if (bodyHover.isPresent()) return bodyHover;
+
+        if (feNode.elseBody().isPresent()) {
+          Optional<HoverInfo> elseHover =
+              findHover(feNode.elseBody().get(), rootNodes, offset, doc, schemaResolver);
+          if (elseHover.isPresent()) return elseHover;
+        }
       } else if (node instanceof VtlIfDirectiveNode ifNode) {
         for (VtlIfBranch branch : ifNode.branches()) {
-          Optional<HoverInfo> bHover = findHover(branch.body(), offset, doc, schemaResolver);
+          Optional<HoverInfo> condHover =
+              findExpressionHover(branch.condition(), offset, doc, rootNodes, schemaResolver);
+          if (condHover.isPresent()) return condHover;
+
+          Optional<HoverInfo> bHover =
+              findHover(branch.body(), rootNodes, offset, doc, schemaResolver);
           if (bHover.isPresent()) return bHover;
+        }
+        if (ifNode.elseBody().isPresent()) {
+          Optional<HoverInfo> elseHover =
+              findHover(ifNode.elseBody().get(), rootNodes, offset, doc, schemaResolver);
+          if (elseHover.isPresent()) return elseHover;
         }
       }
     }
@@ -92,8 +124,69 @@ final class HoverProvider {
     return checkDirectiveHover(doc, offset);
   }
 
+  private static Optional<HoverInfo> findExpressionHover(
+      VtlExpression expr,
+      int offset,
+      TemplateDocument doc,
+      List<VtlNode> rootNodes,
+      CanonicalSchemaResolver schemaResolver) {
+    if (expr == null) return Optional.empty();
+
+    if (expr instanceof VtlReferenceExpression refExpr) {
+      if (refExpr.reference().span().isKnown()
+          && refExpr.reference().span().startOffset() <= offset
+          && offset <= refExpr.reference().span().endOffset()) {
+        return hoverReference(refExpr.reference(), offset, doc, rootNodes, schemaResolver);
+      }
+    } else if (expr instanceof VtlBinaryExpression bin) {
+      Optional<HoverInfo> left =
+          findExpressionHover(bin.left(), offset, doc, rootNodes, schemaResolver);
+      if (left.isPresent()) return left;
+      return findExpressionHover(bin.right(), offset, doc, rootNodes, schemaResolver);
+    } else if (expr instanceof VtlUnaryExpression un) {
+      return findExpressionHover(un.operand(), offset, doc, rootNodes, schemaResolver);
+    } else if (expr instanceof VtlGroupedExpression grp) {
+      return findExpressionHover(grp.expression(), offset, doc, rootNodes, schemaResolver);
+    } else if (expr instanceof VtlListLiteralExpression list) {
+      for (VtlExpression e : list.elements()) {
+        Optional<HoverInfo> h = findExpressionHover(e, offset, doc, rootNodes, schemaResolver);
+        if (h.isPresent()) return h;
+      }
+    } else if (expr instanceof VtlMapLiteralExpression map) {
+      for (VtlMapEntry entry : map.entries()) {
+        Optional<HoverInfo> kh =
+            findExpressionHover(entry.key(), offset, doc, rootNodes, schemaResolver);
+        if (kh.isPresent()) return kh;
+        Optional<HoverInfo> vh =
+            findExpressionHover(entry.value(), offset, doc, rootNodes, schemaResolver);
+        if (vh.isPresent()) return vh;
+      }
+    } else if (expr instanceof VtlRangeExpression range) {
+      Optional<HoverInfo> sh =
+          findExpressionHover(range.start(), offset, doc, rootNodes, schemaResolver);
+      if (sh.isPresent()) return sh;
+      return findExpressionHover(range.end(), offset, doc, rootNodes, schemaResolver);
+    } else if (expr instanceof VtlInterpolatedStringExpression interp) {
+      for (VtlInterpolatedStringExpression.VtlInterpolatedStringPart part : interp.parts()) {
+        if (part
+            instanceof VtlInterpolatedStringExpression.VtlInterpolatedStringPart.ReferencePart rp) {
+          if (rp.reference().span().isKnown()
+              && rp.reference().span().startOffset() <= offset
+              && offset <= rp.reference().span().endOffset()) {
+            return hoverReference(rp.reference(), offset, doc, rootNodes, schemaResolver);
+          }
+        }
+      }
+    }
+    return Optional.empty();
+  }
+
   private static Optional<HoverInfo> hoverReference(
-      VtlReference ref, int offset, TemplateDocument doc, CanonicalSchemaResolver schemaResolver) {
+      VtlReference ref,
+      int offset,
+      TemplateDocument doc,
+      List<VtlNode> rootNodes,
+      CanonicalSchemaResolver schemaResolver) {
     // 1. Check steps
     List<VtlAccessStep> steps = ref.steps();
     for (int i = 0; i < steps.size(); i++) {
@@ -125,7 +218,15 @@ final class HoverProvider {
       }
     }
 
-    // 2. Check root
+    // 2. Check root variable
+    int rootStart = doc.content().indexOf(ref.rootName(), ref.span().startOffset());
+    if (rootStart < 0) {
+      rootStart = ref.span().startOffset();
+    }
+    int rootEnd = rootStart + ref.rootName().length();
+    Range range = Range.of(doc.offsetToPosition(rootStart), doc.offsetToPosition(rootEnd));
+
+    // Check schema parameter
     Optional<ParameterDef> param = schemaResolver.getParameter(doc.uri(), ref.rootName());
     if (param.isPresent()) {
       ParameterDef p = param.get();
@@ -134,17 +235,132 @@ final class HoverProvider {
           !p.documentation().isBlank() ? "\n\n" + p.documentation() : "\n\n*(parameter)*";
       String md =
           String.format("**$%s**: `%s`%s%s", p.name(), p.type().displayName(), reqStr, docStr);
-      // Span of root name
-      int rootStart = doc.content().indexOf(ref.rootName(), ref.span().startOffset());
-      if (rootStart < 0) {
-        rootStart = ref.span().startOffset();
-      }
-      int rootEnd = rootStart + ref.rootName().length();
-      Range range = doc.spanToRange(SourceSpan.of(rootStart, rootEnd, 1, 1, 1, 1));
+      return Optional.of(HoverInfo.of(md, range));
+    }
+
+    // Check enclosing foreach loop variable
+    VtlForeachDirectiveNode fe = findEnclosingForeach(rootNodes, offset, ref.rootName());
+    if (fe != null) {
+      String typeName = inferLoopVariableTypeName(fe, doc, schemaResolver);
+      String md =
+          String.format("**$%s**: `%s`\n\n*(loop item variable)*", ref.rootName(), typeName);
+      return Optional.of(HoverInfo.of(md, range));
+    }
+
+    // Check foreach loop metadata
+    if ("foreach".equals(ref.rootName()) && isInsideForeach(rootNodes, offset)) {
+      String md =
+          "**$foreach**: `ForeachMetadata`\n\n"
+              + "*(loop metadata: index, count, first, last, hasNext)*";
+      return Optional.of(HoverInfo.of(md, range));
+    }
+
+    // Check preceding #set variable
+    if (hasPrecedingSet(rootNodes, offset, ref.rootName())) {
+      String md = String.format("**$%s**: `Object`\n\n*(template local variable)*", ref.rootName());
       return Optional.of(HoverInfo.of(md, range));
     }
 
     return Optional.empty();
+  }
+
+  private static VtlForeachDirectiveNode findEnclosingForeach(
+      List<VtlNode> nodes, int offset, String varName) {
+    if (nodes == null) return null;
+    for (VtlNode node : nodes) {
+      if (node instanceof VtlForeachDirectiveNode fe) {
+        if (fe.span().startOffset() <= offset && offset <= fe.span().endOffset()) {
+          VtlForeachDirectiveNode inner = findEnclosingForeach(fe.body(), offset, varName);
+          if (inner != null) return inner;
+          if (fe.loopVariable().rootName().equals(varName)) {
+            return fe;
+          }
+        }
+      } else if (node instanceof VtlIfDirectiveNode ifNode) {
+        for (VtlIfBranch branch : ifNode.branches()) {
+          VtlForeachDirectiveNode inner = findEnclosingForeach(branch.body(), offset, varName);
+          if (inner != null) return inner;
+        }
+        if (ifNode.elseBody().isPresent()) {
+          VtlForeachDirectiveNode inner =
+              findEnclosingForeach(ifNode.elseBody().get(), offset, varName);
+          if (inner != null) return inner;
+        }
+      }
+    }
+    return null;
+  }
+
+  private static boolean isInsideForeach(List<VtlNode> nodes, int offset) {
+    if (nodes == null) return false;
+    for (VtlNode node : nodes) {
+      if (node instanceof VtlForeachDirectiveNode fe) {
+        if (fe.span().startOffset() <= offset && offset <= fe.span().endOffset()) {
+          return true;
+        }
+      } else if (node instanceof VtlIfDirectiveNode ifNode) {
+        for (VtlIfBranch branch : ifNode.branches()) {
+          if (isInsideForeach(branch.body(), offset)) return true;
+        }
+        if (ifNode.elseBody().isPresent() && isInsideForeach(ifNode.elseBody().get(), offset)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private static boolean hasPrecedingSet(List<VtlNode> nodes, int offset, String varName) {
+    if (nodes == null) return false;
+    for (VtlNode node : nodes) {
+      if (node.span().startOffset() > offset) {
+        break;
+      }
+      if (node instanceof VtlSetDirectiveNode setNode) {
+        if (setNode.span().endOffset() <= offset
+            && setNode.target() instanceof VtlAssignmentTarget.ReferenceTarget refTarget
+            && refTarget.reference().rootName().equals(varName)) {
+          return true;
+        }
+      } else if (node instanceof VtlIfDirectiveNode ifNode) {
+        for (VtlIfBranch branch : ifNode.branches()) {
+          if (hasPrecedingSet(branch.body(), offset, varName)) return true;
+        }
+        if (ifNode.elseBody().isPresent()
+            && hasPrecedingSet(ifNode.elseBody().get(), offset, varName)) {
+          return true;
+        }
+      } else if (node instanceof VtlForeachDirectiveNode feNode) {
+        if (hasPrecedingSet(feNode.body(), offset, varName)) return true;
+      }
+    }
+    return false;
+  }
+
+  static String inferLoopVariableTypeName(
+      VtlForeachDirectiveNode feNode,
+      TemplateDocument doc,
+      CanonicalSchemaResolver schemaResolver) {
+    if (feNode.iterable() instanceof VtlReferenceExpression refExpr) {
+      VtlReference iterRef = refExpr.reference();
+      List<String> steps = new ArrayList<>();
+      for (VtlAccessStep step : iterRef.steps()) {
+        if (step instanceof VtlAccessStep.PropertyAccess p) {
+          steps.add(p.propertyName());
+        }
+      }
+      Optional<TypeRef> iterType =
+          schemaResolver.resolveReceiverType(doc.uri(), iterRef.rootName(), steps);
+      if (iterType.isPresent()) {
+        if (iterType.get() instanceof ParameterizedTypeRef ptr && !ptr.arguments().isEmpty()) {
+          return ptr.arguments().get(0).displayName();
+        }
+        if (iterType.get() instanceof ArrayTypeRef atr) {
+          return atr.componentType().displayName();
+        }
+      }
+    }
+    return "Object";
   }
 
   private static Optional<HoverInfo> checkDirectiveHover(TemplateDocument doc, int offset) {

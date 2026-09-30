@@ -168,7 +168,7 @@ final class CanonicalSchemaModel {
     }
   }
 
-  private static String simpleName(String fqcn) {
+  static String simpleName(String fqcn) {
     if (fqcn == null || fqcn.isEmpty()) {
       return "";
     }
