@@ -404,7 +404,7 @@ final class TemplateContractSchemaGenerator {
             return true;
           }
         }
-      } catch (Throwable ignored) {
+      } catch (SecurityException | LinkageError | TypeNotPresentException ignored) {
       }
     }
     return true;
