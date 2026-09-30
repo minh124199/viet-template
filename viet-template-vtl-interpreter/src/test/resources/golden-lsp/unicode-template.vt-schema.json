@@ -1,0 +1,41 @@
+{
+  "$schema": "https://viet-template.github.io/schemas/contract-v1.json",
+  "format": "viet-template-contract-schema/1",
+  "schemaVersion": 1,
+  "templateId": "golden-lsp/unicode-template.vt",
+  "contractFingerprint": "vt-contract:v1:unicode-template-fixture",
+  "parameters": [
+    {
+      "name": "nguoiDung",
+      "type": {
+        "kind": "class",
+        "name": "vn.example.NguoiDung"
+      },
+      "nullable": false,
+      "optional": false
+    }
+  ],
+  "types": {
+    "vn.example.NguoiDung": {
+      "kind": "record",
+      "properties": [
+        {
+          "name": "hoTen",
+          "type": {
+            "kind": "class",
+            "name": "java.lang.String"
+          },
+          "nullable": false
+        },
+        {
+          "name": "thongBao",
+          "type": {
+            "kind": "class",
+            "name": "java.lang.String"
+          },
+          "nullable": false
+        }
+      ]
+    }
+  }
+}

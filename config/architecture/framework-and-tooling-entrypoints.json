@@ -184,6 +184,18 @@
       "description": "Ahead-of-time TypeScript declaration projector (*.d.ts) entrypoint used by Maven and Gradle build plugins."
     },
     {
+      "fqcn": "io.github.minh124199.viettemplate.lsp.VietTemplateLanguageServer",
+      "module": "viet-template-vtl-interpreter",
+      "entrypointKind": "BUILD_TOOL_ENTRYPOINT",
+      "metadataSource": "Language Server Protocol standard I/O and embedding entrypoint",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": false,
+      "fqcnStabilityRequired": false,
+      "userJavaApi": false,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Language Server Protocol (LSP) entrypoint and transport-agnostic tooling server."
+    },
+    {
       "fqcn": "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration",
       "module": "viet-template-spring-boot-autoconfigure",
       "entrypointKind": "SPRING_BOOT_AUTOCONFIGURATION",

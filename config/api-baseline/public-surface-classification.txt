@@ -1,10 +1,10 @@
 # Viet Template Public Surface Classification Baseline
-# Total Types: 357
+# Total Types: 358
 # STABLE_API: 105
 # STABLE_SPI: 27
 # EXPERIMENTAL: 5
 # FRAMEWORK_ENTRYPOINT: 4
-# BUILD_TOOL_ENTRYPOINT: 11
+# BUILD_TOOL_ENTRYPOINT: 12
 # SERVICE_ENTRYPOINT: 0
 # GENERATED_RUNTIME_ABI: 1
 # INTERNAL_CROSS_MODULE: 59
@@ -262,6 +262,7 @@ io.github.minh124199.viettemplate.language.vtl.semantics.type.VType$PrimitiveTyp
 io.github.minh124199.viettemplate.language.vtl.semantics.type.VType$UnionType PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.language.vtl.source.SourceText STABLE_API
+io.github.minh124199.viettemplate.lsp.VietTemplateLanguageServer BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.quarkus.VietTemplateConfig STABLE_API
 io.github.minh124199.viettemplate.quarkus.VietTemplateProducer FRAMEWORK_ENTRYPOINT
 io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer STABLE_API

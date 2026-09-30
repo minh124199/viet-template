@@ -1,0 +1,5 @@
+${user.name}
+$undeclaredRoot
+${user.nonexistent}
+${user.class}
+${nullableUser.name}

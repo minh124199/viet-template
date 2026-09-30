@@ -368,5 +368,11 @@ Release Phase 1.1.x evolves Viet Template with optional compile-time typed templ
     - **M28.4 (Maven Plugin Integration)**: Implemented `VietTemplateGenerateTypeScriptMojo` (`generate-typescript` goal) running in `process-classes` phase consuming generated schemas.
     - **M28.5 (Gradle Plugin Integration)**: Implemented `@CacheableTask` `VietTemplateGenerateTypeScriptTask` (`generateVietTemplateTypeScript` task) wired to `classes` lifecycle with `typeScriptOutputDirectory` configuration in `VietTemplateExtension`.
     - **M28.6 (Build Tool Parity Verification)**: Verified byte-for-byte and SHA-256 digest equivalence between Maven and Gradle TypeScript outputs on identical schema inputs.
+- **Milestone M29 (Language Server Protocol / Developer Tooling Foundation — target 1.1.0) — COMPLETE / QUALIFIED**:
+    - **M29.1 (LSP Specification & Lifecycle)**: Established `docs/tooling/language-server-foundation.md` documenting JSON-RPC 2.0 streaming transport, full lifecycle handling (`initialize`, `initialized`, `shutdown`, `exit`), and fail-closed state machines.
+    - **M29.2 (Document Management & Offset-Range Mapping)**: Implemented `TemplateDocument` and `TemplateDocumentStore` supporting `didOpen`, `didChange`, and `didClose` with UTF-16 position and range coordinate mapping across LF, CRLF, and CR line endings, including multi-byte Unicode and surrogate pairs.
+    - **M29.3 (Language Features Engine)**: Implemented `CompletionProvider` (directives, root parameters, member property chains), `HoverProvider` (type signatures, documentation, nullability), `DefinitionProvider` (in-template locals and schema definitions), and `DiagnosticProvider` (syntax errors, unresolved variables, property checks, nullable dereference warnings, security access violations).
+    - **M29.4 (Contract Schema Integration)**: Integrated `CanonicalSchemaResolver` for discovering sibling and fallback `*.vt-schema.json` files, supporting both Map and List schema formats and recursive models.
+    - **M29.5 (Security & Native Image Parity)**: Applied strict `MemberAccessPolicy` filtering in editor analysis; built exclusively with standard Java 21 library with zero external dependencies, supporting instant startup under GraalVM Native Image.
 
 
