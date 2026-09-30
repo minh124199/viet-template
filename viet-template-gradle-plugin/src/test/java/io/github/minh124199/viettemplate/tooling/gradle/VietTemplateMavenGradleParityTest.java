@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.minh124199.viettemplate.aot.TemplateAotCompiler;
 import io.github.minh124199.viettemplate.aot.TemplateAotRequest;
+import io.github.minh124199.viettemplate.aot.TypeScriptDeclarationProjector;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -120,6 +121,91 @@ class VietTemplateMavenGradleParityTest {
         .isEqualTo(mavenBytes);
     assertThat(gradleSha256)
         .as("Maven and Gradle schema outputs must have identical SHA-256 digests")
+        .isEqualTo(mavenSha256);
+  }
+
+  @Test
+  @DisplayName(
+      "Maven and Gradle generate byte-for-byte and SHA-256 identical TypeScript declaration"
+          + " artifacts")
+  void testMavenGradleTypeScriptParity(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"parity-ts-project\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path srcDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(srcDir);
+
+    Files.writeString(
+        srcDir.resolve("order-view.vtl"),
+        "Order #$orderId for $customer ($total USD)",
+        StandardCharsets.UTF_8);
+    Files.writeString(
+        srcDir.resolve("order-view.vtl.contract"),
+        "customer=String\norderId=long\ntotal=double\n",
+        StandardCharsets.UTF_8);
+
+    // 1. Run Gradle TypeScript generation
+    BuildResult gradleResult =
+        createRunner(projectDir)
+            .withArguments(VietTemplatePlugin.GENERATE_TYPESCRIPT_TASK_NAME)
+            .build();
+
+    assertThat(gradleResult.task(":" + VietTemplatePlugin.GENERATE_TYPESCRIPT_TASK_NAME))
+        .isNotNull();
+    assertThat(
+            gradleResult.task(":" + VietTemplatePlugin.GENERATE_TYPESCRIPT_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+
+    Path gradleDtsFile =
+        projectDir.resolve("build/generated/viet-template/typescript/order-view.d.ts");
+    assertThat(gradleDtsFile).isRegularFile();
+    byte[] gradleBytes = Files.readAllBytes(gradleDtsFile);
+    String gradleSha256 = sha256Hex(gradleBytes);
+
+    // 2. Run Maven generation logic on identical input source directory
+    Path mavenOutputDir = projectDir.resolve("target/generated-resources/viet-template/schemas");
+    TemplateAotRequest mavenRequest =
+        TemplateAotRequest.builder()
+            .sourceDirectory(srcDir)
+            .schemaOutputDirectory(mavenOutputDir)
+            .generateSchemas(true)
+            .compileBytecode(false)
+            .encoding(StandardCharsets.UTF_8)
+            .packagePrefix("io.github.minh124199.viettemplate.generated")
+            .failOnWarning(false)
+            .build();
+
+    TemplateAotCompiler.create().compile(mavenRequest);
+
+    Path mavenSchemaFile = mavenOutputDir.resolve("order-view.vt-schema.json");
+    assertThat(mavenSchemaFile).isRegularFile();
+
+    Path mavenTsOutputDir = projectDir.resolve("target/generated-sources/viet-template/typescript");
+    Path mavenDtsFile =
+        TypeScriptDeclarationProjector.projectToFile(mavenSchemaFile, mavenTsOutputDir);
+    assertThat(mavenDtsFile).isRegularFile();
+    byte[] mavenBytes = Files.readAllBytes(mavenDtsFile);
+    String mavenSha256 = sha256Hex(mavenBytes);
+
+    // 3. Verify exact byte-for-byte and SHA-256 parity
+    assertThat(gradleBytes)
+        .as("Maven and Gradle TypeScript outputs must be byte-for-byte identical")
+        .isEqualTo(mavenBytes);
+    assertThat(gradleSha256)
+        .as("Maven and Gradle TypeScript outputs must have identical SHA-256 digests")
         .isEqualTo(mavenSha256);
   }
 }

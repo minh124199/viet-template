@@ -14,6 +14,7 @@ public class VietTemplatePlugin implements Plugin<Project> {
   public static final String TASK_NAME = "compileVietTemplates";
   public static final String GENERATE_FACADES_TASK_NAME = "generateVietTemplateFacades";
   public static final String GENERATE_SCHEMAS_TASK_NAME = "generateVietTemplateSchemas";
+  public static final String GENERATE_TYPESCRIPT_TASK_NAME = "generateVietTemplateTypeScript";
 
   @Override
   public void apply(Project project) {
@@ -42,6 +43,10 @@ public class VietTemplatePlugin implements Plugin<Project> {
     extension
         .getSchemaOutputDirectory()
         .convention(project.getLayout().getBuildDirectory().dir("generated/viet-template/schemas"));
+    extension
+        .getTypeScriptOutputDirectory()
+        .convention(
+            project.getLayout().getBuildDirectory().dir("generated/viet-template/typescript"));
 
     TaskProvider<VietTemplateGenerateFacadesTask> generateFacadesTask =
         project
@@ -123,6 +128,27 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   schemasTask.getFailOnWarning().convention(extension.getFailOnWarning());
                 });
 
+    TaskProvider<VietTemplateGenerateTypeScriptTask> generateTypeScriptTask =
+        project
+            .getTasks()
+            .register(
+                GENERATE_TYPESCRIPT_TASK_NAME,
+                VietTemplateGenerateTypeScriptTask.class,
+                typeScriptTask -> {
+                  typeScriptTask.setDescription(
+                      "Generates TypeScript declaration files (*.d.ts) for Viet Template contracts"
+                          + " Ahead-Of-Time.");
+                  typeScriptTask.setGroup("build");
+
+                  typeScriptTask
+                      .getSchemaDirectory()
+                      .convention(extension.getSchemaOutputDirectory());
+                  typeScriptTask
+                      .getTypeScriptOutputDirectory()
+                      .convention(extension.getTypeScriptOutputDirectory());
+                  typeScriptTask.dependsOn(generateSchemasTask);
+                });
+
     // When java plugin applied:
     // sourceSets.named("main").get().getOutput().dir(task.getOutputDirectory())
     // sourceSets.named("main").get().getResources().srcDir(task.getResourceOutputDirectory())
@@ -172,6 +198,13 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   .getTasks()
                   .named(JavaPlugin.CLASSES_TASK_NAME)
                   .configure(t -> t.dependsOn(schemasTask));
+
+              VietTemplateGenerateTypeScriptTask typeScriptTask = generateTypeScriptTask.get();
+              typeScriptTask.dependsOn(schemasTask);
+              project
+                  .getTasks()
+                  .named(JavaPlugin.CLASSES_TASK_NAME)
+                  .configure(t -> t.dependsOn(typeScriptTask));
             });
   }
 }
