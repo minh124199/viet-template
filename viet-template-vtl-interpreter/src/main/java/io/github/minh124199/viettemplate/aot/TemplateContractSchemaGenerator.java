@@ -556,10 +556,12 @@ final class TemplateContractSchemaGenerator {
     } else if (type instanceof NamedTypeRef nt) {
       sb.append("{\n");
       sb.append(innerIndent).append("\"kind\": \"named\",\n");
-      sb.append(innerIndent).append("\"name\": \"").append(escapeJson(nt.name())).append("\"");
-      if (!nt.arguments().isEmpty()) {
-        sb.append(",\n");
-        sb.append(innerIndent).append("\"arguments\": [\n");
+      sb.append(innerIndent).append("\"name\": \"").append(escapeJson(nt.name())).append("\",\n");
+      sb.append(innerIndent).append("\"arguments\": ");
+      if (nt.arguments().isEmpty()) {
+        sb.append("[]\n");
+      } else {
+        sb.append("[\n");
         for (int i = 0; i < nt.arguments().size(); i++) {
           sb.append(innerIndent).append("  ");
           serializeTypeRef(nt.arguments().get(i), sb, indentLevel + 2);
@@ -569,14 +571,14 @@ final class TemplateContractSchemaGenerator {
           sb.append("\n");
         }
         sb.append(innerIndent).append("]\n");
-      } else {
-        sb.append("\n");
       }
       sb.append(indent).append("}");
     } else {
       throw new IllegalArgumentException("Unknown TypeRef variant: " + type.getClass().getName());
     }
   }
+
+  private static final char[] HEX_DIGITS = "0123456789abcdef".toCharArray();
 
   static String escapeJson(String s) {
     if (s == null) return "";
@@ -593,7 +595,7 @@ final class TemplateContractSchemaGenerator {
         case '\t' -> sb.append("\\t");
         default -> {
           if (c <= 0x1F) {
-            sb.append(String.format("\\u%04x", (int) c));
+            sb.append("\\u00").append(HEX_DIGITS[(c >> 4) & 0x0F]).append(HEX_DIGITS[c & 0x0F]);
           } else {
             sb.append(c);
           }

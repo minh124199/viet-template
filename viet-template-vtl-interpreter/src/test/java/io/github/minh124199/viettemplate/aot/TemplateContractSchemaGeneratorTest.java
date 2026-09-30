@@ -14,6 +14,7 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,13 @@ class TemplateContractSchemaGeneratorTest {
   public record SimpleRecord(String name, int age, boolean active) {}
 
   public record RecordWithNested(String id, SimpleRecord details) {}
+
+  public record ItemRecord(String itemId, double price) {}
+
+  public record NestedSecurityChild(
+      Runtime runtime, ClassLoader classLoader, String validChildProperty) {}
+
+  public record NestedSecurityParent(NestedSecurityChild child, String validParentProperty) {}
 
   public record RecursiveNode(String value, RecursiveNode next) {}
 
@@ -524,6 +532,243 @@ class TemplateContractSchemaGeneratorTest {
       assertThat(content).contains("\"templateId\": \"admin/users/details.vtl\"");
       assertThat(content).contains("\"format\": \"viet-template-contract-schema/1\"");
       assertThat(content).contains("\"schemaVersion\": 1");
+    }
+
+    @Test
+    @DisplayName(
+        "Absolute path independence: identical schema generated regardless of base directory")
+    void testAbsolutePathIndependence(@TempDir Path dirA, @TempDir Path dirB) throws Exception {
+      TemplateContract contract =
+          TemplateContract.of(
+              TemplateId.of("reports/annual.vtl"),
+              TemplateParameter.of("year", int.class, false),
+              TemplateParameter.of("data", SimpleRecord.class, false));
+
+      Path outA = TemplateContractSchemaGenerator.generateSchemaFile(contract, dirA);
+      Path outB = TemplateContractSchemaGenerator.generateSchemaFile(contract, dirB);
+
+      byte[] bytesA = Files.readAllBytes(outA);
+      byte[] bytesB = Files.readAllBytes(outB);
+
+      assertThat(bytesA).isEqualTo(bytesB);
+    }
+
+    @Test
+    @DisplayName("Environment defense: no system or environment metadata leaked into schema")
+    void testEnvironmentLeakDefense() {
+      TemplateContract contract =
+          TemplateContract.of(
+              TemplateId.of("env/check.vtl"),
+              TemplateParameter.of("val", SimpleRecord.class, false));
+
+      String json = TemplateContractSchemaGenerator.generateJson(contract);
+
+      assertThat(json).doesNotContain(System.getProperty("user.name"));
+      assertThat(json).doesNotContain(System.getProperty("user.home"));
+      assertThat(json).doesNotContain(System.getProperty("java.version"));
+      assertThat(json).doesNotContain("ProcessHandle");
+      assertThat(json).doesNotContain("ManagementFactory");
+    }
+  }
+
+  @Nested
+  @DisplayName("Edge Cases & Completeness")
+  class EdgeCasesTests {
+
+    @Test
+    @DisplayName(
+        "Object.class parameter maps to class Object and is not expanded into types catalog")
+    void testObjectParameter() {
+      TemplateContract contract =
+          TemplateContract.of(
+              TemplateId.of("obj.vtl"), TemplateParameter.of("anyObj", Object.class, true));
+
+      String json = TemplateContractSchemaGenerator.generateJson(contract);
+
+      assertThat(json).contains("\"kind\": \"class\"");
+      assertThat(json).contains("\"name\": \"java.lang.Object\"");
+      assertThat(json).contains("\"types\": {}");
+    }
+
+    @Test
+    @DisplayName("Set<Item> and multiple type variables (E, K, V) are mapped faithfully")
+    void testSetAndTypeVariables() {
+      TemplateType setItem =
+          TemplateType.parameterized(Set.class, TemplateType.of(ItemRecord.class));
+      TemplateType varE = TemplateType.named("E");
+      TemplateType varK = TemplateType.named("K");
+      TemplateType varV = TemplateType.named("V");
+
+      TemplateContract contract =
+          TemplateContract.of(
+              TemplateId.of("catalog/types.vtl"),
+              TemplateParameter.of("categories", setItem),
+              TemplateParameter.of("elem", varE),
+              TemplateParameter.of("key", varK),
+              TemplateParameter.of("value", varV));
+
+      String json = TemplateContractSchemaGenerator.generateJson(contract);
+
+      assertThat(json).contains("\"rawType\": \"java.util.Set\"");
+      assertThat(json).contains(ItemRecord.class.getName());
+      assertThat(json).contains("\"name\": \"E\"");
+      assertThat(json).contains("\"name\": \"K\"");
+      assertThat(json).contains("\"name\": \"V\"");
+      assertThat(json).contains("\"arguments\": []");
+    }
+
+    @Test
+    @DisplayName("Nested denied models (AllowedType -> NestedModel -> Runtime) are strictly pruned")
+    void testNestedDeniedTypePruning() {
+      TemplateContract contract =
+          TemplateContract.of(
+              TemplateId.of("sec/nested.vtl"),
+              TemplateParameter.of("model", NestedSecurityParent.class, false));
+
+      TemplateContractSchemaGenerator.SchemaEnvelope envelope =
+          TemplateContractSchemaGenerator.extractSchema(contract);
+
+      assertThat(envelope.types()).containsKey(NestedSecurityParent.class.getName());
+      assertThat(envelope.types()).containsKey(NestedSecurityChild.class.getName());
+
+      TemplateContractSchemaGenerator.TypeDef childDef =
+          envelope.types().get(NestedSecurityChild.class.getName());
+      List<String> childProps =
+          childDef.properties().stream()
+              .map(TemplateContractSchemaGenerator.PropertyDef::name)
+              .toList();
+
+      assertThat(childProps).containsExactly("validChildProperty");
+      assertThat(childProps).doesNotContain("runtime", "classLoader");
+
+      String json = TemplateContractSchemaGenerator.serialize(envelope);
+      assertThat(json).doesNotContain("java.lang.Runtime");
+      assertThat(json).doesNotContain("java.lang.ClassLoader");
+    }
+
+    @Test
+    @DisplayName("Bounded recursion depth halts without error or infinite loop")
+    void testMaxExpansionDepth() {
+      TemplateContract contract =
+          TemplateContract.of(
+              TemplateId.of("deep/chain.vtl"),
+              TemplateParameter.of("root", RecursiveNode.class, false));
+
+      TemplateContractSchemaGenerator.SchemaEnvelope envelope =
+          TemplateContractSchemaGenerator.extractSchema(contract);
+
+      assertThat(envelope.types()).containsKey(RecursiveNode.class.getName());
+    }
+  }
+
+  @Nested
+  @DisplayName("Golden Fixtures & Hashes")
+  class GoldenFixturesTests {
+
+    private static final String GOLDEN_DIR = "golden-schemas/";
+
+    private static final String SIMPLE_USER_SHA256 =
+        "bf97792fca670084fc88192279b4e22d192871d0b4fa31c2cd60eccc899185a6";
+    private static final String ORDER_DETAILS_SHA256 =
+        "f985620e7d1c8a96d308b9e13e1cc588715bc35ea8abb750a2a653d6c4c0f731";
+    private static final String GENERIC_CATALOG_SHA256 =
+        "50cc527117ad14197fd84ce373c161b5010b3595d8160841064afaae307defda";
+    private static final String TREE_NODE_SHA256 =
+        "8169463fbf93ca2175801cbef6b1664c450aedc96e712581132a4b9d8c8392c3";
+
+    private String loadGolden(String filename) throws Exception {
+      Path p = Path.of("src/test/resources", GOLDEN_DIR, filename);
+      if (Files.exists(p)) {
+        return Files.readString(p, StandardCharsets.UTF_8);
+      }
+      try (var is = getClass().getClassLoader().getResourceAsStream(GOLDEN_DIR + filename)) {
+        if (is == null) {
+          throw new IllegalStateException("Golden resource not found: " + filename);
+        }
+        return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+      }
+    }
+
+    private String sha256Hex(byte[] bytes) {
+      try {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        return HexFormat.of().formatHex(md.digest(bytes));
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    @Test
+    @DisplayName("Golden 1: simple-user.vt-schema.json matches byte-for-byte and SHA-256")
+    void testGoldenSimpleUser() throws Exception {
+      TemplateContract contract =
+          TemplateContract.of(
+              TemplateId.of("users/simple-user.vtl"),
+              TemplateParameter.of("active", boolean.class, false),
+              TemplateParameter.of("id", long.class, false),
+              TemplateParameter.of("username", String.class, false));
+
+      String json = TemplateContractSchemaGenerator.generateJson(contract);
+      String golden = loadGolden("simple-user.vt-schema.json");
+
+      byte[] actualBytes = json.getBytes(StandardCharsets.UTF_8);
+      assertThat(actualBytes).isEqualTo(golden.getBytes(StandardCharsets.UTF_8));
+      assertThat(sha256Hex(actualBytes)).isEqualTo(SIMPLE_USER_SHA256);
+    }
+
+    @Test
+    @DisplayName("Golden 2: order-details.vt-schema.json matches byte-for-byte and SHA-256")
+    void testGoldenOrderDetails() throws Exception {
+      TemplateContract contract =
+          TemplateContract.of(
+              TemplateId.of("orders/order-details.vtl"),
+              TemplateParameter.of("order", SimpleRecord.class, false));
+
+      String json = TemplateContractSchemaGenerator.generateJson(contract);
+      String golden = loadGolden("order-details.vt-schema.json");
+
+      byte[] actualBytes = json.getBytes(StandardCharsets.UTF_8);
+      assertThat(actualBytes).isEqualTo(golden.getBytes(StandardCharsets.UTF_8));
+      assertThat(sha256Hex(actualBytes)).isEqualTo(ORDER_DETAILS_SHA256);
+    }
+
+    @Test
+    @DisplayName("Golden 3: generic-catalog.vt-schema.json matches byte-for-byte and SHA-256")
+    void testGoldenGenericCatalog() throws Exception {
+      TemplateType wildcardExtends =
+          TemplateType.wildcardExtends(TemplateType.of(SimpleRecord.class));
+      TemplateContract contract =
+          TemplateContract.of(
+              TemplateId.of("catalog/generic-catalog.vtl"),
+              TemplateParameter.of(
+                  "filter", TemplateType.parameterized(List.class, wildcardExtends)),
+              TemplateParameter.of(
+                  "items",
+                  TemplateType.parameterized(List.class, TemplateType.of(SimpleRecord.class))),
+              TemplateParameter.of("tags", TemplateType.of(String[].class)));
+
+      String json = TemplateContractSchemaGenerator.generateJson(contract);
+      String golden = loadGolden("generic-catalog.vt-schema.json");
+
+      byte[] actualBytes = json.getBytes(StandardCharsets.UTF_8);
+      assertThat(actualBytes).isEqualTo(golden.getBytes(StandardCharsets.UTF_8));
+      assertThat(sha256Hex(actualBytes)).isEqualTo(GENERIC_CATALOG_SHA256);
+    }
+
+    @Test
+    @DisplayName("Golden 4: tree-node.vt-schema.json matches byte-for-byte and SHA-256")
+    void testGoldenTreeNode() throws Exception {
+      TemplateContract contract =
+          TemplateContract.of(
+              TemplateId.of("structures/tree-node.vtl"),
+              TemplateParameter.of("root", RecursiveNode.class, false));
+
+      String json = TemplateContractSchemaGenerator.generateJson(contract);
+      String golden = loadGolden("tree-node.vt-schema.json");
+
+      byte[] actualBytes = json.getBytes(StandardCharsets.UTF_8);
+      assertThat(actualBytes).isEqualTo(golden.getBytes(StandardCharsets.UTF_8));
+      assertThat(sha256Hex(actualBytes)).isEqualTo(TREE_NODE_SHA256);
     }
   }
 }

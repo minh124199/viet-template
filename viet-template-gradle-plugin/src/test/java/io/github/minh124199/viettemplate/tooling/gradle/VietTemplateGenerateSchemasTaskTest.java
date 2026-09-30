@@ -82,4 +82,54 @@ class VietTemplateGenerateSchemasTaskTest {
     assertThat(json).contains("\"orderId\"");
     assertThat(json).contains("\"customer\"");
   }
+
+  @Test
+  @DisplayName("Clean and regenerate removes stale schemas after contract removal")
+  void testCleanAndRegenerateRemovesStaleSchemas(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"test-clean-project\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path templateDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(templateDir);
+    Path oldTemplate = templateDir.resolve("old-template.vtl");
+    Path oldContract = templateDir.resolve("old-template.vtl.contract");
+    Files.writeString(oldTemplate, "Old template", StandardCharsets.UTF_8);
+    Files.writeString(oldContract, "val=String\n", StandardCharsets.UTF_8);
+
+    createRunner(projectDir).withArguments(VietTemplatePlugin.GENERATE_SCHEMAS_TASK_NAME).build();
+
+    Path oldSchema =
+        projectDir.resolve("build/generated/viet-template/schemas/old-template.vt-schema.json");
+    assertThat(oldSchema).isRegularFile();
+
+    // Remove old template & contract, add new one
+    Files.delete(oldTemplate);
+    Files.delete(oldContract);
+
+    Files.writeString(templateDir.resolve("new-template.vtl"), "New", StandardCharsets.UTF_8);
+    Files.writeString(
+        templateDir.resolve("new-template.vtl.contract"), "id=int\n", StandardCharsets.UTF_8);
+
+    createRunner(projectDir)
+        .withArguments("clean", VietTemplatePlugin.GENERATE_SCHEMAS_TASK_NAME)
+        .build();
+
+    assertThat(oldSchema).doesNotExist();
+    Path newSchema =
+        projectDir.resolve("build/generated/viet-template/schemas/new-template.vt-schema.json");
+    assertThat(newSchema).isRegularFile();
+  }
 }
