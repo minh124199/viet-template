@@ -379,3 +379,12 @@ Release Phase 1.1.x evolves Viet Template with optional compile-time typed templ
     - **M29.8 (Diagnostic Lifecycle & Cleared Diagnostics)**: Guaranteed instant publication of empty diagnostics array (`[]`) to clear problem markers in the client editor upon repair or document close.
     - **M29.9 (Language Features Resilient Error Recovery)**: Protected completion, hover, and definition providers with AST `isKnown()` guards and graceful error recovery on malformed templates.
     - **M29.10 (Cancellation & Notification Handling)**: Implemented clean handling of standard `$/cancelRequest` and unknown notifications without returning protocol errors.
+- **Milestone M30 (Visual Studio Code Editor Integration / Language Client Foundation — target 1.1.0) — COMPLETE / QUALIFIED**:
+    - **M30.1 (Extension Architecture & Monorepo Isolation)**: Established `editors/vscode` maintaining strict separation from core Java builds with zero Node.js build dependencies required for standard Maven/Gradle execution.
+    - **M30.2 (File Associations & Language Configuration)**: Registered `viet-template` language for `.vtl`, `.vm`, and `.vt` files with comprehensive language configuration covering comment toggles, brackets, auto-closing/surrounding pairs, and block directive indentation rules.
+    - **M30.3 (TextMate Lexical Syntax Highlighting)**: Implemented `syntaxes/viet-template.tmLanguage.json` covering directives, silent/formal references, strings, numbers, operators, and comments.
+    - **M30.4 (Language Client & Server Launch Model)**: Integrated `vscode-languageclient` over standard I/O (stdio) supporting bundled server JAR (`server/viet-template-lsp.jar`), custom user JAR path, and development classpath fallback.
+    - **M30.5 (Java Runtime Discovery & Validation)**: Implemented discovery hierarchy (`vietTemplate.java.home` -> `JAVA_HOME` -> `PATH`) with Java 21+ validation and actionable diagnostics.
+    - **M30.6 (Lifecycle, Diagnostics & Commands)**: Wired `vietTemplate.restartServer` command, document synchronization, and real-time diagnostic presentation and clearing.
+    - **M30.7 (End-to-End Testing & VSIX Packaging)**: Built comprehensive test suites (unit tests and E2E LSP smoke tests driving the real Java language server process over stdio) and qualified `.vsix` offline packaging via `@vscode/vsce`.
+    - **M30.8 (Governance & Path Safety)**: Implemented `scripts/verify-vscode-extension.py` enforcing manifest integrity, lockfile presence, grammar validity, and zero machine-specific path assumptions.

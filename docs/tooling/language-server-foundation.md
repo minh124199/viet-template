@@ -101,3 +101,10 @@ Emits deterministic diagnostics with stable diagnostic codes:
 
 - When syntax errors or schema violations are resolved by subsequent edits (`didChange`), the server immediately publishes `diagnostics: []` to clear error markers in the client editor.
 - When a document is closed (`didClose`), the server publishes an empty diagnostics array `[]` to remove any lingering problems.
+
+---
+
+## 5. Editor Clients
+
+The primary supported editor client is the official Visual Studio Code extension:
+- **[Visual Studio Code Extension Documentation](vscode-extension.md)**: Full guide to installation, configuration, features, and debugging in `editors/vscode`.
