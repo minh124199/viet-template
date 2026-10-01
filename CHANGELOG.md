@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Milestone M30: Visual Studio Code Editor Integration / Language Client Foundation**:
+  - **Extension Architecture & Repository Isolation (`editors/vscode`)**:
+    - Established dedicated VS Code extension in `editors/vscode`, maintaining strict isolation from core Java builds with zero Node.js dependencies required for reactor Maven and Gradle builds.
+  - **File Association & Language Configuration**:
+    - Registered `viet-template` language identifier covering `.vtl`, `.vm`, and `.vt` files.
+    - Contributed `language-configuration.json` providing comment markers (`##`, `#* *#`), auto-closing and surrounding pairs for brackets and quotes, and smart block directive indentation rules.
+  - **TextMate Lexical Highlighting (`syntaxes/viet-template.tmLanguage.json`)**:
+    - Provided TextMate grammar covering directives, formal/quiet/regular references, double-quoted interpolated strings, single-quoted literal strings, escape sequences, numbers, and operators.
+  - **LSP Client Architecture & Server Launch Strategy**:
+    - Built language client using official `vscode-languageclient` communicating with `VietTemplateLanguageServer` over standard I/O (stdio).
+    - Supported bundled server JAR (`server/viet-template-lsp.jar`), user-configured custom JAR path, and development classpath fallback.
+    - Implemented cross-platform Java discovery (`vietTemplate.java.home` -> `JAVA_HOME` -> `PATH`) requiring Java 21+ with actionable user diagnostics.
+  - **Commands, Configuration & Lifecycle**:
+    - Contributed `vietTemplate.restartServer` command for interactive language server restart.
+    - Exposed namespaced configuration settings (`vietTemplate.java.home`, `vietTemplate.languageServer.jarPath`, `trace`, `vmArgs`).
+  - **Comprehensive Test Suite & Offline Packaging**:
+    - Implemented 21 automated tests covering Java runtime discovery, server launcher arguments, configuration defaults, and an end-to-end LSP smoke test driving the real Java language server process over stdio.
+    - Qualified offline `.vsix` packaging using `@vscode/vsce`.
+    - Added dedicated governance verification in `scripts/verify-vscode-extension.py`.
+
 - **Milestone M29: Language Server Protocol / Developer Tooling Foundation**:
   - **LSP Specification & Architecture (`docs/tooling/language-server-foundation.md`)**:
     - Established Language Server Protocol foundation implementing standard JSON-RPC 2.0 streaming transport over stdio and embedding APIs.

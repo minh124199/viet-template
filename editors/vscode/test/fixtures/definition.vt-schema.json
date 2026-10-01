@@ -1,0 +1,31 @@
+{
+  "$schema": "https://viet-template.github.io/schemas/contract-v1.json",
+  "format": "viet-template-contract-schema/1",
+  "schemaVersion": 1,
+  "templateId": "definition",
+  "parameters": {
+    "account": {
+      "name": "account",
+      "type": {
+        "kind": "named",
+        "name": "Account"
+      },
+      "nullable": false,
+      "required": true
+    }
+  },
+  "types": {
+    "Account": {
+      "name": "Account",
+      "properties": {
+        "email": {
+          "name": "email",
+          "type": {
+            "kind": "class",
+            "className": "java.lang.String"
+          }
+        }
+      }
+    }
+  }
+}

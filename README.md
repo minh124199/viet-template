@@ -256,6 +256,7 @@ Explore the complete documentation suite organized by topic:
 - **[Canonical Tooling Schemas](docs/schema/contract-schema-v1.md)** — Language-neutral JSON schema format (`*.vt-schema.json`) for template parameters and types.
 - **[TypeScript Declaration Projection](docs/schema/typescript-projection-v1.md)** — Automated, deterministic generation of TypeScript declaration files (`*.d.ts`) from contract schemas.
 - **[Language Server Protocol (LSP)](docs/tooling/language-server-foundation.md)** — Language server implementation providing diagnostics, autocompletion, hover, and definition navigation.
+- **[Visual Studio Code Extension](docs/tooling/vscode-extension.md)** — Official VS Code editor integration (`editors/vscode`) delivering language features, TextMate syntax highlighting, and LSP integration.
 
 ### Framework Integrations
 - **[Spring Boot Integration Guide](docs/spring/spring-boot-integration.md)** — Spring Boot 4 / Framework 7 starter, property catalog, and reactive view resolution.

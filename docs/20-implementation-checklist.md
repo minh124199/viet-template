@@ -1091,3 +1091,16 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **V13.** Diagnostics Lifecycle & Cleared Diagnostics: Verified instant emission of empty diagnostics array (`[]`) to clear problem markers in the client editor upon repair or document close.
 - [x] **V14.** Resilient Error Recovery: Protected completion, hover, and definition providers against malformed templates and incomplete syntax without unhandled exceptions.
 - [x] **V15.** Cancellation & Notification Protocol Handling: Handled standard `$/cancelRequest` and unknown notifications gracefully without protocol error.
+
+### Deliverable W: Visual Studio Code Editor Integration & Language Client Foundation (Milestone M30 / 1.1.0)
+
+- [x] **W1.** Extension Directory & Workspace Isolation: Established `editors/vscode` with independent `package.json` ensuring core Java reactor builds remain completely free of Node.js dependencies.
+- [x] **W2.** File Association & Suffix Registration: Registered language identifier `viet-template` covering `.vtl`, `.vm`, and `.vt` file extensions.
+- [x] **W3.** Language Configuration: Contributed `language-configuration.json` providing comment toggles (`##`, `#* *#`), auto-closing pairs, surrounding pairs, brackets, and block directive indentation rules.
+- [x] **W4.** TextMate Lexical Grammar: Contributed `syntaxes/viet-template.tmLanguage.json` covering directives, formal/quiet references, strings, escape sequences, numbers, operators, and comments.
+- [x] **W5.** Language Client Architecture: Integrated official `vscode-languageclient` over standard I/O (stdio) transport.
+- [x] **W6.** Cross-Platform Java Discovery: Implemented deterministic discovery hierarchy (`vietTemplate.java.home` -> `JAVA_HOME` -> `PATH`) validating Java 21+ with actionable notifications.
+- [x] **W7.** Server Launch Strategy & Bundling: Supported bundled server JAR (`server/viet-template-lsp.jar`), user-configured custom JAR path, and development classpath fallback.
+- [x] **W8.** Extension Configuration & Commands: Exposed namespaced settings (`vietTemplate.java.home`, `vietTemplate.languageServer.jarPath`, `trace`, `vmArgs`) and interactive restart command `vietTemplate.restartServer`.
+- [x] **W9.** Unit & End-to-End Test Suite: Implemented 21 automated tests spanning unit tests (Java runtime discovery, server launcher, configuration) and end-to-end LSP smoke tests exercising the real Java LSP process over stdio.
+- [x] **W10.** Offline VSIX Packaging & Governance: Qualified offline `.vsix` packaging via `@vscode/vsce` and implemented governance verification in `scripts/verify-vscode-extension.py`.
