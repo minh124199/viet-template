@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.intellij.lsp;
 
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import io.github.minh124199.viettemplate.intellij.runtime.JavaRuntimeResolver;
@@ -22,15 +23,28 @@ public class VietTemplateLspServerManager implements Disposable {
   private static final Logger LOG = Logger.getInstance(VietTemplateLspServerManager.class);
 
   private final Project project;
+  private final VietTemplateSettings customSettings;
   private final Object lock = new Object();
   private VietTemplateLspClient client;
 
   public VietTemplateLspServerManager(@NotNull Project project) {
+    this(project, null);
+  }
+
+  public VietTemplateLspServerManager(@NotNull Project project, @Nullable VietTemplateSettings customSettings) {
     this.project = project;
+    this.customSettings = customSettings;
   }
 
   public static VietTemplateLspServerManager getInstance(@NotNull Project project) {
     return project.getService(VietTemplateLspServerManager.class);
+  }
+
+  private VietTemplateSettings resolveSettings() {
+    if (customSettings != null) {
+      return customSettings;
+    }
+    return ApplicationManager.getApplication() != null ? VietTemplateSettings.getInstance() : new VietTemplateSettings();
   }
 
   /**
@@ -59,7 +73,7 @@ public class VietTemplateLspServerManager implements Disposable {
     synchronized (lock) {
       stopServer();
 
-      VietTemplateSettings settings = VietTemplateSettings.getInstance();
+      VietTemplateSettings settings = resolveSettings();
       JavaRuntimeResolver resolver = new JavaRuntimeResolver(settings);
       Path javaExec = resolver.resolveAndValidateJavaExecutable();
 

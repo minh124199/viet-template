@@ -63,20 +63,29 @@ class VietTemplateLspClientRealServerIntegrationTest {
     String syntaxErrorText = loadFixture("syntax-error.vtl");
     String uri = tempDir.resolve("syntax-error.vtl").toUri().toString();
 
+    // v1: open invalid content -> error diagnostic
     client.didOpen(uri, 1, syntaxErrorText);
-
-    // Poll for diagnostic error
     List<LspDiagnostic> diags = pollUntilNotEmpty(() -> client.getDiagnostics(uri), 3000);
     assertThat(diags).isNotEmpty();
     assertThat(diags.get(0).severity()).isEqualTo(LspDiagnostic.SEVERITY_ERROR);
     assertThat(diags.get(0).code()).contains("SYNTAX:PARSE_ERROR");
 
-    // Fix syntax error with valid template
+    // v2: didChange repaired content -> empty diagnostics
     client.didChange(uri, 2, "## Valid content\n#set($x = 10)\n$x\n");
+    boolean clearedV2 = pollUntil(() -> client.getDiagnostics(uri).isEmpty(), 3000);
+    assertThat(clearedV2).isTrue();
 
-    // Poll until diagnostics cleared
-    boolean cleared = pollUntil(() -> client.getDiagnostics(uri).isEmpty(), 3000);
-    assertThat(cleared).isTrue();
+    // v3: didChange re-introducing error -> error diagnostic
+    client.didChange(uri, 3, syntaxErrorText);
+    List<LspDiagnostic> diagsV3 = pollUntilNotEmpty(() -> client.getDiagnostics(uri), 3000);
+    assertThat(diagsV3).isNotEmpty();
+    assertThat(diagsV3.get(0).severity()).isEqualTo(LspDiagnostic.SEVERITY_ERROR);
+    assertThat(diagsV3.get(0).code()).contains("SYNTAX:PARSE_ERROR");
+
+    // v4: didChange repaired content again -> empty diagnostics
+    client.didChange(uri, 4, "## Valid content again\n#set($y = 20)\n$y\n");
+    boolean clearedV4 = pollUntil(() -> client.getDiagnostics(uri).isEmpty(), 3000);
+    assertThat(clearedV4).isTrue();
   }
 
   @Test
@@ -94,10 +103,18 @@ class VietTemplateLspClientRealServerIntegrationTest {
     String uri = tempDir.resolve("hover.vtl").toUri().toString();
     client.didOpen(uri, 1, "#set($user = \"Alice\")\n$user\n");
 
-    LspHoverResult hover = client.hover(uri, 1, 2).get(5, TimeUnit.SECONDS);
-    assertThat(hover).isNotNull();
-    assertThat(hover.contents()).isNotBlank();
-    assertThat(hover.contents()).contains("$user");
+    // Hover on variable $user (line 1, col 2)
+    LspHoverResult varHover = client.hover(uri, 1, 2).get(5, TimeUnit.SECONDS);
+    assertThat(varHover).isNotNull();
+    assertThat(varHover.contents()).isNotBlank();
+    assertThat(varHover.contents()).contains("$user");
+    assertThat(varHover.contents()).containsIgnoringCase("Object");
+
+    // Hover on directive #set (line 0, col 1)
+    LspHoverResult directiveHover = client.hover(uri, 0, 1).get(5, TimeUnit.SECONDS);
+    assertThat(directiveHover).isNotNull();
+    assertThat(directiveHover.contents()).isNotBlank();
+    assertThat(directiveHover.contents()).contains("#set");
   }
 
   @Test
@@ -116,7 +133,24 @@ class VietTemplateLspClientRealServerIntegrationTest {
 
     List<LspLocation> locations = client.definition(uri, 0, 8).get(5, TimeUnit.SECONDS);
     assertThat(locations).isNotEmpty();
-    assertThat(locations.get(0).uri()).contains("definition.vt-schema.json");
+    LspLocation location = locations.get(0);
+    assertThat(location.uri()).endsWith("definition.vt-schema.json");
+    assertThat(location.range()).isNotNull();
+    assertThat(location.range().start().line()).isGreaterThanOrEqualTo(0);
+  }
+
+  @Test
+  void shouldProvideInTemplateDefinitionNavigationForLocalVariables() throws Exception {
+    String uri = tempDir.resolve("in-template-def.vtl").toUri().toString();
+    String text = "#set($local = 42)\nValue: $local\n";
+    client.didOpen(uri, 1, text);
+
+    List<LspLocation> locations = client.definition(uri, 1, 8).get(5, TimeUnit.SECONDS);
+    assertThat(locations).isNotEmpty();
+    LspLocation location = locations.get(0);
+    assertThat(location.uri()).isEqualTo(uri);
+    assertThat(location.range()).isNotNull();
+    assertThat(location.range().start().line()).isEqualTo(0);
   }
 
   @Test

@@ -50,6 +50,11 @@ intellijPlatform {
         }
     }
     buildSearchableOptions = false
+    pluginVerification {
+        ides {
+            recommended()
+        }
+    }
 }
 
 val lspModules = listOf(

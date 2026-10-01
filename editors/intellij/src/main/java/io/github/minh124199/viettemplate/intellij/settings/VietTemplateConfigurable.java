@@ -3,6 +3,7 @@ package io.github.minh124199.viettemplate.intellij.settings;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.options.SearchableConfigurable;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.ui.TextBrowseFolderListener;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.util.ui.FormBuilder;
 import org.jetbrains.annotations.Nls;
@@ -45,18 +46,20 @@ public class VietTemplateConfigurable implements SearchableConfigurable {
   public JComponent createComponent() {
     javaHomeField = new TextFieldWithBrowseButton();
     javaHomeField.addBrowseFolderListener(
-        "Select Java Home",
-        "Select JDK 21+ home directory containing bin/java",
-        null,
-        FileChooserDescriptorFactory.createSingleFolderDescriptor()
+        new TextBrowseFolderListener(
+            FileChooserDescriptorFactory.createSingleFolderDescriptor()
+                .withTitle("Select Java Home")
+                .withDescription("Select JDK 21+ home directory containing bin/java")
+        )
     );
 
     serverJarPathField = new TextFieldWithBrowseButton();
     serverJarPathField.addBrowseFolderListener(
-        "Select Server JAR",
-        "Select custom viet-template-lsp.jar (leave empty to use bundled server)",
-        null,
-        FileChooserDescriptorFactory.createSingleFileDescriptor("jar")
+        new TextBrowseFolderListener(
+            FileChooserDescriptorFactory.createSingleFileDescriptor("jar")
+                .withTitle("Select Server JAR")
+                .withDescription("Select custom viet-template-lsp.jar (leave empty to use bundled server)")
+        )
     );
 
     traceComboBox = new ComboBox<>(new String[]{"off", "messages", "verbose"});
