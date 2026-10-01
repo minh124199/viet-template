@@ -24,6 +24,7 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysis
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import io.github.minh124199.viettemplate.runtime.RenderBudget;
 import io.github.minh124199.viettemplate.runtime.SafeHtml;
 import io.github.minh124199.viettemplate.runtime.StandardEscapers;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.BackendOptions;
@@ -485,7 +486,10 @@ public final class VtlInterpreter {
       return;
     }
 
-    if (options.profile() == VtlProfile.VTL_SAFE) {
+    boolean shouldEscapeHtml =
+        (options.profile() == VtlProfile.VTL_SAFE)
+            || (options.securityPolicy() != null && options.securityPolicy().isAutoEscapeHtml());
+    if (shouldEscapeHtml) {
       if (value instanceof SafeHtml safe) {
         state.output.write(safe.content());
         return;
@@ -703,6 +707,7 @@ public final class VtlInterpreter {
           span,
           InterpreterDiagnosticCodes.LIMIT_EXCEEDED);
     }
+    state.budget.countMacroInvocation(state.templateId, span);
 
     // Evaluate argument expressions once per invocation
     List<EvaluationValue> argValues = new ArrayList<>();
@@ -1259,6 +1264,7 @@ public final class VtlInterpreter {
     final ExecutionContext context;
     final MacroRegistry macroRegistry;
     final TemplateOutput output;
+    final RenderBudget budget;
     final BitSet gobbledIndices;
     final int macroDepth;
     final int parseDepth;
@@ -1300,11 +1306,38 @@ public final class VtlInterpreter {
         int parseDepth,
         int evaluateDepth,
         Set<SourceSpan> warnedSpans) {
+      this(
+          templateId,
+          source,
+          context,
+          macroRegistry,
+          output,
+          (output instanceof CountingTemplateOutput cto) ? cto.budget() : RenderBudget.unlimited(),
+          gobbledIndices,
+          macroDepth,
+          parseDepth,
+          evaluateDepth,
+          warnedSpans);
+    }
+
+    ExecutionState(
+        TemplateId templateId,
+        SourceText source,
+        ExecutionContext context,
+        MacroRegistry macroRegistry,
+        TemplateOutput output,
+        RenderBudget budget,
+        BitSet gobbledIndices,
+        int macroDepth,
+        int parseDepth,
+        int evaluateDepth,
+        Set<SourceSpan> warnedSpans) {
       this.templateId = templateId;
       this.source = source;
       this.context = context;
       this.macroRegistry = macroRegistry;
       this.output = output;
+      this.budget = budget != null ? budget : RenderBudget.unlimited();
       this.gobbledIndices = gobbledIndices;
       this.macroDepth = macroDepth;
       this.parseDepth = parseDepth;
@@ -1319,6 +1352,7 @@ public final class VtlInterpreter {
           newContext,
           macroRegistry,
           output,
+          budget,
           gobbledIndices,
           macroDepth,
           parseDepth,
@@ -1333,6 +1367,7 @@ public final class VtlInterpreter {
           context,
           macroRegistry,
           output,
+          budget,
           gobbledIndices,
           newMacroDepth,
           parseDepth,
@@ -1347,6 +1382,7 @@ public final class VtlInterpreter {
           context,
           macroRegistry,
           output,
+          budget,
           gobbledIndices,
           macroDepth,
           newParseDepth,
@@ -1361,6 +1397,7 @@ public final class VtlInterpreter {
           context,
           macroRegistry,
           output,
+          budget,
           gobbledIndices,
           macroDepth,
           parseDepth,
@@ -1375,6 +1412,7 @@ public final class VtlInterpreter {
           context,
           macroRegistry,
           output,
+          budget,
           newGobbled,
           macroDepth,
           parseDepth,
