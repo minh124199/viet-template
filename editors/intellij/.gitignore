@@ -1,0 +1,5 @@
+.gradle/
+build/
+.intellijPlatform/
+server/*.jar
+src/main/resources/server/
