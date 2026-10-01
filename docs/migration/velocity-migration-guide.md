@@ -117,7 +117,7 @@ Replace legacy Velocity dependencies with the official Viet Template starter:
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-boot-starter</artifactId>
-    <version>0.2.2</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -361,7 +361,7 @@ When migrating, audit template files for these common Velocity anti-patterns:
 
 ## 10. Summary Checklist for Migration
 
-- [ ] Update build dependencies to `viet-template-spring-boot-starter:0.2.2`.
+- [ ] Update build dependencies to `viet-template-spring-boot-starter:1.0.0`.
 - [ ] Replace `VelocityEngine` initialization with `TemplateEngine.builder()`.
 - [ ] Replace `VelocityContext` with `RenderContext.builder()`.
 - [ ] Verify template directory locations and configure `TemplateRepository`.

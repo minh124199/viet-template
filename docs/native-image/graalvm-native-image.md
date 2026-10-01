@@ -45,11 +45,11 @@ Ensure `viet-template-maven-plugin` and `native-maven-plugin` are configured:
 
 ```xml
 <dependencies>
-    <!-- Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0-RC1 -->
+    <!-- Latest Published Stable: 1.0.0 -->
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-spring-boot-starter</artifactId>
-        <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
+        <version>1.0.0</version>
     </dependency>
 </dependencies>
 
@@ -59,7 +59,7 @@ Ensure `viet-template-maven-plugin` and `native-maven-plugin` are configured:
         <plugin>
             <groupId>io.github.minh124199</groupId>
             <artifactId>viet-template-maven-plugin</artifactId>
-            <version>0.2.2</version> <!-- or 1.0.0-RC1 -->
+            <version>1.0.0</version>
             <executions>
                 <execution>
                     <goals>
@@ -88,12 +88,12 @@ Apply the GraalVM native plugin alongside `io.github.minh124199.viet-template`:
 ```kotlin
 plugins {
     id("org.graalvm.buildtools.native") version "0.10.3"
-    // Latest Published Stable: 0.2.2 | Latest Published Prerelease: 1.0.0
-    id("io.github.minh124199.viet-template") version "1.0.0" // or "0.2.2"
+    // Latest Published Stable: 1.0.0
+    id("io.github.minh124199.viet-template") version "1.0.0"
 }
 
 dependencies {
-    implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.2") // or "1.0.0"
+    implementation("io.github.minh124199:viet-template-spring-boot-starter:1.0.0")
 }
 ```
 

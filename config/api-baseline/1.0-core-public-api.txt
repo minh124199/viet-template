@@ -206,6 +206,7 @@ TYPE public interface io.github.minh124199.viettemplate.api.RenderContext
   MEMBER public static io.github.minh124199.viettemplate.api.RenderContext of(java.lang.String, java.lang.Object, java.lang.String, java.lang.Object, java.lang.String, java.lang.Object)
   MEMBER public static io.github.minh124199.viettemplate.api.RenderContext of(java.lang.String, java.lang.Object, java.lang.String, java.lang.Object, java.lang.String, java.lang.Object, java.lang.String, java.lang.Object)
   MEMBER public static io.github.minh124199.viettemplate.api.RenderContext of(java.lang.String[], java.lang.Object[])
+  MEMBER public static io.github.minh124199.viettemplate.api.SlottedRenderContext slotted(java.lang.String[], java.lang.Object[])
   MEMBER public static io.github.minh124199.viettemplate.api.RenderContext of(java.util.Map<java.lang.String, java.lang.Object>)
   MEMBER public static io.github.minh124199.viettemplate.api.RenderContext$Builder builder()
 
@@ -244,6 +245,10 @@ TYPE public final class io.github.minh124199.viettemplate.api.SensitiveObjectCla
   MEMBER public java.util.Set<java.lang.String> sensitiveTypeNames()
   MEMBER public static boolean isSensitiveClassName(java.lang.String)
   MEMBER public static io.github.minh124199.viettemplate.api.SensitiveObjectClassifier standard()
+
+TYPE public interface io.github.minh124199.viettemplate.api.SlottedRenderContext extends io.github.minh124199.viettemplate.api.RenderContext
+  MEMBER public abstract java.lang.Object getBySlot(int)
+  MEMBER public abstract int slotCount()
 
 TYPE public final class io.github.minh124199.viettemplate.api.SourceSpan extends java.lang.Record implements java.io.Serializable
   MEMBER public boolean isKnown()

@@ -595,7 +595,7 @@ def validate_abi(
                 errors.append(f"Generated template accesses unregistered field: {call_sig}")
 
     # 4. Member-level exact count assertions
-    expected_type_count = 7
+    expected_type_count = len(baseline)
     expected_method_count = 22
     expected_field_count = 0
 
@@ -628,6 +628,9 @@ def validate_abi(
         "type_count_matches": type_count_matches,
         "method_count_matches": method_count_matches,
         "field_count_matches": field_count_matches,
+        "expected_type_count": expected_type_count,
+        "expected_method_count": expected_method_count,
+        "expected_field_count": expected_field_count,
         "total_types": len(viet_types),
         "total_methods": len(methods),
         "total_fields": len(fields),
@@ -779,19 +782,23 @@ def main() -> None:
     validation = report["validation"]
     classifications = report.get("classifications", {})
 
-    print("\n--- Verified Runtime ABI Types (7 expected) ---")
+    exp_types = validation.get("expected_type_count", 8)
+    exp_methods = validation.get("expected_method_count", 22)
+    exp_fields = validation.get("expected_field_count", 0)
+
+    print(f"\n--- Verified Runtime ABI Types ({exp_types} expected) ---")
     for vt in report["runtime_abi"]["viet_template_types"]:
         cat = f" [{classifications.get(vt, 'UNCLASSIFIED')}]" if classifications else ""
         print(f"  [OK] {vt}{cat}")
 
-    print("\n--- Verified Runtime ABI Method Calls (22 expected) ---")
+    print(f"\n--- Verified Runtime ABI Method Calls ({exp_methods} expected) ---")
     for vm in report["runtime_abi"]["viet_template_methods"]:
         print(f"  [OK] {vm}")
 
     print("\n--- Runtime ABI Audit Summary ---")
-    print(f"  Referenced Viet Template Types:   {validation['total_types']} / 7")
-    print(f"  Invoked Viet Template Methods:    {validation['total_methods']} / 22")
-    print(f"  Accessed Viet Template Fields:    {validation['total_fields']} / 0")
+    print(f"  Referenced Viet Template Types:   {validation['total_types']} / {exp_types}")
+    print(f"  Invoked Viet Template Methods:    {validation['total_methods']} / {exp_methods}")
+    print(f"  Accessed Viet Template Fields:    {validation['total_fields']} / {exp_fields}")
 
     if validation["errors"]:
         print("\n[FAILED] Generated template ABI audit FAILED:")

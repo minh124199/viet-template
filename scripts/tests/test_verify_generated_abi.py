@@ -188,11 +188,12 @@ TYPE com.example.Bar
         self.assertTrue(baseline_file.exists())
 
         baseline = verifier.parse_baseline(baseline_file)
-        self.assertEqual(len(baseline), 7, f"Expected exactly 7 types, found {len(baseline)}")
+        self.assertEqual(len(baseline), 8, f"Expected exactly 8 types, found {len(baseline)}")
 
         expected_types = {
             "io.github.minh124199.viettemplate.api.CompiledTemplate",
             "io.github.minh124199.viettemplate.api.RenderContext",
+            "io.github.minh124199.viettemplate.api.SlottedRenderContext",
             "io.github.minh124199.viettemplate.api.TemplateId",
             "io.github.minh124199.viettemplate.api.TemplateOutput",
             "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata",
@@ -220,6 +221,11 @@ TYPE com.example.Bar
         rc_members = baseline["io.github.minh124199.viettemplate.api.RenderContext"]
         self.assertEqual(len(rc_members), 1)
         self.assertTrue(rc_members.matches_method("get", ["java.lang.String"], "java.lang.Object"))
+
+        # Check SlottedRenderContext has getBySlot
+        src_members = baseline["io.github.minh124199.viettemplate.api.SlottedRenderContext"]
+        self.assertEqual(len(src_members), 1)
+        self.assertTrue(src_members.matches_method("getBySlot", ["int"], "java.lang.Object"))
 
         # Check TemplateId has of
         tid_members = baseline["io.github.minh124199.viettemplate.api.TemplateId"]
@@ -317,6 +323,7 @@ class TestAbiValidation(unittest.TestCase):
                 "viet_template_types": [
                     "io.github.minh124199.viettemplate.api.CompiledTemplate",
                     "io.github.minh124199.viettemplate.api.RenderContext",
+                    "io.github.minh124199.viettemplate.api.SlottedRenderContext",
                     "io.github.minh124199.viettemplate.api.TemplateId",
                     "io.github.minh124199.viettemplate.api.TemplateOutput",
                     "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata",
@@ -358,7 +365,7 @@ class TestAbiValidation(unittest.TestCase):
         self.assertTrue(res["type_count_matches"])
         self.assertTrue(res["method_count_matches"])
         self.assertTrue(res["field_count_matches"])
-        self.assertEqual(res["total_types"], 7)
+        self.assertEqual(res["total_types"], 8)
         self.assertEqual(res["total_methods"], 22)
         self.assertEqual(res["total_fields"], 0)
 

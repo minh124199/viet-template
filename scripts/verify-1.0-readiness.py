@@ -67,6 +67,7 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.api.TemplateContract",
     "io.github.minh124199.viettemplate.api.TemplateContract$Builder",
     "io.github.minh124199.viettemplate.api.TemplateParameter",
+    "io.github.minh124199.viettemplate.api.SlottedRenderContext",
     "io.github.minh124199.viettemplate.api.TemplateType",
     "io.github.minh124199.viettemplate.api.TemplateType$ArrayType",
     "io.github.minh124199.viettemplate.api.TemplateType$ClassType",
@@ -157,6 +158,7 @@ def parse_runtime_abi_baseline(file_path: Path) -> dict[str, Any]:
     fields: list[str] = []
 
     current_type = None
+    methods_by_type: dict[str, list[str]] = {}
     for line in file_path.read_text(encoding="utf-8").splitlines():
         line_clean = line.strip()
         if not line_clean or line_clean.startswith("#"):
@@ -166,6 +168,7 @@ def parse_runtime_abi_baseline(file_path: Path) -> dict[str, Any]:
             if len(parts) >= 2:
                 current_type = parts[1]
                 types.append(current_type)
+                methods_by_type[current_type] = []
         elif line_clean.startswith("MEMBER "):
             member_sig = line_clean[len("MEMBER "):].strip()
             if "(" in member_sig:
@@ -173,6 +176,8 @@ def parse_runtime_abi_baseline(file_path: Path) -> dict[str, Any]:
                     implemented_methods.append(member_sig)
                 else:
                     invoked_methods.append(member_sig)
+                if current_type is not None:
+                    methods_by_type[current_type].append(member_sig)
             else:
                 fields.append(member_sig)
 
@@ -182,6 +187,7 @@ def parse_runtime_abi_baseline(file_path: Path) -> dict[str, Any]:
         "implemented_methods": implemented_methods,
         "all_methods": implemented_methods + invoked_methods,
         "fields": fields,
+        "methods_by_type": methods_by_type,
     }
 
 
@@ -507,18 +513,29 @@ def verify_generated_runtime_abi(
     invoked_methods = baseline_abi["invoked_methods"]
     fields = baseline_abi["fields"]
 
+    methods_by_type = baseline_abi.get("methods_by_type", {})
+    expected_abi = manifest.get("generatedRuntimeAbi", {})
+    additive_abi_types = {t for t in ALLOWED_ADDITIVE_1_X_TYPES if t in types}
+    exp_types_count = expected_abi.get("typesCount", 7) + len(additive_abi_types)
+
+    additive_abi_methods_count = sum(
+        len(methods_by_type.get(t, []))
+        for t in ALLOWED_ADDITIVE_1_X_TYPES
+        if t in methods_by_type and t != "io.github.minh124199.viettemplate.api.CompiledTemplate"
+    )
+    exp_methods_count = expected_abi.get("methodsCount", 22) + additive_abi_methods_count
+    exp_fields_count = expected_abi.get("fieldsCount", 0)
+    exp_types = expected_abi.get("types", [])
+
     details.update({
         "typesCount": len(types),
         "methodsCount": len(invoked_methods),
         "fieldsCount": len(fields),
         "types": sorted(types),
+        "invokedMethods": list(invoked_methods),
+        "additiveTypesCount": len(additive_abi_types),
+        "additiveMethodsCount": additive_abi_methods_count,
     })
-
-    expected_abi = manifest.get("generatedRuntimeAbi", {})
-    exp_types_count = expected_abi.get("typesCount", 7)
-    exp_methods_count = expected_abi.get("methodsCount", 22)
-    exp_fields_count = expected_abi.get("fieldsCount", 0)
-    exp_types = expected_abi.get("types", [])
 
     if len(types) != exp_types_count:
         errors.append(f"Generated ABI types count mismatch: expected {exp_types_count}, found {len(types)}")
@@ -527,9 +544,12 @@ def verify_generated_runtime_abi(
     if len(fields) != exp_fields_count:
         errors.append(f"Generated ABI fields count mismatch: expected {exp_fields_count}, found {len(fields)}")
 
-    if set(types) != set(exp_types):
-        diff = set(types).symmetric_difference(set(exp_types))
-        errors.append(f"Generated ABI types mismatch with contract manifest: {diff}")
+    missing_types = set(exp_types) - set(types)
+    extra_types = (set(types) - set(exp_types)) - ALLOWED_ADDITIVE_1_X_TYPES
+    if missing_types:
+        errors.append(f"Generated ABI types missing from contract manifest: {missing_types}")
+    if extra_types:
+        errors.append(f"Generated ABI unexpected types not in contract manifest: {extra_types}")
 
     # Check generated ABI report if available
     report_file = repo_root / "build" / "reports" / "generated-template-abi.json"

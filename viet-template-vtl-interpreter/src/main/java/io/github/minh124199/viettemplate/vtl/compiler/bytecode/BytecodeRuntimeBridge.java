@@ -11,9 +11,11 @@ import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
 import io.github.minh124199.viettemplate.api.UndefinedReferencePolicy;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.BinaryOpKind;
+import io.github.minh124199.viettemplate.language.vtl.ir.plan.IrEscapeMode;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode;
 import io.github.minh124199.viettemplate.language.vtl.ir.plan.UnaryOpKind;
 import io.github.minh124199.viettemplate.runtime.EscapeMode;
+import io.github.minh124199.viettemplate.runtime.Escaper;
 import io.github.minh124199.viettemplate.runtime.SafeHtml;
 import io.github.minh124199.viettemplate.runtime.SafeUrl;
 import io.github.minh124199.viettemplate.runtime.StandardEscapers;
@@ -49,6 +51,43 @@ public final class BytecodeRuntimeBridge {
 
   private static final System.Logger LOGGER =
       System.getLogger(BytecodeRuntimeBridge.class.getName());
+
+  static final NullRenderMode[] NULL_RENDER_MODES = NullRenderMode.values();
+  static final EscapeMode[] ESCAPE_MODES_BY_IR_MODE = initEscapeModesByIrMode();
+  static final Escaper[] ESCAPERS_BY_IR_MODE = initEscapersByIrMode();
+  static final BinaryOpKind[] BINARY_OP_KINDS = BinaryOpKind.values();
+  static final UnaryOpKind[] UNARY_OP_KINDS = UnaryOpKind.values();
+  static final MemberOperation[] MEMBER_OPERATIONS = MemberOperation.values();
+
+  private static EscapeMode[] initEscapeModesByIrMode() {
+    IrEscapeMode[] irModes = IrEscapeMode.values();
+    EscapeMode[] modes = new EscapeMode[irModes.length];
+    for (int i = 0; i < irModes.length; i++) {
+      modes[i] =
+          switch (irModes[i]) {
+            case RAW -> EscapeMode.RAW;
+            case HTML_TEXT -> EscapeMode.HTML_TEXT;
+            case HTML_ATTRIBUTE_QUOTED -> EscapeMode.HTML_ATTRIBUTE_QUOTED;
+            case URL_COMPONENT -> EscapeMode.URL_COMPONENT;
+          };
+    }
+    return modes;
+  }
+
+  private static Escaper[] initEscapersByIrMode() {
+    IrEscapeMode[] irModes = IrEscapeMode.values();
+    Escaper[] escapers = new Escaper[irModes.length];
+    for (int i = 0; i < irModes.length; i++) {
+      escapers[i] =
+          switch (irModes[i]) {
+            case RAW -> StandardEscapers.raw();
+            case HTML_TEXT -> StandardEscapers.htmlText();
+            case HTML_ATTRIBUTE_QUOTED -> StandardEscapers.htmlAttribute();
+            case URL_COMPONENT -> StandardEscapers.urlComponent();
+          };
+    }
+    return escapers;
+  }
 
   private BytecodeRuntimeBridge() {}
 
@@ -95,19 +134,8 @@ public final class BytecodeRuntimeBridge {
       int endCol,
       LinkerAccessPolicy securityPolicy)
       throws IOException {
-    TemplateId templateId = TemplateId.of(templateIdStr);
-    SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
-    NullRenderMode nullMode = NullRenderMode.values()[nullModeOrdinal];
-    io.github.minh124199.viettemplate.language.vtl.ir.plan.IrEscapeMode irMode =
-        io.github.minh124199.viettemplate.language.vtl.ir.plan.IrEscapeMode.values()[
-            escapeModeOrdinal];
-    EscapeMode escapeMode =
-        switch (irMode) {
-          case RAW -> EscapeMode.RAW;
-          case HTML_TEXT -> EscapeMode.HTML_TEXT;
-          case HTML_ATTRIBUTE_QUOTED -> EscapeMode.HTML_ATTRIBUTE_QUOTED;
-          case URL_COMPONENT -> EscapeMode.URL_COMPONENT;
-        };
+    NullRenderMode nullMode = NULL_RENDER_MODES[nullModeOrdinal];
+    EscapeMode escapeMode = ESCAPE_MODES_BY_IR_MODE[escapeModeOrdinal];
 
     Object unwrapped = (val instanceof EvaluationValue ev) ? ev.value() : val;
     boolean isNullOrUndef =
@@ -118,6 +146,9 @@ public final class BytecodeRuntimeBridge {
 
     if (effectivePolicy == UndefinedReferencePolicy.ERROR) {
       if (val instanceof EvaluationValue ev && ev.isUndefined()) {
+        TemplateId templateId =
+            templateIdStr != null ? TemplateId.of(templateIdStr) : TemplateId.of("<generated>");
+        SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
         throw new TemplateRenderException(
             "Variable '" + (literal != null ? literal : "$ref") + "' has not been set",
             templateId,
@@ -128,6 +159,9 @@ public final class BytecodeRuntimeBridge {
         if (nullMode == NullRenderMode.EMPTY_STRING) {
           return;
         }
+        TemplateId templateId =
+            templateIdStr != null ? TemplateId.of(templateIdStr) : TemplateId.of("<generated>");
+        SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
         throw new TemplateRenderException(
             "Reference '"
                 + (literal != null ? literal : "$ref")
@@ -138,6 +172,9 @@ public final class BytecodeRuntimeBridge {
       }
     } else if (effectivePolicy == UndefinedReferencePolicy.WARN) {
       if (val instanceof EvaluationValue ev && ev.isUndefined()) {
+        TemplateId templateId =
+            templateIdStr != null ? TemplateId.of(templateIdStr) : TemplateId.of("<generated>");
+        SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
         LOGGER.log(
             System.Logger.Level.WARNING,
             "Variable ''{0}'' has not been set at {1}:{2}",
@@ -145,6 +182,9 @@ public final class BytecodeRuntimeBridge {
             templateId,
             span);
       } else if (isNullOrUndef && nullMode != NullRenderMode.EMPTY_STRING) {
+        TemplateId templateId =
+            templateIdStr != null ? TemplateId.of(templateIdStr) : TemplateId.of("<generated>");
+        SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
         LOGGER.log(
             System.Logger.Level.WARNING,
             "Reference ''{0}'' evaluated to null when attempting to render at {1}:{2}",
@@ -156,7 +196,17 @@ public final class BytecodeRuntimeBridge {
 
     if (nullMode == NullRenderMode.EMPTY_STRING) {
       if (!isNullOrUndef) {
-        renderEscaped(unwrapped, output, escapeMode, securityPolicy, templateId, span);
+        renderEscaped(
+            unwrapped,
+            output,
+            escapeMode,
+            escapeModeOrdinal,
+            securityPolicy,
+            templateIdStr,
+            startLine,
+            startCol,
+            endLine,
+            endCol);
       }
       return;
     }
@@ -166,7 +216,17 @@ public final class BytecodeRuntimeBridge {
         output.write(literal);
       }
     } else {
-      renderEscaped(unwrapped, output, escapeMode, securityPolicy, templateId, span);
+      renderEscaped(
+          unwrapped,
+          output,
+          escapeMode,
+          escapeModeOrdinal,
+          securityPolicy,
+          templateIdStr,
+          startLine,
+          startCol,
+          endLine,
+          endCol);
     }
   }
 
@@ -335,6 +395,77 @@ public final class BytecodeRuntimeBridge {
     StandardEscapers.get(escapeMode).escape(cs, output);
   }
 
+  private static void renderEscaped(
+      Object value,
+      TemplateOutput output,
+      EscapeMode escapeMode,
+      int escapeModeOrdinal,
+      LinkerAccessPolicy securityPolicy,
+      String templateIdStr,
+      int startLine,
+      int startCol,
+      int endLine,
+      int endCol)
+      throws IOException {
+    if (value == null) {
+      return;
+    }
+    if (value instanceof Integer i) {
+      output.writeInt(i);
+      return;
+    } else if (value instanceof Long l) {
+      output.writeLong(l);
+      return;
+    } else if (value instanceof Double d) {
+      output.writeDouble(d);
+      return;
+    } else if (value instanceof Float f) {
+      output.writeFloat(f);
+      return;
+    } else if (value instanceof Short s) {
+      output.writeShort(s);
+      return;
+    } else if (value instanceof Byte b) {
+      output.writeByte(b);
+      return;
+    } else if (value instanceof Boolean b) {
+      output.writeBoolean(b);
+      return;
+    }
+
+    // Safe content handling (context-specific: SafeHtml only in HTML_TEXT, SafeUrl only in
+    // URL_COMPONENT)
+    if (escapeMode == EscapeMode.HTML_TEXT) {
+      if (value instanceof SafeHtml safe) {
+        output.write(safe.content());
+        return;
+      }
+    } else if (escapeMode == EscapeMode.URL_COMPONENT) {
+      if (value instanceof SafeUrl safe) {
+        output.write(safe.content());
+        return;
+      }
+    }
+
+    if (escapeMode != EscapeMode.RAW
+        || (securityPolicy != null && securityPolicy.isSafeProfile())) {
+      if (securityPolicy != null && !securityPolicy.isClassPermitted(value.getClass())) {
+        TemplateId templateId =
+            templateIdStr != null ? TemplateId.of(templateIdStr) : TemplateId.of("<generated>");
+        SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
+        throw new TemplateSecurityException(
+            "Rendering class " + value.getClass().getName() + " is denied by security policy",
+            templateId,
+            span,
+            InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+      }
+    }
+
+    CharSequence cs = (value instanceof CharSequence seq) ? seq : String.valueOf(value);
+    Escaper escaper = ESCAPERS_BY_IR_MODE[escapeModeOrdinal];
+    escaper.escape(cs, output);
+  }
+
   /** Evaluates VTL truthiness of an expression. */
   public static boolean isTruthy(Object val, boolean emptyCheck) {
     if (val == null) {
@@ -398,7 +529,7 @@ public final class BytecodeRuntimeBridge {
       int endLine,
       int endCol,
       LinkerAccessPolicy securityPolicy) {
-    BinaryOpKind op = BinaryOpKind.values()[opOrdinal];
+    BinaryOpKind op = BINARY_OP_KINDS[opOrdinal];
     TemplateId templateId = TemplateId.of(templateIdStr);
     SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
 
@@ -453,7 +584,7 @@ public final class BytecodeRuntimeBridge {
       int startCol,
       int endLine,
       int endCol) {
-    UnaryOpKind op = UnaryOpKind.values()[opOrdinal];
+    UnaryOpKind op = UNARY_OP_KINDS[opOrdinal];
     TemplateId templateId = TemplateId.of(templateIdStr);
     SourceSpan span = makeSpan(startLine, startCol, endLine, endCol);
     Object unwrapped = (operand instanceof EvaluationValue ev) ? ev.value() : operand;
@@ -1045,7 +1176,7 @@ public final class BytecodeRuntimeBridge {
   /** Factory method to create a dynamic call site linked to policy. */
   public static DynamicCallSite createCallSite(
       int id, String name, int operationOrdinal, int arity, LinkerAccessPolicy policy) {
-    MemberOperation op = MemberOperation.values()[operationOrdinal];
+    MemberOperation op = MEMBER_OPERATIONS[operationOrdinal];
     MemberKey key = new MemberKey(op, name, arity);
     LinkerAccessPolicy effectivePolicy = policy != null ? policy : LinkerAccessPolicy.standard();
     DynamicLinker linker = new DynamicLinker(effectivePolicy);

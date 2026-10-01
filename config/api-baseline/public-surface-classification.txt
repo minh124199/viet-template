@@ -1,6 +1,6 @@
 # Viet Template Public Surface Classification Baseline
-# Total Types: 358
-# STABLE_API: 105
+# Total Types: 359
+# STABLE_API: 106
 # STABLE_SPI: 27
 # EXPERIMENTAL: 5
 # FRAMEWORK_ENTRYPOINT: 4
@@ -61,6 +61,7 @@ io.github.minh124199.viettemplate.api.RenderContextContributor STABLE_SPI
 io.github.minh124199.viettemplate.api.RenderRequest STABLE_API
 io.github.minh124199.viettemplate.api.SecurityPolicyFingerprint STABLE_API
 io.github.minh124199.viettemplate.api.SensitiveObjectClassifier STABLE_API
+io.github.minh124199.viettemplate.api.SlottedRenderContext STABLE_API
 io.github.minh124199.viettemplate.api.SourceSpan STABLE_API
 io.github.minh124199.viettemplate.api.Template STABLE_API
 io.github.minh124199.viettemplate.api.TemplateCallable STABLE_API

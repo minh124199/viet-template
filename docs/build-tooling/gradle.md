@@ -4,7 +4,7 @@
 
 Viet Template provides a dedicated Gradle plugin (`io.github.minh124199.viet-template`) for build-time Ahead-Of-Time (AOT) template compilation, compatible with Gradle 8.x and Gradle 9.x.
 
-The latest stable release is **`0.2.2`** (published 2026-09-20). The latest preview release candidate is **`1.0.0`** (published 2026-09-25). Consumer examples below show the canonical Gradle Plugin DSL resolution (`plugins { id("io.github.minh124199.viet-template") version "1.0.0" }`), with stable `0.2.2` coordinates also supported.
+The latest stable release is **`1.0.0`** (published 2026-09-26; patch release `1.0.1` on 2026-09-28). Active development is on `1.1.0-SNAPSHOT`. Consumer examples below show the canonical Gradle Plugin DSL resolution (`plugins { id("io.github.minh124199.viet-template") version "1.0.0" }`).
 
 ### Minimum Requirements
 - **Java**: Java 21 (`jvmToolchain(21)`) or newer.
@@ -52,8 +52,8 @@ For Spring Boot applications:
 
 ```kotlin
 dependencies {
-    implementation("io.github.minh124199:viet-template-spring-boot-starter:0.2.2")
-    implementation("io.github.minh124199:viet-template-spring-security:0.2.2")
+    implementation("io.github.minh124199:viet-template-spring-boot-starter:1.0.0")
+    implementation("io.github.minh124199:viet-template-spring-security:1.0.0")
 }
 ```
 
@@ -61,8 +61,8 @@ For plain Java applications without Spring:
 
 ```kotlin
 dependencies {
-    implementation("io.github.minh124199:viet-template-runtime:0.2.2")
-    implementation("io.github.minh124199:viet-template-vtl-interpreter:0.2.2")
+    implementation("io.github.minh124199:viet-template-runtime:1.0.0")
+    implementation("io.github.minh124199:viet-template-vtl-interpreter:1.0.0")
 }
 ```
 
@@ -102,12 +102,20 @@ vietTemplate {
 
 ---
 
-## 4. Compilation Task & Cacheability
+## 4. Gradle Plugin Tasks & Cacheability
 
-The plugin registers a dedicated task named `compileVietTemplates`:
+The plugin registers four tasks for build-time operations:
 
+| Task Name | Task Class | Description |
+|---|---|---|
+| `compileVietTemplates` | `VietTemplateCompileTask` | Compiles VTL templates Ahead-Of-Time into JVM bytecode and generates `META-INF/viet-template/templates.idx`. |
+| `generateVietTemplateFacades` | `VietTemplateGenerateFacadesTask` | Generates strongly-typed Java facade classes from declared template contracts. |
+| `generateVietTemplateSchemas` | `VietTemplateGenerateSchemasTask` | Generates canonical contract schemas (`*.vt-schema.json`) for templates with contracts. |
+| `generateVietTemplateTypeScript` | `VietTemplateGenerateTypeScriptTask` | Projects canonical schemas into TypeScript declarations (`*.d.ts`). |
+
+### 4.1 Compilation Task Features
 - **Task Type**: `@CacheableTask` `VietTemplateCompileTask`.
-- **Automatic Wiring**: When the `java` plugin is present, the task automatically wires into `classes`, and its output directories are registered as production outputs of `sourceSets.main`.
+- **Automatic Wiring**: When the `java` plugin is present, `compileVietTemplates` automatically wires into `classes`, and its output directories are registered as production outputs of `sourceSets.main`.
 - **Configuration Cache**: Fully compatible with the Gradle Configuration Cache (`--configuration-cache`).
 - **Build Cache**: Generated classes and `templates.idx` are cacheable across developer machines and CI agents.
 

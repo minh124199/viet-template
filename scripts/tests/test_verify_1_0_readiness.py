@@ -121,8 +121,10 @@ class IndividualCheckAssertionTests(unittest.TestCase):
         )
         self.assertTrue(passed, f"verify_generated_runtime_abi failed with: {errors}")
         self.assertEqual(errors, [])
-        self.assertEqual(details["typesCount"], 7)
-        self.assertEqual(details["methodsCount"], 22)
+        additive_abi_types = details.get("additiveTypesCount", 0)
+        additive_abi_methods = details.get("additiveMethodsCount", 0)
+        self.assertEqual(details["typesCount"], 7 + additive_abi_types)
+        self.assertEqual(details["methodsCount"], 22 + additive_abi_methods)
         self.assertEqual(details["fieldsCount"], 0)
         self.assertEqual(details["unregisteredDependencies"], 0)
 

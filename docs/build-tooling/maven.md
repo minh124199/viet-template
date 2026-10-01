@@ -4,7 +4,7 @@
 
 Viet Template provides complete build-time Ahead-Of-Time (AOT) compilation and Spring Boot integration for Apache Maven projects.
 
-The latest stable release is **`0.2.2`** (published 2026-09-20). The latest preview release candidate is **`1.0.0-RC1`** (published 2026-09-24). Consumer examples below show the stable `0.2.2` coordinates, with `1.0.0-RC1` available for previewing candidate features.
+The latest stable release is **`1.0.0`** (published 2026-09-26; patch release `1.0.1` on 2026-09-28). Active development is on `1.1.0-SNAPSHOT`. Consumer examples below show the canonical `1.0.0` coordinates.
 
 ### Minimum Requirements
 - **Java**: Java 21 (`--release 21`) or newer.
@@ -21,7 +21,7 @@ For standalone Java applications without Spring:
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-runtime</artifactId>
-    <version>0.2.2</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -31,7 +31,7 @@ To include the standard VTL interpreter engine:
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-vtl-interpreter</artifactId>
-    <version>0.2.2</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -42,7 +42,7 @@ For Spring Boot applications (Spring MVC, auto-configuration, and view resolutio
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-boot-starter</artifactId>
-    <version>0.2.2</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -53,7 +53,7 @@ For authenticated user and CSRF view facades:
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-security</artifactId>
-    <version>0.2.2</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -71,7 +71,7 @@ Add the plugin to the `<build><plugins>` section of your `pom.xml`:
 <plugin>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-maven-plugin</artifactId>
-    <version>0.2.2</version>
+    <version>1.0.0</version>
     <executions>
         <execution>
             <id>compile-templates</id>
@@ -112,14 +112,25 @@ Add the plugin to the `<build><plugins>` section of your `pom.xml`:
 </plugin>
 ```
 
-### 3.2 Compilation Phase & Execution
+### 3.2 Plugin Goals
+
+The `viet-template-maven-plugin` provides four goals for build-time operations:
+
+| Goal | Default Phase | Description |
+|---|---|---|
+| `compile` | `process-classes` | Compiles VTL templates Ahead-Of-Time into JVM bytecode and generates the registration index `META-INF/viet-template/templates.idx`. |
+| `generate-facades` | `generate-sources` | Generates strongly-typed Java facade classes from declared template contracts for compile-time safe model binding. |
+| `generate-schemas` | `process-classes` | Extracts canonical JSON contract schemas (`*.vt-schema.json`) for templates with declared `#*contract ... *#` blocks. |
+| `generate-typescript` | `process-classes` | Projects canonical contract schemas into TypeScript interface declarations (`*.d.ts`) for frontend/fullstack type safety. |
+
+### 3.3 Compilation Phase & Execution
 The `compile` goal binds by default to `process-classes`. It runs after Java source compilation, ensuring compiled domain classes and DTOs are available on the compilation classpath for typed model inspection.
 
 ```bash
 mvn compile
 ```
 
-### 3.3 Incremental Build Support
+### 3.4 Incremental Build Support
 When `<incremental>true</incremental>` is enabled, the plugin tracks template modification timestamps and SHA-256 content hashes. Unmodified templates are skipped during subsequent builds, providing sub-second incremental build times.
 
 ---

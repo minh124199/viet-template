@@ -68,6 +68,7 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.api.TemplateContract",
     "io.github.minh124199.viettemplate.api.TemplateContract$Builder",
     "io.github.minh124199.viettemplate.api.TemplateParameter",
+    "io.github.minh124199.viettemplate.api.SlottedRenderContext",
     "io.github.minh124199.viettemplate.api.TemplateType",
     "io.github.minh124199.viettemplate.api.TemplateType$ArrayType",
     "io.github.minh124199.viettemplate.api.TemplateType$ClassType",
@@ -434,7 +435,7 @@ def verify_runtime_abi(manifest: dict[str, Any], repo_root: Path) -> list[str]:
 
     if curr_types != exp_types:
         missing_types = set(exp_types) - set(curr_types)
-        extra_types = set(curr_types) - set(exp_types)
+        extra_types = (set(curr_types) - set(exp_types)) - ALLOWED_ADDITIVE_1_X_TYPES
         if missing_types:
             errors.append(f"Runtime ABI types missing: {sorted(missing_types)}")
         if extra_types:
@@ -442,7 +443,10 @@ def verify_runtime_abi(manifest: dict[str, Any], repo_root: Path) -> list[str]:
 
     if curr_methods != exp_methods:
         missing_methods = set(exp_methods) - set(curr_methods)
-        extra_methods = set(curr_methods) - set(exp_methods)
+        extra_methods = {
+            m for m in (set(curr_methods) - set(exp_methods))
+            if not any(m.startswith(t + ".") for t in ALLOWED_ADDITIVE_1_X_TYPES)
+        }
         if missing_methods:
             errors.append(f"Runtime ABI methods missing: {sorted(missing_methods)}")
         if extra_methods:
