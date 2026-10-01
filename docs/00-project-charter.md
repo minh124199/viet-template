@@ -8,7 +8,7 @@ Viet Template targets teams that like or already own Velocity-style templates bu
 
 ## 2. Product statement
 
-> Viet Template is a clean-room JVM template engine with a Velocity-compatible language frontend and a compile-first runtime designed to approach handwritten Java rendering performance without giving templates unrestricted access to the JVM object graph.
+> Viet Template is an independent JVM template engine with a Velocity-compatible language frontend and a compile-first runtime designed to approach handwritten Java rendering performance without giving templates unrestricted access to the JVM object graph.
 
 ## 3. Project identity
 
