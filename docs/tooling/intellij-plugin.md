@@ -6,7 +6,7 @@ Milestone M31 establishes the official IntelliJ IDEA editor integration (`editor
 
 The plugin is designed around these architectural principles:
 - **Zero Overhead on Core Java Builds**: Maintained in `editors/intellij`, leaving core Maven and Gradle reactor builds completely independent of the IntelliJ Platform SDK.
-- **Single Source of Language Truth**: Reuses the authoritative Viet Template Language Server (`io.github.minh124199.viettemplate.lsp.VietTemplateLanguageServer`), ensuring 100% semantic parity with Visual Studio Code and command-line diagnostics.
+- **Single Source of Language Truth**: Reuses the authoritative Viet Template Language Server (`io.github.minh124199.viettemplate.lsp.VietTemplateLanguageServer`), ensuring semantic consistency with Visual Studio Code and command-line diagnostics through the shared language server engine.
 - **Self-Contained & Reproducible Packaging**: Bundles `server/viet-template-lsp.jar` directly inside the plugin distribution ZIP, requiring no local language server build steps during IDE installation.
 - **Robust Java 21+ Discovery**: Discovers and validates a compatible Java 21+ runtime across configurable settings, `JAVA_HOME`, and system `PATH`.
 - **Clean Project Lifecycle Management**: Project-level service manages language server processes with strict cleanup on disposal (graceful shutdown with timeout and forced kill fallback), preventing orphaned background processes.
@@ -118,6 +118,9 @@ From `editors/intellij`:
 
 # Package the plugin into an installable ZIP distribution
 ./gradlew -p editors/intellij buildPlugin
+
+# Verify plugin structure and compatibility against recommended IDE releases (2024.2 - 2025.1.x)
+./gradlew -p editors/intellij verifyPluginStructure verifyPluginProjectConfiguration verifyPlugin
 ```
 
 ### 7.1 Packaging & Installation
@@ -125,7 +128,7 @@ Building the plugin produces:
 ```
 editors/intellij/build/distributions/viet-template-intellij-1.1.0.zip
 ```
-The plugin can be installed in IntelliJ IDEA (2024.2+) via:
+The plugin can be installed in IntelliJ IDEA (2024.2 - 2025.1.x, build range 242 to 251.*) via:
 - **Settings / Preferences > Plugins > ⚙ (Gear icon) > Install Plugin from Disk...**
 - Select `viet-template-intellij-1.1.0.zip`.
 

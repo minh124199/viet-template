@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **LSP Extension Point Adapters**:
     - Connected language server diagnostics to `ExternalAnnotator` (`VietTemplateLspAnnotator`), autocompletion to `CompletionContributor`, hover documentation to `DocumentationProvider`, definition navigation to `GotoDeclarationHandler`, and added `Restart Viet Template Language Server` menu action.
   - **Comprehensive Test Suite & Offline Distribution Packaging**:
-    - Implemented 27 automated tests covering unit tests, platform tests, and real LSP integration tests driving `VietTemplateLanguageServer` over stdio with zero process leaks.
+    - Implemented 29 automated tests covering unit tests, platform tests, and real LSP integration tests driving `VietTemplateLanguageServer` over stdio with zero process leaks.
     - Packaged installable plugin ZIP archive `viet-template-intellij-1.1.0.zip` containing bundled `server/viet-template-lsp.jar`.
     - Added dedicated governance verification in `scripts/verify-intellij-plugin.py` and unit tests in `scripts/tests/test_verify_intellij_plugin.py`.
 
