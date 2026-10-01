@@ -245,20 +245,23 @@ Three independent executions of `SlottedSeedingBenchmark` (`paramCount = 4`) wer
 
 The benchmark matrix was expanded across parameter counts: 1, 2, 4, 8, 16, 32, and 64 parameters:
 
-| Parameters | `renderNameBased` (ops/s) | `renderSlotted` (ops/s) | Delta (%) | Allocation (`NameBased`) | Allocation (`Slotted`) | Allocation Delta |
-|------------|---------------------------|-------------------------|-----------|--------------------------|------------------------|------------------|
-| 1          | 7,819,773                 | 8,126,210               | **+3.9%** | 120 B/op                 | 120 B/op               | 0 B/op           |
-| 2          | 3,872,260                 | 3,960,363               | **+2.3%** | 240 B/op                 | 240 B/op               | 0 B/op           |
-| 4          | 1,945,182                 | 2,023,369               | **+4.0%** | 480 B/op                 | 480 B/op               | 0 B/op           |
-| 8          | 759,781                   | 1,017,249               | **+33.9%**| 960 B/op                 | 960 B/op               | 0 B/op           |
-| 16         | 356,141                   | 503,903                 | **+41.5%**| 1,920 B/op               | 1,920 B/op             | 0 B/op           |
-| 32         | 156,110                   | 242,140                 | **+55.1%**| 3,984 B/op               | 3,984 B/op             | 0 B/op           |
-| 64         | 54,225                    | 111,283                 | **+105.2%**| 8,224 B/op              | 8,224 B/op             | 0 B/op           |
+> [!NOTE]
+> **Measurement Setting Disclaimer**: The throughput measurements below were gathered under validation-grade JMH settings (`-f 1 -wi 2 -i 3`). Due to the abbreviated iteration count, error margins are substantial. These numbers reflect raw diagnostic data rather than publication-grade results.
+
+| Parameters | `renderNameBased` (ops/s) | ± Error | `renderSlotted` (ops/s) | ± Error | Allocation Rate (B/op) | Alloc Delta |
+|------------|---------------------------|---------|-------------------------|---------|------------------------|-------------|
+| 1          | 7,701,739                 | ± 10,163,667 | 7,196,959               | ± 5,732,310 | 120 B/op               | 0 B/op      |
+| 2          | 3,729,676                 | ± 3,128,320  | 3,121,094               | ± 4,881,687 | 240 B/op               | 0 B/op      |
+| 4          | 1,776,639                 | ± 201,368    | 1,585,838               | ± 1,919,409 | 480 B/op               | 0 B/op      |
+| 8          | 760,179                   | ± 365,254    | 710,128                 | ± 1,045,388 | 960 B/op               | 0 B/op      |
+| 16         | 351,166                   | ± 280,281    | 353,366                 | ± 536,867   | 1,920 B/op             | 0 B/op      |
+| 32         | 151,765                   | ± 92,884     | 78,525                  | ± 90,092    | 3,984 B/op             | 0 B/op      |
+| 64         | 47,022                    | ± 45,919     | 42,350                  | ± 118,044   | 8,224 B/op             | 0 B/op      |
 
 **Key Scaling Insights**:
-- **Threshold Effect**: For contracts with 1 to 4 parameters, string hashing/comparison overhead is minor relative to rendering; throughput delta is +2% to +5%.
-- **Superlinear Scaling**: At 8+ parameters, string lookup overhead in `ArrayBackedRenderContext` and `MapRenderContext` degrades steeply. Slotted access scales linearly with array indexing, yielding **+33.9% at 8 params**, **+41.5% at 16 params**, and **+105.2% (2.05x speedup) at 64 params**.
-- **Allocation Invariance**: Zero allocation differences occur between slotted and name-based rendering across all parameter counts.
+- **Measurement Variance**: Under validation-grade settings (`-f 1 -wi 2 -i 3`), error margins are very large (often exceeding the measured mean), making definitive throughput percentage claims unreliable across parameter counts.
+- **Allocation Invariance**: The allocation invariance finding remains solid; zero allocation differences occur between slotted and name-based rendering across all parameter counts (0 B/op delta).
+- **Need for Release-Grade Re-run**: A full release-grade benchmark suite run with `-f 3 -wi 5 -i 5` is required before drawing publication-grade throughput comparisons.
 
 ---
 
@@ -266,14 +269,17 @@ The benchmark matrix was expanded across parameter counts: 1, 2, 4, 8, 16, 32, a
 
 Distinguishing between isolated render execution and end-to-end context instantiation:
 
+> [!NOTE]
+> **Measurement Setting Disclaimer**: Data was gathered under validation-grade JMH settings (`-f 1 -wi 2 -i 3`). Large error margins (>100% relative error, particularly at 4 parameters with ±5,186,551 ops/s on slotted create-and-render) make this data unsuitable for definitive throughput claims. The allocation measurements (568/544/2,104/8,792 B/op) are deterministic and confirmed.
+
 | Parameters | Mode | Pre-Created Context (`render`) | Context Creation + Render (`createAndRender`) | Context Allocations |
 |------------|------|--------------------------------|-----------------------------------------------|---------------------|
-| 4          | NameBased | 1,945,182 ops/s (480 B/op)     | 1,694,492 ops/s (568 B/op)                    | +88 B/op            |
-| 4          | Slotted   | 2,023,369 ops/s (480 B/op)     | 2,006,909 ops/s (544 B/op)                    | +64 B/op            |
-| 16         | NameBased | 356,141 ops/s (1,920 B/op)     | 351,683 ops/s (2,104 B/op)                    | +184 B/op           |
-| 16         | Slotted   | 503,903 ops/s (1,920 B/op)     | 479,228 ops/s (2,104 B/op)                    | +184 B/op           |
-| 64         | NameBased | 54,225 ops/s (8,224 B/op)      | 52,365 ops/s (8,792 B/op)                     | +568 B/op           |
-| 64         | Slotted   | 111,283 ops/s (8,224 B/op)     | 112,026 ops/s (8,792 B/op)                    | +568 B/op           |
+| 4          | NameBased | 1,776,639 ± 201,368 ops/s (480 B/op) | 1,268,490 ± 1,959,151 ops/s (568 B/op) | +88 B/op            |
+| 4          | Slotted   | 1,585,838 ± 1,919,409 ops/s (480 B/op) | 1,231,816 ± 5,186,551 ops/s (544 B/op) | +64 B/op            |
+| 16         | NameBased | 351,166 ± 280,281 ops/s (1,920 B/op) | 259,048 ± 569,627 ops/s (2,104 B/op) | +184 B/op           |
+| 16         | Slotted   | 353,366 ± 536,867 ops/s (1,920 B/op) | 235,206 ± 238,652 ops/s (2,104 B/op) | +184 B/op           |
+| 64         | NameBased | 47,022 ± 45,919 ops/s (8,224 B/op) | 32,981 ± 169,130 ops/s (8,792 B/op) | +568 B/op           |
+| 64         | Slotted   | 42,350 ± 118,044 ops/s (8,224 B/op) | 73,757 ± 85,247 ops/s (8,792 B/op) | +568 B/op           |
 
 **Resolution of Allocation Boundaries**:
 - In **isolated rendering** (`compiled.render(ctx, out)`), slotted access adds **0 bytes**.
@@ -285,13 +291,8 @@ Distinguishing between isolated render execution and end-to-end context instanti
 
 Evaluating the effect of the AOT prologue `instanceof SlottedRenderContext` test across varying call-site distributions (at 4 parameters):
 
-| Workload Distribution | Throughput (ops/s) | Error Margin (ops/s) | Relative Behavior |
-|-----------------------|--------------------|----------------------|-------------------|
-| 100% Slotted          | 1,929,750          | ± 836,496            | Fast path         |
-| 90% Slotted / 10% Std | 2,021,283          | ± 2,145,881          | Stable            |
-| 50% Slotted / 50% Std | 1,913,817          | ± 2,024,685          | Stable            |
-| 100% Standard         | 1,871,275          | ± 117,908            | Fallback path     |
-| 10% Slotted / 90% Std | 1,748,934          | ± 474,710            | Fallback bias     |
+> [!NOTE]
+> This section contained validation-phase data that could not be verified against raw JMH output. The instanceof/dual-path evaluation requires a dedicated re-run with release-grade settings before publication.
 
 **Finding**: The JVM C2 compiler handles the single `instanceof` check gracefully with no deoptimization loops or branch thrashing under mixed workloads.
 
@@ -301,20 +302,23 @@ Evaluating the effect of the AOT prologue `instanceof SlottedRenderContext` test
 
 Measuring throughput and allocation profiles across template complexity structures:
 
-| Workload Template | Features Evaluated | `renderNameBased` (ops/s) | `renderSlotted` (ops/s) | Delta (%) | Allocation Rate (B/op) |
-|-------------------|--------------------|---------------------------|-------------------------|-----------|------------------------|
-| `SIMPLE_VARS`     | 3 scalar variables | 1,885,027                 | 1,888,192               | +0.2%     | 936 B/op               |
-| `PROPERTIES`      | Object property chain | 2,429,915              | 2,528,059               | +4.0%     | 456 B/op               |
-| `REPEATED_PROPERTIES` | 5x repeated property | 1,407,597           | 1,410,917               | +0.2%     | 800 B/op               |
-| `CONDITIONALS`    | `#if` / `#else` branch | 9,642,863              | 9,802,152               | +1.6%     | 152 B/op               |
-| `LOOPS`           | `#foreach` iteration | 1,223,439               | 1,273,273               | +4.1%     | 984 B/op               |
-| `NESTED_EXPR`     | Multi-term boolean logic | 2,674,846             | 2,781,240               | +4.0%     | 488 B/op               |
-| `METHOD_CALLS`    | Guarded direct method call | 3,805,053           | 3,726,648               | -2.0%     | 360 B/op               |
-| `MIXED_STATIC_DYNAMIC` | Statically typed + PIC | 2,114,903        | 2,180,001               | +3.1%     | 480 B/op               |
-| `REALISTIC_APP`   | Nested cards, HTML chunks, loops, props | 768,360 | 738,184         | **-3.9%** | **1,672 B/op**         |
+> [!NOTE]
+> **Measurement Setting Disclaimer**: Data was collected under validation-grade settings (`-f 1 -wi 2 -i 3`). High variance across iterations produces large confidence intervals (often comparable to or exceeding the mean). The allocation figures (B/op) are deterministic, while throughput comparisons are preliminary.
+
+| Workload Template | Features Evaluated | `renderNameBased` (ops/s) | ± Error | `renderSlotted` (ops/s) | ± Error | Allocation Rate (B/op) |
+|-------------------|--------------------|---------------------------|---------|-------------------------|---------|------------------------|
+| `SIMPLE_VARS`     | 3 scalar variables | 785,322                   | ± 1,457,603 | 1,319,529               | ± 1,776,598 | 936 B/op               |
+| `PROPERTIES`      | Object property chain | 1,645,555              | ± 4,748,150 | 1,753,677               | ± 1,754,113 | 456 B/op               |
+| `REPEATED_PROPERTIES` | 5x repeated property | 1,099,303           | ± 586,703   | 989,317                 | ± 49,473    | 800 B/op               |
+| `CONDITIONALS`    | `#if` / `#else` branch | 8,520,547              | ± 13,385,172 | 4,752,079              | ± 21,825,862 | 152 B/op              |
+| `LOOPS`           | `#foreach` iteration | 1,078,019               | ± 1,487,546 | 385,701                 | ± 296,933   | 984 B/op               |
+| `NESTED_EXPR`     | Multi-term boolean logic | 2,452,650             | ± 796,786   | 1,755,508               | ± 2,696,144 | 488 B/op               |
+| `METHOD_CALLS`    | Guarded direct method call | 3,383,373           | ± 286,110   | 1,154,015               | ± 1,729,829 | 360 B/op               |
+| `MIXED_STATIC_DYNAMIC` | Statically typed + PIC | 2,004,263        | ± 2,142,753 | 679,494                 | ± 1,569,409 | 480 B/op               |
+| `REALISTIC_APP`   | Nested cards, HTML chunks, loops, props | 532,456 | ± 254,111   | 249,178                 | ± 818,075   | **1,672 B/op**         |
 
 **Architectural Takeaway**:
-On realistic application templates (`REALISTIC_APP`), slotted seeding produces virtually identical throughput to name-based lookup (-3.9% to +0%, well within measurement variance). Because realistic templates typically take 1–3 parameters and spend the vast majority of CPU cycles executing loops, writing HTML blocks, and processing output formatting, seeding represents under 4% of the execution budget.
+The raw benchmark data shows high variance under validation-grade settings (`-f 1 -wi 2 -i 3`), with error margins often exceeding the measured values. Definitive throughput comparisons require a release-grade re-run (`-f 3 -wi 5 -i 5`). However, the deterministic allocation measurements demonstrate that allocation profiles are identical between slotted and name-based execution across all template complexities, and realistic templates spend the vast majority of CPU cycles executing loops, writing HTML blocks, and processing output formatting rather than variable binding.
 
 ---
 
