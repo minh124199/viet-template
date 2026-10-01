@@ -257,6 +257,7 @@ Explore the complete documentation suite organized by topic:
 - **[TypeScript Declaration Projection](docs/schema/typescript-projection-v1.md)** — Automated, deterministic generation of TypeScript declaration files (`*.d.ts`) from contract schemas.
 - **[Language Server Protocol (LSP)](docs/tooling/language-server-foundation.md)** — Language server implementation providing diagnostics, autocompletion, hover, and definition navigation.
 - **[Visual Studio Code Extension](docs/tooling/vscode-extension.md)** — Official VS Code editor integration (`editors/vscode`) delivering language features, TextMate syntax highlighting, and LSP integration.
+- **[IntelliJ IDEA Plugin](docs/tooling/intellij-plugin.md)** — Official IntelliJ IDEA plugin (`editors/intellij`) providing file type registration, syntax highlighting, commenter, and LSP integration backed by the Viet Template Language Server.
 
 ### Framework Integrations
 - **[Spring Boot Integration Guide](docs/spring/spring-boot-integration.md)** — Spring Boot 4 / Framework 7 starter, property catalog, and reactive view resolution.

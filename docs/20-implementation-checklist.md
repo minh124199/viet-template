@@ -1104,3 +1104,16 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **W8.** Extension Configuration & Commands: Exposed namespaced settings (`vietTemplate.java.home`, `vietTemplate.languageServer.jarPath`, `trace`, `vmArgs`) and interactive restart command `vietTemplate.restartServer`.
 - [x] **W9.** Unit & End-to-End Test Suite: Implemented 21 automated tests spanning unit tests (Java runtime discovery, server launcher, configuration) and end-to-end LSP smoke tests exercising the real Java LSP process over stdio.
 - [x] **W10.** Offline VSIX Packaging & Governance: Qualified offline `.vsix` packaging via `@vscode/vsce` and implemented governance verification in `scripts/verify-vscode-extension.py`.
+
+### Deliverable X: IntelliJ IDEA Editor Integration & Language Client Foundation (Milestone M31 / 1.1.0)
+
+- [x] **X1.** Plugin Directory & Workspace Isolation: Established `editors/intellij` with independent `build.gradle.kts` and `settings.gradle.kts` ensuring root Maven and Gradle reactor builds remain completely free of IntelliJ SDK dependencies.
+- [x] **X2.** File Type Registration & Vector Icon: Registered `VietTemplateFileType` covering `.vtl`, `.vm`, and `.vt` file extensions with dedicated vector icons.
+- [x] **X3.** Lexical Syntax Highlighting & Tokenizing: Implemented native IntelliJ lexer (`VietTemplateLexer`) and syntax highlighter (`VietTemplateSyntaxHighlighter`) covering directives, formal/quiet references, strings, numbers, operators, and comments.
+- [x] **X4.** Commenter Integration: Contributed `VietTemplateCommenter` supporting line comments (`##`) and block comments (`#* *#`) with native IntelliJ comment shortcut actions.
+- [x] **X5.** Settings & Java Runtime Discovery: Implemented persistent configuration (`VietTemplateSettings`, `VietTemplateConfigurable`) and deterministic Java 21+ discovery hierarchy (`Java Home Path` -> `JAVA_HOME` -> `PATH`).
+- [x] **X6.** Stdio Language Client & Project Lifecycle: Built stdio JSON-RPC 2.0 language client with background stderr draining, project-level lifecycle service (`VietTemplateLspServerManager`), and leak-free process termination.
+- [x] **X7.** Extension Point Adapters & Actions: Connected language server diagnostics to `ExternalAnnotator`, autocompletion to `CompletionContributor`, hover documentation to `DocumentationProvider`, definition navigation to `GotoDeclarationHandler`, and contributed `Restart Viet Template Language Server` menu action.
+- [x] **X8.** Server Bundling & Offline Packaging: Configured `bundleLspServer` task packaging core engine classes into `server/viet-template-lsp.jar` and built installable plugin ZIP archive `viet-template-intellij-1.1.0.zip`.
+- [x] **X9.** Comprehensive Test Suite: Implemented 27 automated tests covering unit tests (Java runtime discovery, server launcher, configuration), platform tests, and real LSP integration tests exercising `VietTemplateLanguageServer` over stdio with zero process leaks.
+- [x] **X10.** Governance & Path Safety: Implemented `scripts/verify-intellij-plugin.py` and unit tests in `scripts/tests/test_verify_intellij_plugin.py` validating descriptor metadata, build configuration, packaging, and zero hardcoded machine paths.

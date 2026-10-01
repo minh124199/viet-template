@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Milestone M31: IntelliJ IDEA Editor Integration / Language Client Foundation**:
+  - **Plugin Architecture & Monorepo Isolation (`editors/intellij`)**:
+    - Established dedicated IntelliJ IDEA plugin in `editors/intellij`, maintaining strict isolation from core Java reactor builds with zero IntelliJ SDK requirements for standard Maven and Gradle builds.
+  - **File Type Registration & Association**:
+    - Registered `VietTemplateFileType` for `.vtl`, `.vm`, and `.vt` file extensions with dedicated vector icons.
+  - **Lexical Syntax Highlighting & Tokenizing**:
+    - Implemented native IntelliJ lexer (`VietTemplateLexer`) and syntax highlighter (`VietTemplateSyntaxHighlighter`) covering directives, silent/formal references, strings, numbers, operators, and comments.
+  - **Commenter Integration**:
+    - Contributed `VietTemplateCommenter` supporting line comments (`##`) and block comments (`#* *#`) with native IntelliJ comment shortcut actions.
+  - **Persistent Settings & Java Runtime Discovery**:
+    - Implemented persistent configuration (`VietTemplateSettings`, `VietTemplateConfigurable`) and deterministic Java 21+ discovery hierarchy (`Java Home Path` -> `JAVA_HOME` -> `PATH`).
+  - **LSP Client Architecture & Project Lifecycle Management**:
+    - Built stdio JSON-RPC 2.0 language client with background stderr draining, project-level lifecycle service (`VietTemplateLspServerManager`), and leak-free process termination.
+  - **LSP Extension Point Adapters**:
+    - Connected language server diagnostics to `ExternalAnnotator` (`VietTemplateLspAnnotator`), autocompletion to `CompletionContributor`, hover documentation to `DocumentationProvider`, definition navigation to `GotoDeclarationHandler`, and added `Restart Viet Template Language Server` menu action.
+  - **Comprehensive Test Suite & Offline Distribution Packaging**:
+    - Implemented 27 automated tests covering unit tests, platform tests, and real LSP integration tests driving `VietTemplateLanguageServer` over stdio with zero process leaks.
+    - Packaged installable plugin ZIP archive `viet-template-intellij-1.1.0.zip` containing bundled `server/viet-template-lsp.jar`.
+    - Added dedicated governance verification in `scripts/verify-intellij-plugin.py` and unit tests in `scripts/tests/test_verify_intellij_plugin.py`.
+
 - **Milestone M30: Visual Studio Code Editor Integration / Language Client Foundation**:
   - **Extension Architecture & Repository Isolation (`editors/vscode`)**:
     - Established dedicated VS Code extension in `editors/vscode`, maintaining strict isolation from core Java builds with zero Node.js dependencies required for reactor Maven and Gradle builds.
