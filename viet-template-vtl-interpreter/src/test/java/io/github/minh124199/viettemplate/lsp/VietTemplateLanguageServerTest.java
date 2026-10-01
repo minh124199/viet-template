@@ -201,4 +201,171 @@ class VietTemplateLanguageServerTest {
 
     assertNull(LspStreamTransport.readMessage(serverResponses));
   }
+
+  @Test
+  @DisplayName("Handling $/cancelRequest and unknown notifications without error")
+  void testCancelRequestAndUnknownNotifications() {
+    VietTemplateLanguageServer server = VietTemplateLanguageServer.create();
+
+    // Notification before initialize is cleanly ignored
+    String preInitNotif =
+        "{\"jsonrpc\":\"2.0\",\"method\":\"$/cancelRequest\",\"params\":{\"id\":1}}";
+    assertNull(server.handleMessage(preInitNotif));
+
+    // Initialize
+    server.handleMessage("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}");
+
+    // $/cancelRequest notification handled cleanly returning null
+    String cancelNotif =
+        "{\"jsonrpc\":\"2.0\",\"method\":\"$/cancelRequest\",\"params\":{\"id\":42}}";
+    assertNull(server.handleMessage(cancelNotif));
+
+    // Unknown notification handled cleanly returning null
+    String unknownNotif =
+        "{\"jsonrpc\":\"2.0\",\"method\":\"window/workDoneProgress/cancel\",\"params\":{\"token\":\"abc\"}}";
+    assertNull(server.handleMessage(unknownNotif));
+
+    // Unknown request returns standard method not found error
+    String unknownReq =
+        "{\"jsonrpc\":\"2.0\",\"id\":99,\"method\":\"custom/nonExistent\",\"params\":{}}";
+    String errResp = server.handleMessage(unknownReq);
+    assertNotNull(errResp);
+    assertTrue(errResp.contains("-32601"));
+    assertTrue(errResp.contains("Method not found"));
+  }
+
+  @Test
+  @DisplayName("Full lifecycle with stale update rejection over LSP message API")
+  void testStaleUpdateRejectionLifecycle() {
+    VietTemplateLanguageServer server = VietTemplateLanguageServer.create();
+    server.handleMessage("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}");
+
+    String uri = "file:///workspace/stale-flow.vt";
+
+    // 1. open v1 (valid)
+    String openV1 =
+        String.format(
+            """
+            {
+              "jsonrpc": "2.0",
+              "method": "textDocument/didOpen",
+              "params": {
+                "textDocument": {
+                  "uri": "%s",
+                  "languageId": "viet-template",
+                  "version": 1,
+                  "text": "Hello v1"
+                }
+              }
+            }
+            """,
+            uri);
+    assertNull(server.handleMessage(openV1));
+    List<String> n1 = server.drainNotifications();
+    assertEquals(1, n1.size());
+    assertTrue(n1.get(0).contains("\"diagnostics\":[]"));
+
+    // 2. change v2 (broken syntax)
+    String changeV2 =
+        String.format(
+            """
+            {
+              "jsonrpc": "2.0",
+              "method": "textDocument/didChange",
+              "params": {
+                "textDocument": { "uri": "%s", "version": 2 },
+                "contentChanges": [
+                  { "text": "#if( broken" }
+                ]
+              }
+            }
+            """,
+            uri);
+    assertNull(server.handleMessage(changeV2));
+    List<String> n2 = server.drainNotifications();
+    assertEquals(1, n2.size());
+    assertTrue(n2.get(0).contains("SYNTAX:PARSE_ERROR"));
+
+    // 3. stale change v1 (trying to overwrite v2 with an older packet) -> rejected!
+    String staleV1 =
+        String.format(
+            """
+            {
+              "jsonrpc": "2.0",
+              "method": "textDocument/didChange",
+              "params": {
+                "textDocument": { "uri": "%s", "version": 1 },
+                "contentChanges": [
+                  { "text": "Stale packet" }
+                ]
+              }
+            }
+            """,
+            uri);
+    assertNull(server.handleMessage(staleV1));
+    List<String> nStale = server.drainNotifications();
+    assertEquals(0, nStale.size(), "Stale change must be rejected and produce no diagnostics");
+
+    // 4. change v3 (repaired syntax)
+    String changeV3 =
+        String.format(
+            """
+            {
+              "jsonrpc": "2.0",
+              "method": "textDocument/didChange",
+              "params": {
+                "textDocument": { "uri": "%s", "version": 3 },
+                "contentChanges": [
+                  { "text": "Hello v3 repaired" }
+                ]
+              }
+            }
+            """,
+            uri);
+    assertNull(server.handleMessage(changeV3));
+    List<String> n3 = server.drainNotifications();
+    assertEquals(1, n3.size());
+    assertTrue(n3.get(0).contains("\"diagnostics\":[]"));
+
+    // 5. close document
+    String close =
+        String.format(
+            """
+            {
+              "jsonrpc": "2.0",
+              "method": "textDocument/didClose",
+              "params": {
+                "textDocument": { "uri": "%s" }
+              }
+            }
+            """,
+            uri);
+    assertNull(server.handleMessage(close));
+    List<String> nClose = server.drainNotifications();
+    assertEquals(1, nClose.size());
+    assertTrue(nClose.get(0).contains("\"diagnostics\":[]"));
+
+    // 6. reopen v1 -> accepted
+    String reopenV1 =
+        String.format(
+            """
+            {
+              "jsonrpc": "2.0",
+              "method": "textDocument/didOpen",
+              "params": {
+                "textDocument": {
+                  "uri": "%s",
+                  "languageId": "viet-template",
+                  "version": 1,
+                  "text": "Reopened at v1"
+                }
+              }
+            }
+            """,
+            uri);
+    assertNull(server.handleMessage(reopenV1));
+    List<String> nReopen = server.drainNotifications();
+    assertEquals(1, nReopen.size());
+    assertTrue(nReopen.get(0).contains("\"diagnostics\":[]"));
+  }
 }
