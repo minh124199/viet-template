@@ -68,6 +68,7 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.api.TemplateContract",
     "io.github.minh124199.viettemplate.api.TemplateContract$Builder",
     "io.github.minh124199.viettemplate.api.TemplateParameter",
+    "io.github.minh124199.viettemplate.api.SlottedRenderContext",
     "io.github.minh124199.viettemplate.api.TemplateType",
     "io.github.minh124199.viettemplate.api.TemplateType$ArrayType",
     "io.github.minh124199.viettemplate.api.TemplateType$ClassType",

@@ -265,15 +265,60 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     }
 
     // Seed parameters and template locals from context into slots (irSlot + SLOT_OFFSET)
-    for (IrSlotLayout.SlotMetadata meta : context.layout.seededSlots()) {
+    List<IrSlotLayout.SlotMetadata> seededSlots = context.layout.seededSlots();
+    if (!seededSlots.isEmpty()) {
+      // Emit optimized slotted seeding path: if context is SlottedRenderContext,
+      // use positional getBySlot() instead of name-based get() to eliminate
+      // string comparison overhead during render prologue.
+      ClassFileWriter.Label nameBasedLabel = render.newLabel();
+      ClassFileWriter.Label seedDoneLabel = render.newLabel();
+
       render.aload(1); // context
-      render.ldc(meta.name());
-      render.invokeinterface(
-          "io/github/minh124199/viettemplate/api/RenderContext",
-          "get",
-          "(Ljava/lang/String;)Ljava/lang/Object;",
-          2);
-      render.astore(meta.slot() + SLOT_OFFSET);
+      render.instanceofOp("io/github/minh124199/viettemplate/api/SlottedRenderContext");
+      render.ifeq(nameBasedLabel);
+
+      // --- Slotted fast path: getBySlot(int) ---
+      render.aload(1); // context
+      render.checkcast("io/github/minh124199/viettemplate/api/SlottedRenderContext");
+      int slottedCtxSlot = context.scratchSlot;
+      render.astore(slottedCtxSlot);
+      for (IrSlotLayout.SlotMetadata meta : seededSlots) {
+        if (meta.kind() == IrSlotLayout.BindingKind.TEMPLATE_PARAMETER) {
+          render.aload(slottedCtxSlot);
+          render.iconst(meta.slot()); // use the IR slot as the positional index
+          render.invokeinterface(
+              "io/github/minh124199/viettemplate/api/SlottedRenderContext",
+              "getBySlot",
+              "(I)Ljava/lang/Object;",
+              2);
+          render.astore(meta.slot() + SLOT_OFFSET);
+        } else {
+          render.aload(1); // context
+          render.ldc(meta.name());
+          render.invokeinterface(
+              "io/github/minh124199/viettemplate/api/RenderContext",
+              "get",
+              "(Ljava/lang/String;)Ljava/lang/Object;",
+              2);
+          render.astore(meta.slot() + SLOT_OFFSET);
+        }
+      }
+      render.gotoOp(seedDoneLabel);
+
+      // --- Name-based fallback path ---
+      render.bindLabel(nameBasedLabel);
+      for (IrSlotLayout.SlotMetadata meta : seededSlots) {
+        render.aload(1); // context
+        render.ldc(meta.name());
+        render.invokeinterface(
+            "io/github/minh124199/viettemplate/api/RenderContext",
+            "get",
+            "(Ljava/lang/String;)Ljava/lang/Object;",
+            2);
+        render.astore(meta.slot() + SLOT_OFFSET);
+      }
+
+      render.bindLabel(seedDoneLabel);
     }
 
     // Compile root block statements

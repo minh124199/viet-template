@@ -1,6 +1,8 @@
 package io.github.minh124199.viettemplate.vtl.interpreter;
 
 import io.github.minh124199.viettemplate.api.Diagnostic;
+import io.github.minh124199.viettemplate.api.RenderContext;
+import io.github.minh124199.viettemplate.api.SlottedRenderContext;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateException;
 import io.github.minh124199.viettemplate.api.TemplateId;
@@ -167,8 +169,26 @@ final class IrInterpreter {
             0,
             layout);
 
-    for (IrSlotLayout.SlotMetadata meta : layout.seededSlots()) {
-      frame.seedLocal(meta.slot(), context.lookup(meta.name()));
+    // Optimized seeding: use positional slot access when context supports it,
+    // bypassing scope chain traversal and string-based lookup.
+    RenderContext rootCtx = context.rootContext();
+    List<IrSlotLayout.SlotMetadata> seeded = layout.seededSlots();
+    if (rootCtx instanceof SlottedRenderContext slotted) {
+      for (IrSlotLayout.SlotMetadata meta : seeded) {
+        if (meta.kind() == IrSlotLayout.BindingKind.TEMPLATE_PARAMETER
+            && meta.slot() < slotted.slotCount()) {
+          Object value = slotted.getBySlot(meta.slot());
+          frame.seedLocal(
+              meta.slot(),
+              value != null ? EvaluationValue.of(value) : EvaluationValue.definedNull());
+        } else {
+          frame.seedLocal(meta.slot(), context.lookup(meta.name()));
+        }
+      }
+    } else {
+      for (IrSlotLayout.SlotMetadata meta : seeded) {
+        frame.seedLocal(meta.slot(), context.lookup(meta.name()));
+      }
     }
 
     try {

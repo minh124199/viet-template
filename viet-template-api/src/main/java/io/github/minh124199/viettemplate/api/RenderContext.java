@@ -136,6 +136,32 @@ public interface RenderContext {
     return new ArrayBackedRenderContext(keys.clone(), values.clone());
   }
 
+  /**
+   * Creates a {@link SlottedRenderContext} backed by a positional array of values whose order
+   * matches a {@link TemplateContract} parameter declaration order.
+   *
+   * <p>The returned context supports both name-based lookup via {@link #get(String)} and
+   * slot-indexed lookup via {@link SlottedRenderContext#getBySlot(int)}, enabling zero-overhead AOT
+   * seeding.
+   *
+   * @param keys array of variable names in contract parameter order
+   * @param values array of variable values, positionally matching keys
+   * @return slotted render context
+   * @since M26
+   */
+  static SlottedRenderContext slotted(String[] keys, Object[] values) {
+    Objects.requireNonNull(keys, "keys must not be null");
+    Objects.requireNonNull(values, "values must not be null");
+    if (keys.length != values.length) {
+      throw new IllegalArgumentException(
+          "Keys length (" + keys.length + ") does not match values length (" + values.length + ")");
+    }
+    for (String key : keys) {
+      Objects.requireNonNull(key, "variable key must not be null");
+    }
+    return new SlottedArrayRenderContext(keys.clone(), values.clone());
+  }
+
   static Builder builder() {
     return new Builder();
   }
@@ -239,6 +265,57 @@ final class ArrayBackedRenderContext implements RenderContext {
   ArrayBackedRenderContext(String[] keys, Object[] values) {
     this.keys = keys;
     this.values = values;
+  }
+
+  @Override
+  public Object get(String name) {
+    if (name == null) {
+      return null;
+    }
+    for (int i = 0; i < keys.length; i++) {
+      if (keys[i].equals(name)) {
+        return values[i];
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public boolean contains(String name) {
+    if (name == null) {
+      return false;
+    }
+    for (String key : keys) {
+      if (key.equals(name)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public Set<String> keys() {
+    return Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(keys)));
+  }
+}
+
+final class SlottedArrayRenderContext implements SlottedRenderContext {
+  private final String[] keys;
+  private final Object[] values;
+
+  SlottedArrayRenderContext(String[] keys, Object[] values) {
+    this.keys = keys;
+    this.values = values;
+  }
+
+  @Override
+  public Object getBySlot(int slot) {
+    return values[slot];
+  }
+
+  @Override
+  public int slotCount() {
+    return values.length;
   }
 
   @Override
