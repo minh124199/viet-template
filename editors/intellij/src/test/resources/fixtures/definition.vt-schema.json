@@ -1,0 +1,19 @@
+{
+  "$schema": "https://viet-template.github.io/schemas/contract-v1.json",
+  "format": "viet-template-contract-schema/1",
+  "schemaVersion": 1,
+  "templateId": "definition.vtl",
+  "contractFingerprint": "vt-contract:v1:definition-fixture",
+  "parameters": [
+    {
+      "name": "username",
+      "type": {
+        "kind": "class",
+        "name": "java.lang.String"
+      },
+      "nullable": false,
+      "optional": false
+    }
+  ],
+  "types": {}
+}
