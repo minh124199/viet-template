@@ -32,6 +32,12 @@ The server implements the standard LSP lifecycle states:
 3. **Shutting Down**: Transitions upon receipt of `shutdown`. Returns `result: null`. Subsequent requests return error `-32600` (`InvalidRequest`).
 4. **Exited**: Terminated upon receipt of `exit`. Exits with process code `0` if shutdown was requested, or `1` if unexpected.
 
+### 2.3 Cancellation & Notification Handling
+
+The server gracefully absorbs standard LSP notifications:
+- `$/cancelRequest`: Acknowledges cancellation requests for completed or in-flight operations without throwing error `-32601`.
+- Unknown notifications: Safely ignored per LSP specification without sending error responses to the client.
+
 ---
 
 ## 3. Document Management & Coordinate Mapping
@@ -48,6 +54,14 @@ The server maintains in-memory documents via `TemplateDocumentStore` supporting:
 LSP requires 0-indexed line and UTF-16 code unit character offsets. `TemplateDocument` provides bidirectional mapping between LSP `Position`/`Range` and AST `SourceSpan`:
 - Handles `\n` (LF), `\r\n` (CRLF), and legacy `\r` (CR) line endings transparently.
 - Correctly accounts for multi-byte Unicode (such as Vietnamese diacritics) and surrogate pairs (e.g., emojis requiring 2 UTF-16 code units).
+- Safely clamps out-of-bounds line numbers and character offsets to valid boundaries.
+
+### 3.3 Version Ordering & Stale Update Rejection
+
+The language service guarantees monotonic document versioning:
+- Atomic document storage via `TemplateDocumentStore.updateIfNewer()` rejects stale `textDocument/didChange` updates (`newVersion < currentVersion`).
+- Rejected stale updates do not overwrite newer content and do not publish stale diagnostics.
+- Supports full client lifecycle: `open v1 -> change v2 -> stale change v1 [rejected] -> change v3 -> close -> reopen v1`.
 
 ---
 
@@ -59,13 +73,14 @@ Provides context-sensitive completion items:
 - **Directives**: Triggered at `#`, providing completions for `#if`, `#elseif`, `#else`, `#foreach`, `#set`, `#macro`, `#evaluate`, `#parse`, `#define`, `#stop`, and `#break`.
 - **Root Variables**: Triggered at `$` or `$!`, providing declared schema parameters and in-scope local variables.
 - **Member & Property Chaining**: Triggered at `.`, resolving receiver types via canonical contract schema and returning accessible properties with nullability detail.
+- **Resilient Recovery**: Gracefully handles incomplete directives, unclosed expressions, and malformed syntax without unhandled exceptions.
 
 ### 4.2 Hover Information (`textDocument/hover`)
 
 Returns Markdown-formatted documentation when hovering over:
 - **Template Parameters**: Parameter name, type signature, and nullability status.
 - **Properties**: Declared property type, nullability, and declaring model.
-- **Directives**: Syntax description and documentation for VTL directives.
+- **Directives**: Syntax description and documentation for VTL directives, including hovering directly on `#` or keyword tokens.
 
 ### 4.3 Definition Navigation (`textDocument/definition`)
 
@@ -81,3 +96,8 @@ Emits deterministic diagnostics with stable diagnostic codes:
 - `VTLS:2104`: Property not found on declared model type.
 - `VTLS:2107`: Nullable receiver dereferenced without quiet reference notation (`$!`) outside null guards.
 - `VTLSEC:2401`: Property or member access denied by `MemberAccessPolicy`.
+
+### 4.5 Cleared Diagnostics on Repair and Close
+
+- When syntax errors or schema violations are resolved by subsequent edits (`didChange`), the server immediately publishes `diagnostics: []` to clear error markers in the client editor.
+- When a document is closed (`didClose`), the server publishes an empty diagnostics array `[]` to remove any lingering problems.
