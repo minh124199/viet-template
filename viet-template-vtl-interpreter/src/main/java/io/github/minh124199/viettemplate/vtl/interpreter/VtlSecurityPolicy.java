@@ -46,6 +46,28 @@ public interface VtlSecurityPolicy {
     return false;
   }
 
+  /**
+   * Returns whether dynamic template reference outputs should be automatically HTML escaped.
+   * Defaults to {@link #isSafeProfile()}.
+   */
+  default boolean isAutoEscapeHtml() {
+    return isSafeProfile();
+  }
+
+  /**
+   * Returns a copy of this security policy with HTML output auto-escaping configured.
+   *
+   * @param autoEscape whether to escape HTML in template output
+   * @return policy configured with the specified auto-escape behavior
+   */
+  default VtlSecurityPolicy withAutoEscapeHtml(boolean autoEscape) {
+    if (this instanceof DelegatingAutoEscapeSecurityPolicy delegating
+        && delegating.isAutoEscapeHtml() == autoEscape) {
+      return this;
+    }
+    return new DelegatingAutoEscapeSecurityPolicy(this, autoEscape);
+  }
+
   default LinkerAccessPolicy toLinkerAccessPolicy() {
     return LinkerAccessPolicy.standard();
   }
@@ -568,5 +590,79 @@ final class NarrowingSafeSecurityPolicy implements VtlSecurityPolicy {
             receiverClass, method, propertyName);
       }
     };
+  }
+}
+
+final class DelegatingAutoEscapeSecurityPolicy implements VtlSecurityPolicy {
+  private final VtlSecurityPolicy delegate;
+  private final boolean autoEscape;
+
+  DelegatingAutoEscapeSecurityPolicy(VtlSecurityPolicy delegate, boolean autoEscape) {
+    this.delegate = Objects.requireNonNull(delegate, "delegate must not be null");
+    this.autoEscape = autoEscape;
+  }
+
+  @Override
+  public boolean isAutoEscapeHtml() {
+    return autoEscape;
+  }
+
+  @Override
+  public VtlSecurityPolicy withAutoEscapeHtml(boolean autoEscape) {
+    if (this.autoEscape == autoEscape) {
+      return this;
+    }
+    return new DelegatingAutoEscapeSecurityPolicy(delegate, autoEscape);
+  }
+
+  @Override
+  public boolean isClassPermitted(Class<?> clazz) {
+    return delegate.isClassPermitted(clazz);
+  }
+
+  @Override
+  public boolean isMethodPermitted(Class<?> receiverClass, Method method) {
+    return delegate.isMethodPermitted(receiverClass, method);
+  }
+
+  @Override
+  public boolean isFieldPermitted(Class<?> receiverClass, Field field) {
+    return delegate.isFieldPermitted(receiverClass, field);
+  }
+
+  @Override
+  public boolean isPropertyPermitted(Class<?> receiverClass, String propertyName) {
+    return delegate.isPropertyPermitted(receiverClass, propertyName);
+  }
+
+  @Override
+  public boolean isPropertyMutationPermitted(Class<?> receiverClass, String propertyName) {
+    return delegate.isPropertyMutationPermitted(receiverClass, propertyName);
+  }
+
+  @Override
+  public boolean isIndexMutationPermitted(Class<?> receiverClass) {
+    return delegate.isIndexMutationPermitted(receiverClass);
+  }
+
+  @Override
+  public boolean isPropertyMethodPermitted(
+      Class<?> receiverClass, Method method, String propertyName) {
+    return delegate.isPropertyMethodPermitted(receiverClass, method, propertyName);
+  }
+
+  @Override
+  public String policyFingerprint() {
+    return delegate.policyFingerprint() + ":autoEscape=" + autoEscape;
+  }
+
+  @Override
+  public boolean isSafeProfile() {
+    return delegate.isSafeProfile();
+  }
+
+  @Override
+  public LinkerAccessPolicy toLinkerAccessPolicy() {
+    return delegate.toLinkerAccessPolicy();
   }
 }

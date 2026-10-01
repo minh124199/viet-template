@@ -252,6 +252,16 @@ public interface TemplateEngine extends AutoCloseable {
 
     Builder memberAccessPolicy(MemberAccessPolicy policy);
 
+    /**
+     * Configures whether HTML output auto-escaping is enabled for dynamic value expressions.
+     *
+     * @param autoEscape true to enable HTML auto-escaping; false for raw output
+     * @return this builder
+     */
+    default Builder autoEscape(boolean autoEscape) {
+      return this;
+    }
+
     TemplateEngine build();
   }
 }

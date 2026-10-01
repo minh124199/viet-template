@@ -54,6 +54,7 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
   private ContextCollisionPolicy contextCollisionPolicy = ContextCollisionPolicy.MODEL_WINS;
   private LayoutConfiguration layoutConfiguration = LayoutConfiguration.builder().build();
   private io.github.minh124199.viettemplate.api.MemberAccessPolicy memberAccessPolicy = null;
+  private Boolean autoEscape = null;
 
   public VtlTemplateEngineBuilder() {}
 
@@ -181,6 +182,12 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
   }
 
   @Override
+  public VtlTemplateEngineBuilder autoEscape(boolean autoEscape) {
+    this.autoEscape = autoEscape;
+    return this;
+  }
+
+  @Override
   public VtlTemplateEngine build() {
     VtlInterpreterOptions effectiveInterpreterOptions = interpreterOptions;
     if (memberAccessPolicy != null) {
@@ -210,6 +217,19 @@ public final class VtlTemplateEngineBuilder implements TemplateEngine.Builder {
           effectiveSemanticOptions.toBuilder()
               .profile(effectiveInterpreterOptions.profile())
               .strictMode(effectiveInterpreterOptions.strictReferences())
+              .build();
+    }
+    if (autoEscape != null) {
+      effectiveSemanticOptions =
+          effectiveSemanticOptions.toBuilder().autoEscape(autoEscape).build();
+      io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy secPolicy =
+          effectiveInterpreterOptions.securityPolicy();
+      if (secPolicy == null) {
+        secPolicy = io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy.standard();
+      }
+      effectiveInterpreterOptions =
+          effectiveInterpreterOptions.toBuilder()
+              .securityPolicy(secPolicy.withAutoEscapeHtml(autoEscape))
               .build();
     }
     TemplateCompileCache cache =

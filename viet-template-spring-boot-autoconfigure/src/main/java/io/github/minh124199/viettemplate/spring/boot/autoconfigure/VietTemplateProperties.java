@@ -66,6 +66,12 @@ public class VietTemplateProperties {
   /** ViewResolver order in the Spring MVC resolver chain. */
   private int order = Ordered.LOWEST_PRECEDENCE;
 
+  /**
+   * Whether to automatically escape HTML characters in template output expressions to prevent
+   * Cross-Site Scripting (XSS). Defaults to true for Spring MVC web applications.
+   */
+  private boolean autoEscape = true;
+
   public boolean isEnabled() {
     return this.enabled;
   }
@@ -196,6 +202,14 @@ public class VietTemplateProperties {
 
   public void setOrder(int order) {
     this.order = order;
+  }
+
+  public boolean isAutoEscape() {
+    return this.autoEscape;
+  }
+
+  public void setAutoEscape(boolean autoEscape) {
+    this.autoEscape = autoEscape;
   }
 
   /** Security-specific integration properties. */
