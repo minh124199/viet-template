@@ -25,7 +25,7 @@ final class HoverProvider {
     VtlParseResult parsed;
     try {
       parsed = VtlParser.parse(doc.sourceText());
-    } catch (IllegalArgumentException | IllegalStateException e) {
+    } catch (IllegalArgumentException | IllegalStateException | IndexOutOfBoundsException e) {
       return Optional.empty();
     }
 
@@ -219,12 +219,23 @@ final class HoverProvider {
     }
 
     // 2. Check root variable
-    int rootStart = doc.content().indexOf(ref.rootName(), ref.span().startOffset());
-    if (rootStart < 0) {
-      rootStart = ref.span().startOffset();
+    int rootStart = 0;
+    if (ref.span().isKnown()) {
+      int idx = doc.content().indexOf(ref.rootName(), Math.max(0, ref.span().startOffset()));
+      rootStart = idx >= 0 ? idx : Math.max(0, ref.span().startOffset());
+    } else {
+      rootStart = doc.content().indexOf(ref.rootName());
+      if (rootStart < 0) {
+        rootStart = 0;
+      }
     }
-    int rootEnd = rootStart + ref.rootName().length();
-    Range range = Range.of(doc.offsetToPosition(rootStart), doc.offsetToPosition(rootEnd));
+    int rootEnd = Math.min(doc.content().length(), rootStart + ref.rootName().length());
+    Position startPos = doc.offsetToPosition(rootStart);
+    Position endPos = doc.offsetToPosition(rootEnd);
+    if (startPos.compareTo(endPos) > 0) {
+      endPos = startPos;
+    }
+    Range range = Range.of(startPos, endPos);
 
     // Check schema parameter
     Optional<ParameterDef> param = schemaResolver.getParameter(doc.uri(), ref.rootName());
@@ -313,11 +324,15 @@ final class HoverProvider {
   private static boolean hasPrecedingSet(List<VtlNode> nodes, int offset, String varName) {
     if (nodes == null) return false;
     for (VtlNode node : nodes) {
+      if (!node.span().isKnown()) {
+        continue;
+      }
       if (node.span().startOffset() > offset) {
         break;
       }
       if (node instanceof VtlSetDirectiveNode setNode) {
-        if (setNode.span().endOffset() <= offset
+        if (setNode.span().isKnown()
+            && setNode.span().endOffset() <= offset
             && setNode.target() instanceof VtlAssignmentTarget.ReferenceTarget refTarget
             && refTarget.reference().rootName().equals(varName)) {
           return true;
@@ -373,9 +388,12 @@ final class HoverProvider {
       start--;
     }
     if (start >= 0 && text.charAt(start) == '#') {
-      int end = offset;
+      int end = Math.max(offset, start + 1);
       while (end < text.length() && Character.isLetter(text.charAt(end))) {
         end++;
+      }
+      if (end <= start + 1) {
+        return Optional.empty();
       }
       String dirName = text.substring(start + 1, end);
       String docMsg = getDirectiveDocumentation(dirName);

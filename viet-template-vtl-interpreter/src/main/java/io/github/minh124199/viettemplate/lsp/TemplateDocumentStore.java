@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Thread-safe in-memory store for active template documents managed by the language server.
@@ -46,6 +47,22 @@ final class TemplateDocumentStore {
   public void put(TemplateDocument document) {
     Objects.requireNonNull(document, "document must not be null");
     documents.put(normalizeUri(document.uri()), document);
+  }
+
+  public boolean updateIfNewer(TemplateDocument document) {
+    Objects.requireNonNull(document, "document must not be null");
+    String key = normalizeUri(document.uri());
+    AtomicBoolean updated = new AtomicBoolean(false);
+    documents.compute(
+        key,
+        (k, existing) -> {
+          if (existing != null && existing.version() > document.version()) {
+            return existing;
+          }
+          updated.set(true);
+          return document;
+        });
+    return updated.get();
   }
 
   public Optional<TemplateDocument> get(String uri) {

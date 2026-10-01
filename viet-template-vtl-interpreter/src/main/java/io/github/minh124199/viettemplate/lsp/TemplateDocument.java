@@ -148,6 +148,9 @@ final class TemplateDocument {
   }
 
   public String lineContent(int line) {
+    if (line < 0 || line >= lineStarts.length) {
+      return "";
+    }
     int start = lineStartOffset(line);
     int end = lineEndOffset(line);
     return content.substring(start, end);
@@ -155,16 +158,20 @@ final class TemplateDocument {
 
   public int positionToOffset(Position position) {
     Objects.requireNonNull(position, "position must not be null");
+    if (position.line() < 0) {
+      return 0;
+    }
     if (position.line() >= lineStarts.length) {
       return content.length();
     }
     int start = lineStarts[position.line()];
     int end = lineEndOffset(position.line());
-    int offset = start + position.character();
+    int charOffset = Math.max(0, position.character());
+    int offset = start + charOffset;
     if (offset > end) {
       return end;
     }
-    return Math.max(start, offset);
+    return offset;
   }
 
   public Position offsetToPosition(int offset) {
@@ -181,7 +188,7 @@ final class TemplateDocument {
     if (idx >= 0) {
       return Position.of(idx, 0);
     }
-    int line = -idx - 2;
+    int line = Math.max(0, -idx - 2);
     int charOffset = offset - lineStarts[line];
     return Position.of(line, charOffset);
   }
@@ -195,17 +202,17 @@ final class TemplateDocument {
     int startCol = Math.max(0, span.startColumn() - 1);
     int endLine = Math.max(0, span.endLine() - 1);
     int endCol = Math.max(0, span.endColumn() - 1);
+    if (startLine > endLine || (startLine == endLine && startCol > endCol)) {
+      return Range.of(startLine, startCol, startLine, startCol);
+    }
     return Range.of(startLine, startCol, endLine, endCol);
   }
 
   public SourceSpan rangeToSpan(Range range) {
     Objects.requireNonNull(range, "range must not be null");
-    int startOffset = positionToOffset(range.start());
-    int endOffset = positionToOffset(range.end());
-    int startLine = range.start().line() + 1;
-    int startCol = range.start().character() + 1;
-    int endLine = range.end().line() + 1;
-    int endCol = range.end().character() + 1;
-    return SourceSpan.of(startOffset, endOffset, startLine, startCol, endLine, endCol);
+    int startOffset = Math.max(0, Math.min(positionToOffset(range.start()), content.length()));
+    int endOffset =
+        Math.max(startOffset, Math.min(positionToOffset(range.end()), content.length()));
+    return sourceText.spanAt(startOffset, endOffset);
   }
 }

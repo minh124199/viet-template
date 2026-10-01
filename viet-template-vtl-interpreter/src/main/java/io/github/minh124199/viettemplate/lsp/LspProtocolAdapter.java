@@ -121,6 +121,9 @@ final class LspProtocolAdapter {
       case "textDocument/definition" -> {
         return handleDefinition(id, params);
       }
+      case "$/cancelRequest" -> {
+        return null;
+      }
       default -> {
         if (isNotification) {
           return null; // Unknown notifications are ignored
@@ -178,8 +181,10 @@ final class LspProtocolAdapter {
       if (first instanceof Map<?, ?> cMap) {
         String newText = getString(cMap, "text");
         if (uri != null && newText != null) {
-          service.updateDocument(uri, version, newText);
-          publishDiagnostics(uri, version);
+          boolean updated = service.updateDocumentIfNewer(uri, version, newText);
+          if (updated) {
+            publishDiagnostics(uri, version);
+          }
         }
       }
     }

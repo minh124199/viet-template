@@ -140,7 +140,7 @@ final class CompletionProvider {
           }
         }
       }
-    } catch (IllegalArgumentException | IllegalStateException ignored) {
+    } catch (IllegalArgumentException | IllegalStateException | IndexOutOfBoundsException ignored) {
     }
     return Optional.empty();
   }
@@ -150,7 +150,9 @@ final class CompletionProvider {
     if (nodes == null) return null;
     for (VtlNode node : nodes) {
       if (node instanceof VtlForeachDirectiveNode fe) {
-        if (fe.span().startOffset() <= offset && offset <= fe.span().endOffset()) {
+        if (fe.span().isKnown()
+            && fe.span().startOffset() <= offset
+            && offset <= fe.span().endOffset()) {
           VtlForeachDirectiveNode inner = findEnclosingForeach(fe.body(), offset, varName);
           if (inner != null) return inner;
           if (fe.loopVariable().rootName().equals(varName)) {
@@ -198,7 +200,7 @@ final class CompletionProvider {
       VtlParseResult parsed = VtlParser.parse(doc.sourceText());
       collectLocalVariables(
           parsed.template().children(), doc, offset, prefix, schemaResolver, items);
-    } catch (IllegalArgumentException | IllegalStateException ignored) {
+    } catch (IllegalArgumentException | IllegalStateException | IndexOutOfBoundsException ignored) {
       // Best-effort local variable discovery
     }
 
@@ -215,7 +217,8 @@ final class CompletionProvider {
     if (nodes == null) return;
     for (VtlNode node : nodes) {
       if (node instanceof VtlSetDirectiveNode setNode) {
-        if (setNode.span().startOffset() < offset
+        if (setNode.span().isKnown()
+            && setNode.span().startOffset() < offset
             && setNode.target() instanceof VtlAssignmentTarget.ReferenceTarget refTarget) {
           String name = refTarget.reference().rootName();
           if (prefix.isEmpty() || name.startsWith(prefix)) {
@@ -225,7 +228,9 @@ final class CompletionProvider {
           }
         }
       } else if (node instanceof VtlForeachDirectiveNode feNode) {
-        if (feNode.span().startOffset() <= offset && offset <= feNode.span().endOffset()) {
+        if (feNode.span().isKnown()
+            && feNode.span().startOffset() <= offset
+            && offset <= feNode.span().endOffset()) {
           String loopVar = feNode.loopVariable().rootName();
           if (prefix.isEmpty() || loopVar.startsWith(prefix)) {
             String typeName = HoverProvider.inferLoopVariableTypeName(feNode, doc, schemaResolver);
