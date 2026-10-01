@@ -8,6 +8,7 @@ import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.TemplateContract;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateParameter;
+import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.TemplateClassLoader;
 import java.io.File;
@@ -410,6 +411,7 @@ class TypedTemplateContractAotTest {
             .sourceDirectory(srcDir)
             .outputDirectory(outDir)
             .contract(id, contract)
+            .profile(VtlProfile.VTL_MIGRATION)
             .build();
 
     TemplateAotResult result = compiler.compile(request);
@@ -449,6 +451,7 @@ class TypedTemplateContractAotTest {
             .sourceDirectory(srcDir)
             .outputDirectory(outDir)
             .contract(id, contract)
+            .profile(VtlProfile.VTL_MIGRATION)
             .build();
 
     TemplateAotResult result = compiler.compile(request);

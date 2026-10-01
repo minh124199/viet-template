@@ -11,9 +11,10 @@ public enum VtlProfile {
 
   /**
    * Adds legacy Velocity property lookup order, broader implicit coercions, macros, and legacy
-   * undefined reference behavior.
+   * undefined reference behavior. Permits standard application methods while #evaluate remains
+   * strictly disallowed.
    */
-  VTL_MIGRATION(false, false, false),
+  VTL_MIGRATION(true, false, false),
 
   /**
    * Explicit opt-in for arbitrary approved public method invocation and runtime evaluation

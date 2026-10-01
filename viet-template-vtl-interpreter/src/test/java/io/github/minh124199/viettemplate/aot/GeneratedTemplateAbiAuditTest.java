@@ -175,7 +175,11 @@ class GeneratedTemplateAbiAuditTest {
     Path outDir = tempDir.resolve("classes");
     TemplateAotCompiler compiler = TemplateAotCompiler.create();
     TemplateAotRequest request =
-        TemplateAotRequest.builder().sourceDirectory(srcDir).outputDirectory(outDir).build();
+        TemplateAotRequest.builder()
+            .sourceDirectory(srcDir)
+            .outputDirectory(outDir)
+            .profile(io.github.minh124199.viettemplate.language.vtl.VtlProfile.VTL_MIGRATION)
+            .build();
 
     TemplateAotResult result = compiler.compile(request);
     assertThat(result.isSuccess()).isTrue();

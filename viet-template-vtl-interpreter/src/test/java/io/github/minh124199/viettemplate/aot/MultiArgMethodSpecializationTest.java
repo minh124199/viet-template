@@ -144,7 +144,10 @@ class MultiArgMethodSpecializationTest {
     TemplateId id = TemplateId.of(templateName);
     TemplateAotCompiler compiler = TemplateAotCompiler.create();
     TemplateAotRequest.Builder reqBuilder =
-        TemplateAotRequest.builder().sourceDirectory(srcDir).outputDirectory(outDir);
+        TemplateAotRequest.builder()
+            .sourceDirectory(srcDir)
+            .outputDirectory(outDir)
+            .profile(io.github.minh124199.viettemplate.language.vtl.VtlProfile.VTL_DYNAMIC);
     if (contract != null) {
       reqBuilder.contract(id, contract);
     }
@@ -383,7 +386,11 @@ class MultiArgMethodSpecializationTest {
     // restricted method
     Path dynamicOutDir = tempDir.resolve("out-sec-dyn");
     TemplateAotRequest dynamicReq =
-        TemplateAotRequest.builder().sourceDirectory(srcDir).outputDirectory(dynamicOutDir).build();
+        TemplateAotRequest.builder()
+            .sourceDirectory(srcDir)
+            .outputDirectory(dynamicOutDir)
+            .profile(io.github.minh124199.viettemplate.language.vtl.VtlProfile.VTL_DYNAMIC)
+            .build();
     TemplateAotResult dynResult = compiler.compile(dynamicReq);
     assertThat(dynResult.isSuccess()).isTrue();
     TemplateAotArtifact artifact = dynResult.artifacts().get(0);
@@ -545,6 +552,7 @@ class MultiArgMethodSpecializationTest {
             .sourceDirectory(srcDir)
             .outputDirectory(outDir)
             .contract(id, contract)
+            .profile(io.github.minh124199.viettemplate.language.vtl.VtlProfile.VTL_DYNAMIC)
             .build();
     TemplateAotResult result = aotCompiler.compile(req);
     assertThat(result.isSuccess()).isTrue();

@@ -146,7 +146,10 @@ class OverloadParityDifferentialTest {
     TemplateId id = TemplateId.of(templateName);
     TemplateAotCompiler compiler = TemplateAotCompiler.create();
     TemplateAotRequest.Builder reqBuilder =
-        TemplateAotRequest.builder().sourceDirectory(srcDir).outputDirectory(outDir);
+        TemplateAotRequest.builder()
+            .sourceDirectory(srcDir)
+            .outputDirectory(outDir)
+            .profile(io.github.minh124199.viettemplate.language.vtl.VtlProfile.VTL_DYNAMIC);
     if (contract != null) {
       TemplateContract.Builder remapped = TemplateContract.builder(id);
       for (io.github.minh124199.viettemplate.api.TemplateParameter p : contract.parameters()) {

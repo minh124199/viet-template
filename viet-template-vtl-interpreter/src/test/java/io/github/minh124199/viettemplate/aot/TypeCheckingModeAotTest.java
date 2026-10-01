@@ -7,6 +7,7 @@ import io.github.minh124199.viettemplate.api.TemplateContract;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateParameter;
 import io.github.minh124199.viettemplate.api.TypeCheckingMode;
+import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -278,6 +279,7 @@ class TypeCheckingModeAotTest {
             .sourceDirectory(srcDir)
             .outputDirectory(outDir)
             .contracts(Map.of(id, contract))
+            .profile(VtlProfile.VTL_MIGRATION)
             .typeChecking(TypeCheckingMode.ERROR)
             .build();
 
