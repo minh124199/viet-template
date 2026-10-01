@@ -59,14 +59,14 @@ public class WriteValuePairedBenchmark {
   @Param({"1", "4", "16", "64", "256", "1024"})
   private int writeCount;
 
-  private OutputMetadataHotPathBenchmark.CountingOutput countingOutput;
+  private CountingTemplateOutput countingOutput;
   private StringTemplateOutput stringOutput;
   private String[] values;
   private int[][] spans;
 
   @Setup(Level.Trial)
   public void setUp() {
-    countingOutput = new OutputMetadataHotPathBenchmark.CountingOutput();
+    countingOutput = new CountingTemplateOutput();
     stringOutput = new StringTemplateOutput(8192);
     values = new String[writeCount];
     spans = new int[writeCount][4];
