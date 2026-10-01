@@ -304,9 +304,9 @@ Any prospective future optimization must adhere to these strict platform constra
 - **Audit Result**: High-value benchmark isolating `TemplateContract` direct accessor devirtualization against dynamic PIC (monomorphic, polymorphic depth 2 & 4, megamorphic). Compiles cleanly, respects JMH conventions, and was refined to pre-allocate polymorphic contexts to prevent context allocation bias.
 - **Action**: **COMMIT AS PERMANENT BENCHMARK INFRASTRUCTURE** (`git commit -m "perf(bench): retain direct accessor benchmark"`).
 
-### 12.2 `OutputMetadataHotPathBenchmark.java`
-- **Audit Result**: Defines `CountingOutput`, which is directly imported and instantiated by the committed `WriteValuePairedBenchmark.java` (`private OutputMetadataHotPathBenchmark.CountingOutput countingOutput;`). Deleting this untracked file causes reactor compilation failure (`COMPILATION ERROR: package OutputMetadataHotPathBenchmark does not exist`). Furthermore, it retains unique micro-benchmark dimensions for isolated `TemplateId` and `SourceSpan` construction costs.
-- **Action**: **KEEP UNTRACKED TEMPORARILY** (concrete justification: compile-time dependency for tracked `WriteValuePairedBenchmark.java` while prohibited by task constraints from altering committed benchmarks).
+### 12.2 `OutputMetadataHotPathBenchmark.java` and `CountingTemplateOutput.java`
+- **Audit Result**: The investigation originally identified that `OutputMetadataHotPathBenchmark` defined `CountingOutput`, which was directly imported and instantiated by the committed `WriteValuePairedBenchmark.java` (`private OutputMetadataHotPathBenchmark.CountingOutput countingOutput;`), while also providing unique micro-benchmark dimensions for isolated `TemplateId` and `SourceSpan` construction costs.
+- **Action & Follow-up Hygiene Resolution**: In a follow-up repository-hygiene cleanup, the reusable counting sink was extracted into a dedicated tracked benchmark fixture (`CountingTemplateOutput.java`), decoupling `WriteValuePairedBenchmark.java` and establishing clean-checkout reproducibility. `OutputMetadataHotPathBenchmark.java` was retained as permanent benchmark infrastructure to measure isolated metadata construction costs. The runtime performance conclusions remain unchanged, and no new optimization phase has been opened.
 
 ---
 
