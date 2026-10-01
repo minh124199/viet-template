@@ -1,0 +1,67 @@
+<idea-plugin>
+    <id>io.github.minh124199.viet-template-intellij</id>
+    <name>Viet Template</name>
+    <version>1.1.0</version>
+    <vendor email="minh124199@users.noreply.github.com" url="https://github.com/minh124199/viet-template">Viet Template</vendor>
+
+    <description><![CDATA[
+    Viet Template (VTL) language support for IntelliJ IDEA.
+    Provides lexical syntax highlighting, code completion, hover documentation,
+    definition navigation, and real-time diagnostics powered by the Viet Template Language Server.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType
+            name="Viet Template"
+            implementationClass="io.github.minh124199.viettemplate.intellij.file.VietTemplateFileType"
+            fieldName="INSTANCE"
+            extensions="vtl;vm;vt"/>
+
+        <lang.syntaxHighlighterFactory
+            language="Viet Template"
+            implementationClass="io.github.minh124199.viettemplate.intellij.syntax.VietTemplateSyntaxHighlighterFactory"/>
+
+        <lang.commenter
+            language="Viet Template"
+            implementationClass="io.github.minh124199.viettemplate.intellij.syntax.VietTemplateCommenter"/>
+
+        <applicationService
+            serviceImplementation="io.github.minh124199.viettemplate.intellij.settings.VietTemplateSettings"/>
+
+        <applicationConfigurable
+            parentId="tools"
+            instance="io.github.minh124199.viettemplate.intellij.settings.VietTemplateConfigurable"
+            id="io.github.minh124199.viettemplate.intellij.settings.VietTemplateConfigurable"
+            displayName="Viet Template"/>
+
+        <projectService
+            serviceImplementation="io.github.minh124199.viettemplate.intellij.lsp.VietTemplateLspServerManager"/>
+
+        <externalAnnotator
+            language="Viet Template"
+            implementationClass="io.github.minh124199.viettemplate.intellij.annotator.VietTemplateLspAnnotator"/>
+
+        <completion.contributor
+            language="Viet Template"
+            implementationClass="io.github.minh124199.viettemplate.intellij.editor.VietTemplateCompletionContributor"/>
+
+        <lang.documentationProvider
+            language="Viet Template"
+            implementationClass="io.github.minh124199.viettemplate.intellij.editor.VietTemplateDocumentationProvider"/>
+
+        <gotoDeclarationHandler
+            implementation="io.github.minh124199.viettemplate.intellij.editor.VietTemplateGotoDeclarationHandler"/>
+    </extensions>
+
+    <actions>
+        <action
+            id="VietTemplate.RestartLspServer"
+            class="io.github.minh124199.viettemplate.intellij.actions.VietTemplateRestartAction"
+            text="Restart Viet Template Language Server"
+            description="Restarts the Viet Template Language Server process">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>
