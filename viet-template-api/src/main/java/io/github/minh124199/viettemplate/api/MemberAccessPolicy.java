@@ -129,12 +129,33 @@ public interface MemberAccessPolicy {
     return new MandatorySafeMemberAccessPolicy(this);
   }
 
-  /** Returns the standard defense-in-depth security policy. */
+  /**
+   * Returns the standard defense-in-depth security policy.
+   *
+   * <p>The {@code standard()} policy is a denylist-based defense-in-depth policy designed for
+   * trusted, developer-authored templates. It blocks high-risk JVM pivots (such as {@link System},
+   * {@link Runtime}, {@link ClassLoader}, reflection, thread pools, and process execution) while
+   * allowing application beans and standard host classes (such as {@link java.io.File}, {@link
+   * java.nio.file.Path}, {@link java.net.URI}, and {@link java.net.URL}) by default.
+   *
+   * @return the standard member access policy
+   */
   static MemberAccessPolicy standard() {
     return DefaultMemberAccessPolicy.STANDARD;
   }
 
-  /** Returns the strict allowlist-based safe security policy. */
+  /**
+   * Returns the strict allowlist-based safe security policy.
+   *
+   * <p>The {@code safe()} policy is the strict fail-closed allowlist policy mandatory for
+   * untrusted, user-authored templates. Under {@code safe()}, only explicitly allowlisted classes
+   * and standard safe data types (primitives, strings, standard collections, maps, records, and
+   * types annotated with {@link TemplateData}) are permitted. Host classes like {@link
+   * java.io.File}, {@link java.nio.file.Path}, {@link java.net.URI}, and {@link java.net.URL} are
+   * strictly forbidden.
+   *
+   * @return the safe member access policy
+   */
   static MemberAccessPolicy safe() {
     return DefaultMemberAccessPolicy.SAFE;
   }
@@ -171,7 +192,7 @@ public interface MemberAccessPolicy {
       // Seed with standard defense-in-depth deny rules
       deniedClasses.addAll(DefaultMemberAccessPolicy.CORE_DENIED_CLASS_NAMES);
       deniedPackagePrefixes.addAll(DefaultMemberAccessPolicy.CORE_DENIED_PACKAGE_PREFIXES);
-      deniedMethodNames.addAll(DefaultMemberAccessPolicy.CORE_DENIED_METHOD_NAMES);
+      deniedMethodNames.addAll(DefaultMemberAccessPolicy.UNIVERSAL_DENIED_METHOD_NAMES);
     }
 
     public Builder safeProfile(boolean safeProfile) {
@@ -332,7 +353,7 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
           java.util.concurrent.ForkJoinPool.class.getName(),
           java.util.concurrent.CompletableFuture.class.getName());
 
-  static final Set<String> CORE_DENIED_METHOD_NAMES =
+  static final Set<String> UNIVERSAL_DENIED_METHOD_NAMES =
       Set.of(
           "getClass",
           "getClassLoader",
@@ -358,19 +379,9 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
           "loadClass",
           "findClass",
           "defineClass",
-          "lookup",
-          "exit",
-          "halt",
-          "load",
-          "loadLibrary",
-          "wait",
-          "notify",
-          "notifyAll",
-          "shutdown",
-          "shutdownNow",
-          "interrupt",
-          "suspend",
-          "resume");
+          "lookup");
+
+  static final Set<String> CORE_DENIED_METHOD_NAMES = UNIVERSAL_DENIED_METHOD_NAMES;
 
   static final MemberAccessPolicy STANDARD =
       new DefaultMemberAccessPolicy(
@@ -663,6 +674,12 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
       return false;
     }
     String methodName = method.getName();
+    if (UNIVERSAL_DENIED_METHOD_NAMES.contains(methodName)) {
+      return false;
+    }
+    if (isReceiverSpecificDangerousMethod(receiverClass, method)) {
+      return false;
+    }
     if (deniedMethodNames.contains(methodName)) {
       return false;
     }
@@ -701,6 +718,12 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
       return false;
     }
 
+    if (UNIVERSAL_DENIED_METHOD_NAMES.contains(methodName)) {
+      return false;
+    }
+    if (isReceiverSpecificDangerousMethod(receiverClass, methodName, arity)) {
+      return false;
+    }
     if (deniedMethodNames.contains(methodName)) {
       return false;
     }
@@ -731,7 +754,165 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
   }
 
   static boolean isDangerousObjectMethod(String methodName) {
-    return CORE_DENIED_METHOD_NAMES.contains(methodName);
+    return UNIVERSAL_DENIED_METHOD_NAMES.contains(methodName);
+  }
+
+  static boolean isReceiverSpecificDangerousMethod(Class<?> receiverClass, Method method) {
+    if (method == null) {
+      return false;
+    }
+    String name = method.getName();
+    Class<?> declaringClass = method.getDeclaringClass();
+
+    switch (name) {
+      case "exit":
+      case "halt":
+        return isAssignable(declaringClass, System.class, Runtime.class, Process.class)
+            || isAssignable(receiverClass, System.class, Runtime.class, Process.class);
+
+      case "load":
+      case "loadLibrary":
+        return isAssignable(declaringClass, System.class, Runtime.class, ClassLoader.class)
+            || isAssignable(receiverClass, System.class, Runtime.class, ClassLoader.class);
+
+      case "shutdown":
+      case "shutdownNow":
+        return isAssignable(
+                declaringClass,
+                java.util.concurrent.ExecutorService.class,
+                java.util.concurrent.Executor.class)
+            || isAssignable(
+                receiverClass,
+                java.util.concurrent.ExecutorService.class,
+                java.util.concurrent.Executor.class);
+
+      case "wait":
+      case "notify":
+      case "notifyAll":
+        return declaringClass == Object.class;
+
+      case "interrupt":
+      case "suspend":
+      case "resume":
+        return isAssignable(declaringClass, Thread.class, ThreadGroup.class, Process.class)
+            || isAssignable(receiverClass, Thread.class, ThreadGroup.class, Process.class);
+
+      default:
+        return false;
+    }
+  }
+
+  static boolean isReceiverSpecificDangerousMethod(
+      Class<?> receiverClass, String methodName, int arity) {
+    if (methodName == null) {
+      return false;
+    }
+
+    switch (methodName) {
+      case "exit":
+      case "halt":
+        if (isAssignable(receiverClass, System.class, Runtime.class, Process.class)) {
+          return true;
+        }
+        return checkDeclaringClassMatches(
+            receiverClass, methodName, arity, System.class, Runtime.class, Process.class);
+
+      case "load":
+      case "loadLibrary":
+        if (isAssignable(receiverClass, System.class, Runtime.class, ClassLoader.class)) {
+          return true;
+        }
+        return checkDeclaringClassMatches(
+            receiverClass, methodName, arity, System.class, Runtime.class, ClassLoader.class);
+
+      case "shutdown":
+      case "shutdownNow":
+        if (isAssignable(
+            receiverClass,
+            java.util.concurrent.ExecutorService.class,
+            java.util.concurrent.Executor.class)) {
+          return true;
+        }
+        return checkDeclaringClassMatches(
+            receiverClass,
+            methodName,
+            arity,
+            java.util.concurrent.ExecutorService.class,
+            java.util.concurrent.Executor.class);
+
+      case "wait":
+      case "notify":
+      case "notifyAll":
+        if (isObjectWaitOrNotify(methodName, arity)) {
+          if (receiverClass == null || receiverClass == Object.class) {
+            return true;
+          }
+          try {
+            for (Method m : receiverClass.getMethods()) {
+              if (m.getName().equals(methodName)
+                  && m.getParameterCount() == arity
+                  && m.getDeclaringClass() != Object.class) {
+                return false;
+              }
+            }
+          } catch (SecurityException ignored) {
+          }
+          return true;
+        }
+        return false;
+
+      case "interrupt":
+      case "suspend":
+      case "resume":
+        if (isAssignable(receiverClass, Thread.class, ThreadGroup.class, Process.class)) {
+          return true;
+        }
+        return checkDeclaringClassMatches(
+            receiverClass, methodName, arity, Thread.class, ThreadGroup.class, Process.class);
+
+      default:
+        return false;
+    }
+  }
+
+  private static boolean isAssignable(Class<?> clazz, Class<?>... targets) {
+    if (clazz == null) {
+      return false;
+    }
+    for (Class<?> target : targets) {
+      if (target.isAssignableFrom(clazz)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean checkDeclaringClassMatches(
+      Class<?> receiverClass, String methodName, int arity, Class<?>... targets) {
+    if (receiverClass == null) {
+      return false;
+    }
+    try {
+      for (Method m : receiverClass.getMethods()) {
+        if (m.getName().equals(methodName) && m.getParameterCount() == arity) {
+          if (isAssignable(m.getDeclaringClass(), targets)) {
+            return true;
+          }
+        }
+      }
+    } catch (SecurityException ignored) {
+    }
+    return false;
+  }
+
+  private static boolean isObjectWaitOrNotify(String methodName, int arity) {
+    if ("wait".equals(methodName)) {
+      return arity == 0 || arity == 1 || arity == 2;
+    }
+    if ("notify".equals(methodName) || "notifyAll".equals(methodName)) {
+      return arity == 0;
+    }
+    return false;
   }
 
   private static final Set<String> SAFE_MAP_METHODS =
@@ -990,6 +1171,12 @@ final class DefaultMemberAccessPolicy implements MemberAccessPolicy {
       return false;
     }
     String methodName = method.getName();
+    if (UNIVERSAL_DENIED_METHOD_NAMES.contains(methodName)) {
+      return false;
+    }
+    if (isReceiverSpecificDangerousMethod(receiverClass, method)) {
+      return false;
+    }
     if (deniedMethodNames.contains(methodName)) {
       return false;
     }
@@ -1391,7 +1578,10 @@ final class MandatorySafeMemberAccessPolicy implements MemberAccessPolicy {
       return false;
     }
     String methodName = method.getName();
-    if (DefaultMemberAccessPolicy.CORE_DENIED_METHOD_NAMES.contains(methodName)) {
+    if (DefaultMemberAccessPolicy.UNIVERSAL_DENIED_METHOD_NAMES.contains(methodName)) {
+      return false;
+    }
+    if (DefaultMemberAccessPolicy.isReceiverSpecificDangerousMethod(receiverClass, method)) {
       return false;
     }
     if (!delegate.isMethodPermitted(receiverClass, method)) {
@@ -1419,7 +1609,11 @@ final class MandatorySafeMemberAccessPolicy implements MemberAccessPolicy {
     if (methodName == null || !isClassPermitted(receiverClass)) {
       return false;
     }
-    if (DefaultMemberAccessPolicy.CORE_DENIED_METHOD_NAMES.contains(methodName)) {
+    if (DefaultMemberAccessPolicy.UNIVERSAL_DENIED_METHOD_NAMES.contains(methodName)) {
+      return false;
+    }
+    if (DefaultMemberAccessPolicy.isReceiverSpecificDangerousMethod(
+        receiverClass, methodName, arity)) {
       return false;
     }
     if (!delegate.isMethodPermitted(receiverClass, methodName, arity)) {
@@ -1457,7 +1651,10 @@ final class MandatorySafeMemberAccessPolicy implements MemberAccessPolicy {
         || !isClassPermitted(method.getDeclaringClass())) {
       return false;
     }
-    if (DefaultMemberAccessPolicy.CORE_DENIED_METHOD_NAMES.contains(method.getName())) {
+    if (DefaultMemberAccessPolicy.UNIVERSAL_DENIED_METHOD_NAMES.contains(method.getName())) {
+      return false;
+    }
+    if (DefaultMemberAccessPolicy.isReceiverSpecificDangerousMethod(receiverClass, method)) {
       return false;
     }
     if (!isPropertyPermitted(receiverClass, propertyName)) {
