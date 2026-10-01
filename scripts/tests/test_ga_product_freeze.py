@@ -39,6 +39,7 @@ CAT_SPRING_SECURITY_INTEGRATION = mod.CAT_SPRING_SECURITY_INTEGRATION
 CAT_QUARKUS_INTEGRATION = mod.CAT_QUARKUS_INTEGRATION
 CAT_MAVEN_PLUGIN = mod.CAT_MAVEN_PLUGIN
 CAT_GRADLE_PLUGIN = mod.CAT_GRADLE_PLUGIN
+CAT_EDITOR_INTEGRATION = mod.CAT_EDITOR_INTEGRATION
 CAT_GENERATED_ABI_CONTRACT = mod.CAT_GENERATED_ABI_CONTRACT
 CAT_SECURITY_POLICY = mod.CAT_SECURITY_POLICY
 
@@ -115,6 +116,11 @@ class TestGAProductFreeze(unittest.TestCase):
             classify_file("viet-template-gradle-plugin/src/main/java/io/github/minh124199/viettemplate/gradle/VietTemplatePlugin.java"),
             CAT_GRADLE_PLUGIN
         )
+        # Editor Integrations
+        self.assertEqual(
+            classify_file("editors/vscode/src/extension.ts"),
+            CAT_EDITOR_INTEGRATION
+        )
         # Generated ABI Contract
         self.assertEqual(
             classify_file("config/api-baseline/generated-template-runtime-abi.txt"),
@@ -132,6 +138,7 @@ class TestGAProductFreeze(unittest.TestCase):
         )
         self.assertEqual(classify_file("config/compatibility/1.0-candidate-contract.json"), CAT_VERSION_METADATA)
         self.assertEqual(classify_file("benchmark-evidence/m18/manifest.json"), CAT_VERSION_METADATA)
+        self.assertEqual(classify_file("editors/vscode/package.json"), CAT_VERSION_METADATA)
 
         # Release Infrastructure
         self.assertEqual(classify_file(".github/workflows/release.yml"), CAT_RELEASE_INFRASTRUCTURE)
@@ -146,6 +153,7 @@ class TestGAProductFreeze(unittest.TestCase):
         self.assertEqual(classify_file("README.md"), CAT_DOCUMENTATION)
         self.assertEqual(classify_file("CHANGELOG.md"), CAT_DOCUMENTATION)
         self.assertEqual(classify_file("docs/17-release-process.md"), CAT_DOCUMENTATION)
+        self.assertEqual(classify_file("editors/vscode/LICENSE"), CAT_DOCUMENTATION)
 
         # Test Only
         self.assertEqual(
@@ -158,6 +166,10 @@ class TestGAProductFreeze(unittest.TestCase):
         )
         self.assertEqual(
             classify_file("scripts/tests/test_release_infrastructure.py"),
+            CAT_TEST_ONLY
+        )
+        self.assertEqual(
+            classify_file("editors/vscode/test/unit/java-runtime.test.ts"),
             CAT_TEST_ONLY
         )
 

@@ -68,6 +68,7 @@ CAT_SPRING_SECURITY_INTEGRATION = "SPRING_SECURITY_INTEGRATION"
 CAT_QUARKUS_INTEGRATION = "QUARKUS_INTEGRATION"
 CAT_MAVEN_PLUGIN = "MAVEN_PLUGIN"
 CAT_GRADLE_PLUGIN = "GRADLE_PLUGIN"
+CAT_EDITOR_INTEGRATION = "EDITOR_INTEGRATION"
 CAT_GENERATED_ABI_CONTRACT = "GENERATED_ABI_CONTRACT"
 CAT_SECURITY_POLICY = "SECURITY_POLICY"
 
@@ -91,6 +92,7 @@ FORBIDDEN_PRODUCT_CATEGORIES = {
     CAT_QUARKUS_INTEGRATION,
     CAT_MAVEN_PLUGIN,
     CAT_GRADLE_PLUGIN,
+    CAT_EDITOR_INTEGRATION,
     CAT_GENERATED_ABI_CONTRACT,
     CAT_SECURITY_POLICY,
 }
@@ -114,6 +116,8 @@ def classify_file(path_str: str) -> str:
         return CAT_TEST_ONLY
     if p.startswith("scripts/tests/") or p.startswith("scripts/public-consumers/"):
         return CAT_TEST_ONLY
+    if p.startswith("editors/") and ("/test/" in p or "/fixtures/" in p):
+        return CAT_TEST_ONLY
 
     # 2. Benchmarks
     if p.startswith("viet-template-benchmarks/"):
@@ -132,11 +136,15 @@ def classify_file(path_str: str) -> str:
         return CAT_VERSION_METADATA
     if p == "config/compatibility/1.0-candidate-contract.json":
         return CAT_VERSION_METADATA
+    if p.startswith("editors/") and (p.endswith("/package.json") or p.endswith("/package-lock.json")):
+        return CAT_VERSION_METADATA
 
     # 4. Documentation & Repository Meta
     if p.startswith("docs/") or p.endswith(".md") or p.endswith(".txt") and not p.startswith("config/"):
         return CAT_DOCUMENTATION
     if p in ("LICENSE", "NOTICE", ".gitignore", ".gitattributes", "gradlew", "gradlew.bat", "mvnw", "mvnw.cmd"):
+        return CAT_DOCUMENTATION
+    if p.startswith("editors/") and (p.endswith("/LICENSE") or p.endswith("/.gitignore") or p.endswith("/.vscodeignore")):
         return CAT_DOCUMENTATION
     if p.startswith("gradle/") or p.startswith(".mvn/") or p.startswith("spotless/"):
         return CAT_RELEASE_INFRASTRUCTURE
@@ -199,6 +207,10 @@ def classify_file(path_str: str) -> str:
         return CAT_MAVEN_PLUGIN
     if p.startswith("viet-template-gradle-plugin/src/main/"):
         return CAT_GRADLE_PLUGIN
+
+    # Editor Integrations
+    if p.startswith("editors/"):
+        return CAT_EDITOR_INTEGRATION
 
     return CAT_UNCLASSIFIED
 
@@ -337,6 +349,7 @@ def print_report(res: dict[str, Any]) -> None:
     print(f"Quarkus integration drift:         {c[CAT_QUARKUS_INTEGRATION]}")
     print(f"Maven plugin drift:                {c[CAT_MAVEN_PLUGIN]}")
     print(f"Gradle plugin drift:               {c[CAT_GRADLE_PLUGIN]}")
+    print(f"Editor integration drift:          {c[CAT_EDITOR_INTEGRATION]}")
     print(f"Generated ABI drift:               {c[CAT_GENERATED_ABI_CONTRACT]}")
     print(f"Security policy drift:             {c[CAT_SECURITY_POLICY]}")
     print(f"Allowed version metadata drift:     {c[CAT_VERSION_METADATA]}")
