@@ -1,0 +1,128 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Viet Template",
+  "scopeName": "source.viet-template",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#directives" },
+    { "include": "#references" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#operators" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-hash.viet-template",
+          "match": "##.*$"
+        },
+        {
+          "name": "comment.block.viet-template",
+          "begin": "#\\*",
+          "end": "\\*#"
+        }
+      ]
+    },
+    "directives": {
+      "patterns": [
+        {
+          "name": "keyword.control.directive.viet-template",
+          "match": "#(if|elseif|else|foreach|macro|define|parse|include|evaluate|stop|break|set|end)\\b"
+        },
+        {
+          "name": "entity.name.function.directive.viet-template",
+          "match": "#[a-zA-Z0-9_]+"
+        }
+      ]
+    },
+    "references": {
+      "patterns": [
+        {
+          "name": "variable.other.formal.viet-template",
+          "begin": "\\$\\{!?",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.variable.viet-template" }
+          },
+          "end": "\\}",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.variable.viet-template" }
+          },
+          "patterns": [
+            {
+              "match": "[a-zA-Z0-9_\\-]+",
+              "name": "variable.other.member.viet-template"
+            },
+            {
+              "match": "\\.",
+              "name": "punctuation.accessor.viet-template"
+            }
+          ]
+        },
+        {
+          "match": "(\\$!?)([a-zA-Z0-9_]+)((?:\\.[a-zA-Z0-9_]+)*)",
+          "captures": {
+            "1": { "name": "punctuation.definition.variable.viet-template" },
+            "2": { "name": "variable.other.readwrite.viet-template" },
+            "3": { "name": "variable.other.property.viet-template" }
+          }
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.viet-template",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.viet-template",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.viet-template",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.viet-template",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.viet-template",
+          "match": "\\b[0-9]+\\.[0-9]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.viet-template",
+          "match": "\\b[0-9]+\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.viet-template",
+          "match": "==|!=|<=|>=|&&|\\|\\||!|\\+|-|\\*|/|%|=|\\|"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.separator.viet-template",
+          "match": "[(),;\\[\\]{}]"
+        }
+      ]
+    }
+  }
+}

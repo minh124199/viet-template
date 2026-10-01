@@ -1,0 +1,102 @@
+{
+  "name": "viet-template",
+  "displayName": "Viet Template Language Support",
+  "description": "Language Server Protocol support, semantic diagnostics, autocompletion, hover, and syntax highlighting for Viet Template (*.vtl, *.vm, *.vt).",
+  "version": "1.1.0",
+  "publisher": "minh124199",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:viet-template"
+  ],
+  "main": "./out/src/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "viet-template",
+        "aliases": [
+          "Viet Template",
+          "viet-template",
+          "vtl"
+        ],
+        "extensions": [
+          ".vtl",
+          ".vm",
+          ".vt"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "viet-template",
+        "scopeName": "source.viet-template",
+        "path": "./syntaxes/viet-template.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "vietTemplate.restartServer",
+        "title": "Viet Template: Restart Language Server",
+        "category": "Viet Template"
+      }
+    ],
+    "configuration": {
+      "title": "Viet Template",
+      "properties": {
+        "vietTemplate.java.home": {
+          "type": "string",
+          "default": null,
+          "description": "Specifies the folder path to the JDK (21 or higher) used to launch the Viet Template Language Server."
+        },
+        "vietTemplate.languageServer.jarPath": {
+          "type": "string",
+          "default": null,
+          "description": "Specifies the path to a custom language server JAR file. If not set, the bundled JAR is used."
+        },
+        "vietTemplate.languageServer.trace": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the Viet Template language server."
+        },
+        "vietTemplate.languageServer.vmArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Specifies additional JVM arguments passed to the language server process."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "bundle:server": "node scripts/bundle-server.js",
+    "pretest": "npm run compile && npm run bundle:server",
+    "test": "mocha --ui tdd --timeout 20000 out/test/**/*.test.js",
+    "vscode:prepublish": "npm run compile && npm run bundle:server",
+    "package": "vsce package --no-git-tag-version --allow-missing-repository"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.1",
+    "mocha": "^10.3.0",
+    "typescript": "^5.3.3"
+  }
+}
