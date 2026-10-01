@@ -15,11 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Document Management & UTF-16 Coordinate Mapping**:
     - Implemented `TemplateDocument` and `TemplateDocumentStore` supporting `textDocument/didOpen`, `textDocument/didChange`, and `textDocument/didClose`.
     - Bidirectional mapping between AST `SourceSpan` and LSP `Position`/`Range` with support for LF, CRLF, CR line endings, Vietnamese multi-byte characters, and UTF-16 surrogate pairs.
+    - Hardened coordinate boundaries against out-of-bounds positions and negative values.
+    - Implemented atomic monotonic document versioning rejecting stale updates (`version < currentVersion`) and suppressing stale diagnostics across full lifecycle sequences (`open v1 -> change v2 -> stale change v1 [rejected] -> change v3 -> close -> reopen v1`).
   - **Language Features Engine**:
     - `textDocument/completion`: Context-sensitive autocompletion for directives (`#if`, `#foreach`, `#set`, etc.), root template parameters (`$param`), local bindings, and member property chains (`$user.profile.bio`) with deterministic lexicographical ordering.
     - `textDocument/hover`: Type signature, nullability indication, and markdown documentation on parameters, model properties, and VTL directives.
     - `textDocument/definition`: Navigation to in-template variable bindings (`#set`, `#foreach`) and schema definitions in `*.vt-schema.json`.
-    - `textDocument/publishDiagnostics`: Deterministic diagnostic publication with stable codes (`SYNTAX:PARSE_ERROR`, `VTLS:2101`, `VTLS:2104`, `VTLS:2107`, `VTLSEC:2401`).
+    - `textDocument/publishDiagnostics`: Deterministic diagnostic publication with stable codes (`SYNTAX:PARSE_ERROR`, `VTLS:2101`, `VTLS:2104`, `VTLS:2107`, `VTLSEC:2401`), with immediate publication of empty diagnostics array (`[]`) upon repair or document close.
+    - Resilient error recovery: Gracefully handles malformed syntax and unclosed directives across completion, hover, and definition without unhandled exceptions.
+    - Standard cancellation: Supported `$/cancelRequest` and unknown notifications without error.
   - **Canonical Schema Resolution & Security Invariants**:
     - Integrated `CanonicalSchemaResolver` for discovering and parsing sibling and configured `*.vt-schema.json` contract files with support for recursive models.
     - Strict fail-closed `MemberAccessPolicy` enforcement denying reflection, `getClass()`, `ClassLoader`, and sensitive properties.

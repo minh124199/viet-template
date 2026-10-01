@@ -31,7 +31,7 @@ final class DefinitionProvider {
     VtlParseResult parsed;
     try {
       parsed = VtlParser.parse(doc.sourceText());
-    } catch (IllegalArgumentException | IllegalStateException e) {
+    } catch (IllegalArgumentException | IllegalStateException | IndexOutOfBoundsException e) {
       return List.of();
     }
 
@@ -181,11 +181,15 @@ final class DefinitionProvider {
     VtlSetDirectiveNode best = null;
     if (nodes == null) return null;
     for (VtlNode node : nodes) {
+      if (!node.span().isKnown()) {
+        continue;
+      }
       if (node.span().startOffset() > offset) {
         break;
       }
       if (node instanceof VtlSetDirectiveNode setNode) {
-        if (setNode.span().endOffset() <= offset
+        if (setNode.span().isKnown()
+            && setNode.span().endOffset() <= offset
             && setNode.target() instanceof VtlAssignmentTarget.ReferenceTarget refTarget
             && refTarget.reference().rootName().equals(varName)) {
           best = setNode;

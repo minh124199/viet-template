@@ -1086,5 +1086,8 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **V8.** Canonical Schema Integration: Implemented `CanonicalSchemaResolver` for discovering and parsing sibling and configured `*.vt-schema.json` files with support for recursive models.
 - [x] **V9.** Security & Runtime Isolation: Preserved zero-diff in `viet-template-api` and `viet-template-runtime`, enforced `MemberAccessPolicy.standard()`, and utilized pure Java 21 standard library with zero external dependencies.
 - [x] **V10.** Full Qualification & Governance Verification: Verified 100% test pass (45/45 LSP unit tests, full ArchUnit suite), passed all 10 governance scripts, and verified clean build parity.
-
-
+- [x] **V11.** Version Ordering & Stale Update Rejection: Atomic monotonic document versioning via `TemplateDocumentStore.updateIfNewer()` with `ConcurrentHashMap.compute()`. Stale updates (`version < currentVersion`) are rejected without overwriting newer state or publishing stale diagnostics across the full lifecycle (`open v1 -> change v2 -> stale change v1 [rejected] -> change v3 -> close -> reopen v1`).
+- [x] **V12.** Position Encoding & Coordinate Hardening: Verified bidirectional UTF-16 code unit position/range mapping across ASCII, Vietnamese diacritics, supplementary Unicode surrogate pairs (emojis), multiline templates, CRLF vs LF line endings, and safe boundary clamping.
+- [x] **V13.** Diagnostics Lifecycle & Cleared Diagnostics: Verified instant emission of empty diagnostics array (`[]`) to clear problem markers in the client editor upon repair or document close.
+- [x] **V14.** Resilient Error Recovery: Protected completion, hover, and definition providers against malformed templates and incomplete syntax without unhandled exceptions.
+- [x] **V15.** Cancellation & Notification Protocol Handling: Handled standard `$/cancelRequest` and unknown notifications gracefully without protocol error.

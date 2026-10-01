@@ -55,6 +55,13 @@ class TemplateLanguageService {
     return doc;
   }
 
+  public boolean updateDocumentIfNewer(String uri, int version, String text) {
+    Objects.requireNonNull(uri, "uri must not be null");
+    Objects.requireNonNull(text, "text must not be null");
+    TemplateDocument doc = new TemplateDocument(uri, version, text);
+    return documentStore.updateIfNewer(doc);
+  }
+
   public TemplateDocument updateDocument(String uri, int version, String text) {
     Objects.requireNonNull(uri, "uri must not be null");
     Objects.requireNonNull(text, "text must not be null");

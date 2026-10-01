@@ -79,21 +79,25 @@ final class DiagnosticProvider {
     }
 
     // 2. Semantic diagnostics if canonical schema is available
-    Optional<SchemaEnvelope> schema = schemaResolver.resolveSchema(doc.uri());
-    if (schema.isPresent()) {
-      Set<String> inScopeVars = new HashSet<>();
-      inScopeVars.add("foreach");
-      collectScopeVariables(parsed.template().children(), inScopeVars);
+    try {
+      Optional<SchemaEnvelope> schema = schemaResolver.resolveSchema(doc.uri());
+      if (schema.isPresent()) {
+        Set<String> inScopeVars = new HashSet<>();
+        inScopeVars.add("foreach");
+        collectScopeVariables(parsed.template().children(), inScopeVars);
 
-      analyzeSemantics(
-          parsed.template().children(),
-          doc,
-          schema.get(),
-          schemaResolver,
-          policy,
-          inScopeVars,
-          false,
-          result);
+        analyzeSemantics(
+            parsed.template().children(),
+            doc,
+            schema.get(),
+            schemaResolver,
+            policy,
+            inScopeVars,
+            false,
+            result);
+      }
+    } catch (IllegalArgumentException | IllegalStateException | IndexOutOfBoundsException ignored) {
+      // Best-effort semantic diagnostics on malformed or partially invalid ASTs
     }
 
     return sortDiagnostics(result);
@@ -388,7 +392,7 @@ final class DiagnosticProvider {
                       prop.span()));
               break;
             }
-          } catch (ClassNotFoundException ignored) {
+          } catch (ClassNotFoundException | LinkageError ignored) {
           }
         }
 
