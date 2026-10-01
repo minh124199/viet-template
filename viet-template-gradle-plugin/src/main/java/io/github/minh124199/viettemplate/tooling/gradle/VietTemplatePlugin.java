@@ -72,6 +72,7 @@ public class VietTemplatePlugin implements Plugin<Project> {
                       .getGenerateTypedFacades()
                       .convention(extension.getGenerateTypedFacades());
                   facadeTask.getTypeChecking().convention(extension.getTypeChecking());
+                  facadeTask.getProfile().convention(extension.getProfile());
                   facadeTask.onlyIf(t -> facadeTask.getGenerateTypedFacades().getOrElse(false));
                 });
 
@@ -103,6 +104,7 @@ public class VietTemplatePlugin implements Plugin<Project> {
                       .getGenerateTypedFacades()
                       .convention(extension.getGenerateTypedFacades());
                   compileTask.getTypeChecking().convention(extension.getTypeChecking());
+                  compileTask.getProfile().convention(extension.getProfile());
                 });
 
     TaskProvider<VietTemplateGenerateSchemasTask> generateSchemasTask =

@@ -330,9 +330,46 @@ class VietTemplatePluginTest {
     Path templateDir = projectDir.resolve("src/main/viet-template");
     Files.createDirectories(templateDir);
     Files.writeString(
-        templateDir.resolve("user.vtl"), "User: $user.length()", StandardCharsets.UTF_8);
+        templateDir.resolve("user.vtl"), "User: $user.length", StandardCharsets.UTF_8);
     Files.writeString(
         templateDir.resolve("user.vtl.contract"), "nullable user=String\n", StandardCharsets.UTF_8);
+
+    BuildResult result =
+        createRunner(projectDir).withArguments(VietTemplatePlugin.TASK_NAME).build();
+
+    assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME)).isNotNull();
+    assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  @DisplayName("VTL_MIGRATION profile permits arbitrary method invocations in Gradle build")
+  void testProfileConfigurationSupportsVtlMigration(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"test-vtl-migration-profile\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n"
+            + "vietTemplate {\n"
+            + "    profile.set(\"VTL_MIGRATION\")\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path templateDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(templateDir);
+    Files.writeString(
+        templateDir.resolve("user.vtl"), "Length: $user.length()", StandardCharsets.UTF_8);
+    Files.writeString(
+        templateDir.resolve("user.vtl.contract"), "user=String\n", StandardCharsets.UTF_8);
 
     BuildResult result =
         createRunner(projectDir).withArguments(VietTemplatePlugin.TASK_NAME).build();

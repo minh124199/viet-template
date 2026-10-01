@@ -50,6 +50,15 @@ public interface VietTemplateConfig {
   String encoding();
 
   /**
+   * Compatibility profile for template language feature availability and security boundaries.
+   * Supported values: VTL_CORE, VTL_MIGRATION, VTL_DYNAMIC, VTL_SAFE. Defaults to "VTL_MIGRATION".
+   */
+  @WithDefault("VTL_MIGRATION")
+  default String profile() {
+    return "VTL_MIGRATION";
+  }
+
+  /**
    * Returns effective additional suffixes as a list, or empty list if unconfigured.
    *
    * @return list of additional suffixes

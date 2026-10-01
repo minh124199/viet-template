@@ -24,6 +24,7 @@ public abstract class VietTemplateExtension {
     getIncremental().convention(true);
     getGenerateTypedFacades().convention(false);
     getTypeChecking().convention("OFF");
+    getProfile().convention("VTL_CORE");
     getGeneratedSourcesDirectory().convention(objects.directoryProperty());
     getSchemaOutputDirectory().convention(objects.directoryProperty());
     getTypeScriptOutputDirectory().convention(objects.directoryProperty());
@@ -56,4 +57,6 @@ public abstract class VietTemplateExtension {
   public abstract Property<Boolean> getGenerateTypedFacades();
 
   public abstract Property<String> getTypeChecking();
+
+  public abstract Property<String> getProfile();
 }

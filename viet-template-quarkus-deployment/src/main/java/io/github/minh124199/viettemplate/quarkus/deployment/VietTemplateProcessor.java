@@ -6,6 +6,7 @@ import io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic;
 import io.github.minh124199.viettemplate.aot.TemplateAotRequest;
 import io.github.minh124199.viettemplate.aot.TemplateAotResult;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
+import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.quarkus.VietTemplateConfig;
 import io.github.minh124199.viettemplate.quarkus.VietTemplateProducer;
 import io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer;
@@ -185,6 +186,17 @@ public class VietTemplateProcessor {
       charset = StandardCharsets.UTF_8;
     }
 
+    String profileStr =
+        cfg.getOptionalValue("quarkus.viet-template.profile", String.class)
+            .orElse("VTL_MIGRATION")
+            .trim();
+    VtlProfile profile;
+    try {
+      profile = VtlProfile.valueOf(profileStr.toUpperCase(java.util.Locale.ROOT));
+    } catch (IllegalArgumentException e) {
+      profile = VtlProfile.VTL_MIGRATION;
+    }
+
     Path effectiveTemplatesDir = templatesDir;
     templateFiles.sort(
         Comparator.comparing(
@@ -218,6 +230,7 @@ public class VietTemplateProcessor {
                 .encoding(charset)
                 .packagePrefix(DEFAULT_PACKAGE_PREFIX)
                 .includePatterns(List.of(relStr))
+                .profile(profile)
                 .build();
 
         TemplateAotResult result = compiler.compile(aotRequest);
