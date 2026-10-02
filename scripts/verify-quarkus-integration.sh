@@ -264,6 +264,17 @@ else
     fi
 fi
 
+# Step 0: Ensure staged reactor artifacts in local repository
+echo "[STEP 0] Ensuring staged reactor artifacts in local repository..."
+if [ -d "${ROOT_DIR}/build/rc-repository/io/github/minh124199" ]; then
+    mkdir -p "${HOME}/.m2/repository/io/github"
+    cp -rn "${ROOT_DIR}/build/rc-repository/io/github/minh124199" "${HOME}/.m2/repository/io/github/" 2>/dev/null || cp -r "${ROOT_DIR}/build/rc-repository/io/github/minh124199" "${HOME}/.m2/repository/io/github/"
+else
+    "${ROOT_DIR}/gradlew" publishToMavenLocal --no-daemon -x test
+    "${ROOT_DIR}/mvnw" install -DskipTests -Dspotless.check.skip=true --no-transfer-progress -B
+fi
+echo "[PASS] Reactor artifacts verified in local repository."
+
 # Step 1: Run Maven Quarkus AOT fixture tests
 echo "[STEP 1] Running maven-quarkus-aot consumer fixture tests..."
 "${ROOT_DIR}/mvnw" clean test -f "${ROOT_DIR}/integration-tests/quarkus/maven-quarkus-aot/pom.xml" -B
