@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Security & Architecture Hardening (1.1.0)**:
+  - **Spring MVC HTML Auto-Escaping by Default**:
+    - Enabled automatic HTML output escaping by default for Spring MVC web applications (`autoEscape = true` in `VietTemplateProperties`).
+    - Added configuration property `viet-template.auto-escape` (defaults to `true`) allowing explicit opt-out if unescaped legacy rendering is required.
+    - Decoupled output escaping policy from VTL syntax, allowing HTML escaping in `VTL_CORE` and `VTL_MIGRATION` profiles with full `SafeHtml` bypass support.
+  - **Monotonic Macro Invocation Budget & Work Exhaustion Protection**:
+    - Added `maxMacroInvocations` budget (defaulting to 10,000) in `RenderBudget`, preventing exponential CPU/work exhaustion from recursive macros without output across all execution tiers (`AST`, `IR`, `AOT_BYTECODE`).
+    - Extended generated template runtime ABI additively with `BytecodeRuntimeBridge.countMacroInvocation(TemplateOutput)` (expanding invoked methods from 22 to 23).
+    - Backward runtime compatibility: Precompiled 1.0 templates run cleanly and without modification on the 1.1 runtime (`1.0 template -> 1.1 runtime = PASS`).
+    - Recompilation requirement: Stale 1.0 compiled templates do not contain `countMacroInvocation` calls; recompilation with the 1.1 compiler is required to receive macro budget instrumentation and quota enforcement.
+    - Forward runtime compatibility: Newly generated 1.1 templates referencing `countMacroInvocation` require the 1.1+ runtime (`1.1 template -> 1.0 runtime = NoSuchMethodError`).
+    - Added default 5,000ms wall-clock execution deadline for `VTL_SAFE` profile when unspecified.
+  - **Receiver-Aware Dangerous Method Filtering in MemberAccessPolicy**:
+    - Split dangerous method filtering into universal dangerous pivots (reflection, classloaders, modules, dynamic lookups; blocked globally on any class) and receiver-specific dangerous methods (`exit`, `halt`, `load`, `loadLibrary`, `shutdown`, `shutdownNow`, `wait`, `notify`, `interrupt`, `suspend`, `resume`).
+    - Safely permits legitimate application business methods (`cache.load()`, `service.shutdown()`, `workflow.resume()`) on user-defined beans under `MemberAccessPolicy.standard()`.
+    - Documented host object exposure boundaries: standard (denylist for trusted developer templates) permits standard host classes (`File`, `Path`, `URI`, `URL`), whereas safe (fail-closed allowlist for untrusted user templates) strictly forbids all host and infrastructure classes.
+  - **VTL_MIGRATION Profile Containment**:
+    - Decoupled method invocation from dynamic evaluation: `VTL_MIGRATION` allows application domain methods (`$user.getName()`, `$service.find($id)`) while `#evaluate` remains strictly disallowed across all tiers.
+  - **Compilation Profile Propagation Across Build Tools**:
+    - Propagated compilation profile (`VTL_CORE`, `VTL_MIGRATION`, `VTL_SAFE`) through Maven (`VietTemplateCompileMojo`), Gradle (`VietTemplateCompileTask`, `VietTemplateGenerateFacadesTask`), and Quarkus (`VietTemplateProcessor`).
+  - **Provenance and Security Boundary Corrections**:
+    - Updated `SECURITY.md` and `README.md` to clarify agent-assisted provenance and accurately document security boundaries.
+
 - **Milestone M31: IntelliJ IDEA Editor Integration / Language Client Foundation**:
   - **Plugin Architecture & Monorepo Isolation (`editors/intellij`)**:
     - Established dedicated IntelliJ IDEA plugin in `editors/intellij`, maintaining strict isolation from core Java reactor builds with zero IntelliJ SDK requirements for standard Maven and Gradle builds.

@@ -102,6 +102,7 @@ public class VietTemplateAutoConfiguration implements InitializingBean {
     builder.negativeCacheTtlMillis(properties.getNegativeCacheTtlMillis());
     builder.hotReload(properties.isHotReload());
     builder.watchDebounceMillis(properties.getWatchDebounceMillis());
+    builder.autoEscape(properties.isAutoEscape());
     customizers.orderedStream().forEach(customizer -> customizer.customize(builder));
     return builder.build();
   }

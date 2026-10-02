@@ -16,7 +16,7 @@
 The Viet Template Language (VTL) is an enterprise-grade, high-throughput templating language designed for deterministic rendering on modern Java platforms (Java 21+). Viet Template supports all 80 tracked VTL grammar features. In the current 301-scenario differential suite against Apache Velocity 2.4.1, 295 scenarios match exactly (98.01%), with 5 documented expected differences and 1 Viet Template extension (100% accounted behavior coverage), while providing:
 - Zero-allocation streaming output pipelines.
 - Modern type-safe execution profiles (`VTL_CORE`, `VTL_MIGRATION`, `VTL_DYNAMIC`, `VTL_SAFE`).
-- High-performance ahead-of-time (AOT) bytecode compilation alongside a clean-room AST/IR reference interpreter.
+- High-performance ahead-of-time (AOT) bytecode compilation alongside an independent AST/IR reference interpreter.
 - Confinement security preventing reflection attacks, remote code execution (RCE), and classloader escaping.
 
 ---

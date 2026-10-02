@@ -95,7 +95,7 @@ This architectural isolation is enforced at two levels:
   - `runtime.strict_mode`
   - `parser.space_gobbling` (`lines`, `none`, `bc`)
   - `resource.loaders`
-- **`VietReferenceEngineAdapter`**: Configures `VtlInterpreterOptions`, `VtlParserOptions`, and `ExecutionLimits` for the clean-room reference interpreter.
+- **`VietReferenceEngineAdapter`**: Configures `VtlInterpreterOptions`, `VtlParserOptions`, and `ExecutionLimits` for the independent reference interpreter.
 
 ### 2.3 Strict vs. Permissive Execution Modes
 
@@ -252,4 +252,4 @@ Each test execution automatically produces comprehensive reports in both Markdow
 
 ## 8. Notice & Trademark Clarification
 
-Apache Velocity and Apache are trademarks of the Apache Software Foundation. This project is an independent clean-room implementation and is not affiliated with, sponsored by, or endorsed by the Apache Software Foundation.
+Apache Velocity and Apache are trademarks of the Apache Software Foundation. This project is an independent implementation with clean-room dependency isolation and is not affiliated with, sponsored by, or endorsed by the Apache Software Foundation.

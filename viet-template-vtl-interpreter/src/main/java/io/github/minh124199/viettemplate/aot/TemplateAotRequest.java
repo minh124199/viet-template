@@ -3,6 +3,8 @@ package io.github.minh124199.viettemplate.aot;
 import io.github.minh124199.viettemplate.api.TemplateContract;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TypeCheckingMode;
+import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
+import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -34,6 +36,8 @@ public final class TemplateAotRequest {
   private final boolean generateSchemas;
   private final Path schemaOutputDirectory;
   private final boolean compileBytecode;
+  private final VtlProfile profile;
+  private final VtlSemanticOptions semanticOptions;
 
   TemplateAotRequest(
       List<Path> sourceDirectories,
@@ -159,6 +163,50 @@ public final class TemplateAotRequest {
       boolean generateSchemas,
       Path schemaOutputDirectory,
       boolean compileBytecode) {
+    this(
+        sourceDirectories,
+        outputDirectory,
+        resourceOutputDirectory,
+        includePatterns,
+        excludePatterns,
+        encoding,
+        packagePrefix,
+        failOnWarning,
+        incremental,
+        stateFile,
+        contracts,
+        generateTypedFacades,
+        generatedSourcesDirectory,
+        classLoader,
+        typeCheckingMode,
+        generateSchemas,
+        schemaOutputDirectory,
+        compileBytecode,
+        null,
+        null);
+  }
+
+  TemplateAotRequest(
+      List<Path> sourceDirectories,
+      Path outputDirectory,
+      Path resourceOutputDirectory,
+      List<String> includePatterns,
+      List<String> excludePatterns,
+      Charset encoding,
+      String packagePrefix,
+      boolean failOnWarning,
+      boolean incremental,
+      Path stateFile,
+      Map<TemplateId, TemplateContract> contracts,
+      boolean generateTypedFacades,
+      Path generatedSourcesDirectory,
+      ClassLoader classLoader,
+      TypeCheckingMode typeCheckingMode,
+      boolean generateSchemas,
+      Path schemaOutputDirectory,
+      boolean compileBytecode,
+      VtlProfile profile,
+      VtlSemanticOptions semanticOptions) {
     this.sourceDirectories =
         List.copyOf(
             Objects.requireNonNull(sourceDirectories, "sourceDirectories must not be null"));
@@ -184,6 +232,8 @@ public final class TemplateAotRequest {
     this.generateSchemas = generateSchemas;
     this.schemaOutputDirectory = schemaOutputDirectory;
     this.compileBytecode = compileBytecode;
+    this.profile = profile;
+    this.semanticOptions = semanticOptions;
   }
 
   public static Builder builder() {
@@ -262,6 +312,14 @@ public final class TemplateAotRequest {
     return compileBytecode;
   }
 
+  public Optional<VtlProfile> profile() {
+    return Optional.ofNullable(profile);
+  }
+
+  Optional<VtlSemanticOptions> semanticOptions() {
+    return Optional.ofNullable(semanticOptions);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -282,7 +340,9 @@ public final class TemplateAotRequest {
         && Objects.equals(stateFile, that.stateFile)
         && Objects.equals(contracts, that.contracts)
         && Objects.equals(generatedSourcesDirectory, that.generatedSourcesDirectory)
-        && Objects.equals(schemaOutputDirectory, that.schemaOutputDirectory);
+        && Objects.equals(schemaOutputDirectory, that.schemaOutputDirectory)
+        && Objects.equals(profile, that.profile)
+        && Objects.equals(semanticOptions, that.semanticOptions);
   }
 
   @Override
@@ -304,7 +364,9 @@ public final class TemplateAotRequest {
         typeCheckingMode,
         generateSchemas,
         schemaOutputDirectory,
-        compileBytecode);
+        compileBytecode,
+        profile,
+        semanticOptions);
   }
 
   @Override
@@ -343,6 +405,10 @@ public final class TemplateAotRequest {
         + stateFile
         + ", typeCheckingMode="
         + typeCheckingMode
+        + ", profile="
+        + profile
+        + ", semanticOptions="
+        + semanticOptions
         + '}';
   }
 
@@ -365,8 +431,20 @@ public final class TemplateAotRequest {
     private boolean generateSchemas = false;
     private Path schemaOutputDirectory;
     private boolean compileBytecode = true;
+    private VtlProfile profile;
+    private VtlSemanticOptions semanticOptions;
 
     private Builder() {}
+
+    public Builder profile(VtlProfile profile) {
+      this.profile = profile;
+      return this;
+    }
+
+    Builder semanticOptions(VtlSemanticOptions semanticOptions) {
+      this.semanticOptions = semanticOptions;
+      return this;
+    }
 
     public Builder typeCheckingMode(TypeCheckingMode typeCheckingMode) {
       this.typeCheckingMode = typeCheckingMode != null ? typeCheckingMode : TypeCheckingMode.OFF;
@@ -560,7 +638,9 @@ public final class TemplateAotRequest {
           typeCheckingMode,
           generateSchemas,
           schemaOutputDirectory,
-          compileBytecode);
+          compileBytecode,
+          profile,
+          semanticOptions);
     }
   }
 

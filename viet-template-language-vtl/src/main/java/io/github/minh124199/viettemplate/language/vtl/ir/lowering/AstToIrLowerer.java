@@ -281,7 +281,11 @@ public final class AstToIrLowerer {
                   ? NullRenderMode.THROW_ERROR
                   : NullRenderMode.LITERAL_EXPRESSION);
       IrEscapeMode escapeMode =
-          (options.profile() == VtlProfile.VTL_SAFE) ? IrEscapeMode.HTML_TEXT : IrEscapeMode.RAW;
+          options.escapeMode() != null
+              ? options.escapeMode()
+              : ((options.profile() == VtlProfile.VTL_SAFE)
+                  ? IrEscapeMode.HTML_TEXT
+                  : IrEscapeMode.RAW);
       statements.add(new IrWriteValue(value, escapeMode, nullMode, refOut.span()));
       return;
     }

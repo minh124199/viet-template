@@ -4,6 +4,7 @@ import io.github.minh124199.viettemplate.api.ClasspathTemplateRepository;
 import io.github.minh124199.viettemplate.api.RenderContextContributor;
 import io.github.minh124199.viettemplate.api.TemplateEngine;
 import io.github.minh124199.viettemplate.api.UndefinedReferencePolicy;
+import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor;
 import io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine;
 import io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder;
@@ -67,8 +68,17 @@ public class VietTemplateProducer {
     } catch (IllegalArgumentException e) {
       undefinedPolicy = UndefinedReferencePolicy.SILENT;
     }
+    VtlProfile profile;
+    try {
+      profile = VtlProfile.valueOf(config.profile().trim().toUpperCase(Locale.ROOT));
+    } catch (IllegalArgumentException e) {
+      profile = VtlProfile.VTL_MIGRATION;
+    }
     builder.interpreterOptions(
-        VtlInterpreterOptions.builder().undefinedReferencePolicy(undefinedPolicy).build());
+        VtlInterpreterOptions.builder()
+            .profile(profile)
+            .undefinedReferencePolicy(undefinedPolicy)
+            .build());
 
     boolean hasSecurityContributor = false;
     if (customContributors != null) {

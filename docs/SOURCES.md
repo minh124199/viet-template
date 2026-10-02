@@ -1,6 +1,6 @@
 # Sources and External Baselines
 
-This file records external specifications and implementation references used to define the initial engineering baseline. It is **not** a license to copy implementation code. The project should use a clean-room compatibility approach: public language behavior and public documentation may be used as behavioral references; implementation must be independently written and all dependencies must comply with their licenses.
+This file records external specifications and implementation references used to define the initial engineering baseline. It is **not** a license to copy implementation code. The project uses an independent implementation approach: public language behavior and public documentation may be used as behavioral references; implementation must be independently written and all production artifacts must maintain strict dependency isolation from Apache Velocity classes.
 
 ## Apache Velocity
 

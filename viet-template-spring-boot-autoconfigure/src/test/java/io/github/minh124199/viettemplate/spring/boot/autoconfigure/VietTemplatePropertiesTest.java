@@ -36,6 +36,7 @@ class VietTemplatePropertiesTest {
     assertThat(properties.isHotReload()).isFalse();
     assertThat(properties.getWatchDebounceMillis()).isEqualTo(50L);
     assertThat(properties.getOrder()).isEqualTo(Ordered.LOWEST_PRECEDENCE);
+    assertThat(properties.isAutoEscape()).isTrue();
   }
 
   @Test
@@ -57,6 +58,7 @@ class VietTemplatePropertiesTest {
     properties.setHotReload(true);
     properties.setWatchDebounceMillis(100L);
     properties.setOrder(1);
+    properties.setAutoEscape(false);
 
     assertThat(properties.isEnabled()).isFalse();
     assertThat(properties.getPrefix()).isEqualTo("templates/");
@@ -72,6 +74,7 @@ class VietTemplatePropertiesTest {
     assertThat(properties.isHotReload()).isTrue();
     assertThat(properties.getWatchDebounceMillis()).isEqualTo(100L);
     assertThat(properties.getOrder()).isEqualTo(1);
+    assertThat(properties.isAutoEscape()).isFalse();
   }
 
   @Test

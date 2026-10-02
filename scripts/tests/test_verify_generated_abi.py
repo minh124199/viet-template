@@ -202,12 +202,19 @@ TYPE com.example.Bar
         }
         self.assertEqual(set(baseline.keys()), expected_types)
 
-        # Check BytecodeRuntimeBridge has 16 methods including countLoopIteration
+        # Check BytecodeRuntimeBridge has 17 methods including countLoopIteration and countMacroInvocation
         bridge_members = baseline["io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge"]
-        self.assertEqual(len(bridge_members), 16)
+        self.assertEqual(len(bridge_members), 17)
         self.assertTrue(
             bridge_members.matches_method(
                 "countLoopIteration",
+                ["io.github.minh124199.viettemplate.api.TemplateOutput"],
+                "void",
+            )
+        )
+        self.assertTrue(
+            bridge_members.matches_method(
+                "countMacroInvocation",
                 ["io.github.minh124199.viettemplate.api.TemplateOutput"],
                 "void",
             )
@@ -339,6 +346,7 @@ class TestAbiValidation(unittest.TestCase):
                     "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata.isLast()",
                     "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.binaryOp(java.lang.Object, java.lang.Object, int, java.lang.String, int, int, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)",
                     "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countLoopIteration(io.github.minh124199.viettemplate.api.TemplateOutput)",
+                    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countMacroInvocation(io.github.minh124199.viettemplate.api.TemplateOutput)",
                     "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.createCallSite(int, java.lang.String, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)",
                     "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.createForeachMetadata(java.lang.Object, boolean, java.lang.Object)",
                     "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.createLoopState()",
@@ -366,7 +374,7 @@ class TestAbiValidation(unittest.TestCase):
         self.assertTrue(res["method_count_matches"])
         self.assertTrue(res["field_count_matches"])
         self.assertEqual(res["total_types"], 8)
-        self.assertEqual(res["total_methods"], 22)
+        self.assertEqual(res["total_methods"], 23)
         self.assertEqual(res["total_fields"], 0)
 
     def test_validation_detects_unregistered_type(self):
@@ -432,12 +440,91 @@ class TestAbiValidation(unittest.TestCase):
         import copy
 
         report = copy.deepcopy(self.valid_report)
-        # Drop one method
-        report["runtime_abi"]["viet_template_methods"].pop()
+        # Drop one method (which is a historical method)
+        report["runtime_abi"]["viet_template_methods"].remove(
+            "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countLoopIteration(io.github.minh124199.viettemplate.api.TemplateOutput)"
+        )
         res = verifier.validate_abi(report, self.baseline)
         self.assertEqual(res["status"], "FAILED")
         self.assertFalse(res["method_count_matches"])
-        self.assertTrue(any("Method count mismatch" in err or "method count mismatch" in err.lower() for err in res["errors"]))
+        self.assertTrue(any("Historical 1.0" in err for err in res["errors"]))
+
+    def test_validation_passes_on_pure_historical_1_0_methods(self):
+        import copy
+
+        report = copy.deepcopy(self.valid_report)
+        # Remove additive 1.1 method so only the 22 historical methods remain
+        report["runtime_abi"]["viet_template_methods"].remove(
+            "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countMacroInvocation(io.github.minh124199.viettemplate.api.TemplateOutput)"
+        )
+        res = verifier.validate_abi(report, self.baseline)
+        self.assertEqual(res["status"], "PASSED")
+        self.assertEqual(res["errors"], [])
+        self.assertEqual(res["total_methods"], 22)
+        self.assertEqual(res["additive_methods"], [])
+        self.assertTrue(res["historical_subset_matches"])
+
+    def test_validation_passes_on_additive_1_x_method(self):
+        # valid_report contains 22 historical + countMacroInvocation
+        res = verifier.validate_abi(self.valid_report, self.baseline)
+        self.assertEqual(res["status"], "PASSED")
+        self.assertEqual(res["errors"], [])
+        self.assertEqual(res["total_methods"], 23)
+        self.assertEqual(
+            res["additive_methods"],
+            [
+                "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countMacroInvocation(io.github.minh124199.viettemplate.api.TemplateOutput)"
+            ],
+        )
+
+    def test_validation_fails_on_removed_historical_method(self):
+        import copy
+
+        report = copy.deepcopy(self.valid_report)
+        report["runtime_abi"]["viet_template_methods"].remove(
+            "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.isTruthy(java.lang.Object, boolean)"
+        )
+        res = verifier.validate_abi(report, self.baseline)
+        self.assertEqual(res["status"], "FAILED")
+        self.assertFalse(res["historical_subset_matches"])
+        self.assertIn(
+            "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.isTruthy(java.lang.Object, boolean)",
+            res["missing_historical_methods"],
+        )
+        self.assertTrue(any("Historical 1.0 runtime ABI method missing" in err for err in res["errors"]))
+
+    def test_validation_fails_on_changed_historical_descriptor(self):
+        import copy
+
+        report = copy.deepcopy(self.valid_report)
+        # Mutate descriptor: countLoopIteration(TemplateOutput) -> countLoopIteration(int)
+        idx = report["runtime_abi"]["viet_template_methods"].index(
+            "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countLoopIteration(io.github.minh124199.viettemplate.api.TemplateOutput)"
+        )
+        report["runtime_abi"]["viet_template_methods"][idx] = (
+            "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countLoopIteration(int)"
+        )
+        res = verifier.validate_abi(report, self.baseline)
+        self.assertEqual(res["status"], "FAILED")
+        self.assertFalse(res["historical_subset_matches"])
+        self.assertTrue(any("Historical 1.0 runtime ABI method missing" in err for err in res["errors"]))
+
+    def test_validation_fails_on_renamed_historical_bridge(self):
+        import copy
+
+        report = copy.deepcopy(self.valid_report)
+        # Rename binaryOp -> binaryOperation
+        idx = next(
+            i for i, m in enumerate(report["runtime_abi"]["viet_template_methods"])
+            if "binaryOp(" in m
+        )
+        report["runtime_abi"]["viet_template_methods"][idx] = (
+            report["runtime_abi"]["viet_template_methods"][idx].replace("binaryOp(", "binaryOperation(")
+        )
+        res = verifier.validate_abi(report, self.baseline)
+        self.assertEqual(res["status"], "FAILED")
+        self.assertFalse(res["historical_subset_matches"])
+        self.assertTrue(any("Historical 1.0 runtime ABI method missing" in err for err in res["errors"]))
 
 
 if __name__ == "__main__":

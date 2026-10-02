@@ -51,6 +51,7 @@ public abstract class VietTemplateGenerateFacadesTask extends DefaultTask {
     getFailOnWarning().convention(false);
     getGenerateTypedFacades().convention(false);
     getTypeChecking().convention("OFF");
+    getProfile().convention("VTL_MIGRATION");
   }
 
   @Input
@@ -98,6 +99,10 @@ public abstract class VietTemplateGenerateFacadesTask extends DefaultTask {
   @Input
   @Optional
   public abstract Property<String> getTypeChecking();
+
+  @Input
+  @Optional
+  public abstract Property<String> getProfile();
 
   @TaskAction
   public void generateFacades() {
@@ -164,6 +169,18 @@ public abstract class VietTemplateGenerateFacadesTask extends DefaultTask {
       throw new GradleException(e.getMessage(), e);
     }
     reqBuilder.typeCheckingMode(mode);
+
+    String profileName = getProfile().getOrElse("VTL_MIGRATION");
+    if (profileName != null && !profileName.isBlank()) {
+      try {
+        io.github.minh124199.viettemplate.language.vtl.VtlProfile vtlProfile =
+            io.github.minh124199.viettemplate.language.vtl.VtlProfile.valueOf(
+                profileName.trim().toUpperCase(java.util.Locale.ROOT));
+        reqBuilder.profile(vtlProfile);
+      } catch (IllegalArgumentException e) {
+        throw new GradleException("Invalid profile configuration: '" + profileName + "'", e);
+      }
+    }
 
     List<String> incl = getIncludes().getOrNull();
     if (incl != null && !incl.isEmpty()) {

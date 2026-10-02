@@ -254,15 +254,30 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
       }
 
       ModelSchema modelSchema = contract != null ? ModelSchema.fromContract(contract) : null;
-      VtlSemanticOptions.Builder semanticOptionsBuilder =
-          VtlSemanticOptions.builder()
-              .profile(VtlProfile.VTL_CORE)
-              .allowArbitraryMethods(true)
-              .typeCheckingMode(request.typeCheckingMode());
-      if (modelSchema != null) {
-        semanticOptionsBuilder.modelSchema(modelSchema);
-      }
-      VtlSemanticOptions semanticOptions = semanticOptionsBuilder.build();
+      VtlSemanticOptions semanticOptions =
+          request
+              .semanticOptions()
+              .map(
+                  options -> {
+                    if (modelSchema != null
+                        && (options.modelSchema() == null || options.modelSchema().isEmpty())) {
+                      return options.toBuilder().modelSchema(modelSchema).build();
+                    }
+                    return options;
+                  })
+              .orElseGet(
+                  () -> {
+                    VtlProfile profile = request.profile().orElse(VtlProfile.defaultProfile());
+                    VtlSemanticOptions.Builder semanticOptionsBuilder =
+                        VtlSemanticOptions.builder()
+                            .profile(profile)
+                            .allowArbitraryMethods(profile.isArbitraryMethodsAllowed())
+                            .typeCheckingMode(request.typeCheckingMode());
+                    if (modelSchema != null) {
+                      semanticOptionsBuilder.modelSchema(modelSchema);
+                    }
+                    return semanticOptionsBuilder.build();
+                  });
       SemanticAnalysisResult analysis =
           VtlSemanticAnalyzer.analyze(parseResult.template(), semanticOptions);
       for (Diagnostic diag : analysis.diagnostics()) {

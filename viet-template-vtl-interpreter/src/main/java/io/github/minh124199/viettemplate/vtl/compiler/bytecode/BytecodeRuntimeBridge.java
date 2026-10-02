@@ -1212,4 +1212,13 @@ public final class BytecodeRuntimeBridge {
       cto.budget().countLoopIteration();
     }
   }
+
+  /** Increments macro invocation count on the output's render budget if present. */
+  public static void countMacroInvocation(TemplateOutput output) {
+    if (output
+        instanceof
+        io.github.minh124199.viettemplate.vtl.internal.interpreter.CountingTemplateOutput cto) {
+      cto.budget().countMacroInvocation();
+    }
+  }
 }

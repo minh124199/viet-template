@@ -11,6 +11,8 @@ import io.github.minh124199.viettemplate.api.TemplateDescriptor;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateOutput;
 import io.github.minh124199.viettemplate.api.TemplateRenderException;
+import io.github.minh124199.viettemplate.runtime.SafeHtml;
+import io.github.minh124199.viettemplate.runtime.StandardEscapers;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletResponse;
@@ -310,5 +312,47 @@ class VietTemplateViewTest {
     assertThat(context.get("session")).isNull();
     assertThat(context.get("securityContext")).isNull();
     assertThat(context.get(SpringRenderAttributes.SERVLET_REQUEST)).isNull();
+  }
+
+  @Test
+  @DisplayName(
+      "Auto-escaping escapes raw user input and preserves SafeHtml when rendering through"
+          + " VietTemplateView")
+  void autoEscapeRendersEscapedRawInputAndPreservesSafeHtml() throws Exception {
+    engine.registerTemplate(
+        templateId,
+        new Template() {
+          @Override
+          public TemplateDescriptor descriptor() {
+            return null;
+          }
+
+          @Override
+          public void render(RenderContext context, TemplateOutput output) throws IOException {
+            Object input = context.get("input");
+            if (input instanceof SafeHtml safe) {
+              output.write(safe.content());
+            } else if (input != null) {
+              StandardEscapers.htmlText().escape(String.valueOf(input), output);
+            }
+          }
+        });
+
+    VietTemplateView view = new VietTemplateView(engine, templateId);
+
+    // 1. Untrusted user input is escaped
+    MockHttpServletResponse xssResponse = new MockHttpServletResponse();
+    view.render(
+        Map.of("input", "<script>alert('xss')</script>"),
+        new MockHttpServletRequest(),
+        xssResponse);
+    assertThat(xssResponse.getContentAsString())
+        .isEqualTo("&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;");
+
+    // 2. SafeHtml bypasses escaping
+    MockHttpServletResponse safeResponse = new MockHttpServletResponse();
+    view.render(
+        Map.of("input", SafeHtml.of("<b>trusted</b>")), new MockHttpServletRequest(), safeResponse);
+    assertThat(safeResponse.getContentAsString()).isEqualTo("<b>trusted</b>");
   }
 }

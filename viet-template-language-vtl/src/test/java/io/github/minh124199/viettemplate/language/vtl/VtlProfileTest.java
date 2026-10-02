@@ -30,6 +30,14 @@ class VtlProfileTest {
   }
 
   @Test
+  void verifiesMigrationProfileCapabilities() {
+    VtlProfile migration = VtlProfile.VTL_MIGRATION;
+    assertThat(migration.isArbitraryMethodsAllowed()).isTrue();
+    assertThat(migration.isEvaluateAllowed()).isFalse();
+    assertThat(migration.isSandboxEnforced()).isFalse();
+  }
+
+  @Test
   void frontendDescriptorSupportsAllProfiles() {
     for (VtlProfile profile : VtlProfile.values()) {
       assertThat(VtlFrontend.supportsProfile(profile)).isTrue();

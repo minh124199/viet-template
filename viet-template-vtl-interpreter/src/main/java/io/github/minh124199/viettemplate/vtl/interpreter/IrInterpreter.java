@@ -648,6 +648,10 @@ final class IrInterpreter {
           InterpreterDiagnosticCodes.LIMIT_EXCEEDED);
     }
 
+    if (frame.output instanceof CountingTemplateOutput counting) {
+      counting.budget().countMacroInvocation(frame.templateId, callM.span());
+    }
+
     PreparedIrTemplate.PreparedFunction preparedFunction = frame.functions.get(callM.macroName());
     if (preparedFunction == null) {
       if (frame.options.strictReferences()) {

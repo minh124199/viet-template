@@ -70,6 +70,9 @@ public class VietTemplateCompileMojo extends AbstractMojo {
   @Parameter(defaultValue = "OFF", property = "viet-template.typeChecking")
   private String typeChecking = "OFF";
 
+  @Parameter(defaultValue = "VTL_MIGRATION", property = "viet-template.profile")
+  private String profile = "VTL_MIGRATION";
+
   @Parameter(
       defaultValue = "${project.build.directory}/generated-sources/viet-template",
       property = "viet-template.generatedSourcesDirectory")
@@ -141,6 +144,17 @@ public class VietTemplateCompileMojo extends AbstractMojo {
       throw new MojoExecutionException(e.getMessage(), e);
     }
     requestBuilder.typeCheckingMode(mode);
+
+    if (profile != null && !profile.isBlank()) {
+      try {
+        io.github.minh124199.viettemplate.language.vtl.VtlProfile vtlProfile =
+            io.github.minh124199.viettemplate.language.vtl.VtlProfile.valueOf(
+                profile.trim().toUpperCase(java.util.Locale.ROOT));
+        requestBuilder.profile(vtlProfile);
+      } catch (IllegalArgumentException e) {
+        throw new MojoExecutionException("Invalid profile configuration: '" + profile + "'", e);
+      }
+    }
 
     if (includes != null && !includes.isEmpty()) {
       requestBuilder.includePatterns(includes);
@@ -340,5 +354,13 @@ public class VietTemplateCompileMojo extends AbstractMojo {
 
   public void setTypeChecking(String typeChecking) {
     this.typeChecking = typeChecking;
+  }
+
+  public String getProfile() {
+    return profile;
+  }
+
+  public void setProfile(String profile) {
+    this.profile = profile;
   }
 }

@@ -7,7 +7,7 @@ A compile-first, low-allocation JVM template engine featuring Velocity Template 
 [![Java 21+](https://img.shields.io/badge/Java-21%2B-blue.svg)](https://adoptium.net/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Viet Template is a clean-room JVM template engine designed for modern Java applications that value the familiar syntax of Apache Velocity templates but require modern JVM performance, low object allocation, native GraalVM compilation, and strict security isolation.
+Viet Template is an independent JVM template engine designed for modern Java applications that value the familiar syntax of Apache Velocity templates but require modern JVM performance, low object allocation, native GraalVM compilation, and robust security boundaries.
 
 ---
 
@@ -19,8 +19,8 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 - **High-Throughput Multi-Tier Execution**: Offers both a lightweight development interpreter (Viet-IR) and a high-performance Ahead-Of-Time bytecode compiler (Viet-AOT) delivering **1.3x to 5.3x higher throughput** than Apache Velocity 2.4.1.
 - **Precompiled Bytecode & Zero Reflection**: Compiles templates to standard Java 21 bytecode (`.class` files) with compiler-assigned variable slots and pre-encoded UTF-8 literals, eliminating runtime reflection and AST traversal.
 - **GraalVM Native Image Ready**: Seamlessly compiles to native executables via out-of-the-box `VietTemplateRuntimeHints`, Spring AOT, and Quarkus deployment build steps (empirically qualified on Linux x86_64 Mandrel 25.0.4.1-Final and Oracle GraalVM 25.0.4+7.1).
-- **First-Class Spring & Quarkus Ecosystems**: Turnkey auto-configuration for Spring Boot 4 / Spring Framework 7 / Spring Security 7 and idiomatic CDI extension for Quarkus 3 with build-time AOT compilation and dev-mode hot reload.
-- **Defense-in-Depth Security**: Denies access to reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), classloaders, and system resources by default. Enforces strict `MemberAccessPolicy` sandboxing and execution budgets (`RenderBudget`).
+- **First-Class Spring & Quarkus Ecosystems**: Turnkey auto-configuration for Spring Boot 4 / Spring Framework 7 / Spring Security 7 with secure-by-default HTML auto-escaping for web views, and idiomatic CDI extension for Quarkus 3 with build-time AOT compilation and dev-mode hot reload.
+- **Defense-in-Depth Security**: Denies access to reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), classloaders, and system resources by default. Distinguishes developer-friendly denylist defense-in-depth (`MemberAccessPolicy.standard()`) from strict fail-closed sandboxing (`MemberAccessPolicy.safe()`), with monotonic execution budgets (`RenderBudget`) and macro recursion limits.
 
 ---
 
@@ -190,7 +190,7 @@ Templates placed in `src/main/resources/templates/` are compiled ahead-of-time d
 
 ## Migrating from Apache Velocity in 3 Steps
 
-Viet Template was engineered as a modern, clean-room replacement for Apache Velocity:
+Viet Template was engineered as an independent, modern replacement for Apache Velocity:
 
 1. **Step 1: Swap Dependencies**: Replace `org.apache.velocity:velocity-engine-core` with `viet-template-spring-boot-starter` or `viet-template-api`.
 2. **Step 2: Keep Existing Templates**: Retain all existing `.vm` and `.vtl` files. Configure `viet-template.suffixes=.vtl,.vm` for ordered multi-extension lookup during gradual migration. Viet Template achieves 100% compatibility across all 80 standard VTL grammar features.
@@ -330,7 +330,7 @@ python3 scripts/verify-documentation.py
 Contributions are welcome! Please review [CONTRIBUTING.md](CONTRIBUTING.md) before submitting pull requests.
 
 Key contributor rules:
-1. **Clean-room rule**: Do not copy or decompile Apache Velocity source code. Behavior must be established via public documentation and black-box tests.
+1. **Independent implementation rule**: Do not copy or decompile Apache Velocity source code. Syntax and behavior are derived from public documentation, language specifications, and black-box differential tests against an external test-scope oracle.
 2. **Dual-build parity**: All code changes must pass `python3 scripts/verify-build-parity.py` and build cleanly under both `./mvnw clean verify` and `./gradlew clean build`.
 3. **TCK regression protection**: Differential compatibility tests must pass under `viet.tck.mode=STRICT`.
 
@@ -338,8 +338,14 @@ Please also review our [Code of Conduct](CODE_OF_CONDUCT.md) and [Security Polic
 
 ---
 
+## Authorship & Agent-Assisted Development Disclosure
+
+Viet Template is maintained by Minh Nguyen (`minh124199`). Automated, agent-assisted workflows (`M18 Implementation`) have been utilized for milestones implementation, differential TCK harness development, and documentation synchronization under strict maintainer direction and human review.
+
+---
+
 ## License & Trademark Notice
 
 Viet Template is open-source software licensed under the [Apache License, Version 2.0](LICENSE).
 
-*Apache Velocity and Apache are trademarks of the Apache Software Foundation. This project is an independent clean-room implementation and is not affiliated with, sponsored by, or endorsed by the Apache Software Foundation.*
+*Apache Velocity and Apache are trademarks of the Apache Software Foundation. This project is an independent implementation with clean-room dependency isolation and is not affiliated with, sponsored by, or endorsed by the Apache Software Foundation.*

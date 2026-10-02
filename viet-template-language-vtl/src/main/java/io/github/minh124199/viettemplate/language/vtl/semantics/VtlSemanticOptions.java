@@ -3,6 +3,7 @@ package io.github.minh124199.viettemplate.language.vtl.semantics;
 import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
 import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
+import io.github.minh124199.viettemplate.language.vtl.ir.plan.IrEscapeMode;
 import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema;
 import java.util.Objects;
 
@@ -12,7 +13,8 @@ public record VtlSemanticOptions(
     ModelSchema modelSchema,
     TypeCheckingMode typeCheckingMode,
     boolean allowArbitraryMethods,
-    MemberAccessPolicy memberAccessPolicy) {
+    MemberAccessPolicy memberAccessPolicy,
+    IrEscapeMode escapeMode) {
 
   public VtlSemanticOptions {
     Objects.requireNonNull(profile, "profile must not be null");
@@ -20,6 +22,25 @@ public record VtlSemanticOptions(
     typeCheckingMode = typeCheckingMode != null ? typeCheckingMode : TypeCheckingMode.OFF;
     memberAccessPolicy =
         memberAccessPolicy != null ? memberAccessPolicy : MemberAccessPolicy.standard();
+    escapeMode =
+        escapeMode != null
+            ? escapeMode
+            : ((profile == VtlProfile.VTL_SAFE) ? IrEscapeMode.HTML_TEXT : IrEscapeMode.RAW);
+  }
+
+  public VtlSemanticOptions(
+      VtlProfile profile,
+      ModelSchema modelSchema,
+      TypeCheckingMode typeCheckingMode,
+      boolean allowArbitraryMethods,
+      MemberAccessPolicy memberAccessPolicy) {
+    this(
+        profile,
+        modelSchema,
+        typeCheckingMode,
+        allowArbitraryMethods,
+        memberAccessPolicy,
+        (profile == VtlProfile.VTL_SAFE) ? IrEscapeMode.HTML_TEXT : IrEscapeMode.RAW);
   }
 
   public VtlSemanticOptions(
@@ -94,12 +115,18 @@ public record VtlSemanticOptions(
   }
 
   public Builder toBuilder() {
-    return new Builder()
-        .profile(profile)
-        .modelSchema(modelSchema)
-        .typeCheckingMode(typeCheckingMode)
-        .allowArbitraryMethods(allowArbitraryMethods)
-        .memberAccessPolicy(memberAccessPolicy);
+    Builder b =
+        new Builder()
+            .profile(profile)
+            .modelSchema(modelSchema)
+            .typeCheckingMode(typeCheckingMode)
+            .allowArbitraryMethods(allowArbitraryMethods)
+            .memberAccessPolicy(memberAccessPolicy);
+    if (escapeMode
+        != ((profile == VtlProfile.VTL_SAFE) ? IrEscapeMode.HTML_TEXT : IrEscapeMode.RAW)) {
+      b.escapeMode(escapeMode);
+    }
+    return b;
   }
 
   public static Builder builder() {
@@ -112,6 +139,7 @@ public record VtlSemanticOptions(
     private TypeCheckingMode typeCheckingMode = TypeCheckingMode.OFF;
     private Boolean allowArbitraryMethods = null;
     private MemberAccessPolicy memberAccessPolicy = MemberAccessPolicy.standard();
+    private IrEscapeMode escapeMode;
 
     private Builder() {}
 
@@ -146,17 +174,32 @@ public record VtlSemanticOptions(
       return this;
     }
 
+    public Builder escapeMode(IrEscapeMode escapeMode) {
+      this.escapeMode = escapeMode;
+      return this;
+    }
+
+    public Builder autoEscape(boolean autoEscape) {
+      this.escapeMode = autoEscape ? IrEscapeMode.HTML_TEXT : IrEscapeMode.RAW;
+      return this;
+    }
+
     public VtlSemanticOptions build() {
       boolean allow =
           allowArbitraryMethods != null
               ? allowArbitraryMethods
               : profile.isArbitraryMethodsAllowed();
+      IrEscapeMode mode =
+          escapeMode != null
+              ? escapeMode
+              : ((profile == VtlProfile.VTL_SAFE) ? IrEscapeMode.HTML_TEXT : IrEscapeMode.RAW);
       return new VtlSemanticOptions(
           profile,
           modelSchema,
           typeCheckingMode,
           allow,
-          memberAccessPolicy != null ? memberAccessPolicy : MemberAccessPolicy.standard());
+          memberAccessPolicy != null ? memberAccessPolicy : MemberAccessPolicy.standard(),
+          mode);
     }
   }
 }

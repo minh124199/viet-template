@@ -17,17 +17,35 @@ public final class RenderBudget {
       DiagnosticCode.of("LIMIT", "LIMIT_EXCEEDED");
   public static final DiagnosticCode CODE_TIME_LIMIT =
       DiagnosticCode.of("LIMIT", "TIME_LIMIT_EXCEEDED");
+  public static final int DEFAULT_MAX_MACRO_INVOCATIONS = 10_000;
 
   private final long maxOutputCharacters;
   private final long maxExecutionTimeMillis;
   private final long deadlineNano; // 0 if unlimited
   private final int maxLoopIterations;
+  private final int maxMacroInvocations;
   private final AtomicLong characterCount = new AtomicLong(0);
   private final AtomicLong loopIterationCount = new AtomicLong(0);
+  private final AtomicLong macroInvocationCount = new AtomicLong(0);
 
   public RenderBudget(
       long maxOutputCharacters, long maxExecutionTimeMillis, int maxLoopIterations) {
-    if (maxOutputCharacters < 0 || maxExecutionTimeMillis < 0 || maxLoopIterations < 0) {
+    this(
+        maxOutputCharacters,
+        maxExecutionTimeMillis,
+        maxLoopIterations,
+        DEFAULT_MAX_MACRO_INVOCATIONS);
+  }
+
+  public RenderBudget(
+      long maxOutputCharacters,
+      long maxExecutionTimeMillis,
+      int maxLoopIterations,
+      int maxMacroInvocations) {
+    if (maxOutputCharacters < 0
+        || maxExecutionTimeMillis < 0
+        || maxLoopIterations < 0
+        || maxMacroInvocations < 0) {
       throw new IllegalArgumentException("RenderBudget limits must not be negative");
     }
     this.maxOutputCharacters = maxOutputCharacters;
@@ -45,10 +63,11 @@ public final class RenderBudget {
       this.deadlineNano = 0L;
     }
     this.maxLoopIterations = maxLoopIterations;
+    this.maxMacroInvocations = maxMacroInvocations;
   }
 
   public static RenderBudget unlimited() {
-    return new RenderBudget(Long.MAX_VALUE, 0L, Integer.MAX_VALUE);
+    return new RenderBudget(Long.MAX_VALUE, 0L, Integer.MAX_VALUE, Integer.MAX_VALUE);
   }
 
   public void consumeCharacters(int count, TemplateId templateId, SourceSpan span) {
@@ -126,5 +145,37 @@ public final class RenderBudget {
 
   public int maxLoopIterations() {
     return maxLoopIterations;
+  }
+
+  public void countMacroInvocation(TemplateId templateId, SourceSpan span) {
+    checkDeadline(templateId, span);
+    long current =
+        macroInvocationCount.accumulateAndGet(
+            1,
+            (prev, x) -> {
+              if (Long.MAX_VALUE - prev < x) {
+                return Long.MAX_VALUE;
+              }
+              return prev + x;
+            });
+    if (current > maxMacroInvocations) {
+      throw new TemplateLimitException(
+          "Exceeded maximum macro invocations limit: " + maxMacroInvocations,
+          Objects.requireNonNullElse(templateId, TemplateId.of("unknown")),
+          Objects.requireNonNullElse(span, SourceSpan.UNKNOWN),
+          CODE_LIMIT_EXCEEDED);
+    }
+  }
+
+  public void countMacroInvocation() {
+    countMacroInvocation(TemplateId.of("unknown"), SourceSpan.UNKNOWN);
+  }
+
+  public long macroInvocations() {
+    return macroInvocationCount.get();
+  }
+
+  public int maxMacroInvocations() {
+    return maxMacroInvocations;
   }
 }

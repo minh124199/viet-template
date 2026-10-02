@@ -46,6 +46,18 @@ public record VtlInterpreterOptions(
 
     if (profile == VtlProfile.VTL_SAFE) {
       securityPolicy = VtlSecurityPolicy.enforceSafe(securityPolicy);
+      if (limits.maxExecutionTimeMillis() == 0L) {
+        limits =
+            new ExecutionLimits(
+                limits.maxLoopIterations(),
+                limits.maxRangeSize(),
+                limits.maxMacroDepth(),
+                limits.maxParseDepth(),
+                limits.maxEvaluateDepth(),
+                limits.maxDynamicSourceLength(),
+                limits.maxOutputCharacters(),
+                5000L);
+      }
     }
   }
 

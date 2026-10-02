@@ -730,8 +730,14 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       compileSetProperty(sp, mw, context);
     } else if (stmt instanceof IrSetIndex si) {
       compileSetIndex(si, mw, context);
-    } else if (stmt instanceof IrBudgetCheck || stmt instanceof IrNoOp) {
-      // Checked dynamically or no-op
+    } else if (stmt instanceof IrBudgetCheck) {
+      mw.aload(2); // output
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "countLoopIteration",
+          "(Lio/github/minh124199/viettemplate/api/TemplateOutput;)V");
+    } else if (stmt instanceof IrNoOp) {
+      // no-op
     }
   }
 
@@ -998,6 +1004,12 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
   private static void compileCallMacro(
       IrCallMacro callM, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+    mw.aload(2); // output
+    mw.invokestatic(
+        "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+        "countMacroInvocation",
+        "(Lio/github/minh124199/viettemplate/api/TemplateOutput;)V");
+
     String methodName = BytecodeNaming.chunkMethodName(callM.macroName());
     mw.aload(0); // this
     mw.aload(1); // context
