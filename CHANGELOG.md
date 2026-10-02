@@ -15,7 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Decoupled output escaping policy from VTL syntax, allowing HTML escaping in `VTL_CORE` and `VTL_MIGRATION` profiles with full `SafeHtml` bypass support.
   - **Monotonic Macro Invocation Budget & Work Exhaustion Protection**:
     - Added `maxMacroInvocations` budget (defaulting to 10,000) in `RenderBudget`, preventing exponential CPU/work exhaustion from recursive macros without output across all execution tiers (`AST`, `IR`, `AOT_BYTECODE`).
-    - Extended generated template runtime ABI additively with `BytecodeRuntimeBridge.countMacroInvocation(TemplateOutput)` (23 invoked methods), preserving 100% backward binary compatibility for existing 1.0.0 compiled templates while guaranteeing exact semantic parity across AST, IR, and AOT bytecode.
+    - Extended generated template runtime ABI additively with `BytecodeRuntimeBridge.countMacroInvocation(TemplateOutput)` (expanding invoked methods from 22 to 23).
+    - Backward runtime compatibility: Precompiled 1.0 templates run cleanly and without modification on the 1.1 runtime (`1.0 template -> 1.1 runtime = PASS`).
+    - Recompilation requirement: Stale 1.0 compiled templates do not contain `countMacroInvocation` calls; recompilation with the 1.1 compiler is required to receive macro budget instrumentation and quota enforcement.
+    - Forward runtime compatibility: Newly generated 1.1 templates referencing `countMacroInvocation` require the 1.1+ runtime (`1.1 template -> 1.0 runtime = NoSuchMethodError`).
     - Added default 5,000ms wall-clock execution deadline for `VTL_SAFE` profile when unspecified.
   - **Receiver-Aware Dangerous Method Filtering in MemberAccessPolicy**:
     - Split dangerous method filtering into universal dangerous pivots (reflection, classloaders, modules, dynamic lookups; blocked globally on any class) and receiver-specific dangerous methods (`exit`, `halt`, `load`, `loadLibrary`, `shutdown`, `shutdownNow`, `wait`, `notify`, `interrupt`, `suspend`, `resume`).
