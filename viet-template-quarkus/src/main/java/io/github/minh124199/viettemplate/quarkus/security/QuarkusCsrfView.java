@@ -20,8 +20,8 @@ import java.util.Objects;
 @TemplateData
 public final class QuarkusCsrfView {
 
-  /** Default HTTP form parameter name for CSRF token ({@code "_csrf"}). */
-  public static final String DEFAULT_PARAMETER_NAME = "_csrf";
+  /** Default HTTP form parameter name for CSRF token ({@code "csrf-token"}). */
+  public static final String DEFAULT_PARAMETER_NAME = "csrf-token";
 
   /** Default HTTP header name for CSRF token ({@code "X-CSRF-TOKEN"}). */
   public static final String DEFAULT_HEADER_NAME = "X-CSRF-TOKEN";
@@ -132,7 +132,7 @@ public final class QuarkusCsrfView {
   /**
    * Returns the form parameter name expected by Quarkus CSRF validation.
    *
-   * @return parameter name (e.g. {@code "_csrf"})
+   * @return parameter name (e.g. {@code "csrf-token"})
    */
   public String parameterName() {
     return this.parameterName;

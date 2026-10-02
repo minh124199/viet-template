@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Quarkus Security & CSRF Integration Hardening**:
     - Enhanced `QuarkusSecurityView` with convenience and strict-evaluation role predicates (`hasAnyRole(String...)`, `hasAnyRole(String, String)`, `hasAnyRole(String, String, String)`, `hasAllRoles(String...)`, `hasAllRoles(String, String)`, `hasAllRoles(String, String, String)`).
     - Enforced defensive copying of roles and string snapshots, isolating the template model from mutable framework state with zero references to credentials or security contexts.
-    - Introduced `QuarkusCsrfView` presentation facade with token secret redaction (`[PROTECTED]`), parameter and header names (`_csrf`, `X-CSRF-TOKEN`), and deterministic availability tracking (`$csrf.available`, `$csrf.token`).
+    - Introduced `QuarkusCsrfView` presentation facade with token secret redaction (`[PROTECTED]`), parameter and header names (`csrf-token`, `X-CSRF-TOKEN`), and deterministic availability tracking (`$csrf.available`, `$csrf.token`).
     - Extended `QuarkusSecurityRenderContextContributor` with additive constructors and multi-tier CSRF token resolution (`RenderRequest` attributes, custom suppliers, and Arc container `CsrfTokenParameterProvider`).
     - Introduced `QuarkusSecurityViewFactory` SPI for pluggable security view customization via CDI.
     - Added automated deployment registration in `VietTemplateProcessor` via Quarkus `Capabilities` (`Capability.SECURITY`) and GraalVM reflection registration.

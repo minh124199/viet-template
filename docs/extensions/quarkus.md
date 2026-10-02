@@ -212,7 +212,7 @@ Quarkus applications employing CSRF protection (e.g. via `quarkus-rest-csrf`) ar
 - **Properties & Helpers**:
   - `$csrf.available`: Boolean indicating whether a valid CSRF token is available for the current request.
   - `$csrf.token`: Raw CSRF token secret string for form inclusion, or empty string if unavailable.
-  - `$csrf.parameterName`: Form parameter name expected by Quarkus CSRF validation (defaults to `_csrf`).
+  - `$csrf.parameterName`: Form parameter name expected by Quarkus CSRF validation (defaults to `csrf-token`).
   - `$csrf.headerName`: HTTP header name expected by Quarkus CSRF validation (defaults to `X-CSRF-TOKEN`).
 - **Token Secret Protection**: Raw token secrets are strictly excluded from diagnostic string representations. `QuarkusCsrfView.toString()` renders `token=[PROTECTED]`, preventing accidental exposure in log files or debugging output.
 - **Token Resolution Priority**:

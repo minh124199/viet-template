@@ -13,8 +13,8 @@ public class QuarkusCsrfViewTest {
     assertThat(view.isAvailable()).isFalse();
     assertThat(view.token()).isEmpty();
     assertThat(view.getToken()).isEmpty();
-    assertThat(view.parameterName()).isEqualTo("_csrf");
-    assertThat(view.getParameterName()).isEqualTo("_csrf");
+    assertThat(view.parameterName()).isEqualTo("csrf-token");
+    assertThat(view.getParameterName()).isEqualTo("csrf-token");
     assertThat(view.headerName()).isEqualTo("X-CSRF-TOKEN");
     assertThat(view.getHeaderName()).isEqualTo("X-CSRF-TOKEN");
   }
@@ -82,7 +82,7 @@ public class QuarkusCsrfViewTest {
     assertThat(repr).doesNotContain("super-secret-csrf-token-999");
     assertThat(repr).contains("[PROTECTED]");
     assertThat(repr).contains("available=true");
-    assertThat(repr).contains("parameterName=_csrf");
+    assertThat(repr).contains("parameterName=csrf-token");
     assertThat(repr).contains("headerName=X-CSRF-TOKEN");
   }
 

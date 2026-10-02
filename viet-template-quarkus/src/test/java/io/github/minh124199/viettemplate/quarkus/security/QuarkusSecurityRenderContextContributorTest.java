@@ -185,7 +185,7 @@ public class QuarkusSecurityRenderContextContributorTest {
     }
 
     String output = baos.toString(StandardCharsets.UTF_8);
-    assertThat(output).isEqualTo("Token: token-xyz-123, Avail: true, Param: _csrf");
+    assertThat(output).isEqualTo("Token: token-xyz-123, Avail: true, Param: csrf-token");
   }
 
   @Test
@@ -364,7 +364,7 @@ public class QuarkusSecurityRenderContextContributorTest {
 
     String output = baos.toString(StandardCharsets.UTF_8);
     assertThat(output)
-        .contains("<input type=\"hidden\" name=\"_csrf\" value=\"form-csrf-secret\"/>");
+        .contains("<input type=\"hidden\" name=\"csrf-token\" value=\"form-csrf-secret\"/>");
     assertThat(output).contains("<span>Logged in as: admin-user</span>");
     assertThat(output).contains("<button type=\"submit\">Delete</button>");
     assertThat(output).doesNotContain("disabled");

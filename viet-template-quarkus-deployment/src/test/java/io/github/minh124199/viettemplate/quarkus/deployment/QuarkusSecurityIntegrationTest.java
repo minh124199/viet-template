@@ -64,7 +64,7 @@ public class QuarkusSecurityIntegrationTest {
     assertThat(advOutput).contains("AnyRole: false");
     assertThat(advOutput).contains("AllRoles: false");
     assertThat(advOutput).contains("CsrfAvail: false");
-    assertThat(advOutput).contains("CsrfParam: _csrf");
+    assertThat(advOutput).contains("CsrfParam: csrf-token");
     assertThat(advOutput).contains("CsrfToken: ''");
   }
 
@@ -118,7 +118,7 @@ public class QuarkusSecurityIntegrationTest {
     assertThat(output).contains("AnyRole: true");
     assertThat(output).contains("AllRoles: true");
     assertThat(output).contains("CsrfAvail: true");
-    assertThat(output).contains("CsrfParam: _csrf");
+    assertThat(output).contains("CsrfParam: csrf-token");
     assertThat(output).contains("CsrfToken: 'token-live-quarkus-test'");
   }
 
