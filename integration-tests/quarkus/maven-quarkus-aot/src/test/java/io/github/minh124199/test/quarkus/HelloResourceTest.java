@@ -4,6 +4,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.containsString;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -53,5 +54,120 @@ public class HelloResourceTest {
         .then()
         .statusCode(200)
         .body(containsString("<span>Normal: </span>"));
+  }
+
+  @Test
+  @DisplayName("Unauthenticated request to secured endpoint returns HTTP 401")
+  public void testSecuredUnauthenticated() {
+    given()
+        .when()
+        .get("/hello/secured")
+        .then()
+        .statusCode(401);
+  }
+
+  @Test
+  @DisplayName("Authenticated user access to secured endpoint returns identity presentation")
+  public void testSecuredAuthenticatedUser() {
+    given()
+        .header("X-Test-User", "user")
+        .when()
+        .get("/hello/secured")
+        .then()
+        .statusCode(200)
+        .body(containsString("authenticated=true"))
+        .body(containsString("name=user"))
+        .body(containsString("admin=false"));
+  }
+
+  @Test
+  @DisplayName("Authenticated admin access to secured endpoint returns admin presentation")
+  public void testSecuredAuthenticatedAdmin() {
+    given()
+        .header("X-Test-User", "admin")
+        .when()
+        .get("/hello/secured")
+        .then()
+        .statusCode(200)
+        .body(containsString("authenticated=true"))
+        .body(containsString("name=admin"))
+        .body(containsString("admin=true"));
+  }
+
+  @Test
+  @DisplayName("User without ADMIN role is forbidden from accessing /hello/admin")
+  public void testAdminForbiddenForUser() {
+    given()
+        .header("X-Test-User", "user")
+        .when()
+        .get("/hello/admin")
+        .then()
+        .statusCode(403);
+  }
+
+  @Test
+  @DisplayName("Admin user is allowed to access /hello/admin")
+  public void testAdminAllowedForAdmin() {
+    given()
+        .header("X-Test-User", "admin")
+        .when()
+        .get("/hello/admin")
+        .then()
+        .statusCode(200)
+        .body(containsString("admin=true"));
+  }
+
+  @Test
+  @DisplayName("CSRF GET endpoint provides token and metadata")
+  public void testCsrfGetEndpoint() {
+    given()
+        .when()
+        .get("/hello/csrf")
+        .then()
+        .statusCode(200)
+        .body(containsString("available=true"))
+        .body(containsString("parameter=csrf-token"))
+        .body(containsString("header=X-CSRF-TOKEN"))
+        .body(containsString("hasToken=true"))
+        .cookie("csrf-token");
+  }
+
+  @Test
+  @DisplayName("CSRF POST submission succeeds with valid token and cookie")
+  public void testCsrfPostSubmitSuccess() {
+    Response getResponse =
+        given()
+            .when()
+            .get("/hello/csrf")
+            .then()
+            .statusCode(200)
+            .cookie("csrf-token")
+            .extract()
+            .response();
+
+    String token = getResponse.getCookie("csrf-token");
+
+    given()
+        .contentType("application/x-www-form-urlencoded")
+        .cookie("csrf-token", token)
+        .formParam("csrf-token", token)
+        .formParam("message", "valid submission")
+        .when()
+        .post("/hello/csrf-submit")
+        .then()
+        .statusCode(200)
+        .body(containsString("Received: valid submission"));
+  }
+
+  @Test
+  @DisplayName("CSRF POST submission rejected with HTTP 400 when token is omitted")
+  public void testCsrfPostSubmitWithoutToken() {
+    given()
+        .contentType("application/x-www-form-urlencoded")
+        .formParam("message", "unauthorized attempt")
+        .when()
+        .post("/hello/csrf-submit")
+        .then()
+        .statusCode(400);
   }
 }
