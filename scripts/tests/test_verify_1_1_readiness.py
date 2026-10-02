@@ -1,7 +1,9 @@
 import importlib.util
 from pathlib import Path
 import sys
+import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("verify_1_1_readiness", ROOT / "scripts" / "verify-1.1-readiness.py")
@@ -14,7 +16,21 @@ SIM_SPEC.loader.exec_module(simulator)
 
 class ReadinessVerifierTests(unittest.TestCase):
     def test_candidate_version_and_historical_baseline_are_present(self):
-        result = readiness.version_invariants()
+        # The readiness verifier intentionally describes the earlier
+        # 1.1.0-SNAPSHOT state. Exercise that state in isolation so this test
+        # remains meaningful on the later 1.1.0 release-preparation branch.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "pom.xml").write_text(
+                "<project><groupId>io.github.minh124199</groupId>"
+                "<artifactId>viet-template-parent</artifactId>"
+                "<version>1.1.0-SNAPSHOT</version></project>",
+                encoding="utf-8",
+            )
+            with patch.object(readiness, "ROOT", root), patch.object(
+                readiness, "git_value", return_value="immutable-v1.0.1-tag-object"
+            ):
+                result = readiness.version_invariants()
         self.assertEqual("PASS", result["status"])
         self.assertEqual("1.1.0-SNAPSHOT", result["developmentVersion"])
         self.assertTrue(result["baselineTagObject"])

@@ -69,7 +69,7 @@ To adhere to the Java-first design policy and avoid premature complexity:
 
 Release `0.2.0` introduces the next major internal runtime evolution, transitioning variable resolution from string-based hash lookups to compiler-assigned flat array slots and indexing the compilation cache for scalable invalidation.
 
-**Release Status**: Version 1.0.0 GA was published on 2026-09-26 as the canonical stable release, followed by patch release 1.0.1 on 2026-09-28. Version 0.2.2 (published 2026-09-20; 0.2.1 on 2026-09-17, 0.2.0 on 2026-09-12) represents the historical 0.2.x line. Version 0.2.3 was prepared across POMs but held without tagging or publication (`PREPARED_HELD`). Active development is on `1.1.0-SNAPSHOT` (Milestones M20–M31 completed; release preparation not started).
+**Release Status**: Version 1.0.0 GA was published on 2026-09-26 as the canonical stable release, followed by patch release 1.0.1 on 2026-09-28. Version 0.2.2 (published 2026-09-20; 0.2.1 on 2026-09-17, 0.2.0 on 2026-09-12) represents the historical 0.2.x line. Version 0.2.3 was prepared across POMs but held without tagging or publication (`PREPARED_HELD`). Milestones M20–M31 are complete, and the 1.1.0 release candidate is in preparation; 1.0.1 remains the latest published stable release.
 
 **Post-release infrastructure status**: 0.2.x release infrastructure hardening is COMPLETE. Central
 submission, publication monitoring, public-coordinate verification, consumer smoke testing, and

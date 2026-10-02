@@ -4,7 +4,7 @@
 
 Viet Template provides a dedicated Gradle plugin (`io.github.minh124199.viet-template`) for build-time Ahead-Of-Time (AOT) template compilation, compatible with Gradle 8.x and Gradle 9.x.
 
-The latest stable release is **`1.0.1`** (published 2026-09-28; based on the 1.0.0 GA line). Active development is on `1.1.0-SNAPSHOT`. Consumer examples below show the canonical Gradle Plugin DSL resolution (`plugins { id("io.github.minh124199.viet-template") version "1.0.1" }`).
+The latest published stable release is **`1.0.1`** (published 2026-09-28; based on the 1.0.0 GA line). The `1.1.0` release candidate is under preparation and is not published yet. Consumer examples below show the available Gradle Plugin DSL resolution (`plugins { id("io.github.minh124199.viet-template") version "1.0.1" }`).
 
 ### Minimum Requirements
 - **Java**: Java 21 (`jvmToolchain(21)`) or newer.
