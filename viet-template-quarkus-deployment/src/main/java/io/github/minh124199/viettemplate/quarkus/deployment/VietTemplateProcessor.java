@@ -10,8 +10,13 @@ import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.quarkus.VietTemplateConfig;
 import io.github.minh124199.viettemplate.quarkus.VietTemplateProducer;
 import io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer;
+import io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView;
+import io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor;
+import io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.ApplicationArchive;
+import io.quarkus.deployment.Capabilities;
+import io.quarkus.deployment.Capability;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.ApplicationArchivesBuildItem;
@@ -80,6 +85,26 @@ public class VietTemplateProcessor {
         .addBeanClasses(VietTemplateProducer.class, VietTemplateRenderer.class)
         .setUnremovable()
         .build();
+  }
+
+  @BuildStep
+  public void registerSecurityIntegration(
+      Capabilities capabilities,
+      BuildProducer<AdditionalBeanBuildItem> additionalBeans,
+      BuildProducer<ReflectiveClassBuildItem> reflectiveClasses) {
+
+    if (capabilities.isPresent(Capability.SECURITY)) {
+      additionalBeans.produce(
+          AdditionalBeanBuildItem.unremovableOf(QuarkusSecurityRenderContextContributor.class));
+      reflectiveClasses.produce(
+          ReflectiveClassBuildItem.builder(QuarkusSecurityView.class)
+              .constructors()
+              .methods()
+              .build());
+    }
+
+    reflectiveClasses.produce(
+        ReflectiveClassBuildItem.builder(QuarkusCsrfView.class).constructors().methods().build());
   }
 
   @BuildStep

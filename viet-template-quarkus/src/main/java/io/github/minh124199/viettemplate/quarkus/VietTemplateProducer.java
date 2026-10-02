@@ -6,6 +6,7 @@ import io.github.minh124199.viettemplate.api.TemplateEngine;
 import io.github.minh124199.viettemplate.api.UndefinedReferencePolicy;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor;
+import io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityViewFactory;
 import io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngine;
 import io.github.minh124199.viettemplate.vtl.engine.VtlTemplateEngineBuilder;
 import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
@@ -101,7 +102,24 @@ public class VietTemplateProducer {
           @SuppressWarnings({"rawtypes", "unchecked"})
           InstanceHandle<?> handle = container.instance((Class) secIdClass);
           if (handle != null && handle.isAvailable()) {
-            builder.addContextContributor(new QuarkusSecurityRenderContextContributor());
+            QuarkusSecurityViewFactory viewFactory = null;
+            try {
+              InstanceHandle<QuarkusSecurityViewFactory> factoryHandle =
+                  container.instance(QuarkusSecurityViewFactory.class);
+              if (factoryHandle != null && factoryHandle.isAvailable()) {
+                viewFactory = factoryHandle.get();
+              }
+            } catch (VirtualMachineError | ThreadDeath fatal) {
+              throw fatal;
+            } catch (Throwable ignored) {
+            }
+            builder.addContextContributor(
+                new QuarkusSecurityRenderContextContributor(
+                    null,
+                    viewFactory,
+                    null,
+                    QuarkusSecurityRenderContextContributor.DEFAULT_SECURITY_VARIABLE_NAME,
+                    QuarkusSecurityRenderContextContributor.DEFAULT_CSRF_VARIABLE_NAME));
           }
         }
       } catch (ClassNotFoundException | NoClassDefFoundError ignored) {
