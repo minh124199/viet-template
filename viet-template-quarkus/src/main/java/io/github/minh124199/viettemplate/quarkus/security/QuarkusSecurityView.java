@@ -147,6 +147,93 @@ public final class QuarkusSecurityView {
   }
 
   /**
+   * Returns whether the current identity has any of the specified roles.
+   *
+   * @param roles role names to check
+   * @return {@code true} if any valid role is assigned, {@code false} if array is null, empty, or
+   *     contains only null/blank/unassigned roles
+   */
+  public boolean hasAnyRole(String... roles) {
+    if (roles == null || roles.length == 0) {
+      return false;
+    }
+    for (String role : roles) {
+      if (role != null && !role.isBlank() && this.roles.contains(role)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Convenience overload checking if the identity has either of the two specified roles.
+   *
+   * @param role1 first role
+   * @param role2 second role
+   * @return {@code true} if either role is assigned, {@code false} otherwise
+   */
+  public boolean hasAnyRole(String role1, String role2) {
+    return hasRole(role1) || hasRole(role2);
+  }
+
+  /**
+   * Convenience overload checking if the identity has any of the three specified roles.
+   *
+   * @param role1 first role
+   * @param role2 second role
+   * @param role3 third role
+   * @return {@code true} if any role is assigned, {@code false} otherwise
+   */
+  public boolean hasAnyRole(String role1, String role2, String role3) {
+    return hasRole(role1) || hasRole(role2) || hasRole(role3);
+  }
+
+  /**
+   * Returns whether the current identity has all of the specified roles.
+   *
+   * <p>Enforces strict deterministic semantics without vacuous truth: returns {@code false} if the
+   * array is {@code null}, empty, or contains any {@code null} or blank element.
+   *
+   * @param roles role names to check
+   * @return {@code true} only if all specified non-blank roles are assigned, {@code false}
+   *     otherwise
+   */
+  public boolean hasAllRoles(String... roles) {
+    if (roles == null || roles.length == 0) {
+      return false;
+    }
+    for (String role : roles) {
+      if (role == null || role.isBlank() || !this.roles.contains(role)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Convenience overload checking if the identity has both specified roles.
+   *
+   * @param role1 first role
+   * @param role2 second role
+   * @return {@code true} only if both roles are valid and assigned, {@code false} otherwise
+   */
+  public boolean hasAllRoles(String role1, String role2) {
+    return hasRole(role1) && hasRole(role2);
+  }
+
+  /**
+   * Convenience overload checking if the identity has all three specified roles.
+   *
+   * @param role1 first role
+   * @param role2 second role
+   * @param role3 third role
+   * @return {@code true} only if all three roles are valid and assigned, {@code false} otherwise
+   */
+  public boolean hasAllRoles(String role1, String role2, String role3) {
+    return hasRole(role1) && hasRole(role2) && hasRole(role3);
+  }
+
+  /**
    * Returns an unmodifiable set of granted roles.
    *
    * @return set of roles
