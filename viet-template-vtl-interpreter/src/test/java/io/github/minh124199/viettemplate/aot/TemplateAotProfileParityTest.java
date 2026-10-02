@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.aot;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.minh124199.viettemplate.api.CompiledTemplate;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
@@ -8,11 +9,19 @@ import io.github.minh124199.viettemplate.api.RenderContext;
 import io.github.minh124199.viettemplate.api.TemplateContract;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateParameter;
+import io.github.minh124199.viettemplate.api.TemplateSecurityException;
 import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
+import io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate;
+import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
+import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import io.github.minh124199.viettemplate.runtime.StringTemplateOutput;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.TemplateClassLoader;
+import io.github.minh124199.viettemplate.vtl.interpreter.EngineInterpreterBridge;
+import io.github.minh124199.viettemplate.vtl.interpreter.ExecutionTier;
+import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter;
+import io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -248,5 +257,115 @@ class TemplateAotProfileParityTest {
                 d.severity() == DiagnosticSeverity.ERROR
                     && d.code().qualifiedCode().equals("VTLSEC:2401")
                     && d.message().contains("Method calls are disabled by VTL_MIGRATION policy"));
+  }
+
+  @Test
+  @DisplayName("VTL_MIGRATION rejects #evaluate across interpreter and AOT tiers")
+  void vtlMigrationRejectsEvaluateAcrossTiers(@TempDir Path tempDir) throws Exception {
+    String templateText = "#evaluate('1 + 1')";
+    SourceText source = SourceText.of("eval.vtl", templateText);
+    VtlTemplate ast = VtlParser.parse(source).template();
+
+    // 1. Interpreted AST and IR paths throw TemplateSecurityException
+    for (ExecutionTier tier : List.of(ExecutionTier.AST, ExecutionTier.IR)) {
+      VtlInterpreterOptions options =
+          VtlInterpreterOptions.builder()
+              .executionTier(tier)
+              .profile(VtlProfile.VTL_MIGRATION)
+              .build();
+      VtlInterpreter interpreter = new VtlInterpreter(options);
+      StringTemplateOutput out = new StringTemplateOutput();
+      assertThatThrownBy(
+              () ->
+                  EngineInterpreterBridge.render(
+                      interpreter, source, ast, RenderContext.empty(), out))
+          .isInstanceOf(TemplateSecurityException.class)
+          .hasMessageContaining("#evaluate is disabled in profile VTL_MIGRATION");
+    }
+
+    // 2. AOT compilation fails with diagnostic VTLSEC:2401
+    Path srcDir = tempDir.resolve("eval_src");
+    Path outDir = tempDir.resolve("eval_out");
+    Files.createDirectories(srcDir);
+    Path templateFile = srcDir.resolve("eval.vtl");
+    Files.writeString(templateFile, templateText, StandardCharsets.UTF_8);
+
+    TemplateAotCompiler compiler = TemplateAotCompiler.create();
+    TemplateAotRequest request =
+        TemplateAotRequest.builder()
+            .sourceDirectory(srcDir)
+            .outputDirectory(outDir)
+            .profile(VtlProfile.VTL_MIGRATION)
+            .typeChecking(TypeCheckingMode.ERROR)
+            .build();
+
+    TemplateAotResult result = compiler.compile(request);
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.hasErrors()).isTrue();
+    assertThat(result.diagnostics())
+        .anyMatch(
+            d ->
+                d.severity() == DiagnosticSeverity.ERROR
+                    && d.code().qualifiedCode().equals("VTLSEC:2401"));
+  }
+
+  @Test
+  @DisplayName("VTL_MIGRATION blocks dangerous pivot chains across interpreter and AOT tiers")
+  void vtlMigrationBlocksDangerousChainsAcrossTiers(@TempDir Path tempDir) throws Exception {
+    List<String> dangerousTemplates =
+        List.of("$user.getName().getClass()", "$user.getClass().getName()");
+    UserBean user = new UserBean("Alice");
+    RenderContext ctx = RenderContext.of("user", user);
+
+    // 1. Interpreted AST and IR paths throw TemplateSecurityException
+    for (String templateText : dangerousTemplates) {
+      SourceText source = SourceText.of("chain.vtl", templateText);
+      VtlTemplate ast = VtlParser.parse(source).template();
+
+      for (ExecutionTier tier : List.of(ExecutionTier.AST, ExecutionTier.IR)) {
+        VtlInterpreterOptions options =
+            VtlInterpreterOptions.builder()
+                .executionTier(tier)
+                .profile(VtlProfile.VTL_MIGRATION)
+                .build();
+        VtlInterpreter interpreter = new VtlInterpreter(options);
+        StringTemplateOutput out = new StringTemplateOutput();
+        assertThatThrownBy(() -> EngineInterpreterBridge.render(interpreter, source, ast, ctx, out))
+            .isInstanceOf(TemplateSecurityException.class);
+      }
+    }
+
+    // 2. AOT compilation fails with diagnostic VTLSEC:2401
+    TemplateAotCompiler compiler = TemplateAotCompiler.create();
+    for (int i = 0; i < dangerousTemplates.size(); i++) {
+      String templateText = dangerousTemplates.get(i);
+      Path srcDir = tempDir.resolve("chain_src_" + i);
+      Path outDir = tempDir.resolve("chain_out_" + i);
+      Files.createDirectories(srcDir);
+      Path templateFile = srcDir.resolve("chain.vtl");
+      Files.writeString(templateFile, templateText, StandardCharsets.UTF_8);
+
+      TemplateId id = TemplateId.of("chain.vtl");
+      TemplateContract contract =
+          TemplateContract.of(id, List.of(TemplateParameter.of("user", UserBean.class, false)));
+
+      TemplateAotRequest request =
+          TemplateAotRequest.builder()
+              .sourceDirectory(srcDir)
+              .outputDirectory(outDir)
+              .contracts(Map.of(id, contract))
+              .profile(VtlProfile.VTL_MIGRATION)
+              .typeChecking(TypeCheckingMode.ERROR)
+              .build();
+
+      TemplateAotResult result = compiler.compile(request);
+      assertThat(result.isSuccess()).isFalse();
+      assertThat(result.hasErrors()).isTrue();
+      assertThat(result.diagnostics())
+          .anyMatch(
+              d ->
+                  d.severity() == DiagnosticSeverity.ERROR
+                      && d.code().qualifiedCode().equals("VTLSEC:2401"));
+    }
   }
 }

@@ -164,6 +164,59 @@ class MacroWorkExhaustionParityTest {
 
   @ParameterizedTest
   @EnumSource(ExecutionTier.class)
+  @DisplayName("Asymmetric loop limit is enforced across all tiers with zero macros")
+  void asymmetricLoopLimitEnforcedAcrossAllTiers(ExecutionTier tier) {
+    String template = "#foreach($i in [1..15])x#end";
+    RenderBudget budget = new RenderBudget(10_000_000L, 0L, 10, 1_000_000);
+    CountingTemplateOutput countingOutput =
+        new CountingTemplateOutput(new StringTemplateOutput(), budget, TemplateId.of("test.vm"));
+
+    VtlInterpreterOptions options = VtlInterpreterOptions.builder().executionTier(tier).build();
+
+    assertThatThrownBy(() -> renderWithTier(template, tier, options, countingOutput))
+        .isInstanceOf(TemplateLimitException.class)
+        .hasMessageContaining("Exceeded maximum foreach iterations: 10");
+  }
+
+  @ParameterizedTest
+  @EnumSource(ExecutionTier.class)
+  @DisplayName("Asymmetric macro limit does not trip loop-only template across all tiers")
+  void asymmetricMacroLimitDoesNotTripLoopOnlyTemplate(ExecutionTier tier) {
+    String template = "#foreach($i in [1..15])x#end";
+    RenderBudget budget = new RenderBudget(10_000_000L, 0L, 1_000_000, 10);
+    CountingTemplateOutput countingOutput =
+        new CountingTemplateOutput(new StringTemplateOutput(), budget, TemplateId.of("test.vm"));
+
+    VtlInterpreterOptions options = VtlInterpreterOptions.builder().executionTier(tier).build();
+
+    assertThatCode(() -> renderWithTier(template, tier, options, countingOutput))
+        .doesNotThrowAnyException();
+  }
+
+  @ParameterizedTest
+  @EnumSource(ExecutionTier.class)
+  @DisplayName("Macro containing loop tracks both macro and loop counters across tiers")
+  void macroContainingLoopTracksBothCounters(ExecutionTier tier) throws IOException {
+    String template = "#macro(m $n)#foreach($i in [1..$n])x#end#end#m(3)#m(2)";
+    RenderBudget budget = new RenderBudget(10_000_000L, 0L, 100, 100);
+    StringTemplateOutput strOutput = new StringTemplateOutput();
+    CountingTemplateOutput countingOutput =
+        new CountingTemplateOutput(strOutput, budget, TemplateId.of("test.vm"));
+
+    VtlInterpreterOptions options =
+        VtlInterpreterOptions.builder()
+            .executionTier(tier)
+            .optimizationOptions(IrOptimizationOptions.builder().macroInlining(false).build())
+            .build();
+
+    renderWithTier(template, tier, options, countingOutput);
+    assertThat(strOutput.toString()).isEqualTo("xxxxx");
+    assertThat(budget.macroInvocations()).isEqualTo(2L);
+    assertThat(budget.loopIterations()).isEqualTo(5L);
+  }
+
+  @ParameterizedTest
+  @EnumSource(ExecutionTier.class)
   @DisplayName("Deterministic tight deadline aborts across tiers")
   void deterministicTightDeadlineAbortsAcrossTiers(ExecutionTier tier) {
     ExecutionLimits tightLimits = ExecutionLimits.builder().maxExecutionTimeMillis(1L).build();
