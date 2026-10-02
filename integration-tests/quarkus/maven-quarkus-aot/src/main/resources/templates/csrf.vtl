@@ -1,0 +1,4 @@
+available=$csrf.available
+parameter=$csrf.parameterName
+header=$csrf.headerName
+hasToken=#if($csrf.token && $csrf.token != "")true#else false#end

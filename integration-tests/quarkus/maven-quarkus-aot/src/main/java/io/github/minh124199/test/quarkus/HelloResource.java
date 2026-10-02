@@ -1,9 +1,13 @@
 package io.github.minh124199.test.quarkus;
 
 import io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
@@ -50,5 +54,36 @@ public class HelloResource {
   @Produces(MediaType.TEXT_HTML)
   public String undefined() {
     return renderer.render("undefined-check.vtl", Map.of());
+  }
+
+  @GET
+  @Path("/secured")
+  @RolesAllowed({"ADMIN", "USER"})
+  @Produces(MediaType.TEXT_PLAIN)
+  public String secured() {
+    return renderer.render("security.vtl", Map.of());
+  }
+
+  @GET
+  @Path("/admin")
+  @RolesAllowed("ADMIN")
+  @Produces(MediaType.TEXT_PLAIN)
+  public String admin() {
+    return renderer.render("security.vtl", Map.of());
+  }
+
+  @GET
+  @Path("/csrf")
+  @Produces(MediaType.TEXT_PLAIN)
+  public String csrf() {
+    return renderer.render("csrf.vtl", Map.of());
+  }
+
+  @POST
+  @Path("/csrf-submit")
+  @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+  @Produces(MediaType.TEXT_PLAIN)
+  public String csrfSubmit(@FormParam("message") String message) {
+    return "Received: " + message;
   }
 }

@@ -97,6 +97,89 @@ public class QuarkusSecurityViewTest {
   }
 
   @Test
+  public void testHasAnyRole() {
+    QuarkusSecurityView view =
+        new QuarkusSecurityView("alice", true, false, Set.of("ADMIN", "MANAGER"));
+
+    // Single varargs
+    assertThat(view.hasAnyRole("ADMIN")).isTrue();
+    assertThat(view.hasAnyRole("GUEST", "ADMIN")).isTrue();
+    assertThat(view.hasAnyRole("GUEST", "USER")).isFalse();
+    assertThat(view.hasAnyRole((String[]) null)).isFalse();
+    assertThat(view.hasAnyRole(new String[0])).isFalse();
+    assertThat(view.hasAnyRole((String) null)).isFalse();
+    assertThat(view.hasAnyRole("")).isFalse();
+    assertThat(view.hasAnyRole(" ", null, "GUEST")).isFalse();
+    assertThat(view.hasAnyRole(" ", null, "ADMIN")).isTrue();
+
+    // 2-arg overload
+    assertThat(view.hasAnyRole("USER", "ADMIN")).isTrue();
+    assertThat(view.hasAnyRole("ADMIN", "USER")).isTrue();
+    assertThat(view.hasAnyRole("GUEST", "USER")).isFalse();
+    assertThat(view.hasAnyRole(null, "ADMIN")).isTrue();
+    assertThat(view.hasAnyRole("ADMIN", null)).isTrue();
+    assertThat(view.hasAnyRole(null, null)).isFalse();
+
+    // 3-arg overload
+    assertThat(view.hasAnyRole("GUEST", "USER", "ADMIN")).isTrue();
+    assertThat(view.hasAnyRole("ADMIN", "GUEST", "USER")).isTrue();
+    assertThat(view.hasAnyRole("GUEST", "USER", "DEV")).isFalse();
+    assertThat(view.hasAnyRole(null, null, "ADMIN")).isTrue();
+    assertThat(view.hasAnyRole(null, null, null)).isFalse();
+  }
+
+  @Test
+  public void testHasAllRoles() {
+    QuarkusSecurityView view =
+        new QuarkusSecurityView("alice", true, false, Set.of("ADMIN", "MANAGER", "USER"));
+
+    // Varargs
+    assertThat(view.hasAllRoles("ADMIN", "USER")).isTrue();
+    assertThat(view.hasAllRoles("ADMIN", "MANAGER", "USER")).isTrue();
+    assertThat(view.hasAllRoles("ADMIN", "GUEST")).isFalse();
+    // Non-vacuous truth: empty or null returns false
+    assertThat(view.hasAllRoles((String[]) null)).isFalse();
+    assertThat(view.hasAllRoles(new String[0])).isFalse();
+    assertThat(view.hasAllRoles("ADMIN", null)).isFalse();
+    assertThat(view.hasAllRoles("ADMIN", "")).isFalse();
+    assertThat(view.hasAllRoles("ADMIN", "   ")).isFalse();
+
+    // 2-arg overload
+    assertThat(view.hasAllRoles("ADMIN", "USER")).isTrue();
+    assertThat(view.hasAllRoles("ADMIN", "GUEST")).isFalse();
+    assertThat(view.hasAllRoles("GUEST", "ADMIN")).isFalse();
+    assertThat(view.hasAllRoles("ADMIN", null)).isFalse();
+    assertThat(view.hasAllRoles(null, "ADMIN")).isFalse();
+    assertThat(view.hasAllRoles(null, null)).isFalse();
+
+    // 3-arg overload
+    assertThat(view.hasAllRoles("ADMIN", "MANAGER", "USER")).isTrue();
+    assertThat(view.hasAllRoles("ADMIN", "MANAGER", "GUEST")).isFalse();
+    assertThat(view.hasAllRoles("ADMIN", null, "USER")).isFalse();
+    assertThat(view.hasAllRoles(null, null, null)).isFalse();
+  }
+
+  @Test
+  public void testDefensiveRoleCopying() {
+    java.util.Set<String> mutableRoles = new java.util.HashSet<>();
+    mutableRoles.add("ROLE_A");
+    mutableRoles.add("ROLE_B");
+
+    QuarkusSecurityView view = new QuarkusSecurityView("alice", true, false, mutableRoles);
+
+    // Modifying the source set after construction must not affect the view
+    mutableRoles.add("ROLE_C");
+    assertThat(view.hasRole("ROLE_C")).isFalse();
+    assertThat(view.roles()).containsExactlyInAnyOrder("ROLE_A", "ROLE_B");
+
+    // Attempting to modify the view's roles set must fail
+    org.assertj.core.api.Assertions.assertThatThrownBy(() -> view.roles().add("HACK"))
+        .isInstanceOf(UnsupportedOperationException.class);
+    org.assertj.core.api.Assertions.assertThatThrownBy(() -> view.getRoles().add("HACK"))
+        .isInstanceOf(UnsupportedOperationException.class);
+  }
+
+  @Test
   public void testEqualityAndHashCode() {
     QuarkusSecurityView v1 = new QuarkusSecurityView("bob", true, false, Set.of("ADMIN"));
     QuarkusSecurityView v2 = new QuarkusSecurityView("bob", true, false, Set.of("ADMIN"));

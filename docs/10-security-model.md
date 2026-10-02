@@ -345,3 +345,31 @@ All string-yielding methods on security facades (such as `$security.name` or `$s
 
 ### 17.3 Sensitive Token Redaction
 To prevent accidental exposure of CSRF secrets in debug outputs, logging statements, or error diagnostics, `CsrfView.toString()` strictly redacts the token value (`token=***`) while retaining parameter and header identifiers.
+
+---
+
+## 18. Quarkus Security Integration & Presentation Boundaries
+
+The `viet-template-quarkus` extension optionally integrates with Quarkus Security and CSRF protection while enforcing strict presentation and threat boundary invariants (see [`docs/extensions/quarkus.md`](extensions/quarkus.md)).
+
+> [!WARNING]
+> ### PRESENTATION-ONLY UI AUTHORIZATION WARNING
+> **Template authorization helpers (`$security.hasRole(...)`, `$security.hasAnyRole(...)`, `$security.hasAllRoles(...)`, `$security.authenticated`) control visual presentation only.**
+> They conditionally show or hide UI elements in rendered HTML templates. They **do not** establish backend security boundaries or replace server-side access controls (`@RolesAllowed`, `@Authenticated`, `@PermitAll`, or Quarkus HTTP security policies). All sensitive endpoints and services must be enforced by authoritative Quarkus server-side security.
+
+### 18.1 Threat Boundary and State Isolation
+- **No Raw Framework Objects**: Raw `SecurityIdentity`, credentials, permissions, and Vert.x `RoutingContext` instances are strictly excluded from template scope.
+- **Read-Only Presentation Facades**: Templates interact exclusively with immutable, read-only presentation facades (`QuarkusSecurityView`, `QuarkusCsrfView`). These facades expose only presentation projections (`name()`, `roles()`, `hasRole()`, `hasAnyRole()`, `hasAllRoles()`, `isAuthenticated()`, `isAnonymous()`, `token()`, `parameterName()`, `headerName()`).
+- **Defensive State Copying**: `QuarkusSecurityView` snapshots strings and defensively copies role sets into unmodifiable sets. Mutations to source sets cannot leak into or mutate active views.
+- **Context Injection**: Bridged via the public `RenderContextContributor` SPI (`QuarkusSecurityRenderContextContributor`), populated per request without state leakage across requests or concurrent worker threads.
+
+### 18.2 Contextual Auto-Escaping (XSS Defense)
+All string-yielding methods on security facades return standard Java `String` and never implement `SafeHtml` or `SafeContent`. When interpolated in templates, principal names, role strings, and token values are subject to active HTML auto-escaping policies, preventing stored XSS injection attacks from untrusted identity providers.
+
+### 18.3 Sensitive Token & Principal Redaction
+To prevent accidental exposure of secrets in debug logs, error dumps, or string formatting:
+- `QuarkusSecurityView.toString()` redacts principal names and assigned roles with `[REDACTED]`.
+- `QuarkusCsrfView.toString()` strictly redacts the token secret with `[PROTECTED]`, preventing token leakage in diagnostic representations.
+
+### 18.4 Custom Security View Factory SPI
+Applications with custom identity models can implement `QuarkusSecurityViewFactory` to customize view generation, discovered automatically from Arc without replacing the contributor pipeline.

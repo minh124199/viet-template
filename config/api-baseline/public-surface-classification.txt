@@ -268,8 +268,10 @@ io.github.minh124199.viettemplate.quarkus.VietTemplateConfig STABLE_API
 io.github.minh124199.viettemplate.quarkus.VietTemplateProducer FRAMEWORK_ENTRYPOINT
 io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer STABLE_API
 io.github.minh124199.viettemplate.quarkus.deployment.VietTemplateProcessor FRAMEWORK_ENTRYPOINT
+io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView STABLE_API
 io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor STABLE_SPI
 io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView STABLE_API
+io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityViewFactory STABLE_SPI
 io.github.minh124199.viettemplate.runtime.CssStringEscaper STABLE_API
 io.github.minh124199.viettemplate.runtime.EscapeMode STABLE_SPI
 io.github.minh124199.viettemplate.runtime.Escaper STABLE_SPI

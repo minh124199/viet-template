@@ -6,6 +6,19 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 echo "=== Viet Template Quarkus AOT Integration & Parity Verification ==="
 
+FORCE_NATIVE=false
+for arg in "$@"; do
+    case "${arg}" in
+        --force-native)
+            FORCE_NATIVE=true
+            ;;
+    esac
+done
+
+if [ "${FORCE_NATIVE_BUILD:-false}" = "true" ]; then
+    FORCE_NATIVE=true
+fi
+
 APP_PID=""
 cleanup() {
     if [ -n "${APP_PID}" ] && kill -0 "${APP_PID}" 2>/dev/null; then
@@ -87,15 +100,146 @@ verify_endpoints() {
         return 1
     fi
 
+    # 5. Unauthenticated request to /hello/secured returns 401
+    code=$(curl -s -o /tmp/quarkus-endpoint-response.html -w "%{http_code}" "http://localhost:${port}/hello/secured")
+    if [ "${code}" != "401" ]; then
+        echo "[FAIL] Expected HTTP 401 from unauthenticated /hello/secured on port ${port}, got ${code}!"
+        cat "${log_file}"
+        return 1
+    fi
+
+    # 6. Authenticated user request to /hello/secured returns 200 with identity details
+    code=$(curl -s -o /tmp/quarkus-endpoint-response.html -w "%{http_code}" -H "X-Test-User: user" "http://localhost:${port}/hello/secured")
+    if [ "${code}" != "200" ]; then
+        echo "[FAIL] Expected HTTP 200 from /hello/secured (user) on port ${port}, got ${code}!"
+        cat "${log_file}"
+        return 1
+    fi
+    if ! grep -q "authenticated=true" /tmp/quarkus-endpoint-response.html || \
+       ! grep -q "name=user" /tmp/quarkus-endpoint-response.html || \
+       ! grep -q "admin=false" /tmp/quarkus-endpoint-response.html; then
+        echo "[FAIL] /hello/secured (user) response body missing expected content:"
+        cat /tmp/quarkus-endpoint-response.html
+        return 1
+    fi
+
+    # 7. Authenticated admin request to /hello/secured returns 200 with admin=true
+    code=$(curl -s -o /tmp/quarkus-endpoint-response.html -w "%{http_code}" -H "X-Test-User: admin" "http://localhost:${port}/hello/secured")
+    if [ "${code}" != "200" ]; then
+        echo "[FAIL] Expected HTTP 200 from /hello/secured (admin) on port ${port}, got ${code}!"
+        cat "${log_file}"
+        return 1
+    fi
+    if ! grep -q "authenticated=true" /tmp/quarkus-endpoint-response.html || \
+       ! grep -q "name=admin" /tmp/quarkus-endpoint-response.html || \
+       ! grep -q "admin=true" /tmp/quarkus-endpoint-response.html; then
+        echo "[FAIL] /hello/secured (admin) response body missing expected content:"
+        cat /tmp/quarkus-endpoint-response.html
+        return 1
+    fi
+
+    # 8. Forbidden request to /hello/admin with non-admin user returns 403
+    code=$(curl -s -o /tmp/quarkus-endpoint-response.html -w "%{http_code}" -H "X-Test-User: user" "http://localhost:${port}/hello/admin")
+    if [ "${code}" != "403" ]; then
+        echo "[FAIL] Expected HTTP 403 from /hello/admin (user) on port ${port}, got ${code}!"
+        cat "${log_file}"
+        return 1
+    fi
+
+    # 9. Allowed request to /hello/admin with admin returns 200
+    code=$(curl -s -o /tmp/quarkus-endpoint-response.html -w "%{http_code}" -H "X-Test-User: admin" "http://localhost:${port}/hello/admin")
+    if [ "${code}" != "200" ]; then
+        echo "[FAIL] Expected HTTP 200 from /hello/admin (admin) on port ${port}, got ${code}!"
+        cat "${log_file}"
+        return 1
+    fi
+    if ! grep -q "admin=true" /tmp/quarkus-endpoint-response.html; then
+        echo "[FAIL] /hello/admin (admin) response body missing expected content:"
+        cat /tmp/quarkus-endpoint-response.html
+        return 1
+    fi
+
+    # 10. CSRF GET /hello/csrf returns 200 with token metadata and sets cookie
+    local cookie_jar="/tmp/quarkus-csrf-cookie-jar.txt"
+    rm -f "${cookie_jar}"
+    code=$(curl -s -c "${cookie_jar}" -o /tmp/quarkus-endpoint-response.html -w "%{http_code}" "http://localhost:${port}/hello/csrf")
+    if [ "${code}" != "200" ]; then
+        echo "[FAIL] Expected HTTP 200 from /hello/csrf on port ${port}, got ${code}!"
+        cat "${log_file}"
+        rm -f "${cookie_jar}"
+        return 1
+    fi
+    if ! grep -q "available=true" /tmp/quarkus-endpoint-response.html || \
+       ! grep -q "parameter=csrf-token" /tmp/quarkus-endpoint-response.html || \
+       ! grep -q "header=X-CSRF-TOKEN" /tmp/quarkus-endpoint-response.html || \
+       ! grep -q "hasToken=true" /tmp/quarkus-endpoint-response.html; then
+        echo "[FAIL] /hello/csrf response body missing expected content:"
+        cat /tmp/quarkus-endpoint-response.html
+        rm -f "${cookie_jar}"
+        return 1
+    fi
+
+    local csrf_token
+    csrf_token=$(awk '$6 == "csrf-token" {print $7}' "${cookie_jar}" | tr -d '\r\n')
+    if [ -z "${csrf_token}" ]; then
+        echo "[FAIL] csrf-token cookie not found in cookie jar!"
+        rm -f "${cookie_jar}"
+        return 1
+    fi
+
+    # 11. CSRF POST submission rejected without token (HTTP 400)
+    code=$(curl -s -o /tmp/quarkus-endpoint-response.html -w "%{http_code}" -X POST -d "message=test" "http://localhost:${port}/hello/csrf-submit")
+    if [ "${code}" != "400" ]; then
+        echo "[FAIL] Expected HTTP 400 from /hello/csrf-submit without token on port ${port}, got ${code}!"
+        cat "${log_file}"
+        rm -f "${cookie_jar}"
+        return 1
+    fi
+
+    # 12. CSRF POST submission succeeds with valid cookie and form parameter
+    code=$(curl -s -b "${cookie_jar}" -o /tmp/quarkus-endpoint-response.html -w "%{http_code}" -X POST --data-urlencode "csrf-token=${csrf_token}" --data-urlencode "message=NativeVerified" "http://localhost:${port}/hello/csrf-submit")
+    if [ "${code}" != "200" ]; then
+        echo "[FAIL] Expected HTTP 200 from /hello/csrf-submit on port ${port}, got ${code}!"
+        cat "${log_file}"
+        rm -f "${cookie_jar}"
+        return 1
+    fi
+    if ! grep -q "Received: NativeVerified" /tmp/quarkus-endpoint-response.html; then
+        echo "[FAIL] /hello/csrf-submit response body missing expected content:"
+        cat /tmp/quarkus-endpoint-response.html
+        rm -f "${cookie_jar}"
+        return 1
+    fi
+    rm -f "${cookie_jar}"
+
     return 0
 }
 
-# Auto-detect GraalVM / Mandrel 25 if available
-if [ -z "${GRAALVM_HOME:-}" ]; then
-    if [ -d "/home/lynguyen/.graalvm/mandrel-java25-25.0.4.1-Final" ]; then
-        export GRAALVM_HOME="/home/lynguyen/.graalvm/mandrel-java25-25.0.4.1-Final"
-        export PATH="${GRAALVM_HOME}/bin:${PATH}"
-    fi
+# Robust GraalVM / Mandrel detection
+if command -v native-image >/dev/null 2>&1; then
+    :
+elif [ -n "${GRAALVM_HOME:-}" ] && [ -x "${GRAALVM_HOME}/bin/native-image" ]; then
+    export PATH="${GRAALVM_HOME}/bin:${PATH}"
+elif [ -n "${JAVA_HOME:-}" ] && [ -x "${JAVA_HOME}/bin/native-image" ]; then
+    export GRAALVM_HOME="${JAVA_HOME}"
+    export PATH="${JAVA_HOME}/bin:${PATH}"
+else
+    for candidate in \
+        "/home/lynguyen/.graalvm/mandrel-java25-25.0.4.1-Final" \
+        "${HOME:-}/.graalvm"/mandrel-java25* \
+        "${HOME:-}/.graalvm"/mandrel* \
+        "${HOME:-}/opt"/graalvm-jdk-25* \
+        "${HOME:-}/opt"/graalvm* \
+        "/usr/lib/jvm"/graalvm-jdk-25* \
+        "/usr/lib/jvm"/graalvm* \
+        "/opt"/graalvm-jdk-25* \
+        "/opt"/graalvm*; do
+        if [ -d "${candidate}" ] && [ -x "${candidate}/bin/native-image" ]; then
+            export GRAALVM_HOME="${candidate}"
+            export PATH="${GRAALVM_HOME}/bin:${PATH}"
+            break
+        fi
+    done
 fi
 
 CACHE_DIR="${TMPDIR:-/tmp}/viet-template-native-cache"
@@ -104,13 +248,32 @@ mkdir -p "${CACHE_DIR}"
 MAVEN_NATIVE_RUNNER="${ROOT_DIR}/integration-tests/quarkus/maven-quarkus-aot/target/maven-quarkus-aot-1.0.0-runner"
 GRADLE_NATIVE_RUNNER="${ROOT_DIR}/integration-tests/quarkus/gradle-quarkus-aot/build/gradle-quarkus-aot-1.0.0-runner"
 
-# Preserve existing native runners from clean steps
-if [ -f "${MAVEN_NATIVE_RUNNER}" ]; then
-    cp -f "${MAVEN_NATIVE_RUNNER}" "${CACHE_DIR}/maven-quarkus-aot-1.0.0-runner"
+if [ "${FORCE_NATIVE}" = "true" ]; then
+    echo "[INFO] Force native mode enabled: clearing native runner caches."
+    rm -f "${CACHE_DIR}/maven-quarkus-aot-1.0.0-runner"
+    rm -f "${CACHE_DIR}/gradle-quarkus-aot-1.0.0-runner"
+    rm -f "${MAVEN_NATIVE_RUNNER}"
+    rm -f "${GRADLE_NATIVE_RUNNER}"
+else
+    # Preserve existing native runners from clean steps
+    if [ -f "${MAVEN_NATIVE_RUNNER}" ]; then
+        cp -f "${MAVEN_NATIVE_RUNNER}" "${CACHE_DIR}/maven-quarkus-aot-1.0.0-runner"
+    fi
+    if [ -f "${GRADLE_NATIVE_RUNNER}" ]; then
+        cp -f "${GRADLE_NATIVE_RUNNER}" "${CACHE_DIR}/gradle-quarkus-aot-1.0.0-runner"
+    fi
 fi
-if [ -f "${GRADLE_NATIVE_RUNNER}" ]; then
-    cp -f "${GRADLE_NATIVE_RUNNER}" "${CACHE_DIR}/gradle-quarkus-aot-1.0.0-runner"
+
+# Step 0: Ensure staged reactor artifacts in local repository
+echo "[STEP 0] Ensuring staged reactor artifacts in local repository..."
+if [ -d "${ROOT_DIR}/build/rc-repository/io/github/minh124199" ]; then
+    mkdir -p "${HOME}/.m2/repository/io/github"
+    cp -rn "${ROOT_DIR}/build/rc-repository/io/github/minh124199" "${HOME}/.m2/repository/io/github/" 2>/dev/null || cp -r "${ROOT_DIR}/build/rc-repository/io/github/minh124199" "${HOME}/.m2/repository/io/github/"
+else
+    "${ROOT_DIR}/gradlew" publishToMavenLocal --no-daemon -x test
+    "${ROOT_DIR}/mvnw" install -DskipTests -Dspotless.check.skip=true --no-transfer-progress -B
 fi
+echo "[PASS] Reactor artifacts verified in local repository."
 
 # Step 1: Run Maven Quarkus AOT fixture tests
 echo "[STEP 1] Running maven-quarkus-aot consumer fixture tests..."
@@ -142,7 +305,7 @@ echo "[PASS] Both Quarkus runner applications packaged successfully."
 
 # Ensure native runners exist (restore from cache or compile)
 if [ ! -f "${MAVEN_NATIVE_RUNNER}" ]; then
-    if [ -f "${CACHE_DIR}/maven-quarkus-aot-1.0.0-runner" ]; then
+    if [ "${FORCE_NATIVE}" != "true" ] && [ -f "${CACHE_DIR}/maven-quarkus-aot-1.0.0-runner" ]; then
         mkdir -p "$(dirname "${MAVEN_NATIVE_RUNNER}")"
         cp -f "${CACHE_DIR}/maven-quarkus-aot-1.0.0-runner" "${MAVEN_NATIVE_RUNNER}"
     else
@@ -153,7 +316,7 @@ if [ ! -f "${MAVEN_NATIVE_RUNNER}" ]; then
 fi
 
 if [ ! -f "${GRADLE_NATIVE_RUNNER}" ]; then
-    if [ -f "${CACHE_DIR}/gradle-quarkus-aot-1.0.0-runner" ]; then
+    if [ "${FORCE_NATIVE}" != "true" ] && [ -f "${CACHE_DIR}/gradle-quarkus-aot-1.0.0-runner" ]; then
         mkdir -p "$(dirname "${GRADLE_NATIVE_RUNNER}")"
         cp -f "${CACHE_DIR}/gradle-quarkus-aot-1.0.0-runner" "${GRADLE_NATIVE_RUNNER}"
     else
@@ -215,23 +378,12 @@ APP_PID=$!
 
 wait_for_server "${MAVEN_PORT}"
 
-MAVEN_HTTP_CODE=$(curl -s -o /tmp/quarkus-maven-response.html -w "%{http_code}" "http://localhost:${MAVEN_PORT}/hello?name=QuarkusMaven")
-if [ "${MAVEN_HTTP_CODE}" != "200" ]; then
-    echo "[FAIL] Expected HTTP 200 from Maven Quarkus app, got ${MAVEN_HTTP_CODE}!"
-    cat /tmp/quarkus-maven.log
-    exit 1
-fi
-
-if ! grep -q "<h1>Hello, QuarkusMaven!</h1>" /tmp/quarkus-maven-response.html; then
-    echo "[FAIL] Response body missing expected greeting from Maven Quarkus app:"
-    cat /tmp/quarkus-maven-response.html
-    exit 1
-fi
+verify_endpoints "${MAVEN_PORT}" "QuarkusMaven" "/tmp/quarkus-maven.log"
 
 kill -9 "${APP_PID}" 2>/dev/null || true
 wait "${APP_PID}" 2>/dev/null || true
 APP_PID=""
-echo "[PASS] Maven Quarkus runner served HTTP 200 HTML with pure AOT execution."
+echo "[PASS] Maven Quarkus runner verified successfully across all endpoints."
 
 # Step 7: Verify executable Gradle Quarkus runner JAR
 echo "[STEP 7] Verifying executable Gradle Quarkus runner execution..."
@@ -241,23 +393,12 @@ APP_PID=$!
 
 wait_for_server "${GRADLE_PORT}"
 
-GRADLE_HTTP_CODE=$(curl -s -o /tmp/quarkus-gradle-response.html -w "%{http_code}" "http://localhost:${GRADLE_PORT}/hello?name=QuarkusGradle")
-if [ "${GRADLE_HTTP_CODE}" != "200" ]; then
-    echo "[FAIL] Expected HTTP 200 from Gradle Quarkus app, got ${GRADLE_HTTP_CODE}!"
-    cat /tmp/quarkus-gradle.log
-    exit 1
-fi
-
-if ! grep -q "<h1>Hello, QuarkusGradle!</h1>" /tmp/quarkus-gradle-response.html; then
-    echo "[FAIL] Response body missing expected greeting from Gradle Quarkus app:"
-    cat /tmp/quarkus-gradle-response.html
-    exit 1
-fi
+verify_endpoints "${GRADLE_PORT}" "QuarkusGradle" "/tmp/quarkus-gradle.log"
 
 kill -9 "${APP_PID}" 2>/dev/null || true
 wait "${APP_PID}" 2>/dev/null || true
 APP_PID=""
-echo "[PASS] Gradle Quarkus runner served HTTP 200 HTML with pure AOT execution."
+echo "[PASS] Gradle Quarkus runner verified successfully across all endpoints."
 
 # Step 8: Verify executable Maven Quarkus native runner
 echo "[STEP 8] Verifying executable Maven Quarkus native runner execution..."
@@ -272,7 +413,7 @@ verify_endpoints "${MAVEN_NATIVE_PORT}" "QuarkusNativeMaven" "/tmp/quarkus-maven
 kill -9 "${APP_PID}" 2>/dev/null || true
 wait "${APP_PID}" 2>/dev/null || true
 APP_PID=""
-echo "[PASS] Maven Quarkus native runner verified successfully across all endpoints (/hello, /hello/page, /hello/stream, /hello/undefined)."
+echo "[PASS] Maven Quarkus native runner verified successfully across all endpoints (/hello, /hello/page, /hello/stream, /hello/undefined, /hello/secured, /hello/admin, /hello/csrf, /hello/csrf-submit)."
 
 # Step 9: Verify executable Gradle Quarkus native runner
 echo "[STEP 9] Verifying executable Gradle Quarkus native runner execution..."
@@ -287,7 +428,7 @@ verify_endpoints "${GRADLE_NATIVE_PORT}" "QuarkusNativeGradle" "/tmp/quarkus-gra
 kill -9 "${APP_PID}" 2>/dev/null || true
 wait "${APP_PID}" 2>/dev/null || true
 APP_PID=""
-echo "[PASS] Gradle Quarkus native runner verified successfully across all endpoints (/hello, /hello/page, /hello/stream, /hello/undefined)."
+echo "[PASS] Gradle Quarkus native runner verified successfully across all endpoints (/hello, /hello/page, /hello/stream, /hello/undefined, /hello/secured, /hello/admin, /hello/csrf, /hello/csrf-submit)."
 
 echo ""
 echo "[SUCCESS] Quarkus AOT Dual-Build Parity & Verification PASSED across all fixtures!"
