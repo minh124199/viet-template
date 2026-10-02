@@ -424,18 +424,33 @@ def verify_public_surface(manifest: dict[str, Any], repo_root: Path) -> list[str
 
 
 def verify_runtime_abi(manifest: dict[str, Any], repo_root: Path) -> list[str]:
-    """Verifies generated-template-runtime-abi.txt against baseline."""
+    """Verifies generated-template-runtime-abi.txt and frozen 1.0 ABI baseline against manifest."""
     errors: list[str] = []
     abi = manifest.get("generatedRuntimeAbi", {})
 
+    exp_types = sorted(abi.get("types", []))
+    exp_methods = sorted(abi.get("methods", []))
+
+    # 1. Verify frozen historical 1.0 ABI baseline file if present (must match 1.0 manifest with 0 drift)
+    hist_file = repo_root / "config" / "api-baseline" / "1.0" / "generated-template-runtime-abi.txt"
+    if hist_file.exists():
+        try:
+            hist_types, hist_methods = parse_runtime_abi_file(hist_file)
+            if hist_types != exp_types:
+                diff = set(exp_types).symmetric_difference(set(hist_types))
+                errors.append(f"Frozen 1.0 Runtime ABI types drift from manifest: {sorted(diff)}")
+            if hist_methods != exp_methods:
+                diff = set(exp_methods).symmetric_difference(set(hist_methods))
+                errors.append(f"Frozen 1.0 Runtime ABI methods drift from manifest: {sorted(diff)}")
+        except Exception as e:
+            errors.append(f"Failed to load frozen 1.0 Runtime ABI baseline: {e}")
+
+    # 2. Verify active development generated-template-runtime-abi.txt (allows additive 1.x evolution)
     abi_file = repo_root / "config" / "api-baseline" / "generated-template-runtime-abi.txt"
     try:
         curr_types, curr_methods = parse_runtime_abi_file(abi_file)
     except Exception as e:
-        return [f"Failed to load Runtime ABI baseline: {e}"]
-
-    exp_types = sorted(abi.get("types", []))
-    exp_methods = sorted(abi.get("methods", []))
+        return errors + [f"Failed to load Runtime ABI baseline: {e}"]
 
     if curr_types != exp_types:
         missing_types = set(exp_types) - set(curr_types)

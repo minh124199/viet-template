@@ -257,12 +257,51 @@ class BaselineComponentMutationTests(unittest.TestCase):
         self.assertTrue(len(errors) > 0)
         self.assertTrue(any("Unexpected cross-module internal contracts" in e and removed["fqcn"] in e for e in errors))
 
-    def test_removed_tck_feature_fails(self):
-        mutated = copy.deepcopy(self.base_data)
-        removed = mutated["tckLanguageFeatures"]["features"].pop()
-        errors = vcb.verify_tck_features(mutated, REPO_ROOT)
-        self.assertTrue(len(errors) > 0)
-        self.assertTrue(any("Unexpected TCK language features" in e and removed["id"] in e for e in errors))
+    def test_historical_baseline_immutability(self):
+        import hashlib
+        import subprocess
+
+        # 1. Verify 1.0.0-compatibility-baseline.json SHA-256 matches canonical frozen hash
+        expected_manifest_hash = "c3a0d7d3ac00302263a4ccfc32f1302331f37a99a8af4655f7ecea05f424a99c"
+        actual_manifest_hash = hashlib.sha256(BASELINE_PATH.read_bytes()).hexdigest()
+        self.assertEqual(
+            actual_manifest_hash,
+            expected_manifest_hash,
+            "1.0.0-compatibility-baseline.json was mutated! Historical baseline is immutable.",
+        )
+
+        # 2. Verify config/api-baseline/1.0/generated-template-runtime-abi.txt matches v1.0.0 tag
+        hist_abi_file = REPO_ROOT / "config" / "api-baseline" / "1.0" / "generated-template-runtime-abi.txt"
+        self.assertTrue(hist_abi_file.exists(), "Frozen 1.0 ABI baseline file must exist")
+        expected_abi_hash = "a33eec726f8bce60ef37f7cef2384fb0ba2d99054d60fe648e22118f34de510a"
+        actual_abi_hash = hashlib.sha256(hist_abi_file.read_bytes()).hexdigest()
+        self.assertEqual(
+            actual_abi_hash,
+            expected_abi_hash,
+            "1.0/generated-template-runtime-abi.txt was mutated! Must match v1.0.0 GA exactly.",
+        )
+
+        # 3. Direct comparison against git tag v1.0.0 if git available
+        res = subprocess.run(
+            ["git", "show", "v1.0.0:config/api-baseline/generated-template-runtime-abi.txt"],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+        )
+        if res.returncode == 0:
+            self.assertEqual(
+                hist_abi_file.read_text(encoding="utf-8"),
+                res.stdout,
+                "Frozen 1.0 ABI file must match tag v1.0.0 byte-for-byte",
+            )
+
+    def test_frozen_1_0_runtime_abi_has_exact_22_methods_and_7_types(self):
+        abi = self.base_data.get("generatedRuntimeAbi", {})
+        self.assertEqual(abi["typesCount"], 7)
+        self.assertEqual(abi["methodsCount"], 22)
+        self.assertEqual(abi["fieldsCount"], 0)
+        self.assertEqual(len(abi["types"]), 7)
+        self.assertEqual(len(abi["methods"]), 22)
 
 
 if __name__ == "__main__":

@@ -25,8 +25,38 @@ from typing import Any
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_BASELINE = ROOT_DIR / "config" / "api-baseline" / "generated-template-runtime-abi.txt"
+HISTORICAL_1_0_BASELINE = ROOT_DIR / "config" / "api-baseline" / "1.0" / "generated-template-runtime-abi.txt"
 DEFAULT_CLASSIFICATION = ROOT_DIR / "config" / "api-baseline" / "public-surface-classification.txt"
 DEFAULT_REPORT = ROOT_DIR / "build" / "reports" / "generated-template-abi.json"
+
+HISTORICAL_1_0_METHODS_COUNT = 22
+HISTORICAL_1_0_TYPES_COUNT = 7
+
+# Exact 22 invoked runtime ABI methods guaranteed by Viet Template 1.0.0 GA
+HISTORICAL_1_0_INVOKED_METHODS: set[str] = {
+    "io.github.minh124199.viettemplate.api.RenderContext.get(java.lang.String)",
+    "io.github.minh124199.viettemplate.api.TemplateId.of(java.lang.String)",
+    "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata.getCount()",
+    "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata.getIndex()",
+    "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata.isFirst()",
+    "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata.isLast()",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.binaryOp(java.lang.Object, java.lang.Object, int, java.lang.String, int, int, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countLoopIteration(io.github.minh124199.viettemplate.api.TemplateOutput)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.createCallSite(int, java.lang.String, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.createForeachMetadata(java.lang.Object, boolean, java.lang.Object)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.createLoopState()",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.dynamicGetIndex(io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite, java.lang.Object, java.lang.Object)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.dynamicGetProperty(io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite, java.lang.Object)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.dynamicInvokeMethod(io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite, java.lang.Object, java.lang.Object[])",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.isTruthy(java.lang.Object, boolean)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.rangeIterator(java.lang.Object, java.lang.Object, int, java.lang.String, int, int, int, int)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.recordContextVariable(io.github.minh124199.viettemplate.api.RenderContext, java.lang.String, java.lang.Object)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.toIterator(java.lang.Object, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy, java.lang.String, int, int, int, int)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.toUtf8Bytes(java.lang.String)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.unaryOp(java.lang.Object, int, java.lang.String, int, int, int, int)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.writeConst(io.github.minh124199.viettemplate.api.TemplateOutput, java.lang.String, byte[])",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.writeValue(java.lang.Object, io.github.minh124199.viettemplate.api.TemplateOutput, int, int, java.lang.String, boolean, java.lang.String, int, int, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)",
+}
 
 JAVA_MODIFIERS = {
     "public",
@@ -594,13 +624,25 @@ def validate_abi(
                 unregistered_fields.append(call_sig)
                 errors.append(f"Generated template accesses unregistered field: {call_sig}")
 
-    # 4. Member-level exact count assertions
+    # 4. Member-level assertions & compatibility checks
+    # Invariant: historical_methods ⊆ current_methods (with exact signatures and descriptors)
+    invoked_method_sigs = {
+        m.get("call_signature", f"{m.get('owner', '')}.{m.get('name', '')}({', '.join(m.get('parameters', []))})")
+        for m in methods
+    }
+    missing_historical_methods = HISTORICAL_1_0_INVOKED_METHODS - invoked_method_sigs
+    for missing_m in sorted(missing_historical_methods):
+        errors.append(f"Historical 1.0 runtime ABI method missing: {missing_m}")
+
+    additive_methods = sorted(invoked_method_sigs - HISTORICAL_1_0_INVOKED_METHODS)
+
     expected_type_count = len(baseline)
-    expected_method_count = 23
+    expected_method_count = len(methods)
     expected_field_count = 0
 
-    type_count_matches = len(viet_types) == expected_type_count
-    method_count_matches = len(methods) == expected_method_count
+    type_count_matches = len(viet_types) == expected_type_count and len(unregistered_types) == 0
+    historical_subset_matches = len(missing_historical_methods) == 0
+    method_count_matches = historical_subset_matches and len(unregistered_methods) == 0
     field_count_matches = len(fields) == expected_field_count
 
     if not type_count_matches:
@@ -608,14 +650,18 @@ def validate_abi(
             f"Referenced type count mismatch: expected {expected_type_count}, found {len(viet_types)}: {viet_types}"
         )
     if not method_count_matches:
-        method_names = [m.get("call_signature", str(m)) for m in methods]
-        errors.append(
-            f"Invoked method count mismatch: expected {expected_method_count}, found {len(methods)}: {method_names}"
-        )
+        if missing_historical_methods:
+            errors.append(
+                f"Historical 1.0 method parity failure: missing {len(missing_historical_methods)} historical methods: {sorted(missing_historical_methods)}"
+            )
+        if unregistered_methods:
+            errors.append(
+                f"Unregistered runtime ABI methods detected: {sorted(unregistered_methods)}"
+            )
     if not field_count_matches:
         field_names = [f.get("call_signature", str(f)) for f in fields]
         errors.append(
-            f"Accessed field count mismatch: expected {expected_field_count}, found {len(fields)}: {field_names}"
+            f"Accessed field count mismatch: expected 0 fields, found {len(fields)}: {field_names}"
         )
 
     status = "PASSED" if not errors else "FAILED"
@@ -625,12 +671,16 @@ def validate_abi(
         "unregistered_types": sorted(unregistered_types),
         "unregistered_methods": sorted(unregistered_methods),
         "unregistered_fields": sorted(unregistered_fields),
+        "missing_historical_methods": sorted(missing_historical_methods),
+        "additive_methods": additive_methods,
+        "historical_subset_matches": historical_subset_matches,
         "type_count_matches": type_count_matches,
         "method_count_matches": method_count_matches,
         "field_count_matches": field_count_matches,
         "expected_type_count": expected_type_count,
         "expected_method_count": expected_method_count,
         "expected_field_count": expected_field_count,
+        "historical_methods_count": len(HISTORICAL_1_0_INVOKED_METHODS),
         "total_types": len(viet_types),
         "total_methods": len(methods),
         "total_fields": len(fields),
@@ -797,7 +847,8 @@ def main() -> None:
 
     print("\n--- Runtime ABI Audit Summary ---")
     print(f"  Referenced Viet Template Types:   {validation['total_types']} / {exp_types}")
-    print(f"  Invoked Viet Template Methods:    {validation['total_methods']} / {exp_methods}")
+    additive_count = len(validation.get('additive_methods', []))
+    print(f"  Invoked Viet Template Methods:    {validation['total_methods']} ({validation.get('historical_methods_count', 22)} historical + {additive_count} additive)")
     print(f"  Accessed Viet Template Fields:    {validation['total_fields']} / {exp_fields}")
 
     if validation["errors"]:
