@@ -38,6 +38,16 @@ class NativeEvidenceTests(unittest.TestCase):
         ):
             return candidate.verify_native("1234", "candidate-sha")
 
+    def test_detached_worktree_requires_exact_pushed_release_ref(self):
+        with patch.object(candidate, "git", return_value="candidate-sha"):
+            self.assertTrue(candidate.release_branch_matches("candidate-sha", ""))
+        with patch.object(candidate, "git", return_value="different-sha"):
+            self.assertFalse(candidate.release_branch_matches("candidate-sha", ""))
+
+    def test_rejects_unrelated_branch_even_when_remote_ref_matches(self):
+        with patch.object(candidate, "git", return_value="candidate-sha"):
+            self.assertFalse(candidate.release_branch_matches("candidate-sha", "main"))
+
     def test_exact_sha_and_all_three_jobs_pass(self):
         evidence = self.call_with(self.payload())
         self.assertEqual("1234", evidence["runId"])

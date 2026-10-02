@@ -46,6 +46,16 @@ def git(*args: str) -> str:
     return result.stdout.strip()
 
 
+def release_branch_matches(candidate_sha: str, branch: str) -> bool:
+    """Allow the required detached worktree only when the pushed ref is exact."""
+    if branch not in {"", "release/1.1.0"}:
+        return False
+    try:
+        return git("rev-parse", "refs/remotes/origin/release/1.1.0") == candidate_sha
+    except RuntimeError:
+        return False
+
+
 def verify_native(run_id: str, candidate_sha: str) -> dict:
     result = run(["gh", "run", "view", run_id, "--repo", "minh124199/viet-template",
                   "--json", "workflowName,headSha,status,conclusion,jobs"], timeout=180)
@@ -137,7 +147,8 @@ def main() -> int:
     baseline_sha = git("rev-parse", f"refs/tags/{BASELINE}^{{commit}}")
     branch = git("branch", "--show-current")
     initial_dirty = bool(git("status", "--porcelain", "--untracked-files=all"))
-    preflight("branch", branch == "release/1.1.0", f"Expected release/1.1.0 worktree, found {branch or 'detached'}")
+    preflight("releaseBranch", release_branch_matches(candidate_sha, branch),
+              f"Expected branch release/1.1.0 or a detached worktree at its pushed SHA; found {branch or 'detached'}")
     preflight("initialCleanTree", not initial_dirty, "Candidate worktree must be clean before qualification")
     ancestor = run(["git", "merge-base", "--is-ancestor", baseline_sha, candidate_sha])
     preflight("baselineAncestry", ancestor.returncode == 0,
