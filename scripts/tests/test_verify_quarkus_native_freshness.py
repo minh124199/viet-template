@@ -31,6 +31,14 @@ class QuarkusNativeFreshnessTests(unittest.TestCase):
         result = subprocess.run(["bash", "-n", str(SCRIPT)], capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_jvm_only_mode_stops_before_local_native_builds(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("--jvm-only", source)
+        jvm_exit = source.index('if [ "${JVM_ONLY}" = "true" ]; then')
+        native_build = source.index('"${ROOT_DIR}/mvnw" clean package -Dquarkus.package.type=native')
+        self.assertLess(jvm_exit, native_build)
+        self.assertIn("cannot be combined with --force-native", source)
+
 
 if __name__ == "__main__":
     unittest.main()

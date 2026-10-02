@@ -56,6 +56,13 @@ def release_branch_matches(candidate_sha: str, branch: str) -> bool:
         return False
 
 
+def projected_next_version(output: str) -> str | None:
+    match = re.search(r"Simulating next development version ['\"]([^'\"]+)['\"]", output)
+    if match is None:
+        match = re.search(r"advances consistently to ([^\s]+)", output)
+    return match.group(1) if match else None
+
+
 def verify_native(run_id: str, candidate_sha: str) -> dict:
     result = run(["gh", "run", "view", run_id, "--repo", "minh124199/viet-template",
                   "--json", "workflowName,headSha,status,conclusion,jobs"], timeout=180)
@@ -215,8 +222,12 @@ def main() -> int:
         ("exceptionSemantics", ["python3", "scripts/verify-exception-semantics.py"]),
         ("tckCoverage", ["python3", "scripts/verify-tck-coverage.py"]),
         ("buildParity", ["python3", "scripts/verify-build-parity.py"]),
-        ("stageMavenCandidateArtifacts", ["./mvnw", "install", "-DskipTests", "-Dspotless.check.skip=true", "-B"]),
         ("stageGradleCandidateArtifacts", ["./gradlew", "publishToMavenLocal", "--no-daemon", "-x", "test"]),
+        # Gradle also publishes a Java-only viet-template-maven-plugin artifact
+        # to MavenLocal. Install the authoritative Maven plugin last so its
+        # generated META-INF/maven/plugin.xml is the consumer-visible artifact.
+        ("stageMavenCandidateArtifacts", ["./mvnw", "install", "-DskipTests", "-Dspotless.check.skip=true", "-B"]),
+        ("mavenPluginDescriptor", []),
         ("tck", ["./gradlew", ":viet-template-tck:test", "--no-daemon"]),
         ("releaseGatesAndCleanRoomConsumers", ["bash", "scripts/verify-m18-release-gates.sh", "--clean-room"]),
         ("aotToolingParity", ["bash", "scripts/verify-aot-tooling-parity.sh"]),
@@ -225,7 +236,7 @@ def main() -> int:
         ("springSecurity7", ["bash", "scripts/verify-spring-security7-integration.sh"]),
         ("springSecurityCompatibility", ["python3", "scripts/verify-spring-security-compatibility.py"]),
         ("quarkusDevMode", ["bash", "scripts/verify-quarkus-dev-mode.sh"]),
-        ("quarkusIntegration", ["bash", "scripts/verify-quarkus-integration.sh"]),
+        ("quarkusIntegration", ["bash", "scripts/verify-quarkus-integration.sh", "--jvm-only"]),
         ("devtools", ["bash", "scripts/verify-devtools-restart-integration.sh"]),
         ("vscodeGovernance", ["python3", "scripts/verify-vscode-extension.py"]),
         ("vscodeInstall", ["npm", "ci"], ROOT / "editors/vscode"),
@@ -256,6 +267,17 @@ def main() -> int:
                 result = subprocess.CompletedProcess(command, int(bool(hygiene_errors)),
                                                       "\n".join(hygiene_errors) if hygiene_errors else
                                                       "Public Maven module JARs pass local path, snapshot, secret, and manifest checks.\n", "")
+            elif name == "mavenPluginDescriptor":
+                plugin_jar = private_m2 / "io/github/minh124199/viet-template-maven-plugin" / VERSION / f"viet-template-maven-plugin-{VERSION}.jar"
+                try:
+                    with zipfile.ZipFile(plugin_jar) as archive:
+                        descriptor_ok = "META-INF/maven/plugin.xml" in archive.namelist()
+                    detail = ("The staged Maven plugin contains META-INF/maven/plugin.xml.\n" if descriptor_ok else
+                              "Staged Maven plugin is missing META-INF/maven/plugin.xml.\n")
+                except (OSError, zipfile.BadZipFile) as exc:
+                    descriptor_ok = False
+                    detail = f"Cannot inspect staged Maven plugin descriptor: {exc}\n"
+                result = subprocess.CompletedProcess(command, 0 if descriptor_ok else 1, detail, "")
             else:
                 result = run(command, cwd=cwd, env=candidate_env)
             checks.append({"name": name, "status": "PASS" if result.returncode == 0 else "FAIL",
@@ -285,8 +307,7 @@ def main() -> int:
     preflight("finalCleanTree", not final_dirty,
               "Tracked or non-ignored untracked source changes appeared during candidate qualification")
     simulation = next((check for check in checks if check["name"] == "releaseSimulation"), {})
-    next_version_match = re.search(r"Next development:\s*(\S+)", simulation.get("outputTail", ""))
-    next_development_version = next_version_match.group(1) if next_version_match else None
+    next_development_version = projected_next_version(simulation.get("outputTail", ""))
     if next_development_version != "1.1.1-SNAPSHOT":
         errors.append("Release simulation did not prove next development version 1.1.1-SNAPSHOT")
     published_modules, internal_modules = METADATA.get_reactor_modules(ROOT)

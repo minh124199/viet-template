@@ -48,6 +48,20 @@ class NativeEvidenceTests(unittest.TestCase):
         with patch.object(candidate, "git", return_value="candidate-sha"):
             self.assertFalse(candidate.release_branch_matches("candidate-sha", "main"))
 
+    def test_release_simulation_output_proves_next_development_version(self):
+        output = "[STEP 6] Simulating next development version '1.1.1-SNAPSHOT' in the temporary workspace."
+        self.assertEqual("1.1.1-SNAPSHOT", candidate.projected_next_version(output))
+        self.assertEqual(
+            "1.1.1-SNAPSHOT",
+            candidate.projected_next_version("[PASS] Release version advances consistently to 1.1.1-SNAPSHOT in the isolated simulation."),
+        )
+
+    def test_gradle_stage_precedes_authoritative_maven_plugin_stage(self):
+        source = (ROOT / "scripts" / "verify-1.1-release-candidate.py").read_text(encoding="utf-8")
+        self.assertLess(source.index('"stageGradleCandidateArtifacts"'), source.index('"stageMavenCandidateArtifacts"'))
+        self.assertIn('"mavenPluginDescriptor"', source)
+        self.assertIn('"META-INF/maven/plugin.xml" in archive.namelist()', source)
+
     def test_exact_sha_and_all_three_jobs_pass(self):
         evidence = self.call_with(self.payload())
         self.assertEqual("1234", evidence["runId"])
