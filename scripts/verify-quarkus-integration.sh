@@ -295,12 +295,6 @@ if [ ! -f "${GRADLE_APP_JAR}" ]; then
 fi
 echo "[PASS] Both Quarkus runner applications packaged successfully."
 
-echo "[INFO] Building fresh Maven native executable..."
-"${ROOT_DIR}/mvnw" clean package -Dquarkus.package.type=native -Dquarkus.native.container-build=false -DskipTests -f "${ROOT_DIR}/integration-tests/quarkus/maven-quarkus-aot/pom.xml" -B
-
-echo "[INFO] Building fresh Gradle native executable..."
-"${ROOT_DIR}/gradlew" clean build -Dquarkus.package.type=native -Dquarkus.native.container-build=false -x test --project-dir "${ROOT_DIR}/integration-tests/quarkus/gradle-quarkus-aot" --no-daemon
-
 # Step 4: Compare templates.idx between Maven and Gradle
 echo "[STEP 4] Comparing templates.idx byte-for-byte parity..."
 python3 -c "
@@ -374,6 +368,14 @@ kill -9 "${APP_PID}" 2>/dev/null || true
 wait "${APP_PID}" 2>/dev/null || true
 APP_PID=""
 echo "[PASS] Gradle Quarkus runner verified successfully across all endpoints."
+
+# Native builds use clean to guarantee fresh executables. Run them only after
+# JVM parity and live-server checks, since clean removes their packaged JARs.
+echo "[INFO] Building fresh Maven native executable..."
+"${ROOT_DIR}/mvnw" clean package -Dquarkus.package.type=native -Dquarkus.native.container-build=false -DskipTests -f "${ROOT_DIR}/integration-tests/quarkus/maven-quarkus-aot/pom.xml" -B
+
+echo "[INFO] Building fresh Gradle native executable..."
+"${ROOT_DIR}/gradlew" clean build -Dquarkus.package.type=native -Dquarkus.native.container-build=false -x test --project-dir "${ROOT_DIR}/integration-tests/quarkus/gradle-quarkus-aot" --no-daemon
 
 # Step 8: Verify executable Maven Quarkus native runner
 echo "[STEP 8] Verifying executable Maven Quarkus native runner execution..."

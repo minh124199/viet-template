@@ -17,6 +17,16 @@ class QuarkusNativeFreshnessTests(unittest.TestCase):
         self.assertNotIn("viet-template-native-cache", source)
         self.assertNotIn("1.0.0-runner", source)
 
+    def test_fresh_native_cleans_happen_after_jvm_parity_and_execution(self):
+        source = SCRIPT.read_text(encoding="utf-8")
+        native_build = source.index('"${ROOT_DIR}/mvnw" clean package -Dquarkus.package.type=native')
+        parity = source.index("Comparing templates.idx byte-for-byte")
+        maven_jvm_execution = source.index("Verifying executable Maven Quarkus runner execution")
+        gradle_jvm_execution = source.index("Verifying executable Gradle Quarkus runner execution")
+        self.assertLess(parity, native_build)
+        self.assertLess(maven_jvm_execution, native_build)
+        self.assertLess(gradle_jvm_execution, native_build)
+
     def test_quarkus_native_verifier_has_valid_shell_syntax(self):
         result = subprocess.run(["bash", "-n", str(SCRIPT)], capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
