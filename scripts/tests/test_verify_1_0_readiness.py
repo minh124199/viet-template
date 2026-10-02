@@ -123,8 +123,11 @@ class IndividualCheckAssertionTests(unittest.TestCase):
         self.assertEqual(errors, [])
         additive_abi_types = details.get("additiveTypesCount", 0)
         additive_abi_methods = details.get("additiveMethodsCount", 0)
+        additive_methods_total = additive_abi_methods + len(
+            getattr(verify_readiness, "ALLOWED_ADDITIVE_1_X_ABI_METHODS", set())
+        )
         self.assertEqual(details["typesCount"], 7 + additive_abi_types)
-        self.assertEqual(details["methodsCount"], 22 + additive_abi_methods)
+        self.assertEqual(details["methodsCount"], 22 + additive_methods_total)
         self.assertEqual(details["fieldsCount"], 0)
         self.assertEqual(details["unregisteredDependencies"], 0)
 

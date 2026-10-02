@@ -90,6 +90,10 @@ ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {
     "VTLS:2107",
 }
 
+ALLOWED_ADDITIVE_1_X_ABI_METHODS: set[str] = {
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countMacroInvocation(io.github.minh124199.viettemplate.api.TemplateOutput)",
+}
+
 
 # =============================================================================
 # Helper Utilities
@@ -523,7 +527,11 @@ def verify_generated_runtime_abi(
         for t in ALLOWED_ADDITIVE_1_X_TYPES
         if t in methods_by_type and t != "io.github.minh124199.viettemplate.api.CompiledTemplate"
     )
-    exp_methods_count = expected_abi.get("methodsCount", 22) + additive_abi_methods_count
+    exp_methods_count = (
+        expected_abi.get("methodsCount", 22)
+        + additive_abi_methods_count
+        + len(ALLOWED_ADDITIVE_1_X_ABI_METHODS)
+    )
     exp_fields_count = expected_abi.get("fieldsCount", 0)
     exp_types = expected_abi.get("types", [])
 

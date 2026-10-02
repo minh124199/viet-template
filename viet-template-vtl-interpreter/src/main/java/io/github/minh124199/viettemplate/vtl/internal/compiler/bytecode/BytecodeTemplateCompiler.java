@@ -1007,7 +1007,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     mw.aload(2); // output
     mw.invokestatic(
         "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
-        "countLoopIteration",
+        "countMacroInvocation",
         "(Lio/github/minh124199/viettemplate/api/TemplateOutput;)V");
 
     String methodName = BytecodeNaming.chunkMethodName(callM.macroName());

@@ -102,6 +102,10 @@ ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {
     "VTLS:2107",
 }
 
+ALLOWED_ADDITIVE_1_X_ABI_METHODS: set[str] = {
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countMacroInvocation(io.github.minh124199.viettemplate.api.TemplateOutput)",
+}
+
 
 # =============================================================================
 # Helper Parsers
@@ -446,6 +450,7 @@ def verify_runtime_abi(manifest: dict[str, Any], repo_root: Path) -> list[str]:
         extra_methods = {
             m for m in (set(curr_methods) - set(exp_methods))
             if not any(m.startswith(t + ".") for t in ALLOWED_ADDITIVE_1_X_TYPES)
+            and m not in ALLOWED_ADDITIVE_1_X_ABI_METHODS
         }
         if missing_methods:
             errors.append(f"Runtime ABI methods missing: {sorted(missing_methods)}")

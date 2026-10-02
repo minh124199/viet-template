@@ -17,6 +17,7 @@ import io.github.minh124199.viettemplate.language.vtl.internal.semantics.capabil
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ir.constant.IrConstantPool;
+import io.github.minh124199.viettemplate.language.vtl.ir.optimization.IrOptimizationOptions;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrBudgetCheck;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
@@ -104,6 +105,89 @@ class MacroWorkExhaustionParityTest {
         .hasMessageContaining("Exceeded maximum macro invocations limit: 10");
 
     assertThat(budget.macroInvocations()).isGreaterThan(10);
+  }
+
+  @ParameterizedTest
+  @EnumSource(ExecutionTier.class)
+  @DisplayName("Asymmetric macro limit is enforced across all tiers with zero loops")
+  void asymmetricMacroLimitEnforcedAcrossAllTiers(ExecutionTier tier) {
+    String template = "#macro(lin $n)#if($n > 0)#lin($n - 1)#end#end#lin(15)";
+    RenderBudget budget = new RenderBudget(10_000_000L, 0L, 1_000_000, 10);
+    CountingTemplateOutput countingOutput =
+        new CountingTemplateOutput(new StringTemplateOutput(), budget, TemplateId.of("test.vm"));
+
+    VtlInterpreterOptions options = VtlInterpreterOptions.builder().executionTier(tier).build();
+
+    assertThatThrownBy(() -> renderWithTier(template, tier, options, countingOutput))
+        .isInstanceOf(TemplateLimitException.class)
+        .hasMessageContaining("Exceeded maximum macro invocations limit: 10");
+
+    assertThat(budget.macroInvocations()).isGreaterThan(10);
+  }
+
+  @ParameterizedTest
+  @EnumSource(ExecutionTier.class)
+  @DisplayName("Asymmetric loop limit does not trip macro-only template across all tiers")
+  void asymmetricLoopLimitDoesNotTripMacroOnlyTemplate(ExecutionTier tier) {
+    String template = "#macro(lin $n)#if($n > 0)#lin($n - 1)#end#end#lin(15)";
+    RenderBudget budget = new RenderBudget(10_000_000L, 0L, 10, 1_000_000);
+    CountingTemplateOutput countingOutput =
+        new CountingTemplateOutput(new StringTemplateOutput(), budget, TemplateId.of("test.vm"));
+
+    VtlInterpreterOptions options = VtlInterpreterOptions.builder().executionTier(tier).build();
+
+    assertThatCode(() -> renderWithTier(template, tier, options, countingOutput))
+        .doesNotThrowAnyException();
+  }
+
+  @ParameterizedTest
+  @EnumSource(ExecutionTier.class)
+  @DisplayName("Mixed loop and macro limits track separately without cross-contamination")
+  void mixedLoopAndMacroLimitsTrackSeparately(ExecutionTier tier) throws IOException {
+    String template = "#macro(m $x)x#end#foreach($i in [1..5])#m(1)#m(2)#end";
+    RenderBudget budget = new RenderBudget(10_000_000L, 0L, 100, 100);
+    StringTemplateOutput strOutput = new StringTemplateOutput();
+    CountingTemplateOutput countingOutput =
+        new CountingTemplateOutput(strOutput, budget, TemplateId.of("test.vm"));
+
+    VtlInterpreterOptions options =
+        VtlInterpreterOptions.builder()
+            .executionTier(tier)
+            .optimizationOptions(IrOptimizationOptions.builder().macroInlining(false).build())
+            .build();
+
+    renderWithTier(template, tier, options, countingOutput);
+    assertThat(strOutput.toString()).isEqualTo("xxxxxxxxxx");
+    assertThat(budget.loopIterations()).isEqualTo(5L);
+    assertThat(budget.macroInvocations()).isEqualTo(10L);
+  }
+
+  @ParameterizedTest
+  @EnumSource(ExecutionTier.class)
+  @DisplayName("Deterministic tight deadline aborts across tiers")
+  void deterministicTightDeadlineAbortsAcrossTiers(ExecutionTier tier) {
+    ExecutionLimits tightLimits = ExecutionLimits.builder().maxExecutionTimeMillis(1L).build();
+    VtlInterpreterOptions options =
+        VtlInterpreterOptions.builder().profile(VtlProfile.VTL_SAFE).limits(tightLimits).build();
+
+    String template = "#macro(lin $n)#if($n > 0)#lin($n - 1)#end#end#lin(1000)";
+    RenderBudget budget = new RenderBudget(10_000_000L, 1L, 100_000, 100_000);
+    CountingTemplateOutput countingOutput =
+        new CountingTemplateOutput(
+            new StringTemplateOutput(), budget, TemplateId.of("deadline_test"));
+
+    try {
+      Thread.sleep(10);
+    } catch (InterruptedException ignored) {
+    }
+
+    assertThatThrownBy(() -> renderWithTier(template, tier, options, countingOutput))
+        .isInstanceOf(TemplateLimitException.class)
+        .satisfies(
+            ex -> {
+              TemplateLimitException tle = (TemplateLimitException) ex;
+              assertThat(tle.code()).contains(RenderBudget.CODE_TIME_LIMIT);
+            });
   }
 
   @Test

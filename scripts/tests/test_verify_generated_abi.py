@@ -202,12 +202,19 @@ TYPE com.example.Bar
         }
         self.assertEqual(set(baseline.keys()), expected_types)
 
-        # Check BytecodeRuntimeBridge has 16 methods including countLoopIteration
+        # Check BytecodeRuntimeBridge has 17 methods including countLoopIteration and countMacroInvocation
         bridge_members = baseline["io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge"]
-        self.assertEqual(len(bridge_members), 16)
+        self.assertEqual(len(bridge_members), 17)
         self.assertTrue(
             bridge_members.matches_method(
                 "countLoopIteration",
+                ["io.github.minh124199.viettemplate.api.TemplateOutput"],
+                "void",
+            )
+        )
+        self.assertTrue(
+            bridge_members.matches_method(
+                "countMacroInvocation",
                 ["io.github.minh124199.viettemplate.api.TemplateOutput"],
                 "void",
             )
@@ -339,6 +346,7 @@ class TestAbiValidation(unittest.TestCase):
                     "io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata.isLast()",
                     "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.binaryOp(java.lang.Object, java.lang.Object, int, java.lang.String, int, int, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)",
                     "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countLoopIteration(io.github.minh124199.viettemplate.api.TemplateOutput)",
+                    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countMacroInvocation(io.github.minh124199.viettemplate.api.TemplateOutput)",
                     "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.createCallSite(int, java.lang.String, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)",
                     "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.createForeachMetadata(java.lang.Object, boolean, java.lang.Object)",
                     "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.createLoopState()",
@@ -366,7 +374,7 @@ class TestAbiValidation(unittest.TestCase):
         self.assertTrue(res["method_count_matches"])
         self.assertTrue(res["field_count_matches"])
         self.assertEqual(res["total_types"], 8)
-        self.assertEqual(res["total_methods"], 22)
+        self.assertEqual(res["total_methods"], 23)
         self.assertEqual(res["total_fields"], 0)
 
     def test_validation_detects_unregistered_type(self):

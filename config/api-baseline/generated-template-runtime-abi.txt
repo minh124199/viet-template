@@ -34,6 +34,7 @@ TYPE io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite
 TYPE io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge
   MEMBER public static java.lang.Object binaryOp(java.lang.Object, java.lang.Object, int, java.lang.String, int, int, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)
   MEMBER public static void countLoopIteration(io.github.minh124199.viettemplate.api.TemplateOutput)
+  MEMBER public static void countMacroInvocation(io.github.minh124199.viettemplate.api.TemplateOutput)
   MEMBER public static io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite createCallSite(int, java.lang.String, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)
   MEMBER public static io.github.minh124199.viettemplate.language.vtl.semantics.scope.ForeachMetadata createForeachMetadata(java.lang.Object, boolean, java.lang.Object)
   MEMBER public static java.lang.Object createLoopState()

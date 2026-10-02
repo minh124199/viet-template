@@ -8,7 +8,7 @@ Mechanically audits the runtime ABI of generated AOT template classfiles.
 3. Decodes JVM method descriptors to Java method signatures.
 4. Parses the runtime ABI baseline at `config/api-baseline/generated-template-runtime-abi.txt`.
 5. Validates referenced types, invoked methods, and accessed fields against baseline definitions:
-   - Asserts member-level matching (exact 7 types, 22 invoked methods, 0 fields).
+   - Asserts member-level matching (exact 7 types, 23 invoked methods, 0 fields).
    - Detects and fails on any unregistered types, methods, or fields.
 6. Correlates types against `config/api-baseline/public-surface-classification.txt`.
 7. Generates a structured, machine-readable report at `build/reports/generated-template-abi.json`.
@@ -520,7 +520,7 @@ def validate_abi(
 
     Asserts:
     - Exactly 7 referenced Viet Template types (all registered in baseline).
-    - Exactly 22 invoked Viet Template methods (all registered under owner in baseline).
+    - Exactly 23 invoked Viet Template methods (all registered under owner in baseline).
     - Exactly 0 accessed Viet Template fields.
     """
     if isinstance(report_or_types, dict):
@@ -596,7 +596,7 @@ def validate_abi(
 
     # 4. Member-level exact count assertions
     expected_type_count = len(baseline)
-    expected_method_count = 22
+    expected_method_count = 23
     expected_field_count = 0
 
     type_count_matches = len(viet_types) == expected_type_count
@@ -783,7 +783,7 @@ def main() -> None:
     classifications = report.get("classifications", {})
 
     exp_types = validation.get("expected_type_count", 8)
-    exp_methods = validation.get("expected_method_count", 22)
+    exp_methods = validation.get("expected_method_count", 23)
     exp_fields = validation.get("expected_field_count", 0)
 
     print(f"\n--- Verified Runtime ABI Types ({exp_types} expected) ---")

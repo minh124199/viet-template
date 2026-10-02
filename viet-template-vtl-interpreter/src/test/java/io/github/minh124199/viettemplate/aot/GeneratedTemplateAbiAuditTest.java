@@ -142,8 +142,10 @@ class GeneratedTemplateAbiAuditTest {
             <p>$content</p>
           </div>
         #end
+        #macro(recurse $n)#if($n > 0)#recurse($n - 1)#end#end
         #renderCard("Title 1", "Content 1")
         #renderCard("Title 2", $user.name)
+        #recurse(1)
         """,
         StandardCharsets.UTF_8);
 
