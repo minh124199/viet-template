@@ -238,5 +238,29 @@
     "category": "SECURITY",
     "owner": "quarkus",
     "reason": "Extracts principal and roles from Quarkus SecurityIdentity; rethrows fatal errors before returning ANONYMOUS view snapshot on unexpected failure."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor",
+    "method": "resolveViewFactory",
+    "caughtType": "Throwable",
+    "category": "OPTIONAL_CAPABILITY_PROBE",
+    "owner": "quarkus",
+    "reason": "Probing Arc container for optional QuarkusSecurityViewFactory bean; rethrows fatal errors and falls back to default factory when bean is absent or container is stopped."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor",
+    "method": "resolveCsrf",
+    "caughtType": "Throwable",
+    "category": "SECURITY",
+    "owner": "quarkus",
+    "reason": "Invokes custom QuarkusCsrfView supplier; rethrows VirtualMachineError and ThreadDeath before returning unavailable fallback."
+  },
+  {
+    "class": "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor",
+    "method": "resolveCsrf",
+    "caughtType": "Throwable",
+    "category": "OPTIONAL_CAPABILITY_PROBE",
+    "owner": "quarkus",
+    "reason": "Resolves CsrfTokenParameterProvider bean from Arc container in Quarkus security contributor; rethrows fatal errors and falls back to unavailable view if container or bean is unavailable."
   }
 ]

@@ -103,15 +103,10 @@ public class VietTemplateProducer {
           InstanceHandle<?> handle = container.instance((Class) secIdClass);
           if (handle != null && handle.isAvailable()) {
             QuarkusSecurityViewFactory viewFactory = null;
-            try {
-              InstanceHandle<QuarkusSecurityViewFactory> factoryHandle =
-                  container.instance(QuarkusSecurityViewFactory.class);
-              if (factoryHandle != null && factoryHandle.isAvailable()) {
-                viewFactory = factoryHandle.get();
-              }
-            } catch (VirtualMachineError | ThreadDeath fatal) {
-              throw fatal;
-            } catch (Throwable ignored) {
+            InstanceHandle<QuarkusSecurityViewFactory> factoryHandle =
+                container.instance(QuarkusSecurityViewFactory.class);
+            if (factoryHandle != null && factoryHandle.isAvailable()) {
+              viewFactory = factoryHandle.get();
             }
             builder.addContextContributor(
                 new QuarkusSecurityRenderContextContributor(

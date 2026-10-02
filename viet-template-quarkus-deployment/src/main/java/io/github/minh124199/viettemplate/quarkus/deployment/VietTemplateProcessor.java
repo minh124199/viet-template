@@ -105,6 +105,15 @@ public class VietTemplateProcessor {
 
     reflectiveClasses.produce(
         ReflectiveClassBuildItem.builder(QuarkusCsrfView.class).constructors().methods().build());
+
+    try {
+      Class<?> providerClass =
+          Thread.currentThread()
+              .getContextClassLoader()
+              .loadClass("io.quarkus.csrf.reactive.runtime.CsrfTokenParameterProvider");
+      reflectiveClasses.produce(ReflectiveClassBuildItem.builder(providerClass).methods().build());
+    } catch (ClassNotFoundException | NoClassDefFoundError ignored) {
+    }
   }
 
   @BuildStep

@@ -264,6 +264,43 @@ public final class QuarkusSecurityRenderContextContributor implements RenderCont
     return null;
   }
 
+  private static final class CsrfProviderAccessor {
+    private static final Class<?> PROVIDER_CLASS;
+    private static final Method GET_TOKEN_METHOD;
+    private static final Method GET_PARAM_METHOD;
+    private static final Method GET_HEADER_METHOD;
+    private static final boolean AVAILABLE;
+
+    static {
+      Class<?> clazz = null;
+      Method getToken = null;
+      Method getParam = null;
+      Method getHeader = null;
+      boolean avail = false;
+      try {
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        clazz =
+            Class.forName("io.quarkus.csrf.reactive.runtime.CsrfTokenParameterProvider", false, cl);
+        getToken = clazz.getMethod("getToken");
+        try {
+          getParam = clazz.getMethod("getParameterName");
+        } catch (ReflectiveOperationException ignored) {
+        }
+        try {
+          getHeader = clazz.getMethod("getHeaderName");
+        } catch (ReflectiveOperationException ignored) {
+        }
+        avail = true;
+      } catch (ClassNotFoundException | NoClassDefFoundError | NoSuchMethodException ignored) {
+      }
+      PROVIDER_CLASS = clazz;
+      GET_TOKEN_METHOD = getToken;
+      GET_PARAM_METHOD = getParam;
+      GET_HEADER_METHOD = getHeader;
+      AVAILABLE = avail;
+    }
+  }
+
   @SuppressWarnings("removal")
   private QuarkusCsrfView resolveCsrf(RenderRequest request) {
     // 1. Check request attributes
@@ -321,9 +358,7 @@ public final class QuarkusSecurityRenderContextContributor implements RenderCont
           if (cause instanceof ThreadDeath td) {
             throw td;
           }
-        } catch (VirtualMachineError | ThreadDeath fatal) {
-          throw fatal;
-        } catch (Throwable ignored) {
+        } catch (ReflectiveOperationException | IllegalArgumentException ignored) {
         }
       }
     }
@@ -342,55 +377,50 @@ public final class QuarkusSecurityRenderContextContributor implements RenderCont
     }
 
     // 3. Arc CDI container lookup for CsrfTokenParameterProvider
-    try {
-      ArcContainer container = Arc.container();
-      if (container != null && container.isRunning()) {
-        ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        Class<?> providerClass =
-            Class.forName("io.quarkus.csrf.reactive.runtime.CsrfTokenParameterProvider", false, cl);
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        InstanceHandle<?> handle = container.instance((Class) providerClass);
-        if (handle != null && handle.isAvailable()) {
-          Object provider = handle.get();
-          if (provider != null) {
-            Method getTokenMethod = provider.getClass().getMethod("getToken");
-            String token = (String) getTokenMethod.invoke(provider);
-            if (token != null && !token.isBlank()) {
-              String paramName = null;
-              String headerName = null;
-              try {
-                Method getParamMethod = provider.getClass().getMethod("getParameterName");
-                paramName = (String) getParamMethod.invoke(provider);
-              } catch (VirtualMachineError | ThreadDeath fatal) {
-                throw fatal;
-              } catch (Throwable ignored) {
+    if (CsrfProviderAccessor.AVAILABLE) {
+      try {
+        ArcContainer container = Arc.container();
+        if (container != null && container.isRunning()) {
+          @SuppressWarnings({"rawtypes", "unchecked"})
+          InstanceHandle<?> handle =
+              container.instance((Class) CsrfProviderAccessor.PROVIDER_CLASS);
+          if (handle != null && handle.isAvailable()) {
+            Object provider = handle.get();
+            if (provider != null) {
+              String token = (String) CsrfProviderAccessor.GET_TOKEN_METHOD.invoke(provider);
+              if (token != null && !token.isBlank()) {
+                String paramName = null;
+                String headerName = null;
+                if (CsrfProviderAccessor.GET_PARAM_METHOD != null) {
+                  try {
+                    paramName = (String) CsrfProviderAccessor.GET_PARAM_METHOD.invoke(provider);
+                  } catch (ReflectiveOperationException ignored) {
+                  }
+                }
+                if (CsrfProviderAccessor.GET_HEADER_METHOD != null) {
+                  try {
+                    headerName = (String) CsrfProviderAccessor.GET_HEADER_METHOD.invoke(provider);
+                  } catch (ReflectiveOperationException ignored) {
+                  }
+                }
+                return QuarkusCsrfView.of(token, paramName, headerName);
               }
-              try {
-                Method getHeaderMethod = provider.getClass().getMethod("getHeaderName");
-                headerName = (String) getHeaderMethod.invoke(provider);
-              } catch (VirtualMachineError | ThreadDeath fatal) {
-                throw fatal;
-              } catch (Throwable ignored) {
-              }
-              return QuarkusCsrfView.of(token, paramName, headerName);
             }
           }
         }
+      } catch (InvocationTargetException ite) {
+        Throwable cause = ite.getCause();
+        if (cause instanceof VirtualMachineError vme) {
+          throw vme;
+        }
+        if (cause instanceof ThreadDeath td) {
+          throw td;
+        }
+        // When token is not set for request, getToken() throws IllegalStateException
+      } catch (VirtualMachineError | ThreadDeath fatal) {
+        throw fatal;
+      } catch (Throwable ignored) {
       }
-    } catch (ClassNotFoundException | NoClassDefFoundError ignored) {
-      // CSRF extension not present
-    } catch (InvocationTargetException ite) {
-      Throwable cause = ite.getCause();
-      if (cause instanceof VirtualMachineError vme) {
-        throw vme;
-      }
-      if (cause instanceof ThreadDeath td) {
-        throw td;
-      }
-      // When token is not set for request, getToken() throws IllegalStateException
-    } catch (VirtualMachineError | ThreadDeath fatal) {
-      throw fatal;
-    } catch (Throwable ignored) {
     }
 
     // 4. Unavailable fallback
