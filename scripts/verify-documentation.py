@@ -34,8 +34,7 @@ import re
 import sys
 from pathlib import Path
 
-VALID_RELEASED_VERSIONS = {"0.2.2", "1.0.0-RC1", "1.0.0-RC2", "1.0.0-RC3", "1.0.0"}
-DEFAULT_RELEASED_VERSION = "1.0.0"
+DEFAULT_RELEASED_VERSION = "1.0.1"
 STALE_RELEASE_DATES = ["2026-09-21"]
 EXPECTED_RELEASE_DATE = "2026-09-20"
 
@@ -111,7 +110,7 @@ def check_consumer_snippets_in_text(
     """Checks that consumer installation snippets reference the released version."""
     errors = []
     if released_version is None:
-        allowed_versions = VALID_RELEASED_VERSIONS
+        allowed_versions = {DEFAULT_RELEASED_VERSION}
     elif isinstance(released_version, str):
         allowed_versions = {released_version}
     else:
@@ -826,6 +825,26 @@ def check_velocity_compatibility_overclaims_in_living_docs(repo_root: Path) -> l
     return errors
 
 
+def check_developer_specific_file_links(repo_root: Path) -> list[str]:
+    """Reject absolute local file links that only resolve on one developer's machine."""
+    errors = []
+    pattern = re.compile(r"(?:file:///(?:home|Users)/|file:///[A-Za-z]:/Users/)", re.IGNORECASE)
+    candidates = [repo_root / "README.md", *repo_root.glob("docs/**/*.md")]
+    for file_path in candidates:
+        if not file_path.is_file():
+            continue
+        try:
+            lines = file_path.read_text(encoding="utf-8").splitlines()
+        except UnicodeDecodeError:
+            continue
+        for line_no, line in enumerate(lines, start=1):
+            if pattern.search(line):
+                errors.append(
+                    f"Developer-specific absolute file link in {file_path.relative_to(repo_root)}:{line_no}: {line.strip()}"
+                )
+    return errors
+
+
 # =============================================================================
 # TOP-LEVEL VERIFICATION ORCHESTRATION
 # =============================================================================
@@ -846,6 +865,7 @@ def verify_all(repo_root: Path, verbose: bool = False) -> list[str]:
         ("Compatibility Matrix Synchronization", check_compatibility_matrix_synced),
         ("Stale Pre-Publication Language in Living Docs", check_stale_release_language_in_living_docs),
         ("Velocity Compatibility Claims in Living Docs", check_velocity_compatibility_overclaims_in_living_docs),
+        ("Developer-Specific File Links", check_developer_specific_file_links),
     ]
 
     for name, check_fn in checks:

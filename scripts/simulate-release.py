@@ -26,6 +26,39 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
+
+def next_development_version(release_version):
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", release_version)
+    if not match:
+        raise ValueError(f"Release version must be stable numeric SemVer: {release_version}")
+    major, minor, patch = (int(part) for part in match.groups())
+    return f"{major}.{minor}.{patch + 1}-SNAPSHOT"
+
+
+def replace_project_version(workspace, version):
+    pom_file = workspace / "pom.xml"
+    pom_text = pom_file.read_text(encoding="utf-8")
+    updated, count = re.subn(
+        r'(<groupId>io\.github\.minh124199</groupId>\s*<artifactId>viet-template-parent</artifactId>\s*<version>)[^<]+(</version>)',
+        rf'\g<1>{version}\g<2>', pom_text, count=1
+    )
+    if count != 1:
+        raise ValueError("Could not uniquely update the root Maven project version")
+    pom_file.write_text(updated, encoding="utf-8")
+    for child_pom in workspace.glob("*/pom.xml"):
+        child_text = child_pom.read_text(encoding="utf-8")
+        child_text = re.sub(
+            r'(<parent>[\s\S]*?<artifactId>viet-template-parent</artifactId>\s*<version>)[^<]+(</version>)',
+            rf'\g<1>{version}\g<2>', child_text
+        )
+        child_pom.write_text(child_text, encoding="utf-8")
+    gradle_file = workspace / "build.gradle.kts"
+    gradle_text, count = re.subn(r'version\s*=\s*["\'][^"\']+["\']', f'version = "{version}"',
+                                 gradle_file.read_text(encoding="utf-8"), count=1)
+    if count != 1:
+        raise ValueError("Could not uniquely update the root Gradle project version")
+    gradle_file.write_text(gradle_text, encoding="utf-8")
+
 def ignore_patterns(path, names):
     ignored = set()
     for name in names:
@@ -35,12 +68,24 @@ def ignore_patterns(path, names):
             ignored.add(name)
     return ignored
 
-def simulate_release(release_version="0.1.0", release_tag="v0.1.0", build_tool="both"):
+def simulate_release(release_version=None, release_tag=None, build_tool="both", next_version=None):
+    source_pom = (ROOT_DIR / "pom.xml").read_text(encoding="utf-8")
+    source_match = re.search(r'<version>([0-9A-Za-z.-]+)</version>', source_pom)
+    if not source_match:
+        raise ValueError("Could not find the source development version in root pom.xml")
+    source_version = source_match.group(1)
+    if release_version is None:
+        if not source_version.endswith("-SNAPSHOT"):
+            raise ValueError(f"Specify a release version for non-snapshot source {source_version}")
+        release_version = source_version.removesuffix("-SNAPSHOT")
+    release_tag = release_tag or f"v{release_version}"
+    next_version = next_version or next_development_version(release_version)
     print(f"=== Viet Template Simulated Release Validation ({release_version} / {release_tag}) ===")
     print(f"[INFO] Source repository: {ROOT_DIR}")
     print(f"[INFO] Target version:    {release_version}")
     print(f"[INFO] Target tag:        {release_tag}")
     print(f"[INFO] Build tool:        {build_tool}")
+    print(f"[INFO] Next development:  {next_version}")
 
     initial_real_pom = (ROOT_DIR / "pom.xml").read_text(encoding="utf-8")
     initial_real_bg = (ROOT_DIR / "build.gradle.kts").read_text(encoding="utf-8")
@@ -79,30 +124,7 @@ def simulate_release(release_version="0.1.0", release_tag="v0.1.0", build_tool="
         old_version = current_version_match.group(1)
         print(f"[INFO] Replacing '{old_version}' with '{release_version}' in pom.xml and child modules...")
 
-        # Replace version in root pom.xml
-        new_pom_text = re.sub(
-            r'(<groupId>io\.github\.minh124199</groupId>\s*<artifactId>viet-template-parent</artifactId>\s*<version>)[^<]+(</version>)',
-            rf'\g<1>{release_version}\g<2>',
-            pom_text,
-            count=1
-        )
-        pom_file.write_text(new_pom_text, encoding="utf-8")
-
-        # Update child module poms (parent reference and project version)
-        for child_pom in temp_path.glob("*/pom.xml"):
-            c_text = child_pom.read_text(encoding="utf-8")
-            c_text = re.sub(
-                r'(<parent>[\s\S]*?<artifactId>viet-template-parent</artifactId>\s*<version>)[^<]+(</version>)',
-                rf'\g<1>{release_version}\g<2>',
-                c_text
-            )
-            child_pom.write_text(c_text, encoding="utf-8")
-
-        # Update build.gradle.kts
-        build_gradle = temp_path / "build.gradle.kts"
-        bg_text = build_gradle.read_text(encoding="utf-8")
-        bg_text = re.sub(r'version\s*=\s*["\'][^"\']+["\']', f'version = "{release_version}"', bg_text)
-        build_gradle.write_text(bg_text, encoding="utf-8")
+        replace_project_version(temp_path, release_version)
 
         print("[PASS] Versions updated to release version.")
 
@@ -137,7 +159,8 @@ def simulate_release(release_version="0.1.0", release_tag="v0.1.0", build_tool="
 
         if build_tool in ["gradle", "both"]:
             print("  [GRADLE] Building assemble and publication POMs...")
-            gradle_cmd = ["./gradlew", "assemble", "generatePomFileForMavenJavaPublication", "--no-daemon"]
+            gradle_cmd = ["./gradlew", "assemble", "generatePomFileForMavenJavaPublication",
+                          "generatePomFileForVietTemplatePluginMarkerMavenPublication", "--no-daemon"]
             res = subprocess.run(gradle_cmd, cwd=temp_path, capture_output=True, text=True)
             if res.returncode != 0:
                 print(res.stdout)
@@ -159,7 +182,18 @@ def simulate_release(release_version="0.1.0", release_tag="v0.1.0", build_tool="
             print(res.stderr, file=sys.stderr)
             raise RuntimeError(f"Publication bundle validation failed with exit code {res.returncode}")
 
-        print("\n[STEP 6] Confirming real working tree hygiene...")
+        print(f"\n[STEP 6] Simulating next development version '{next_version}' in the temporary workspace...")
+        replace_project_version(temp_path, next_version)
+        next_meta_cmd = [sys.executable, str(temp_path / "scripts" / "verify-release-metadata.py"),
+                         "--check-workflow-contract"]
+        next_meta = subprocess.run(next_meta_cmd, cwd=temp_path, capture_output=True, text=True)
+        print(next_meta.stdout)
+        if next_meta.returncode != 0:
+            print(next_meta.stderr, file=sys.stderr)
+            raise RuntimeError(f"Next development metadata validation failed with exit code {next_meta.returncode}")
+        print(f"[PASS] Release version {release_version} advances consistently to {next_version} in the isolated simulation.")
+
+        print("\n[STEP 7] Confirming real working tree hygiene...")
         current_real_pom = (ROOT_DIR / "pom.xml").read_text(encoding="utf-8")
         current_real_bg = (ROOT_DIR / "build.gradle.kts").read_text(encoding="utf-8")
         if current_real_pom != initial_real_pom or current_real_bg != initial_real_bg:
@@ -169,18 +203,20 @@ def simulate_release(release_version="0.1.0", release_tag="v0.1.0", build_tool="
         print(f"[PASS] Real repository remains at {old_version} with zero temporary contamination.")
 
     print("\n[SUCCESS] Simulated release validation completed successfully!")
-    print(f"The release tooling is 100% verified for {release_version} / {release_tag}.")
+    print(f"Release preparation simulation completed for {release_version} / {release_tag}; no publication was performed.")
 
 def main():
     parser = argparse.ArgumentParser(description="Simulate release validation for a release version.")
-    parser.add_argument("--version", default="0.1.0", help="Simulated release version (default: 0.1.0)")
-    parser.add_argument("--tag", default="v0.1.0", help="Simulated release tag (default: v0.1.0)")
+    parser.add_argument("--version", help="Simulated release version (defaults from the current SNAPSHOT version)")
+    parser.add_argument("--tag", help="Simulated release tag (defaults to v<version>)")
+    parser.add_argument("--next-version", help="Next development version (defaults to next patch SNAPSHOT)")
     parser.add_argument("--build-tool", choices=["maven", "gradle", "both"], default="both",
                         help="Build tool artifacts to inspect (default: both)")
     args = parser.parse_args()
 
     try:
-        simulate_release(release_version=args.version, release_tag=args.tag, build_tool=args.build_tool)
+        simulate_release(release_version=args.version, release_tag=args.tag, build_tool=args.build_tool,
+                         next_version=args.next_version)
     except Exception as e:
         print(f"\n[FAILED] Simulated release validation failed: {e}", file=sys.stderr)
         sys.exit(1)
