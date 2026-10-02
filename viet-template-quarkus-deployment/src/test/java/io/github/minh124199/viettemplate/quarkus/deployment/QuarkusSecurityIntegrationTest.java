@@ -39,7 +39,14 @@ public class QuarkusSecurityIntegrationTest {
                           new StringAsset(
                               "Auth: $security.authenticated, Anon: $security.anonymous, User:"
                                   + " $security.name, Admin: $security.hasRole('ADMIN')"),
-                          "templates/security-check.vtl"));
+                          "templates/security-check.vtl")
+                      .addAsResource(
+                          new StringAsset(
+                              "AnyRole: $security.hasAnyRole('ADMIN', 'MODERATOR'),"
+                                  + " AllRoles: $security.hasAllRoles('ADMIN', 'USER'),"
+                                  + " CsrfAvail: $csrf.available, CsrfParam: $csrf.parameterName,"
+                                  + " CsrfToken: '$csrf.token'"),
+                          "templates/security-advanced.vtl"));
 
   @Inject TemplateEngine engine;
 
@@ -52,6 +59,13 @@ public class QuarkusSecurityIntegrationTest {
     assertThat(output).contains("Auth: false");
     assertThat(output).contains("Anon: true");
     assertThat(output).contains("Admin: false");
+
+    String advOutput = renderer.render("security-advanced.vtl", Map.of());
+    assertThat(advOutput).contains("AnyRole: false");
+    assertThat(advOutput).contains("AllRoles: false");
+    assertThat(advOutput).contains("CsrfAvail: false");
+    assertThat(advOutput).contains("CsrfParam: _csrf");
+    assertThat(advOutput).contains("CsrfToken: ''");
   }
 
   @Test
@@ -77,6 +91,35 @@ public class QuarkusSecurityIntegrationTest {
     assertThat(output).contains("Anon: false");
     assertThat(output).contains("User: alice");
     assertThat(output).contains("Admin: true");
+  }
+
+  @Test
+  public void testAdvancedSecurityAndCsrfInContainer() throws Exception {
+    SecurityIdentity testIdentity =
+        new TestSecurityIdentity("alice", false, Set.of("ADMIN", "USER"));
+
+    RenderRequest request =
+        new RenderRequest(
+            TemplateId.of("security-advanced.vtl"),
+            RenderContext.empty(),
+            Map.of(
+                QuarkusSecurityRenderContextContributor.SECURITY_IDENTITY_ATTRIBUTE,
+                testIdentity,
+                QuarkusSecurityRenderContextContributor.CSRF_TOKEN_ATTRIBUTE,
+                "token-live-quarkus-test"));
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    try (var templateOutput =
+        new io.github.minh124199.viettemplate.runtime.Utf8OutputStreamTemplateOutput(baos)) {
+      engine.render(request, templateOutput);
+    }
+
+    String output = baos.toString(StandardCharsets.UTF_8);
+    assertThat(output).contains("AnyRole: true");
+    assertThat(output).contains("AllRoles: true");
+    assertThat(output).contains("CsrfAvail: true");
+    assertThat(output).contains("CsrfParam: _csrf");
+    assertThat(output).contains("CsrfToken: 'token-live-quarkus-test'");
   }
 
   static class TestSecurityIdentity implements SecurityIdentity {
