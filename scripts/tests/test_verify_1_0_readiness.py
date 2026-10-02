@@ -97,16 +97,23 @@ class IndividualCheckAssertionTests(unittest.TestCase):
         passed, details, errors = verify_readiness.verify_public_surface(
             ROOT, self.manifest, check_leaks=True
         )
-        additive_stable = sum(
-            1
-            for t in getattr(verify_readiness, "ALLOWED_ADDITIVE_1_X_TYPES", set())
-            if t.startswith("io.github.minh124199.viettemplate.api.")
-        )
-        additive_total = len(getattr(verify_readiness, "ALLOWED_ADDITIVE_1_X_TYPES", set()))
+        classification_path = ROOT / "config" / "api-baseline" / "public-surface-classification.txt"
+        classification = {}
+        for line in classification_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                parts = line.split()
+                if len(parts) >= 2:
+                    classification[parts[0]] = parts[1]
+
+        additive_types = getattr(verify_readiness, "ALLOWED_ADDITIVE_1_X_TYPES", set())
+        additive_stable_api = sum(1 for t in additive_types if classification.get(t) == "STABLE_API")
+        additive_stable_spi = sum(1 for t in additive_types if classification.get(t) == "STABLE_SPI")
+        additive_total = len(additive_types)
         self.assertEqual(details["totalCompiledPublicTypes"], 339 + additive_total)
-        self.assertEqual(details["stableApi"], 94 + additive_stable)
-        self.assertEqual(details["stableSpi"], 27)
-        self.assertEqual(details["totalStable"], 121 + additive_stable)
+        self.assertEqual(details["stableApi"], 94 + additive_stable_api)
+        self.assertEqual(details["stableSpi"], 27 + additive_stable_spi)
+        self.assertEqual(details["totalStable"], 121 + additive_stable_api + additive_stable_spi)
         self.assertEqual(details["experimental"], 5)
         self.assertEqual(details["publicButInternalAccident"], 85)
         self.assertEqual(details["pbciaBreakdown"]["ast"], 41)
