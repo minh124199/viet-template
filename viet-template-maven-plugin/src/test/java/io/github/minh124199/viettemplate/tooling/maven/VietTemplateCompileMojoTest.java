@@ -227,6 +227,27 @@ class VietTemplateCompileMojoTest {
   }
 
   @Test
+  @DisplayName(
+      "Default profile is VTL_MIGRATION and permits method invocations without explicit"
+          + " configuration")
+  void testDefaultProfileIsVtlMigrationAndSupportsMethodInvocations(@TempDir Path tempDir)
+      throws Exception {
+    Path srcDir = tempDir.resolve("src/main/viet-template");
+    Path outDir = tempDir.resolve("target/classes");
+    Files.createDirectories(srcDir);
+    Files.writeString(srcDir.resolve("user.vtl"), "Length: $user.length()", StandardCharsets.UTF_8);
+    Files.writeString(srcDir.resolve("user.vtl.contract"), "user=String\n", StandardCharsets.UTF_8);
+
+    VietTemplateCompileMojo mojo = new VietTemplateCompileMojo();
+    assertThat(mojo.getProfile()).isEqualTo("VTL_MIGRATION");
+    mojo.setSourceDirectory(srcDir.toFile());
+    mojo.setOutputDirectory(outDir.toFile());
+    mojo.setResourceOutputDirectory(outDir.toFile());
+
+    assertThatCode(mojo::execute).doesNotThrowAnyException();
+  }
+
+  @Test
   @DisplayName("Invalid profile configuration throws MojoExecutionException")
   void testInvalidProfileThrowsMojoExecutionException(@TempDir Path tempDir) throws Exception {
     Path srcDir = tempDir.resolve("src/main/viet-template");

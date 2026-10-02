@@ -70,8 +70,8 @@ public class VietTemplateCompileMojo extends AbstractMojo {
   @Parameter(defaultValue = "OFF", property = "viet-template.typeChecking")
   private String typeChecking = "OFF";
 
-  @Parameter(defaultValue = "VTL_CORE", property = "viet-template.profile")
-  private String profile = "VTL_CORE";
+  @Parameter(defaultValue = "VTL_MIGRATION", property = "viet-template.profile")
+  private String profile = "VTL_MIGRATION";
 
   @Parameter(
       defaultValue = "${project.build.directory}/generated-sources/viet-template",

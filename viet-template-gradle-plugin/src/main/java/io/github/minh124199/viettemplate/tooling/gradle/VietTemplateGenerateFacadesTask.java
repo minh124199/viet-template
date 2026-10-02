@@ -51,6 +51,7 @@ public abstract class VietTemplateGenerateFacadesTask extends DefaultTask {
     getFailOnWarning().convention(false);
     getGenerateTypedFacades().convention(false);
     getTypeChecking().convention("OFF");
+    getProfile().convention("VTL_MIGRATION");
   }
 
   @Input
@@ -169,7 +170,7 @@ public abstract class VietTemplateGenerateFacadesTask extends DefaultTask {
     }
     reqBuilder.typeCheckingMode(mode);
 
-    String profileName = getProfile().getOrElse("VTL_CORE");
+    String profileName = getProfile().getOrElse("VTL_MIGRATION");
     if (profileName != null && !profileName.isBlank()) {
       try {
         io.github.minh124199.viettemplate.language.vtl.VtlProfile vtlProfile =

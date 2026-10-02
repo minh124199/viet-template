@@ -56,6 +56,7 @@ class VietTemplatePluginTest {
     assertThat(extension.getIncremental().get()).isTrue();
     assertThat(extension.getGenerateTypedFacades().get()).isFalse();
     assertThat(extension.getTypeChecking().get()).isEqualTo("OFF");
+    assertThat(extension.getProfile().get()).isEqualTo("VTL_MIGRATION");
 
     // Verify task
     Task taskObj = project.getTasks().findByName(VietTemplatePlugin.TASK_NAME);
@@ -75,6 +76,7 @@ class VietTemplatePluginTest {
             tempDir.resolve("build/generated/viet-template/sources").toFile().getCanonicalFile());
     assertThat(task.getGenerateTypedFacades().get()).isFalse();
     assertThat(task.getTypeChecking().get()).isEqualTo("OFF");
+    assertThat(task.getProfile().get()).isEqualTo("VTL_MIGRATION");
 
     // Verify task dependencies
     assertThat(task.getDependsOn()).contains(JavaPlugin.COMPILE_JAVA_TASK_NAME);
@@ -87,6 +89,7 @@ class VietTemplatePluginTest {
     assertThat(facadeTaskObj).isInstanceOf(VietTemplateGenerateFacadesTask.class);
     VietTemplateGenerateFacadesTask facadeTask = (VietTemplateGenerateFacadesTask) facadeTaskObj;
     assertThat(facadeTask.getTypeChecking().get()).isEqualTo("OFF");
+    assertThat(facadeTask.getProfile().get()).isEqualTo("VTL_MIGRATION");
     Task compileJavaTask = project.getTasks().getByName(JavaPlugin.COMPILE_JAVA_TASK_NAME);
     assertThat(compileJavaTask.getDependsOn()).contains(facadeTaskObj);
 
@@ -361,6 +364,43 @@ class VietTemplatePluginTest {
             + "}\n"
             + "vietTemplate {\n"
             + "    profile.set(\"VTL_MIGRATION\")\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path templateDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(templateDir);
+    Files.writeString(
+        templateDir.resolve("user.vtl"), "Length: $user.length()", StandardCharsets.UTF_8);
+    Files.writeString(
+        templateDir.resolve("user.vtl.contract"), "user=String\n", StandardCharsets.UTF_8);
+
+    BuildResult result =
+        createRunner(projectDir).withArguments(VietTemplatePlugin.TASK_NAME).build();
+
+    assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME)).isNotNull();
+    assertThat(result.task(":" + VietTemplatePlugin.TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  @DisplayName(
+      "Default profile compiles method invocations by default without explicit profile"
+          + " configuration")
+  void testDefaultProfileCompilesMethodInvocationsByDefault(@TempDir Path projectDir)
+      throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"test-default-migration-profile\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
             + "}\n",
         StandardCharsets.UTF_8);
 
