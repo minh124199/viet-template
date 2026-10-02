@@ -153,10 +153,17 @@ def version_invariants() -> dict[str, Any]:
     }
 
 
-def checks() -> list[tuple[Any, ...]]:
+def checks(skip_native_ci_backed: bool = False) -> list[tuple[Any, ...]]:
     py = sys.executable
     bash = "bash"
     return [
+        # Build first: API, surface, entrypoint, and parity audits consume the
+        # compiled outputs produced by both independent clean builds.
+        ("maven", ["./mvnw", "clean", "verify"]),
+        ("mavenFormatting", ["./mvnw", "spotless:check"]),
+        ("gradle", ["./gradlew", "clean", "check", "--no-daemon"]),
+        ("gradleFormatting", ["./gradlew", "spotlessCheck", "--no-daemon"]),
+        ("tck", ["./gradlew", ":viet-template-tck:test", "--no-daemon"]),
         ("apiCompatibility", [py, "scripts/verify-api-compatibility.py"]),
         ("publicSurface", [py, "scripts/verify-public-surface-classification.py"]),
         ("generatedAbi", [py, "scripts/verify-generated-abi.py"]),
@@ -168,27 +175,24 @@ def checks() -> list[tuple[Any, ...]]:
         ("buildParity", [py, "scripts/verify-build-parity.py"]),
         ("documentation", [py, "scripts/verify-documentation.py"]),
         ("scriptTests", [py, "-m", "unittest", "discover", "scripts/tests/"]),
-        ("tck", ["./gradlew", ":viet-template-tck:test", "--no-daemon"]),
-        ("maven", ["./mvnw", "clean", "verify"]),
-        ("mavenFormatting", ["./mvnw", "spotless:check"]),
-        ("gradle", ["./gradlew", "clean", "check", "--no-daemon"]),
-        ("gradleFormatting", ["./gradlew", "spotlessCheck", "--no-daemon"]),
         ("spring", [bash, "scripts/verify-spring-integration-parity.sh"]),
         ("springSecurity", [bash, "scripts/verify-spring-security-parity.sh"]),
         ("springSecurity7", [bash, "scripts/verify-spring-security7-integration.sh"]),
         ("springSecurityCompatibility", [py, "scripts/verify-spring-security-compatibility.py"]),
         ("devtoolsLifecycle", [bash, "scripts/verify-devtools-restart-integration.sh"]),
-        ("quarkus", [bash, "scripts/verify-quarkus-integration.sh"]),
         ("quarkusDevMode", [bash, "scripts/verify-quarkus-dev-mode.sh"]),
-        ("springNativeBoot4", [bash, "scripts/verify-native-image-integration.sh", "boot4"]),
-        ("springNativeBoot3", [bash, "scripts/verify-native-image-integration.sh", "boot3"]),
+        *(([] if skip_native_ci_backed else [
+            ("quarkus", [bash, "scripts/verify-quarkus-integration.sh"]),
+            ("springNativeBoot4", [bash, "scripts/verify-native-image-integration.sh", "boot4"]),
+            ("springNativeBoot3", [bash, "scripts/verify-native-image-integration.sh", "boot3"]),
+        ])),
         ("vscode", [py, "scripts/verify-vscode-extension.py"]),
         ("vscodeInstall", ["npm", "ci"], ROOT / "editors" / "vscode"),
         ("vscodeTestsAndServerBundle", ["npm", "test"], ROOT / "editors" / "vscode"),
         ("vscodePackage", ["npm", "run", "package"], ROOT / "editors" / "vscode"),
         ("intellij", [py, "scripts/verify-intellij-plugin.py"]),
-        ("intellijTests", ["./gradlew", "test", "--no-daemon"], ROOT / "editors" / "intellij"),
-        ("intellijDistribution", ["./gradlew", "buildPlugin", "--no-daemon"], ROOT / "editors" / "intellij"),
+        ("intellijTests", ["./gradlew", "-p", "editors/intellij", "test", "--no-daemon"]),
+        ("intellijDistribution", ["./gradlew", "-p", "editors/intellij", "buildPlugin", "--no-daemon"]),
         ("gradleSigningLifecycle", [py, "scripts/verify-gradle-signing-lifecycle.py"]),
         ("releaseMetadata", [py, "scripts/verify-release-metadata.py", "--check-workflow-contract",
                               "--check-publication-metadata", "--check-effective-pom"]),
@@ -208,6 +212,7 @@ def main() -> int:
 
     candidate = git_value("rev-parse", "HEAD")
     cleanliness = git_value("status", "--porcelain", "--untracked-files=all")
+    native_ci = load_native_ci_evidence(args.native_ci_run_id, candidate)
     report: dict[str, Any] = {
         "targetVersion": TARGET_VERSION,
         "developmentVersion": DEVELOPMENT_VERSION,
@@ -215,22 +220,24 @@ def main() -> int:
         "candidateSha": candidate or None,
         "workingTreeClean": not bool(cleanliness),
         "checks": {"versionConsistency": version_invariants()},
+        "evidenceSources": {"nativeCi": native_ci},
         "blockers": [],
         "warnings": [],
         "verdict": "BLOCKED",
         "publicationPerformed": False,
     }
-    for name, command, *path in checks():
+    native_ci_pass = native_ci.get("status") == "PASS"
+    for name, command, *path in checks(skip_native_ci_backed=native_ci_pass):
         report["checks"][name] = run(name, command, path[0] if path else ROOT)
-    native_ci = load_native_ci_evidence(args.native_ci_run_id, candidate)
-    report["checks"]["nativeCiEvidence"] = native_ci
     if native_ci.get("status") == "PASS":
         for check_name in ("springNativeBoot3", "springNativeBoot4", "quarkus"):
-            local = report["checks"].get(check_name, {})
-            if local.get("status") == "UNAVAILABLE":
-                local["localStatus"] = "UNAVAILABLE"
-                local["status"] = "PASS"
-                local["evidenceSource"] = "nativeCiEvidence"
+            report["checks"][check_name] = {
+                "status": "PASS",
+                "localStatus": "SKIPPED_BY_EXACT_SHA_CI_EVIDENCE",
+                "evidenceSource": "evidenceSources.nativeCi",
+                "headSha": native_ci.get("headSha"),
+                "url": native_ci.get("url"),
+            }
     # These subsystem conclusions are backed by the broader real executions
     # above; keep each required 1.1 surface explicit in the report.
     for name, evidence in {

@@ -58,6 +58,29 @@ class ReadinessVerifierTests(unittest.TestCase):
                 self.assertNotIn(token, command)
         self.assertIn("releaseSimulation", {item[0] for item in readiness.checks()})
 
+    def test_builds_precede_compiled_surface_audits_and_intellij_uses_root_wrapper(self):
+        entries = readiness.checks()
+        positions = {entry[0]: index for index, entry in enumerate(entries)}
+        self.assertLess(positions["maven"], positions["apiCompatibility"])
+        self.assertLess(positions["gradle"], positions["publicSurface"])
+        self.assertLess(positions["gradle"], positions["frameworkEntrypoints"])
+        by_name = {entry[0]: entry for entry in entries}
+        self.assertEqual(
+            ["./gradlew", "-p", "editors/intellij", "test", "--no-daemon"],
+            by_name["intellijTests"][1],
+        )
+        self.assertEqual(
+            ["./gradlew", "-p", "editors/intellij", "buildPlugin", "--no-daemon"],
+            by_name["intellijDistribution"][1],
+        )
+
+    def test_exact_sha_native_ci_can_supply_expensive_native_qualification(self):
+        local_checks = {entry[0] for entry in readiness.checks()}
+        ci_backed_checks = {entry[0] for entry in readiness.checks(skip_native_ci_backed=True)}
+        self.assertTrue({"quarkus", "springNativeBoot3", "springNativeBoot4"}.issubset(local_checks))
+        self.assertTrue({"quarkus", "springNativeBoot3", "springNativeBoot4"}.isdisjoint(ci_backed_checks))
+        self.assertIn("quarkusDevMode", ci_backed_checks)
+
     def test_release_simulation_derives_next_patch_snapshot(self):
         self.assertEqual("1.1.1-SNAPSHOT", simulator.next_development_version("1.1.0"))
         with self.assertRaises(ValueError):
