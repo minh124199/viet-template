@@ -73,7 +73,7 @@ Viet Template governs its compiled types using a nine-category public surface ta
      - Context & Execution: `io.github.minh124199.viettemplate.api.RenderContext`, `io.github.minh124199.viettemplate.api.RenderRequest`, `io.github.minh124199.viettemplate.api.TemplateId`, `io.github.minh124199.viettemplate.runtime.MapRenderContext`.
      - AOT Compiler: `io.github.minh124199.viettemplate.aot.TemplateAotCompiler`, `io.github.minh124199.viettemplate.aot.TemplateAotRequest`, `io.github.minh124199.viettemplate.aot.TemplateAotResult`.
      - Output & Escaping: `io.github.minh124199.viettemplate.runtime.SafeHtml`, `io.github.minh124199.viettemplate.runtime.SafeUrl`, `io.github.minh124199.viettemplate.runtime.StringTemplateOutput`.
-     - Framework Views: `io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView`, `io.github.minh124199.viettemplate.spring.security.SecurityView`, `io.github.minh124199.viettemplate.spring.security.CsrfView`, `io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer`.
+     - Framework Views: `io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView`, `io.github.minh124199.viettemplate.spring.security.SecurityView`, `io.github.minh124199.viettemplate.spring.security.CsrfView`, `io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer`, `io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView`, `io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView`.
 
 2. **`STABLE_SPI` (27 Types)**:
    - **Audience**: Library extenders, framework integrators, and plugin developers creating custom repositories, security policies, formatters, or output sinks.
@@ -440,7 +440,7 @@ Viet Template provides native integration with Quarkus 3.33+ (canonical 3.39.4+)
 
 - **`@Inject TemplateEngine`**: Injects the core engine configured for Quarkus application scope.
 - **`@Inject VietTemplateRenderer`**: Injects high-level helper for string rendering and non-blocking `StreamingOutput` HTTP streaming.
-- **Quarkus Security Integration**: Automatically binds `$security` (`QuarkusSecurityView`) when `quarkus-security` is present on the classpath.
+- **Quarkus Security & CSRF Integration**: Automatically binds `$security` (`QuarkusSecurityView` with `hasRole`, `hasAnyRole`, `hasAllRoles`) and `$csrf` (`QuarkusCsrfView`) when Quarkus Security and CSRF extensions are present, with custom view generation via `QuarkusSecurityViewFactory` SPI.
 - **Coexistence with Qute**: Viet Template operates harmoniously alongside Quarkus Qute without bean conflicts or template path interference.
 
 ---

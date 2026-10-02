@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Decoupled method invocation from dynamic evaluation: `VTL_MIGRATION` allows application domain methods (`$user.getName()`, `$service.find($id)`) while `#evaluate` remains strictly disallowed across all tiers.
   - **Compilation Profile Propagation Across Build Tools**:
     - Propagated compilation profile (`VTL_CORE`, `VTL_MIGRATION`, `VTL_SAFE`) through Maven (`VietTemplateCompileMojo`), Gradle (`VietTemplateCompileTask`, `VietTemplateGenerateFacadesTask`), and Quarkus (`VietTemplateProcessor`).
+  - **Quarkus Security & CSRF Integration Hardening**:
+    - Enhanced `QuarkusSecurityView` with convenience and strict-evaluation role predicates (`hasAnyRole(String...)`, `hasAnyRole(String, String)`, `hasAnyRole(String, String, String)`, `hasAllRoles(String...)`, `hasAllRoles(String, String)`, `hasAllRoles(String, String, String)`).
+    - Enforced defensive copying of roles and string snapshots, isolating the template model from mutable framework state with zero references to credentials or security contexts.
+    - Introduced `QuarkusCsrfView` presentation facade with token secret redaction (`[PROTECTED]`), parameter and header names (`_csrf`, `X-CSRF-TOKEN`), and deterministic availability tracking (`$csrf.available`, `$csrf.token`).
+    - Extended `QuarkusSecurityRenderContextContributor` with additive constructors and multi-tier CSRF token resolution (`RenderRequest` attributes, custom suppliers, and Arc container `CsrfTokenParameterProvider`).
+    - Introduced `QuarkusSecurityViewFactory` SPI for pluggable security view customization via CDI.
+    - Added automated deployment registration in `VietTemplateProcessor` via Quarkus `Capabilities` (`Capability.SECURITY`) and GraalVM reflection registration.
+    - Validated thread safety and zero cross-contamination via high-concurrency stress testing across 50 concurrent threads.
   - **Provenance and Security Boundary Corrections**:
     - Updated `SECURITY.md` and `README.md` to clarify agent-assisted provenance and accurately document security boundaries.
 

@@ -27,14 +27,30 @@ TYPE public class io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer
 TYPE public final class io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor implements io.github.minh124199.viettemplate.api.RenderContextContributor
   MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor()
   MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor(java.util.function.Supplier<io.quarkus.security.identity.SecurityIdentity>)
+  MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor(java.util.function.Supplier<io.quarkus.security.identity.SecurityIdentity>, io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityViewFactory, java.util.function.Supplier<io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView>, java.lang.String, java.lang.String)
   MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor(java.util.function.Supplier<io.quarkus.security.identity.SecurityIdentity>, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor(java.util.function.Supplier<io.quarkus.security.identity.SecurityIdentity>, java.util.function.Supplier<io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView>)
+  MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor(java.util.function.Supplier<io.quarkus.security.identity.SecurityIdentity>, java.util.function.Supplier<io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView>, java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityViewFactory getViewFactory()
+  MEMBER public java.lang.String getCsrfVariableName()
+  MEMBER public java.lang.String getSecurityVariableName()
   MEMBER public java.lang.String getVariableName()
+  MEMBER public java.util.function.Supplier<io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView> getCsrfSupplier()
+  MEMBER public java.util.function.Supplier<io.quarkus.security.identity.SecurityIdentity> getIdentitySupplier()
+  MEMBER public static final java.lang.String CSRF_TOKEN_ATTRIBUTE
+  MEMBER public static final java.lang.String DEFAULT_CSRF_VARIABLE_NAME
   MEMBER public static final java.lang.String DEFAULT_SECURITY_VARIABLE_NAME
   MEMBER public static final java.lang.String SECURITY_IDENTITY_ATTRIBUTE
   MEMBER public void contribute(io.github.minh124199.viettemplate.api.ContributorContext, io.github.minh124199.viettemplate.api.RenderRequest)
 
 TYPE public final class io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView
   MEMBER public boolean equals(java.lang.Object)
+  MEMBER public boolean hasAllRoles(java.lang.String...)
+  MEMBER public boolean hasAllRoles(java.lang.String, java.lang.String)
+  MEMBER public boolean hasAllRoles(java.lang.String, java.lang.String, java.lang.String)
+  MEMBER public boolean hasAnyRole(java.lang.String...)
+  MEMBER public boolean hasAnyRole(java.lang.String, java.lang.String)
+  MEMBER public boolean hasAnyRole(java.lang.String, java.lang.String, java.lang.String)
   MEMBER public boolean hasRole(java.lang.String)
   MEMBER public boolean isAnonymous()
   MEMBER public boolean isAuthenticated()
@@ -48,3 +64,25 @@ TYPE public final class io.github.minh124199.viettemplate.quarkus.security.Quark
   MEMBER public static io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView anonymous()
   MEMBER public static io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView from(io.quarkus.security.identity.SecurityIdentity)
 
+TYPE public final class io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView
+  MEMBER public boolean equals(java.lang.Object)
+  MEMBER public boolean isAvailable()
+  MEMBER public int hashCode()
+  MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView(boolean, java.lang.String, java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView(java.lang.String, java.lang.String, java.lang.String)
+  MEMBER public java.lang.String getHeaderName()
+  MEMBER public java.lang.String getParameterName()
+  MEMBER public java.lang.String getToken()
+  MEMBER public java.lang.String headerName()
+  MEMBER public java.lang.String parameterName()
+  MEMBER public java.lang.String toString()
+  MEMBER public java.lang.String token()
+  MEMBER public static final java.lang.String DEFAULT_HEADER_NAME
+  MEMBER public static final java.lang.String DEFAULT_PARAMETER_NAME
+  MEMBER public static io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView of(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView of(java.lang.String, java.lang.String, java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView unavailable()
+
+TYPE public interface io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityViewFactory
+  MEMBER public abstract io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityView create(io.quarkus.security.identity.SecurityIdentity)
+  MEMBER public static io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityViewFactory defaultFactory()

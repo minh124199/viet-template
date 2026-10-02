@@ -7,7 +7,7 @@ Viet Template provides first-class, idiomatic integration with [Quarkus](https:/
 - **Architecture**: Separated into a lightweight runtime module (`viet-template-quarkus`) and an ahead-of-time build step module (`viet-template-quarkus-deployment`).
 - **Framework-Neutral Invariant**: The core engine (`viet-template-api`, `runtime`, `language-vtl`, `vtl-interpreter`) contains zero Quarkus dependencies. The extension adapts the framework-neutral contracts to Quarkus CDI, SmallRye Config, GraalVM native image build items, and dev-mode hot reload.
 - **Qute Coexistence**: Viet Template runs harmoniously alongside Quarkus Qute within the same application without bean ambiguity or template path conflicts.
-- **Public API Surface**: `viet-template-quarkus` exports 4 stable types (3 API + 1 SPI: `VietTemplateConfig`, `VietTemplateRenderer`, `QuarkusSecurityView` as `STABLE_API`, and `QuarkusSecurityRenderContextContributor` as `STABLE_SPI`), tracked in `config/api-baseline/1.0-quarkus-public-api.txt`. Total stable types across the repository: 121 types (94 API + 27 SPI).
+- **Public API Surface**: `viet-template-quarkus` exports 6 stable types (4 API + 2 SPI: `VietTemplateConfig`, `VietTemplateRenderer`, `QuarkusSecurityView`, `QuarkusCsrfView` as `STABLE_API`, and `QuarkusSecurityRenderContextContributor`, `QuarkusSecurityViewFactory` as `STABLE_SPI`), tracked in `config/api-baseline/1.0-quarkus-public-api.txt` and governed under the 1.x Compatibility Policy.
 
 ---
 
@@ -189,19 +189,54 @@ In Quarkus dev mode (`quarkus dev` or `gradle quarkusDev`):
 
 ---
 
-## 8. Security Integration (`$security`)
+## 8. Security Integration (`$security`) & CSRF Protection (`$csrf`)
 
-When `quarkus-security` is present on the application classpath, the extension registers `QuarkusSecurityRenderContextContributor`:
-- Binds a presentation-safe `$security` view into every template execution context:
+When `quarkus-security` is present on the application classpath, the deployment module automatically registers `QuarkusSecurityRenderContextContributor`:
+- Binds a presentation-safe, immutable `$security` facade (`QuarkusSecurityView`) into every template execution context:
   - `$security.authenticated`: Boolean indicating whether current user is authenticated.
   - `$security.anonymous`: Boolean indicating whether current user is anonymous.
   - `$security.name`: Principal name or empty string if anonymous.
   - `$security.hasRole('ROLE_NAME')`: Checks if current user has the specified security role.
-  - `$security.roles`: Set of assigned role names.
+  - `$security.hasAnyRole('ROLE_A', 'ROLE_B')`: Checks if current user has any of the specified roles (supports 2-arg, 3-arg, and varargs overloads).
+  - `$security.hasAllRoles('ROLE_A', 'ROLE_B')`: Checks if current user has all of the specified roles with strict non-vacuous truth evaluation.
+  - `$security.roles`: Unmodifiable set of assigned role names.
+- **Presentation-Only Invariant**: Template security helpers control visual rendering only. Backend endpoints must continue enforcing access boundaries via `@RolesAllowed`, `@Authenticated`, or programmatic checks.
+- **Defensive Isolation**: `QuarkusSecurityView` snapshots strings and defensively copies role sets. It holds zero references to mutable framework credentials, authentication tokens, or internal security context object graphs.
+- **Token Redaction**: `toString()` redacts principal names and roles with `[REDACTED]` to prevent sensitive leakage into diagnostic logs.
 - **Optionality Invariant**: `quarkus-security` is purely optional (`<optional>true</optional>` in Maven, `compileOnly` in Gradle). Downstream applications without Quarkus Security boot cleanly without missing-bean errors or class resolution failures via runtime-safe Arc bean and reflection inspection.
 
-### 8.1 CSRF Protection Model
-Unlike `viet-template-spring-security` which automatically binds an active Spring Security CSRF token into `$csrf`, Quarkus REST does not expose an automatic template-level CSRF model out of the box. Applications using CSRF protection in Quarkus should provide the token to the template model or render context explicitly via `VietTemplateRenderer.render("template.vtl", Map.of("csrfToken", token))`.
+### 8.1 CSRF Protection Model (`$csrf`)
+
+Quarkus applications employing CSRF protection (e.g. via `quarkus-rest-csrf`) are provided an automatic, presentation-safe `$csrf` facade (`QuarkusCsrfView`):
+
+- **Properties & Helpers**:
+  - `$csrf.available`: Boolean indicating whether a valid CSRF token is available for the current request.
+  - `$csrf.token`: Raw CSRF token secret string for form inclusion, or empty string if unavailable.
+  - `$csrf.parameterName`: Form parameter name expected by Quarkus CSRF validation (defaults to `_csrf`).
+  - `$csrf.headerName`: HTTP header name expected by Quarkus CSRF validation (defaults to `X-CSRF-TOKEN`).
+- **Token Secret Protection**: Raw token secrets are strictly excluded from diagnostic string representations. `QuarkusCsrfView.toString()` renders `token=[PROTECTED]`, preventing accidental exposure in log files or debugging output.
+- **Token Resolution Priority**:
+  1. `RenderRequest.attributes()` keys: `io.quarkus.csrf.token`, `csrf`, `csrfToken`, or `io.vertx.ext.web.RoutingContext` / `routingContext` (via reflection).
+  2. Custom `Supplier<QuarkusCsrfView>` configured on `QuarkusSecurityRenderContextContributor`.
+  3. Arc CDI container lookup for `io.quarkus.csrf.reactive.runtime.CsrfTokenParameterProvider` (via safe reflection).
+  4. Safe fallback to `QuarkusCsrfView.unavailable()` if no active CSRF token is resolved.
+
+### 8.2 Custom Security View Factory SPI (`QuarkusSecurityViewFactory`)
+
+Applications requiring tailored security views can implement the `QuarkusSecurityViewFactory` SPI or register an Arc CDI bean:
+
+```java
+@ApplicationScoped
+public class CustomSecurityViewFactory implements QuarkusSecurityViewFactory {
+    @Override
+    public QuarkusSecurityView create(SecurityIdentity identity) {
+        // Custom transformation or role normalization
+        return QuarkusSecurityView.from(identity);
+    }
+}
+```
+
+The producer automatically discovers the custom factory from Arc and registers it with `QuarkusSecurityRenderContextContributor`.
 
 ---
 
