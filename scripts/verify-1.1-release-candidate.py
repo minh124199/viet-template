@@ -4,11 +4,15 @@
 from __future__ import annotations
 
 import argparse
+import atexit
 import importlib.util
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
 from datetime import datetime, timezone
@@ -29,9 +33,10 @@ NATIVE_JOBS = (
 )
 
 
-def run(args: list[str], cwd: Path = ROOT, timeout: int = 7200) -> subprocess.CompletedProcess[str]:
+def run(args: list[str], cwd: Path = ROOT, timeout: int = 7200,
+        env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(args, cwd=cwd, text=True, stdout=subprocess.PIPE,
-                          stderr=subprocess.STDOUT, timeout=timeout, check=False)
+                          stderr=subprocess.STDOUT, timeout=timeout, check=False, env=env)
 
 
 def git(*args: str) -> str:
@@ -155,6 +160,32 @@ def main() -> int:
     preflight_checks.append({"name": "exactShaNative", "status": "PASS" if native else "FAIL",
                              "detail": "Native Image Verification must pass on candidate SHA" if not native else native})
 
+    # Keep local candidate coordinates out of the shared ~/.m2 cache. Consumer
+    # and framework scripts can use Maven local, so point MavenLocal and Maven
+    # at this private home for the entire qualification run.
+    original_home = Path.home()
+    private_home = Path(tempfile.mkdtemp(prefix="viet-template-1.1-rc-home-"))
+    atexit.register(shutil.rmtree, private_home, ignore_errors=True)
+    private_m2 = private_home / ".m2" / "repository"
+    private_m2.mkdir(parents=True, exist_ok=True)
+    settings_file = original_home / ".m2" / "settings.xml"
+    if settings_file.is_file():
+        private_settings = private_home / ".m2" / "settings.xml"
+        shutil.copy2(settings_file, private_settings)
+        private_settings.chmod(0o600)
+    candidate_env = os.environ.copy()
+    candidate_env["HOME"] = str(private_home)
+    candidate_env["GRADLE_USER_HOME"] = os.environ.get("GRADLE_USER_HOME", str(original_home / ".gradle"))
+    candidate_env["MAVEN_REPO_LOCAL"] = str(private_m2)
+    candidate_env["VT_DEVTOOLS_M2_REPO"] = str(private_home / "devtools-m2")
+    # Gradle's MavenLocal resolver reads the JVM user.home property directly.
+    java_opts = candidate_env.get("JAVA_TOOL_OPTIONS", "").strip()
+    candidate_env["JAVA_TOOL_OPTIONS"] = f"{java_opts} -Duser.home={private_home} -Dmaven.repo.local={private_m2}".strip()
+    maven_opts = candidate_env.get("MAVEN_OPTS", "").strip()
+    gradle_opts = candidate_env.get("GRADLE_OPTS", "").strip()
+    candidate_env["MAVEN_OPTS"] = f"{maven_opts} -Dmaven.repo.local={private_m2}".strip()
+    candidate_env["GRADLE_OPTS"] = f"{gradle_opts} -Dmaven.repo.local={private_m2}".strip()
+
     commands = [
         ("unitTests", ["python3", "-m", "unittest", "discover", "-s", "scripts/tests"]),
         ("documentation", ["python3", "scripts/verify-documentation.py"]),
@@ -173,6 +204,8 @@ def main() -> int:
         ("exceptionSemantics", ["python3", "scripts/verify-exception-semantics.py"]),
         ("tckCoverage", ["python3", "scripts/verify-tck-coverage.py"]),
         ("buildParity", ["python3", "scripts/verify-build-parity.py"]),
+        ("stageMavenCandidateArtifacts", ["./mvnw", "install", "-DskipTests", "-Dspotless.check.skip=true", "-B"]),
+        ("stageGradleCandidateArtifacts", ["./gradlew", "publishToMavenLocal", "--no-daemon", "-x", "test"]),
         ("tck", ["./gradlew", ":viet-template-tck:test", "--no-daemon"]),
         ("releaseGatesAndCleanRoomConsumers", ["bash", "scripts/verify-m18-release-gates.sh", "--clean-room"]),
         ("aotToolingParity", ["bash", "scripts/verify-aot-tooling-parity.sh"]),
@@ -213,7 +246,7 @@ def main() -> int:
                                                       "\n".join(hygiene_errors) if hygiene_errors else
                                                       "Public Maven module JARs pass local path, snapshot, secret, and manifest checks.\n", "")
             else:
-                result = run(command, cwd=cwd)
+                result = run(command, cwd=cwd, env=candidate_env)
             checks.append({"name": name, "status": "PASS" if result.returncode == 0 else "FAIL",
                            "exitCode": result.returncode, "command": command,
                            "outputTail": result.stdout[-2500:]})
@@ -251,6 +284,8 @@ def main() -> int:
         "candidateSha": candidate_sha, "branch": branch, "workingTreeClean": not initial_dirty and not final_dirty,
         "native": native, "checks": preflight_checks + checks, "checkCount": len(preflight_checks) + len(checks),
         "snapshotConsumerReferences": snapshot_consumers,
+        "isolatedBuildEnvironment": True,
+        "isolatedMavenRepository": str(private_m2),
         "testSummary": test_summary,
         "publicationTopology": {"publicCoordinates": METADATA.get_public_coordinates(ROOT),
                                  "publicCount": len(METADATA.get_public_coordinates(ROOT)),
@@ -268,6 +303,7 @@ def main() -> int:
                                               "publicationPerformed", "report")
                       if k != "report"}, indent=2))
     print(f"Report: {report_path}")
+    shutil.rmtree(private_home, ignore_errors=True)
     return 0 if not errors else 1
 
 
