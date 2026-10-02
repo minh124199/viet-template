@@ -8,7 +8,7 @@ The data presented here is derived directly from the durable qualification evide
 
 ## 1. Benchmarking Methodology & Environment
 
-All comparative measurements were executed under strict JMH (Java Microbenchmark Harness) discipline adhering to the methodology defined in [15-benchmark-plan.md](file:///home/lynguyen/current_source/viet-template-repo/docs/15-benchmark-plan.md):
+All comparative measurements were executed under strict JMH (Java Microbenchmark Harness) discipline adhering to the methodology defined in [15-benchmark-plan.md](../15-benchmark-plan.md):
 
 - **Harness**: JMH 1.37 with `jmh-generator-annprocess`.
 - **Measurement Mode**: `Throughput` (operations per second, `ops/s`, higher is better) and `-prof gc` (bytes allocated per operation, `B/op`, lower is better).
@@ -142,7 +142,7 @@ Each table cell reports: `throughput ± JMH error (ops/s); memory allocation (B/
 
 ## 6. DSA Stopping Rule & 1.0 Performance Freeze
 
-Under the **7-Part DSA Acceptance Rule** (defined in [15-benchmark-plan.md](file:///home/lynguyen/current_source/viet-template-repo/docs/15-benchmark-plan.md)), speculative runtime optimizations are subject to an explicit stopping rule:
+Under the **7-Part DSA Acceptance Rule** (defined in [15-benchmark-plan.md](../15-benchmark-plan.md)), speculative runtime optimizations are subject to an explicit stopping rule:
 
 > **Stopping Rule**: No further speculative runtime optimizations may be introduced unless fresh CPU sampling or JFR allocation profiling identifies an unaddressed hotspot representing $\ge 5\%$ of execution time or allocation volume in realistic production workloads, with a demonstrated $\ge 15\%$ throughput improvement.
 

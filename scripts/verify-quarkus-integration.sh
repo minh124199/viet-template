@@ -225,7 +225,6 @@ elif [ -n "${JAVA_HOME:-}" ] && [ -x "${JAVA_HOME}/bin/native-image" ]; then
     export PATH="${JAVA_HOME}/bin:${PATH}"
 else
     for candidate in \
-        "/home/lynguyen/.graalvm/mandrel-java25-25.0.4.1-Final" \
         "${HOME:-}/.graalvm"/mandrel-java25* \
         "${HOME:-}/.graalvm"/mandrel* \
         "${HOME:-}/opt"/graalvm-jdk-25* \
@@ -242,27 +241,20 @@ else
     done
 fi
 
-CACHE_DIR="${TMPDIR:-/tmp}/viet-template-native-cache"
-mkdir -p "${CACHE_DIR}"
-
-MAVEN_NATIVE_RUNNER="${ROOT_DIR}/integration-tests/quarkus/maven-quarkus-aot/target/maven-quarkus-aot-1.0.0-runner"
-GRADLE_NATIVE_RUNNER="${ROOT_DIR}/integration-tests/quarkus/gradle-quarkus-aot/build/gradle-quarkus-aot-1.0.0-runner"
-
-if [ "${FORCE_NATIVE}" = "true" ]; then
-    echo "[INFO] Force native mode enabled: clearing native runner caches."
-    rm -f "${CACHE_DIR}/maven-quarkus-aot-1.0.0-runner"
-    rm -f "${CACHE_DIR}/gradle-quarkus-aot-1.0.0-runner"
-    rm -f "${MAVEN_NATIVE_RUNNER}"
-    rm -f "${GRADLE_NATIVE_RUNNER}"
-else
-    # Preserve existing native runners from clean steps
-    if [ -f "${MAVEN_NATIVE_RUNNER}" ]; then
-        cp -f "${MAVEN_NATIVE_RUNNER}" "${CACHE_DIR}/maven-quarkus-aot-1.0.0-runner"
-    fi
-    if [ -f "${GRADLE_NATIVE_RUNNER}" ]; then
-        cp -f "${GRADLE_NATIVE_RUNNER}" "${CACHE_DIR}/gradle-quarkus-aot-1.0.0-runner"
-    fi
+MAVEN_FIXTURE_VERSION="$(sed -n 's/^[[:space:]]*<version>\([^<]*\)<\/version>/\1/p' "${ROOT_DIR}/integration-tests/quarkus/maven-quarkus-aot/pom.xml" | head -n 1)"
+GRADLE_FIXTURE_VERSION="$(sed -n 's/^[[:space:]]*version = "\([^"]*\)"/\1/p' "${ROOT_DIR}/integration-tests/quarkus/gradle-quarkus-aot/build.gradle.kts" | head -n 1)"
+if [ -z "${MAVEN_FIXTURE_VERSION}" ] || [ "${MAVEN_FIXTURE_VERSION}" != "${GRADLE_FIXTURE_VERSION}" ]; then
+    echo "[FAIL] Quarkus fixture versions are missing or differ (Maven=${MAVEN_FIXTURE_VERSION}, Gradle=${GRADLE_FIXTURE_VERSION})."
+    exit 1
 fi
+
+MAVEN_NATIVE_RUNNER="${ROOT_DIR}/integration-tests/quarkus/maven-quarkus-aot/target/maven-quarkus-aot-${MAVEN_FIXTURE_VERSION}-runner"
+GRADLE_NATIVE_RUNNER="${ROOT_DIR}/integration-tests/quarkus/gradle-quarkus-aot/build/gradle-quarkus-aot-${GRADLE_FIXTURE_VERSION}-runner"
+
+# Native binaries are executable release evidence. Never restore them from a
+# shared cache: every invocation must rebuild from the checked-out sources.
+echo "[INFO] Native verification always rebuilds both fixture executables from source."
+rm -f "${MAVEN_NATIVE_RUNNER}" "${GRADLE_NATIVE_RUNNER}"
 
 # Step 0: Ensure staged reactor artifacts in local repository
 echo "[STEP 0] Ensuring staged reactor artifacts in local repository..."
@@ -302,29 +294,6 @@ if [ ! -f "${GRADLE_APP_JAR}" ]; then
     exit 1
 fi
 echo "[PASS] Both Quarkus runner applications packaged successfully."
-
-# Ensure native runners exist (restore from cache or compile)
-if [ ! -f "${MAVEN_NATIVE_RUNNER}" ]; then
-    if [ "${FORCE_NATIVE}" != "true" ] && [ -f "${CACHE_DIR}/maven-quarkus-aot-1.0.0-runner" ]; then
-        mkdir -p "$(dirname "${MAVEN_NATIVE_RUNNER}")"
-        cp -f "${CACHE_DIR}/maven-quarkus-aot-1.0.0-runner" "${MAVEN_NATIVE_RUNNER}"
-    else
-        echo "[INFO] Building Maven native executable..."
-        "${ROOT_DIR}/mvnw" package -Dquarkus.package.type=native -Dquarkus.native.container-build=false -DskipTests -f "${ROOT_DIR}/integration-tests/quarkus/maven-quarkus-aot/pom.xml" -B
-        cp -f "${MAVEN_NATIVE_RUNNER}" "${CACHE_DIR}/maven-quarkus-aot-1.0.0-runner"
-    fi
-fi
-
-if [ ! -f "${GRADLE_NATIVE_RUNNER}" ]; then
-    if [ "${FORCE_NATIVE}" != "true" ] && [ -f "${CACHE_DIR}/gradle-quarkus-aot-1.0.0-runner" ]; then
-        mkdir -p "$(dirname "${GRADLE_NATIVE_RUNNER}")"
-        cp -f "${CACHE_DIR}/gradle-quarkus-aot-1.0.0-runner" "${GRADLE_NATIVE_RUNNER}"
-    else
-        echo "[INFO] Building Gradle native executable..."
-        "${ROOT_DIR}/gradlew" build -Dquarkus.package.type=native -Dquarkus.native.container-build=false -x test --project-dir "${ROOT_DIR}/integration-tests/quarkus/gradle-quarkus-aot" --no-daemon
-        cp -f "${GRADLE_NATIVE_RUNNER}" "${CACHE_DIR}/gradle-quarkus-aot-1.0.0-runner"
-    fi
-fi
 
 # Step 4: Compare templates.idx between Maven and Gradle
 echo "[STEP 4] Comparing templates.idx byte-for-byte parity..."
@@ -399,6 +368,14 @@ kill -9 "${APP_PID}" 2>/dev/null || true
 wait "${APP_PID}" 2>/dev/null || true
 APP_PID=""
 echo "[PASS] Gradle Quarkus runner verified successfully across all endpoints."
+
+# Native builds use clean to guarantee fresh executables. Run them only after
+# JVM parity and live-server checks, since clean removes their packaged JARs.
+echo "[INFO] Building fresh Maven native executable..."
+"${ROOT_DIR}/mvnw" clean package -Dquarkus.package.type=native -Dquarkus.native.container-build=false -DskipTests -f "${ROOT_DIR}/integration-tests/quarkus/maven-quarkus-aot/pom.xml" -B
+
+echo "[INFO] Building fresh Gradle native executable..."
+"${ROOT_DIR}/gradlew" clean build -Dquarkus.package.type=native -Dquarkus.native.container-build=false -x test --project-dir "${ROOT_DIR}/integration-tests/quarkus/gradle-quarkus-aot" --no-daemon
 
 # Step 8: Verify executable Maven Quarkus native runner
 echo "[STEP 8] Verifying executable Maven Quarkus native runner execution..."

@@ -36,6 +36,13 @@ class VerifyNativeImageIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(res.returncode, 0, f"Bash syntax check failed: {res.stderr}")
 
+    def test_native_binary_is_always_rebuilt_without_shared_cache(self):
+        self.assertNotIn("viet-template-native-cache", self.script_content)
+        self.assertIn('rm -f "${MAVEN_NATIVE_BIN}" "${GRADLE_NATIVE_BIN}"', self.script_content)
+        self.assertIn('"${ROOT_DIR}/mvnw" clean -Pnative native:compile', self.script_content)
+        self.assertIn('"${ROOT_DIR}/gradlew" clean nativeCompile', self.script_content)
+        self.assertNotIn('cp -f "${CACHE_DIR}', self.script_content)
+
     def test_script_contains_publish_to_maven_local_and_mvn_install(self):
         self.assertIn(
             '"${ROOT_DIR}/gradlew" publishToMavenLocal --no-daemon -x test',

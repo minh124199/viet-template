@@ -28,6 +28,21 @@ class DocumentationVerifierTests(unittest.TestCase):
         errors = doc_verifier.check_release_dates(self.repo_root)
         self.assertEqual([], errors, f"Unexpected stale release date errors: {errors}")
 
+    def test_current_repo_has_no_developer_specific_file_links(self):
+        errors = doc_verifier.check_developer_specific_file_links(self.repo_root)
+        self.assertEqual([], errors, f"Unexpected absolute file links: {errors}")
+
+    def test_rejects_developer_specific_file_link(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "docs").mkdir()
+            (root / "docs" / "local.md").write_text(
+                "[local](file:///home/alice/project/docs/page.md)\n", encoding="utf-8"
+            )
+            errors = doc_verifier.check_developer_specific_file_links(root)
+            self.assertEqual(1, len(errors))
+            self.assertIn("docs/local.md:1", errors[0])
+
     def test_rejects_stale_release_date_in_temp_repo(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_root = Path(tmp_dir)
@@ -60,7 +75,7 @@ class DocumentationVerifierTests(unittest.TestCase):
         errors = doc_verifier.check_consumer_snippets_in_text(valid_gradle, released_version="0.2.2")
         self.assertEqual([], errors)
 
-        # Accepts 1.0.0-RC1 when specified or by default
+        # Accepts 1.0.0-RC1 when explicitly requested.
         rc1_maven = """
 <dependency>
     <groupId>io.github.minh124199</groupId>
@@ -71,10 +86,11 @@ class DocumentationVerifierTests(unittest.TestCase):
         errors_rc1 = doc_verifier.check_consumer_snippets_in_text(rc1_maven, released_version="1.0.0-RC1")
         self.assertEqual([], errors_rc1)
 
-        errors_default_stable = doc_verifier.check_consumer_snippets_in_text(valid_maven)
+        current_maven = valid_maven.replace("0.2.2", "1.0.1")
+        errors_default_stable = doc_verifier.check_consumer_snippets_in_text(current_maven)
         self.assertEqual([], errors_default_stable)
         errors_default_rc1 = doc_verifier.check_consumer_snippets_in_text(rc1_maven)
-        self.assertEqual([], errors_default_rc1)
+        self.assertTrue(any("expected released version '1.0.1'" in err for err in errors_default_rc1))
 
     def test_consumer_snippets_rejects_unreleased_or_stale_version(self):
         stale_maven = """
