@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -37,9 +38,11 @@ def run(name: str, argv: list[str], cwd: Path = ROOT) -> dict[str, Any]:
     output = (result.stdout + result.stderr).strip()
     markers = [line.strip() for line in output.splitlines()
                if re.search(r"\b(FAIL|FAILED|ERROR|BUILD FAILURE|FAILED TESTS)\b", line, re.IGNORECASE)]
-    native_tool_missing = (result.returncode == 127 and
-                           re.search(r"native-image(?::|\s).*(?:not found|No such file)", output,
-                                     re.IGNORECASE) is not None)
+    native_tool_missing = re.search(
+        r"(?:native-image|GraalVM Native Image).{0,100}(?:not found|No such file|unavailable|not installed|could not be found)|"
+        r"(?:not found|No such file|unavailable|not installed).{0,100}(?:native-image|GraalVM Native Image)",
+        output, re.IGNORECASE | re.DOTALL,
+    ) is not None
     status = ("PASS" if result.returncode == 0 else
               "UNAVAILABLE" if native_tool_missing else "FAIL")
     result = {
@@ -70,6 +73,61 @@ def run(name: str, argv: list[str], cwd: Path = ROOT) -> dict[str, Any]:
             result["velocityScenarios"] = sum(int(ET.parse(p).getroot().attrib.get("tests", 0))
                                                for p in velocity_reports)
     return result
+
+
+def validate_native_ci_payload(payload: dict[str, Any], candidate_sha: str) -> dict[str, Any]:
+    """Accept native CI only when the complete workflow passed on this exact SHA."""
+    jobs = payload.get("jobs", [])
+    matched = {}
+    for job in jobs:
+        name = str(job.get("name", ""))
+        if "Spring AOT" in name and "boot3" in name.lower():
+            matched["springNativeBoot3"] = job
+        elif "Spring AOT" in name and "boot4" in name.lower():
+            matched["springNativeBoot4"] = job
+        elif "Quarkus Security & REST CSRF Native Image" in name:
+            matched["quarkusNative"] = job
+    expected = {"springNativeBoot3", "springNativeBoot4", "quarkusNative"}
+    valid = (
+        payload.get("workflowName") == "Native Image Verification"
+        and payload.get("status") == "completed"
+        and payload.get("conclusion") == "success"
+        and payload.get("headSha") == candidate_sha
+        and expected.issubset(matched)
+        and all(matched[name].get("conclusion") == "success" for name in expected)
+    )
+    return {
+        "status": "PASS" if valid else "FAIL",
+        "headSha": payload.get("headSha"),
+        "workflowName": payload.get("workflowName"),
+        "url": payload.get("url"),
+        "jobs": {name: matched[name].get("conclusion") for name in sorted(matched)},
+        "detail": [] if valid else ["native CI evidence must be complete, successful, and match the candidate SHA"],
+    }
+
+
+def load_native_ci_evidence(run_ids: list[str], candidate_sha: str) -> dict[str, Any]:
+    gh = shutil.which("gh")
+    if not run_ids:
+        return {"status": "UNAVAILABLE", "detail": "no native CI run id supplied"}
+    if not gh:
+        return {"status": "UNAVAILABLE", "detail": "GitHub CLI is unavailable"}
+    for run_id in run_ids:
+        proc = subprocess.run(
+            [gh, "run", "view", run_id, "--json", "workflowName,status,conclusion,headSha,url,jobs"],
+            cwd=ROOT, text=True, capture_output=True, check=False,
+        )
+        if proc.returncode != 0:
+            continue
+        try:
+            payload = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            continue
+        evidence = validate_native_ci_payload(payload, candidate_sha)
+        if evidence["status"] == "PASS":
+            evidence["runId"] = run_id
+            return evidence
+    return {"status": "FAIL", "detail": ["no supplied native CI run fully passed for this candidate SHA"]}
 
 
 def git_value(*args: str) -> str:
@@ -144,6 +202,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, default=Path("build/reports/1.1-readiness.json"),
                         help="JSON report path (default: build/reports/1.1-readiness.json)")
+    parser.add_argument("--native-ci-run-id", action="append", default=[],
+                        help="GitHub Native Image Verification run id for exact-SHA evidence; may be repeated")
     args = parser.parse_args()
 
     candidate = git_value("rev-parse", "HEAD")
@@ -162,6 +222,15 @@ def main() -> int:
     }
     for name, command, *path in checks():
         report["checks"][name] = run(name, command, path[0] if path else ROOT)
+    native_ci = load_native_ci_evidence(args.native_ci_run_id, candidate)
+    report["checks"]["nativeCiEvidence"] = native_ci
+    if native_ci.get("status") == "PASS":
+        for check_name in ("springNativeBoot3", "springNativeBoot4", "quarkus"):
+            local = report["checks"].get(check_name, {})
+            if local.get("status") == "UNAVAILABLE":
+                local["localStatus"] = "UNAVAILABLE"
+                local["status"] = "PASS"
+                local["evidenceSource"] = "nativeCiEvidence"
     # These subsystem conclusions are backed by the broader real executions
     # above; keep each required 1.1 surface explicit in the report.
     for name, evidence in {

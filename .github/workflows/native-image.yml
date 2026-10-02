@@ -16,12 +16,13 @@ defaults:
 
 jobs:
   native-image:
-    name: GraalVM Native Image & Spring AOT (JDK ${{ matrix.java }})
+    name: GraalVM Native Image & Spring AOT (${{ matrix.bootGeneration }}, JDK ${{ matrix.java }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         java: [ '25' ]
+        bootGeneration: [ 'boot3', 'boot4' ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -42,13 +43,13 @@ jobs:
           native-image --version
 
       - name: Run GraalVM Native Image Verification Suite
-        run: bash scripts/verify-native-image-integration.sh
+        run: bash scripts/verify-native-image-integration.sh "${{ matrix.bootGeneration }}"
 
       - name: Upload Native Application Logs on Failure
         if: failure()
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
-          name: native-image-failure-logs-jdk${{ matrix.java }}
+          name: native-image-failure-logs-${{ matrix.bootGeneration }}-jdk${{ matrix.java }}
           path: |
             /tmp/native-app-*.log
             integration-tests/native/**/target/reports/

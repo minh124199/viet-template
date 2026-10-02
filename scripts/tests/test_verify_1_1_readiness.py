@@ -32,6 +32,24 @@ class ReadinessVerifierTests(unittest.TestCase):
         if missing["exitCode"] == 127:
             self.assertEqual("UNAVAILABLE", missing["status"])
 
+    def test_native_ci_evidence_requires_all_jobs_and_exact_candidate_sha(self):
+        payload = {
+            "workflowName": "Native Image Verification",
+            "status": "completed",
+            "conclusion": "success",
+            "headSha": "candidate-sha",
+            "url": "https://example.invalid/run/1",
+            "jobs": [
+                {"name": "GraalVM Native Image & Spring AOT (boot3, JDK 25)", "conclusion": "success"},
+                {"name": "GraalVM Native Image & Spring AOT (boot4, JDK 25)", "conclusion": "success"},
+                {"name": "Quarkus Security & REST CSRF Native Image (JDK 25)", "conclusion": "success"},
+            ],
+        }
+        self.assertEqual("PASS", readiness.validate_native_ci_payload(payload, "candidate-sha")["status"])
+        self.assertEqual("FAIL", readiness.validate_native_ci_payload(payload, "other-sha")["status"])
+        payload["jobs"].pop()
+        self.assertEqual("FAIL", readiness.validate_native_ci_payload(payload, "candidate-sha")["status"])
+
     def test_mandatory_checks_do_not_invoke_release_or_publication_commands(self):
         forbidden = ("mvnw deploy", "gradlew publish", "gh release create", "gh workflow run")
         commands = [" ".join(item[1]) for item in readiness.checks()]
