@@ -27,7 +27,7 @@ Add the `viet-template-quarkus` extension dependency to your `pom.xml`:
 ```
 
 > [!NOTE]
-> The Quarkus extension (`viet-template-quarkus` and `viet-template-quarkus-deployment`) is published as part of the 1.0.0 GA release.
+> The public dependency is `viet-template-quarkus`. Quarkus resolves the matching `viet-template-quarkus-deployment` build-time implementation through extension metadata; applications should not add the deployment artifact directly. Both artifacts have published 1.1.0 coordinates, but ordinary consumers declare only the runtime extension.
 
 The Quarkus Maven plugin automatically discovers the deployment artifact `viet-template-quarkus-deployment` via `META-INF/quarkus-extension.properties`.
 
@@ -112,6 +112,7 @@ All settings currently use `ConfigPhase.BUILD_AND_RUN_TIME_FIXED` because templa
 | `quarkus.viet-template.negative-cache-ttl-millis` | Long | `BUILD_AND_RUN_TIME_FIXED` | `5000` | Duration (ms) to cache negative template lookup misses. |
 | `quarkus.viet-template.undefined-reference-policy` | String | `BUILD_AND_RUN_TIME_FIXED` | `SILENT` | Missing variable policy: `SILENT` (Velocity default), `WARN` (log diagnostics), `ERROR` (fail-fast). |
 | `quarkus.viet-template.encoding` | String | `BUILD_AND_RUN_TIME_FIXED` | `UTF-8` | Character encoding used to decode template sources at build and runtime. |
+| `quarkus.viet-template.profile` | String | `BUILD_AND_RUN_TIME_FIXED` | `VTL_MIGRATION` | Compilation profile controlling available VTL features and security boundaries (`VTL_CORE`, `VTL_MIGRATION`, `VTL_DYNAMIC`, `VTL_SAFE`). |
 
 ### Configuration Example
 
@@ -121,7 +122,10 @@ quarkus.viet-template.suffix=.vtl
 quarkus.viet-template.additional-suffixes=.html.vtl,.vm
 quarkus.viet-template.undefined-reference-policy=WARN
 quarkus.viet-template.cache-max-entries=1000
+quarkus.viet-template.profile=VTL_MIGRATION
 ```
+
+The 1.0 frozen key inventory is retained in `config/compatibility/framework-configuration-keys.json`; the current 1.1 inventory is `config/compatibility/framework-configuration-keys-1.1.json`.
 
 ---
 
@@ -191,11 +195,11 @@ In Quarkus dev mode (`quarkus dev` or `gradle quarkusDev`):
 
 ## 8. Security Integration (`$security`) & CSRF Protection (`$csrf`)
 
-When `quarkus-security` is present on the application classpath, the deployment module automatically registers `QuarkusSecurityRenderContextContributor`:
+When Quarkus reports the `SECURITY` capability at build time, the deployment module registers `QuarkusSecurityRenderContextContributor`. At render time, the contributor resolves the available identity/provider and contributes a snapshot facade:
 - Binds a presentation-safe, immutable `$security` facade (`QuarkusSecurityView`) into every template execution context:
   - `$security.authenticated`: Boolean indicating whether current user is authenticated.
   - `$security.anonymous`: Boolean indicating whether current user is anonymous.
-  - `$security.name`: Principal name or empty string if anonymous.
+  - `$security.name`: Principal name from the identity snapshot, including an anonymous identity's name when present; the empty fallback is used when no usable identity/name is available.
   - `$security.hasRole('ROLE_NAME')`: Checks if current user has the specified security role.
   - `$security.hasAnyRole('ROLE_A', 'ROLE_B')`: Checks if current user has any of the specified roles (supports 2-arg, 3-arg, and varargs overloads).
   - `$security.hasAllRoles('ROLE_A', 'ROLE_B')`: Checks if current user has all of the specified roles with strict non-vacuous truth evaluation.
@@ -207,7 +211,7 @@ When `quarkus-security` is present on the application classpath, the deployment 
 
 ### 8.1 CSRF Protection Model (`$csrf`)
 
-Quarkus applications employing CSRF protection (e.g. via `quarkus-rest-csrf`) are provided an automatic, presentation-safe `$csrf` facade (`QuarkusCsrfView`):
+The extension can contribute a presentation-safe `$csrf` facade (`QuarkusCsrfView`) when its security integration is active and a request token can be resolved from render attributes, a configured supplier, or the optional Quarkus CSRF provider. Installing a CSRF provider alone does not activate the Quarkus `SECURITY` capability or guarantee contributor registration. Applications can configure/register the contributor explicitly when their setup does not use that automatic capability path:
 
 - **Properties & Helpers**:
   - `$csrf.available`: Boolean indicating whether a valid CSRF token is available for the current request.
@@ -246,4 +250,3 @@ Viet Template and Quarkus Qute can be used simultaneously in the same applicatio
 - **No Bean Conflicts**: Viet Template produces `io.github.minh124199.viettemplate.api.TemplateEngine`, while Qute produces `io.quarkus.qute.Engine`.
 - **Distinct Template Identification**: Standard VTL files (`.vtl`, `.vm`, `.html.vtl`) are processed by Viet Template, while Qute files (`.qute.html`, `.txt`) are handled by Qute.
 - **Side-by-Side Injection**: Both engines can be injected and used within the same resource or service class.
-

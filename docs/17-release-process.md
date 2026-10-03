@@ -67,14 +67,20 @@ strict inheritance rules:
    and release bundle validation (`scripts/validate-release-bundle.py`) guard these invariants in local builds and in CI workflows once merged.
 
 
-## 1.2 Publication status taxonomy & manifest headers
+## 1.2 Historical publication status taxonomy & manifest headers
+
+> **Historical scope:** The artifact table and release classifications in this section record
+> the repository's 1.0 GA publication plan and the evidence known at that time. They are not the
+> current publication inventory. Viet Template 1.1.0 was subsequently published on 2026-10-03;
+> see the [1.1.0 release record](#historical-release-110) and the current
+> [`publication-topology.json`](../config/compatibility/publication-topology.json).
 
 The repository maintains an authoritative, machine-readable publication topology matrix in
 `config/compatibility/publication-topology.json`. This taxonomy classifies all reactor modules,
 reconciles historical publication events, defines the 1.0 General Availability (GA) publication
 scope, and records the factual JAR manifest metadata across the project.
 
-### Intended publication scope for 1.0 GA (12 Production Modules + Parent POM)
+### Intended publication scope for 1.0 GA (12 Production Modules + Parent POM; historical)
 
 The intended 1.0 GA publication scope comprises **13 artifacts** (12 production modules + `viet-template-parent`):
 

@@ -1,154 +1,96 @@
-# Comparative Engine Benchmarks (M18 Evidence & 1.0 Qualification)
+# Comparative Benchmarks
 
-This document provides the authoritative comparative benchmark evidence for Viet Template, evaluated across eight standard workloads (**C01** through **C08**) against established and modern JVM template engines on both **Java 21 (LTS Baseline)** and **Java 25 (Primary Target)**.
+## Current evidence status
 
-The data presented here is derived directly from the durable qualification evidence in `benchmark-evidence/m18/` (`comparative-J21-G1.json`, `comparative-J25-G1.json`, and `report.md`).
+The current comparative report contains a fresh **J21-G1** measurement from commit
+`e01046ade5abc9a108e91db2a92dbb3cc2ff00be`. It is a complete C01–C08, six-engine run, but it is
+**not a complete release qualification** because the run did not locate the OpenJDK 25 runtime
+required by the canonical J25-G1 profile; the only Java 25 runtime it found was Oracle GraalVM
+25.0.4+7.1, which was not accepted as OpenJDK evidence. No current J25 comparative values are claimed.
 
----
+The measured commit is the post-release `1.1.1-SNAPSHOT` main build. Its production Java source
+files are unchanged from the `v1.1.0` tag, but its Maven/Gradle version metadata is newer. The
+published 1.0.0 regression baseline remains immutable at
+[`config/performance/1.0.0-baseline.json`](../../config/performance/1.0.0-baseline.json).
+Fresh partial-run provenance and checksums are in
+[`benchmark-evidence/1.1.0-j21-partial/`](../../benchmark-evidence/1.1.0-j21-partial/).
 
-## 1. Benchmarking Methodology & Environment
+## Method and environment
 
-All comparative measurements were executed under strict JMH (Java Microbenchmark Harness) discipline adhering to the methodology defined in [15-benchmark-plan.md](../15-benchmark-plan.md):
+The repository's canonical comparative suite and correctness fixtures were used. Before timing,
+`CrossEngineFixtureCorrectnessTest` passed for all eight workloads across all six engines. The
+fixtures compare equivalent models and rendered semantics; templates are prepared outside the
+timed operation and rendered output is consumed. C01–C07 are raw output; C08 uses HTML escaping.
 
-- **Harness**: JMH 1.37 with `jmh-generator-annprocess`.
-- **Measurement Mode**: `Throughput` (operations per second, `ops/s`, higher is better) and `-prof gc` (bytes allocated per operation, `B/op`, lower is better).
-- **Execution Invariants**: 1 fork, 3 warmup iterations (2s each), 5 measurement iterations (2s each).
-- **JVM Flags**: `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC`.
-- **Baseline Git SHA**: `af8142c8e5b8155a79a7379a39a0dc009336815e`.
-- **Engines Compared**:
-  - **Track A (Dynamic / Interpreted Engines)**:
-    - **Viet-IR**: Viet Template dynamic interpreter engine.
-    - **Apache Velocity 2.4.1**: Standard legacy baseline (`org.apache.velocity.app.VelocityEngine`).
-    - **Thymeleaf 3.1.5**: Standard Spring Boot template engine (`org.thymeleaf.TemplateEngine`).
-  - **Track B (Compiled / Bytecode Engines)**:
-    - **Viet-AOT**: Viet Template precompiled JVM bytecode backend.
-    - **Quarkus Qute 3.39.4**: Precompiled Quarkus reactive template engine (`io.quarkus.qute.Engine`).
-    - **jte 3.2.4**: Java Template Engine precompiled to native Java classes (`gg.jte.TemplateEngine`).
+| Setting | J21-G1 measurement |
+|---|---|
+| Benchmark commit | `e01046ade5abc9a108e91db2a92dbb3cc2ff00be` |
+| Measurement time | 2026-10-03 04:04:57 UTC |
+| Runtime | OpenJDK 21.0.12.1, OpenJDK 64-Bit Server VM, G1 |
+| JMH | 1.37; throughput; 3 forks; 5 x 1-second warmups; 10 x 1-second measurements; 1 thread |
+| JVM flags | `-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC` |
+| Host | CachyOS Linux x86_64, kernel `7.2.8-2-cachyos`; Intel Core i5-8350U, 4 physical / 8 logical cores; 11.4 GiB RAM |
+| Engines | Viet-IR, Viet-AOT, Apache Velocity 2.4.1, Quarkus Qute 3.39.4, jte 3.2.4, Thymeleaf 3.1.5.RELEASE |
 
----
+The results below give JMH throughput with its reported 99.9% error and matched `gc.alloc.rate.norm`
+allocation. Throughput is workload-specific; differences between engines do not establish a general
+ranking outside these fixtures and this environment.
 
-## 2. Benchmark Workloads (C01–C08)
+## J21-G1 comparative results
 
-The eight workloads represent real-world server-side rendering scenarios from static fragments to complex nested data structures:
-
-| Workload ID | Name | Description | Template & Data Characteristics |
-|---|---|---|---|
-| **C01** | `c01_staticHtml` | Pure static HTML rendering | Raw text streaming without variable lookups or dynamic expressions. Tests writer/stream throughput and literal chunk buffering. |
-| **C02** | `c02_scalarVariables` | Scalar variable interpolation | Renders 4 simple top-level context variables (`$title`, `$author`, `$count`, `$verified`). |
-| **C03** | `c03_deepPropertyChains` | Deep object graph navigation | Resolves 4-level deep record chains (`$order.customer.address.city.name` and `$order.payment.billing.postalCode`). Tests polymorphic call-site caching and reflection overhead. |
-| **C04** | `c04_conditionals` | Multi-branch conditional logic | Evaluates `#if`, `#elseif`, and `#else` conditional expressions over boolean flags. |
-| **C05** | `c05_smallTableForeach` | Small list iteration (5 items) | Iterates over 5 `TableItem` records rendering an HTML `<table>` with `<tr>` and `<td>` cells. |
-| **C06** | `c06_largeTableForeach` | Large list iteration (100 items) | Iterates over 100 `TableItem` records generating a 100-row table. Tests loop overhead, buffer expansion, and memory locality. |
-| **C07** | `c07_nestedForeach` | Nested iteration | Iterates over departments and nested department members. Tests parent/child execution frames and inner loop variable scoping. |
-| **C08** | `c08_htmlEscaping` | Contextual HTML escaping | Escapes untrusted text containing HTML special characters (`<`, `>`, `&`, `"`, `'`) and URL query strings. |
-
----
-
-## 3. Comparative Results
-
-Each table cell reports: `throughput ± JMH error (ops/s); memory allocation (B/op)`.
-
-### 3.1 Java 21 (LTS Baseline — `J21-G1`)
-
-| Workload | Viet-IR | Viet-AOT | Velocity 2.4.1 | Qute 3.39.4 | jte 3.2.4 | Thymeleaf 3.1.5 |
+| Workload | Viet-IR | Viet-AOT | Velocity 2.4.1 | Qute 3.39.4 | jte 3.2.4 | Thymeleaf 3.1.5.RELEASE |
 |---|---|---|---|---|---|---|
-| **C01** (`staticHtml`) | 4.84M ± 61.8K ops/s<br>`1480 B/op` | **11.98M ± 80.2K ops/s**<br>`816 B/op` | 5.34M ± 66.3K ops/s<br>`1128 B/op` | 10.29M ± 147.1K ops/s<br>`576 B/op` | 6.82M ± 180.1K ops/s<br>`872 B/op` | 1.05M ± 18.4K ops/s<br>`2400 B/op` |
-| **C02** (`scalarVariables`) | 1.18M ± 18.5K ops/s<br>`1848 B/op` | 1.26M ± 10.4K ops/s<br>`1824 B/op` | 805.8K ± 17.1K ops/s<br>`1344 B/op` | 1.60M ± 29.8K ops/s<br>`1376 B/op` | 3.93M ± 184.6K ops/s<br>`832 B/op` | 245.0K ± 2.8K ops/s<br>`6104 B/op` |
-| **C03** (`deepPropertyChains`) | 194.2K ± 11.5K ops/s<br>`7005 B/op` | 909.0K ± 13.1K ops/s<br>`1896 B/op` | 271.3K ± 4.3K ops/s<br>`5552 B/op` | 853.1K ± 9.2K ops/s<br>`2648 B/op` | 4.23M ± 50.9K ops/s<br>`864 B/op` | 61.8K ± 1.1K ops/s<br>`11392 B/op` |
-| **C04** (`conditionals`) | 1.33M ± 16.9K ops/s<br>`1784 B/op` | 3.24M ± 143.5K ops/s<br>`1088 B/op` | 1.06M ± 24.9K ops/s<br>`1256 B/op` | 2.14M ± 36.6K ops/s<br>`1184 B/op` | 5.13M ± 66.0K ops/s<br>`824 B/op` | 247.8K ± 4.3K ops/s<br>`4280 B/op` |
-| **C05** (`smallTableForeach`) | 114.5K ± 1.3K ops/s<br>`10320 B/op` | 256.4K ± 4.9K ops/s<br>`4960 B/op` | 215.7K ± 2.5K ops/s<br>`3376 B/op` | 355.7K ± 2.2K ops/s<br>`6331 B/op` | 1.16M ± 16.5K ops/s<br>`1608 B/op` | 33.8K ± 456.6 ops/s<br>`23104 B/op` |
-| **C06** (`largeTableForeach`) | 6.3K ± 103.5 ops/s<br>`185090 B/op` | 13.7K ± 145.0 ops/s<br>`94145 B/op` | 13.5K ± 269.9 ops/s<br>`37073 B/op` | 20.6K ± 278.0 ops/s<br>`99448 B/op` | 70.4K ± 845.9 ops/s<br>`30696 B/op` | 1.9K ± 38.6 ops/s<br>`394901 B/op` |
-| **C07** (`nestedForeach`) | 102.5K ± 1.1K ops/s<br>`9848 B/op` | 404.1K ± 3.2K ops/s<br>`2936 B/op` | 208.8K ± 3.4K ops/s<br>`2856 B/op` | 403.3K ± 6.9K ops/s<br>`8344 B/op` | 2.59M ± 55.0K ops/s<br>`968 B/op` | 43.3K ± 1.0K ops/s<br>`18800 B/op` |
-| **C08** (`htmlEscaping`) | 257.2K ± 4.1K ops/s<br>`6865 B/op` | 620.6K ± 11.0K ops/s<br>`2688 B/op` | 544.8K ± 7.6K ops/s<br>`2848 B/op` | 690.7K ± 10.2K ops/s<br>`2739 B/op` | 1.35M ± 37.9K ops/s<br>`1523 B/op` | 180.3K ± 2.6K ops/s<br>`6496 B/op` |
+| C01 static HTML | 4,721,163 ± 77,998 ops/s; 1,512 B/op | 12,288,174 ± 146,871 ops/s; 816 B/op | 5,633,139 ± 133,941 ops/s; 1,128 B/op | 10,408,407 ± 165,715 ops/s; 576 B/op | 7,316,579 ± 125,786 ops/s; 872 B/op | 1,133,390 ± 21,808 ops/s; 2,400 B/op |
+| C02 scalar variables | 1,221,961 ± 30,388 ops/s; 1,880 B/op | 2,276,744 ± 63,654 ops/s; 1,184 B/op | 867,298 ± 23,032 ops/s; 1,344 B/op | 1,684,576 ± 33,344 ops/s; 1,376 B/op | 4,356,953 ± 93,941 ops/s; 832 B/op | 250,332 ± 5,033 ops/s; 6,104 B/op |
+| C03 deep property chains | 192,722 ± 11,788 ops/s; 7,187 B/op | 1,586,897 ± 30,091 ops/s; 1,088 B/op | 288,063 ± 6,428 ops/s; 5,552 B/op | 888,470 ± 14,525 ops/s; 2,648 B/op | 4,395,828 ± 109,894 ops/s; 864 B/op | 62,413 ± 1,771 ops/s; 11,392 B/op |
+| C04 conditionals | 1,371,820 ± 21,111 ops/s; 1,816 B/op | 3,193,318 ± 71,361 ops/s; 1,120 B/op | 1,114,887 ± 22,304 ops/s; 1,256 B/op | 2,366,100 ± 49,212 ops/s; 1,184 B/op | 5,466,283 ± 89,099 ops/s; 824 B/op | 260,425 ± 5,722 ops/s; 4,280 B/op |
+| C05 small table (5 rows) | 113,899 ± 5,031 ops/s; 10,512 B/op | 444,089 ± 9,274 ops/s; 2,419 B/op | 225,508 ± 4,295 ops/s; 3,352 B/op | 362,120 ± 10,162 ops/s; 6,320 B/op | 1,227,032 ± 51,108 ops/s; 1,608 B/op | 34,430 ± 764 ops/s; 23,104 B/op |
+| C06 large table (100 rows) | 6,650 ± 150 ops/s; 185,122 B/op | 22,807 ± 546 ops/s; 43,777 B/op | 13,822 ± 242 ops/s; 37,073 B/op | 21,335 ± 301 ops/s; 99,440 B/op | 74,650 ± 1,817 ops/s; 30,718 B/op | 1,902 ± 39 ops/s; 394,893 B/op |
+| C07 nested foreach | 107,327 ± 2,396 ops/s; 9,880 B/op | 695,095 ± 26,633 ops/s; 1,288 B/op | 217,678 ± 1,593 ops/s; 2,856 B/op | 419,342 ± 10,936 ops/s; 8,325 B/op | 2,751,333 ± 45,273 ops/s; 968 B/op | 45,655 ± 690 ops/s; 18,800 B/op |
+| C08 HTML escaping | 252,939 ± 11,118 ops/s; 6,835 B/op | 734,322 ± 14,123 ops/s; 2,384 B/op | 584,305 ± 11,008 ops/s; 2,821 B/op | 708,984 ± 16,777 ops/s; 2,824 B/op | 1,430,209 ± 43,963 ops/s; 1,523 B/op | 186,686 ± 3,616 ops/s; 6,496 B/op |
 
----
+Full precision is retained in the raw JMH JSON. The derived table in the evidence directory rounds
+throughput to whole operations per second and allocation to 0.1 B/op.
 
-### 3.2 Java 25 (Primary Development Target — `J25-G1`)
+## J21-G1 versus the immutable 1.0.0 Viet-IR baseline
 
-| Workload | Viet-IR | Viet-AOT | Velocity 2.4.1 | Qute 3.39.4 | jte 3.2.4 | Thymeleaf 3.1.5 |
-|---|---|---|---|---|---|---|
-| **C01** (`staticHtml`) | 10.76M ± 117.9K ops/s<br>`872 B/op` | **55.30M ± 748.6K ops/s**<br>`176 B/op` | 14.99M ± 84.9K ops/s<br>`704 B/op` | 21.35M ± 207.0K ops/s<br>`328 B/op` | 9.26M ± 422.8K ops/s<br>`776 B/op` | 1.34M ± 21.3K ops/s<br>`2176 B/op` |
-| **C02** (`scalarVariables`) | 1.85M ± 46.8K ops/s<br>`1048 B/op` | 2.27M ± 47.7K ops/s<br>`1240 B/op` | 1.07M ± 11.4K ops/s<br>`952 B/op` | 2.12M ± 73.4K ops/s<br>`824 B/op` | 5.33M ± 113.6K ops/s<br>`728 B/op` | 290.3K ± 4.9K ops/s<br>`5928 B/op` |
-| **C03** (`deepPropertyChains`) | 192.7K ± 1.4K ops/s<br>`5840 B/op` | 924.9K ± 16.1K ops/s<br>`1488 B/op` | 298.8K ± 9.3K ops/s<br>`4984 B/op` | 1.01M ± 15.2K ops/s<br>`1565 B/op` | 5.62M ± 69.9K ops/s<br>`760 B/op` | 78.3K ± 1.6K ops/s<br>`7360 B/op` |
-| **C04** (`conditionals`) | 1.50M ± 34.1K ops/s<br>`1648 B/op` | **6.63M ± 86.4K ops/s**<br>`808 B/op` | 1.25M ± 13.1K ops/s<br>`1256 B/op` | 2.79M ± 44.4K ops/s<br>`888 B/op` | 6.70M ± 125.9K ops/s<br>`728 B/op` | 277.4K ± 3.3K ops/s<br>`4040 B/op` |
-| **C05** (`smallTableForeach`) | 111.5K ± 1.8K ops/s<br>`9136 B/op` | 433.2K ± 5.8K ops/s<br>`2765 B/op` | 228.8K ± 7.5K ops/s<br>`3288 B/op` | 311.9K ± 19.1K ops/s<br>`6072 B/op` | 1.70M ± 27.4K ops/s<br>`1024 B/op` | 41.0K ± 608.0 ops/s<br>`18660 B/op` |
-| **C06** (`largeTableForeach`) | 6.5K ± 118.5 ops/s<br>`156243 B/op` | 21.9K ± 277.5 ops/s<br>`50382 B/op` | 14.3K ± 429.0 ops/s<br>`34731 B/op` | 24.1K ± 1.5K ops/s<br>`60148 B/op` | 95.1K ± 2.2K ops/s<br>`21792 B/op` | 2.4K ± 48.1 ops/s<br>`269608 B/op` |
-| **C07** (`nestedForeach`) | 99.9K ± 2.2K ops/s<br>`9080 B/op` | 547.9K ± 7.9K ops/s<br>`2120 B/op` | 220.8K ± 4.3K ops/s<br>`3112 B/op` | 432.8K ± 23.3K ops/s<br>`7701 B/op` | 3.22M ± 50.7K ops/s<br>`864 B/op` | 52.3K ± 803.4 ops/s<br>`15798 B/op` |
-| **C08** (`htmlEscaping`) | 293.0K ± 5.1K ops/s<br>`6656 B/op` | 909.9K ± 16.6K ops/s<br>`2416 B/op` | 674.8K ± 8.7K ops/s<br>`2720 B/op` | 820.7K ± 17.1K ops/s<br>`2368 B/op` | 1.38M ± 13.0K ops/s<br>`1488 B/op` | 214.2K ± 3.2K ops/s<br>`6080 B/op` |
+`scripts/compare-benchmark-baseline.py` compared all eight Viet-IR workloads against the unchanged
+1.0.0 baseline. The policy permits a 10% regression generally and 15% on C03 deep property chains.
+All measured deltas pass those limits:
 
----
+| Workload | 1.0.0 ops/s | Current ops/s | Delta | Threshold | Result |
+|---|---:|---:|---:|---:|---|
+| C01 static HTML | 4,835,233 | 4,721,163 | -2.4% | 10% | PASS |
+| C02 scalar variables | 1,177,241 | 1,221,961 | +3.8% | 10% | PASS |
+| C03 deep property chains | 194,230 | 192,722 | -0.8% | 15% | PASS |
+| C04 conditionals | 1,334,333 | 1,371,820 | +2.8% | 10% | PASS |
+| C05 small table foreach | 114,466 | 113,899 | -0.5% | 10% | PASS |
+| C06 large table foreach | 6,282 | 6,650 | +5.9% | 10% | PASS |
+| C07 nested foreach | 102,524 | 107,327 | +4.7% | 10% | PASS |
+| C08 HTML escaping | 257,200 | 252,939 | -1.7% | 10% | PASS |
 
-## 4. Evaluation of the Four 1.0 Performance Success Gates
+This is a single J21-G1 profile comparison. It does not replace the missing J25-G1 comparison or
+constitute a complete release qualification.
 
-### Gate 1: Viet-IR vs Apache Velocity 2.4.1 (Dynamic-to-Dynamic Comparison)
-- **Status**: **PASS (Qualified)**
-- **Analysis**:
-  - In common dynamic rendering patterns—scalar variables (**C02**) and conditional branching (**C04**)—Viet-IR achieves **1.46x to 1.73x** the throughput of Apache Velocity 2.4.1 (1.85M vs 1.07M ops/s on Java 25).
-  - In complex loop traversals (**C05**, **C06**, **C07**) and deep reflection property chains (**C03**), Viet-IR exhibits lower throughput than Velocity (approximately 0.5x to 0.7x Velocity) due to Viet-IR's mandatory security sandbox (`MemberAccessPolicy`), boundary checks, and full 3-state evaluation semantics (`UNDEFINED`, `DEFINED_NULL`, `DEFINED_VALUE`).
-  - Across all workloads, Viet-IR achieved **3x to 6x higher throughput** than **Thymeleaf 3.1.5** under this benchmark configuration.
+## Interpretation and evidence classes
 
-### Gate 2: Viet-AOT vs Apache Velocity 2.4.1 (Modernization Payoff)
-- **Status**: **PASS (Higher Throughput Across C01–C08)**
-- **Analysis**:
-  - Viet-AOT achieved higher throughput than Apache Velocity 2.4.1 across **every single workload (C01–C08)** on both Java 21 and Java 25 under this benchmark configuration:
-    - **C01 (Static HTML)**: **3.69x faster** (55.30M vs 14.99M ops/s on J25).
-    - **C02 (Scalar Variables)**: **2.12x faster** (2.27M vs 1.07M ops/s on J25).
-    - **C03 (Deep Chains)**: **3.10x faster** (924.9K vs 298.8K ops/s on J25).
-    - **C04 (Conditionals)**: **5.30x faster** (6.63M vs 1.25M ops/s on J25).
-    - **C05 (Small Table)**: **1.89x faster** (433.2K vs 228.8K ops/s on J25).
-    - **C06 (Large Table)**: **1.53x faster** (21.9K vs 14.3K ops/s on J25).
-    - **C07 (Nested Foreach)**: **2.48x faster** (547.9K vs 220.8K ops/s on J25).
-    - **C08 (HTML Escaping)**: **1.35x faster** (909.9K vs 674.8K ops/s on J25).
-  - Velocity users migrating to Viet-AOT experience an immediate 1.3x to 5.3x throughput increase with no template rewrites required.
+- On this J21-G1 run, Viet-AOT exceeded the measured Velocity result on all eight workloads
+  (C01–C08). jte led the measured engines on C02–C08, and Viet-AOT had the highest measured C01
+  score (12,288,174 vs Qute 10,408,407, jte 7,316,579). The table shows the exact workload-level
+  scores and errors.
+- Viet-IR is the engine measured by the regression-baseline comparison. That baseline is an
+  intra-project regression reference, not a cross-engine ranking.
+- Internal specialization, linker, output, escaping, and cache microbenchmarks are engineering
+  evidence only. They do not support general cross-engine claims; see the
+  [M25 specialization report](1.1-m25-specialization-benchmarks.md).
+- Historical 1.0 cross-engine measurements remain historical and are not presented here as 1.1
+  measurements.
 
-### Gate 3: Viet-AOT vs Modern Compiled Engines (Qute & jte)
-- **Status**: **PASS (Competitive Standing)**
-- **Analysis**:
-  - **Against Quarkus Qute 3.39.4**: Viet-AOT is highly competitive and leads in several core areas:
-    - **C01 (Static)**: Viet-AOT leads Qute by **2.59x** (55.30M vs 21.35M ops/s on J25).
-    - **C04 (Conditionals)**: Viet-AOT leads Qute by **2.38x** (6.63M vs 2.79M ops/s on J25).
-    - **C05 (Small Loop)**: Viet-AOT leads Qute by **1.39x** (433.2K vs 311.9K ops/s on J25).
-    - **C07 (Nested Loop)**: Viet-AOT leads Qute by **1.27x** (547.9K vs 432.8K ops/s on J25).
-    - **C02, C03, C06, C08**: Viet-AOT and Qute are essentially on par within single-digit percentage margins.
-  - **Against jte 3.2.4**:
-    - Viet-AOT achieved higher throughput than jte on raw static HTML streaming (**55.30M vs 9.26M ops/s** on J25) and reached parity with jte on conditional evaluation (**6.63M vs 6.70M ops/s** on J25).
-    - jte leads in deep property chains (**C03**) and high-volume loop generation (**C06**) because jte relies on non-sandboxed direct Java source compilation with unchecked primitive getter calls and pre-allocated binary chunk buffers.
+## Reproduction
 
-### Gate 4: Memory & GC Allocation Efficiency
-- **Status**: **PASS (Measured Lower Allocation Rate)**
-- **Analysis**:
-  - **Static Output Allocation**: On Java 25, Viet-AOT allocated fewer bytes per operation (**176 B/op** on static HTML C01) than Velocity (704 B/op), Qute (328 B/op), jte (776 B/op), and Thymeleaf (2,176 B/op).
-  - **AOT vs Interpreter Memory Reduction**: Viet-AOT allocated 50% to 75% fewer bytes per operation relative to Viet-IR across all workloads under this benchmark configuration (e.g. C03 drops from 5,840 B/op to 1,488 B/op; C07 drops from 9,080 B/op to 2,120 B/op).
-  - Zero allocation churn was observed for repeated static segments due to pre-encoded UTF-8 byte array pooling.
-
----
-
-## 5. Architectural Tradeoffs: Where Viet Template Wins & Trails
-
-### Where Viet Template Excels
-1. **Static HTML & Literal Streaming**: Viet-AOT pre-compiles string literals into compact UTF-8 byte arrays, emitting them via bulk stream writes. It achieved higher throughput than all tested engines (including jte and Qute) on pure static fragments under this benchmark configuration (55.3M ops/s).
-2. **Predictable Conditional Branching**: Branch instructions in bytecode are mapped directly to JVM jumps without boxing or intermediate boolean carrier objects, matching native Java speed (6.6M ops/s).
-3. **Turnkey Velocity Drop-in with AOT Speed**: Unlike jte or Qute (which require rewriting templates in Java-like or custom syntax), Viet Template gives developers 100% Velocity-compatible VTL syntax while running at modern compiled bytecode speeds.
-
-### Where Viet Template Trails (and Why)
-1. **Deep Property Chains vs jte**:
-   - *Observation*: jte achieves 5.62M ops/s on C03 compared to Viet-AOT's 924.9K ops/s.
-   - *Rationale*: jte generates explicit Java code that performs direct unchecked field/getter invocations (`order.getCustomer().getAddress()`). Viet Template enforces `MemberAccessPolicy` security sandboxing, polymorphic call-site inline caches (PIC), and Velocity 3-state null/undefined tolerance. This security boundary intentionally prevents arbitrary reflection attacks at the cost of getter indirection.
-2. **Massive Loop Iteration vs jte**:
-   - *Observation*: On 100-item iteration (C06), jte achieves 95.1K ops/s compared to Viet-AOT's 21.9K ops/s.
-   - *Rationale*: jte maintains pre-allocated thread-local binary buffers and tightly unrolls loop bodies. Viet Template instantiates scoped `ExecutionFrame` contexts to guarantee strict `$foreach` loop metadata (`$foreach.index`, `$foreach.hasNext`, `$foreach.parent`) and isolated loop variable scopes.
-
----
-
-## 6. DSA Stopping Rule & 1.0 Performance Freeze
-
-Under the **7-Part DSA Acceptance Rule** (defined in [15-benchmark-plan.md](../15-benchmark-plan.md)), speculative runtime optimizations are subject to an explicit stopping rule:
-
-> **Stopping Rule**: No further speculative runtime optimizations may be introduced unless fresh CPU sampling or JFR allocation profiling identifies an unaddressed hotspot representing $\ge 5\%$ of execution time or allocation volume in realistic production workloads, with a demonstrated $\ge 15\%$ throughput improvement.
-
-Following the completion and verification of **M19.3c**:
-1. All dominant execution hotspots (polymorphic inline cache link chains, compiler-assigned slot indexing in `ExecutionFrame`, indexed $O(K)$ compile cache invalidation, and pre-encoded literal streaming) have been fully optimized.
-2. Fresh profiling under M19.3c confirmed that remaining CPU time is evenly distributed across standard JVM boundary operations (I/O streaming, JDK string formatting, and class loading).
-3. Further speculative optimizations (such as unsafe reflection bypasses or bespoke off-heap collection caching) would compromise maintainability, security boundaries, and Velocity compatibility invariants without delivering proportional real-world benefits.
-
-**Conclusion**: The runtime performance of Viet Template is officially **frozen and qualified for 1.0 broad adoption**.
+The canonical command is `scripts/perf/run-m18-comparative-qualification.sh`. It requires clean
+worktree inputs and OpenJDK 21 and 25 installations. The script now rejects a non-OpenJDK runtime
+for either OpenJDK profile. The current complete J21-G1 raw data, environment record, 1.0 baseline
+comparison output, and checksums are retained in
+[`benchmark-evidence/1.1.0-j21-partial/`](../../benchmark-evidence/1.1.0-j21-partial/). The J25
+profile remains to be run on OpenJDK 25 before claiming a complete 1.1 qualification.

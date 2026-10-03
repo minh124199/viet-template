@@ -16,10 +16,10 @@
 - **Key Architectural Guarantees**:
   1. **Unidirectional Dependency Rule**: Core engine modules (`viet-template-api`, `viet-template-runtime`, `viet-template-language-vtl`, `viet-template-vtl-interpreter`) never adapt to or depend on Spring Security.
   2. **Complete Starter Classpath Isolation**: The standard starter `viet-template-spring-boot-starter` does NOT transitively pull in Spring Security or `viet-template-spring-security`. Applications opt in by declaring `viet-template-spring-security` alongside `spring-boot-starter-security`.
-  3. **Strict Security Boundary Isolation**: Raw `Authentication`, `SecurityContext`, `HttpServletRequest`, `HttpServletResponse`, HTTP sessions, and credential tokens are never published into template render scope. Templates interact strictly with immutable, read-only view facades (`SecurityView`, `CsrfView`).
+  3. **Integration Scope Isolation**: This integration contributes immutable, read-only `SecurityView` and `CsrfView` facades. Its default contributor does not publish raw `Authentication`, `SecurityContext`, servlet request/response, sessions, or credential objects. Applications can add their own render-context contributors, so this is not a claim that arbitrary host-provided values are filtered.
   4. **HTML Contextual Auto-Escaping (XSS Defense)**: Security facade methods return plain Java `String` (never `SafeHtml`), ensuring standard VTL contextual escaping renders untrusted principals and authorities securely without manual escaping or XSS bypasses.
   5. **Sensitive Token Redaction**: `CsrfView.toString()` strictly redacts token secrets (`token=***`) to prevent accidental credential leakage in debug logs or error dumps.
-  6. **Zero Reflection / Native AOT Ready**: All exposed contracts are direct interfaces invoked via bytecode. No GraalVM reflection configuration or reachability metadata hints are required for `SecurityView` and `CsrfView`.
+  6. **Native AOT Integration**: The exposed facade contracts use direct interfaces; Spring AOT/native support is covered by the runtime hints and native-image qualification recorded in the support matrix.
   7. **Dual-Build Parity**: Fully validated across both Maven and Gradle AOT consumer fixtures with 100% byte-for-byte template index and bytecode parity, verified by `scripts/verify-spring-security-parity.sh`.
 
 > [!WARNING]
@@ -63,7 +63,7 @@ public final class SpringRenderAttributes {
 }
 ```
 
-During request dispatch, `VietTemplateView` populates `SERVLET_REQUEST` into `RenderRequest.attributes()` and delegates rendering:
+During request dispatch, `VietTemplateView` populates `SERVLET_REQUEST` into `RenderRequest.attributes()` and delegates rendering. The security contributor uses that metadata to construct the integration's immutable facades; the request is not itself inserted into the template model by this integration:
 
 ```java
 Map<String, Object> attributes = new HashMap<>();
@@ -73,10 +73,10 @@ RenderRequest renderRequest = RenderRequest.of(this.templateId, RenderContext.of
 this.engine.render(renderRequest, output);
 ```
 
-`VietTemplateView` remains completely stateless and immutable, and servlet objects are never placed into the template data model.
+`VietTemplateView` remains stateless and immutable. Other host-provided context contributors remain the application's responsibility.
 
 #### Rationale for Deferring `RequestDataValueProcessor`
-Spring's `RequestDataValueProcessor` is intentionally deferred. Viet Template is a high-throughput, zero-allocation template engine designed for clean HTML/VTL markup. Form rendering in Viet Template relies on explicit template expressions (`<input type="hidden" name="$csrf.parameterName" value="$csrf.token" />`) rather than complex JSP/Thymeleaf-style server-side HTML tag interception. Keeping `RequestDataValueProcessor` out of `SpringRenderAttributes` eliminates unnecessary object allocations and prevents architectural coupling to Spring WebMVC form tags.
+Spring's `RequestDataValueProcessor` is not part of this integration. Forms use explicit template expressions (`<input type="hidden" name="$csrf.parameterName" value="$csrf.token" />`) rather than JSP/Thymeleaf-style server-side HTML tag interception. This keeps `SpringRenderAttributes` independent of Spring WebMVC form tags.
 
 ### 2.2 Security Render Context Contributor (`viet-template-spring-security`)
 
@@ -110,7 +110,7 @@ Across the 5 repository compatibility baselines, Viet Template locks **121 total
 
 ### 3.1 `SecurityView`
 
-The 1.0 candidate baseline for `SecurityView`:
+The stable `SecurityView` contract:
 
 ```java
 @TemplateData

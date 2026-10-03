@@ -2,6 +2,13 @@
 
 This document outlines the official environment support matrix for **Viet Template 1.1.0**, including JDK runtimes, build tooling, framework integrations, and execution environments.
 
+Viet Template 1.1.0 is the latest published stable release; the repository's active development
+version is `1.1.1-SNAPSHOT`. Framework minima and tested versions below are sourced from
+[`framework-support.json`](../../config/compatibility/framework-support.json). Current Spring and
+Quarkus configuration keys are listed in
+[`framework-configuration-keys-1.1.json`](../../config/compatibility/framework-configuration-keys-1.1.json);
+the unversioned key inventory is retained for the 1.0 release record.
+
 ---
 
 ## 1. Java Runtimes (JDK)
@@ -10,9 +17,9 @@ Viet Template enforces a hard baseline of **Java 21**. All production classes an
 
 | Java Version | Support Status | Notes |
 |---|---|---|
-| **Java 25** | **Primary Target** | Primary development, profiling, and performance qualification runtime. Leverages JEP 450 compact object headers and optimized memory operations. |
+| **Java 25** | **Primary Qualification Runtime** | Primary development, profiling, and performance qualification runtime. |
 | **Java 21 LTS** | **Supported (Baseline)** | Minimum supported Java runtime and compilation baseline. Fully verified across all modules, tests, and TCK suites. |
-| **Java 22, 23, 24** | **Supported** | Fully compatible with interim non-LTS releases. |
+| **Java 22, 23, 24** | **Not individually release-qualified** | These runtimes are not in the published qualification matrix; no version-specific support claim is made. |
 | **Java 17 and earlier** | **Unsupported** | Viet Template requires language and runtime capabilities of Java 21+ (records, pattern matching, sequenced collections). Applications running on Java 17 must upgrade to Java 21+. |
 
 ---

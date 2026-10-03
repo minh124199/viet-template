@@ -2,11 +2,10 @@
 
 ## 1. Overview
 
-Milestone M29 establishes the Language Server Protocol (LSP) and developer tooling foundation for Viet Template (`minh124199/viet-template`). The language server provides real-time semantic analysis, code completion, hover documentation, definition navigation, and diagnostics for Viet Template (`*.vt`, `*.vtl`, `*.vm`) documents across standard editors including Visual Studio Code, IntelliJ IDEA, Neovim, and Eclipse.
+Milestone M29 establishes the Language Server Protocol (LSP) and developer tooling foundation for Viet Template (`minh124199/viet-template`). The language server provides real-time semantic analysis, code completion, hover documentation, definition navigation, and diagnostics for Viet Template (`*.vt`, `*.vtl`, `*.vm`) documents. This repository includes client integrations for Visual Studio Code and IntelliJ IDEA; the LSP protocol can support other clients, but no Neovim or Eclipse extension is included here.
 
 The LSP implementation is:
 - **Pure Java 21 Standard Library**: Requires zero external JSON or LSP dependencies; implements standard JSON-RPC 2.0 framing and parsing with standard library primitives.
-- **Native Image Friendly**: Instant startup (<15ms) under GraalVM Native Image with minimal memory footprint.
 - **Contract & Schema-Backed**: Integrates directly with canonical contract schemas (`*.vt-schema.json`) to validate variable bindings, types, and nullability.
 - **Fail-Closed Security**: Strictly enforces `MemberAccessPolicy` to deny reflective access (`getClass()`, `ClassLoader`, module introspection) in editor analysis.
 - **Byte-for-Byte Deterministic**: Diagnostic reporting, completion items, and navigation locations are deterministically sorted.
@@ -106,5 +105,8 @@ Emits deterministic diagnostics with stable diagnostic codes:
 
 ## 5. Editor Clients
 
-The primary supported editor client is the official Visual Studio Code extension:
+The repository includes these packaged editor clients:
 - **[Visual Studio Code Extension Documentation](vscode-extension.md)**: Full guide to installation, configuration, features, and debugging in `editors/vscode`.
+- **[IntelliJ IDEA Plugin Documentation](intellij-plugin.md)**: Full guide to installation, configuration, features, and debugging in `editors/intellij`.
+
+The repository documents local VSIX/ZIP packaging and install-from-disk workflows. It does not establish publication to either editor marketplace.

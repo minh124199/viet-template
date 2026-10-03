@@ -4,6 +4,8 @@
 
 Viet Template Milestone M28 establishes a deterministic, safe, versioned projection from canonical contract schemas (`*.vt-schema.json`, defined in M27) into TypeScript declaration files (`*.d.ts`).
 
+This feature projects compile-time model metadata into declarations for frontend tooling. It does not execute JavaScript or TypeScript and does not change template runtime behavior.
+
 The projection architecture adheres to a strict unidirectional boundary:
 
 ```
@@ -277,4 +279,3 @@ export interface TemplateParameters {
 
 ### 8.3 Tooling Parity
 Given identical input schemas, Maven and Gradle produce byte-for-byte identical `.d.ts` files with identical SHA-256 hashes.
-

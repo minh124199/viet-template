@@ -204,11 +204,11 @@ Milestone M13 establishes defense-in-depth security invariants across all compil
 
 ### 16.1 Member Access Policy and Safe Allowlisting
 
-Viet Template provides both default-deny policies and strict safe-allowlist configurations via `MemberAccessPolicy`:
+Viet Template provides a developer-oriented denylist policy and a strict safe allowlist via `MemberAccessPolicy`:
 
 - **Class/Package Deny-list**: Denies reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), classloading (`ClassLoader`, `Module`), process execution (`Process`, `ProcessBuilder`), thread management (`Thread`, `ThreadGroup`), concurrency executors (`java.util.concurrent.ExecutorService`, `ThreadPoolExecutor`, `ForkJoinPool`), and system/runtime manipulation (`System`, `Runtime`, `SecurityManager`).
-- **Method Deny-list**: Core blocked methods include `wait`, `notify`, `notifyAll`, `exit`, `halt`, `exec`, `load`, `loadLibrary`, and reflection invocations. (Note: `$foreach.stop()` on `ForeachMetadata` is permitted as loop control).
-- **Strict Safe Allowlist**: Applications can build explicit allowlists using `MemberAccessPolicy.allowlistBuilder()`, restricting property reads, method calls, and index operations to specific whitelisted classes and member names.
+- **Method Filtering**: Universal reflection and capability pivots are denied on every receiver. Dangerous lifecycle and process methods are filtered by receiver type, so ordinary application methods such as `cache.load()` or `service.shutdown()` remain available under `standard()` when otherwise permitted. (`$foreach.stop()` remains available as loop control.)
+- **Strict Safe Allowlist**: Applications can create a fail-closed policy with `MemberAccessPolicy.builder().safeProfile(true)`, then explicitly register approved classes and members. `MemberAccessPolicy.safe()` provides the standard strict profile.
 - **Sensitive Object Classifier (`SensitiveObjectClassifier`)**: Implements zero-dependency class hierarchy and interface scanning to detect and block access to sensitive framework and runtime instances (e.g. Spring `ApplicationContext`, `BeanFactory`, Java Security/Runtime types).
 - **Cryptographic Fingerprint (`SecurityPolicyFingerprint`)**: Every `MemberAccessPolicy` computes a deterministic SHA-256 fingerprint of its configuration (mode, denied classes, denied methods, allowed classes, allowed methods), guaranteeing cache key partitioning.
 - **Non-Widening Capability Semantics**:
@@ -232,8 +232,9 @@ All runtime evaluation tiers (AST interpreter, IR interpreter, AOT bytecode back
 - **Output Character Limits**: Counts every character emitted to `TemplateOutput` (including raw text chunks, formatted numbers, and escaped references).
 - **Loop Iteration Limits**: Counts iterations across all top-level loops, nested loops, and macro iterations against `maxLoopIterations`. Zero-output loops consume iteration budget identically to content loops.
 - **Saturating Counter Arithmetic**: Budget accumulators use saturating arithmetic bounded at `Long.MAX_VALUE` to prevent integer overflow or wrap-around evasion attacks.
-- **Wall-Clock Time Budget (`maxExecutionTimeMillis`)**: Enforces execution deadlines using monotonic nanosecond clocks (`System.nanoTime()`), aborting long-running rendering pipelines.
-- **Sub-render Propagation**: A single shared `RenderBudget` instance is propagated through `#parse`, `#include`, `#evaluate`, macro invocations, and two-stage layout rendering (`DefaultLayoutRenderPlan`), preventing sub-templates from resetting or evading limits. Limits are strictly validated (negative values rejected, 0 enforced as zero allowed).
+- **Wall-Clock Time Budget (`maxExecutionTimeMillis`)**: Checks deadlines using a monotonic clock at engine safe points. It stops work at the next check after a deadline is exceeded; it does not preempt a host method already in progress. A value of `0` disables the deadline, except that `VTL_SAFE` supplies a 5,000 ms default when no deadline is configured.
+- **Macro Invocation Budget**: A shared monotonic budget limits macro invocations (default 10,000) independently of macro recursion depth. It is available in current generated code; previously generated templates need recompilation to include the new macro invocation checks.
+- **Sub-render Propagation**: A single shared `RenderBudget` instance is propagated through `#parse`, `#include`, enabled `#evaluate`, macro invocations, and two-stage layout rendering (`DefaultLayoutRenderPlan`), preventing sub-templates from resetting or evading limits. Negative limits are rejected. A zero operation/depth limit means zero allowed operations; a zero execution-time limit disables the deadline.
 
 ### 16.4 Resource Root Confinement & Filesystem Threat Model
 
@@ -271,7 +272,7 @@ Template path resolution and repository access are hardened against directory tr
   - Action methods must be explicitly marked with `@TemplateCallable` to be invokable from safe templates.
 - **Automatic Sandboxing**: Configuring `VTL_SAFE` automatically engages the strict capability-based security policy, disables `#evaluate`, blocks model mutations, and enables contextual dynamic HTML auto-escaping without requiring secondary flags. Custom policies can only narrow or further restrict permissions.
 - **Cross-Tier Dynamic HTML Auto-Escaping**: Dynamic string/character sequence values interpolated in `VTL_SAFE` are automatically escaped for HTML text context across AST, IR, and AOT bytecode tiers, while preserving static literal text and respecting `SafeContent` (`SafeHtml`, `SafeUrl`) wrapper bypasses.
-- **Strict Limit Validation**: `ExecutionLimits` strictly validates non-negative limits (rejecting negative values with `IllegalArgumentException`), and enforces a limit of 0 as zero allowed operations.
+- **Strict Limit Validation**: `ExecutionLimits` rejects negative limits with `IllegalArgumentException`. Zero counter/depth limits allow zero operations; a zero execution-time value disables the deadline, with `VTL_SAFE` defaulting to 5,000 ms when unspecified.
 
 ### 16.9 Cross-Tier Parity and Regression Verification
 
@@ -358,7 +359,7 @@ The `viet-template-quarkus` extension optionally integrates with Quarkus Securit
 > They conditionally show or hide UI elements in rendered HTML templates. They **do not** establish backend security boundaries or replace server-side access controls (`@RolesAllowed`, `@Authenticated`, `@PermitAll`, or Quarkus HTTP security policies). All sensitive endpoints and services must be enforced by authoritative Quarkus server-side security.
 
 ### 18.1 Threat Boundary and State Isolation
-- **No Raw Framework Objects**: Raw `SecurityIdentity`, credentials, permissions, and Vert.x `RoutingContext` instances are strictly excluded from template scope.
+- **Integration Exposure**: The extension contributes read-only security and CSRF facades rather than raw `SecurityIdentity`, credentials, permissions, or Vert.x `RoutingContext` objects. Applications remain responsible for any additional objects they explicitly add to template scope.
 - **Read-Only Presentation Facades**: Templates interact exclusively with immutable, read-only presentation facades (`QuarkusSecurityView`, `QuarkusCsrfView`). These facades expose only presentation projections (`name()`, `roles()`, `hasRole()`, `hasAnyRole()`, `hasAllRoles()`, `isAuthenticated()`, `isAnonymous()`, `token()`, `parameterName()`, `headerName()`).
 - **Defensive State Copying**: `QuarkusSecurityView` snapshots strings and defensively copies role sets into unmodifiable sets. Mutations to source sets cannot leak into or mutate active views.
 - **Context Injection**: Bridged via the public `RenderContextContributor` SPI (`QuarkusSecurityRenderContextContributor`), populated per request without state leakage across requests or concurrent worker threads.

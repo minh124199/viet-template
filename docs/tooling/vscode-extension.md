@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Milestone M30 establishes the official Visual Studio Code editor integration (`editors/vscode`) for Viet Template (`minh124199/viet-template`). The extension connects Visual Studio Code to the high-performance Viet Template Language Server (`VietTemplateLanguageServer`), providing first-class editing support for templates across development workflows.
+Milestone M30 provides the repository-maintained Visual Studio Code client (`editors/vscode`) for Viet Template (`minh124199/viet-template`). The extension connects Visual Studio Code to the Viet Template Language Server (`VietTemplateLanguageServer`), providing editing support for templates across development workflows.
 
 The extension is designed around these architectural principles:
 - **Zero Overhead on Java Builds**: Kept in `editors/vscode`, leaving core Maven and Gradle builds completely independent of Node.js.
@@ -143,6 +143,8 @@ The resulting `viet-template-<version>.vsix` can be installed in Visual Studio C
 ```bash
 code --install-extension viet-template-1.1.0.vsix
 ```
+
+This workflow packages a local VSIX. The repository has no marketplace publishing configuration, so a VSIX build does not establish availability in the Visual Studio Marketplace.
 
 ---
 

@@ -15,8 +15,14 @@ for variable in JAVA21_HOME JAVA25_HOME; do
   value="${!variable}"
   [[ -x "${value}/bin/java" ]] || { echo "${variable} must point to a JDK containing bin/java" >&2; exit 2; }
 done
-[[ "$("${JAVA21_HOME}/bin/java" -version 2>&1 | head -1)" == *'"21.'* ]] || { echo "JAVA21_HOME is not Java 21" >&2; exit 2; }
-[[ "$("${JAVA25_HOME}/bin/java" -version 2>&1 | head -1)" == *'"25'* ]] || { echo "JAVA25_HOME is not Java 25" >&2; exit 2; }
+JAVA21_DETAILS="$("${JAVA21_HOME}/bin/java" -version 2>&1)"
+JAVA25_DETAILS="$("${JAVA25_HOME}/bin/java" -version 2>&1)"
+JAVA21_VERSION="$(head -1 <<<"${JAVA21_DETAILS}")"
+JAVA25_VERSION="$(head -1 <<<"${JAVA25_DETAILS}")"
+[[ "${JAVA21_VERSION}" == *'"21.'* ]] || { echo "JAVA21_HOME is not Java 21" >&2; exit 2; }
+[[ "${JAVA25_VERSION}" == *'"25'* ]] || { echo "JAVA25_HOME is not Java 25" >&2; exit 2; }
+[[ "${JAVA21_DETAILS}" == *OpenJDK* ]] || { echo "J21-G1 requires an OpenJDK runtime; found: ${JAVA21_VERSION}" >&2; exit 2; }
+[[ "${JAVA25_DETAILS}" == *OpenJDK* ]] || { echo "J25-G1 requires an OpenJDK runtime; found: ${JAVA25_VERSION}" >&2; exit 2; }
 
 mkdir -p "${OUTPUT_DIR}"
 CANDIDATE_SHA="$(git -C "${ROOT_DIR}" rev-parse HEAD)"
