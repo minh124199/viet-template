@@ -28,6 +28,58 @@ class DocumentationVerifierTests(unittest.TestCase):
         errors = doc_verifier.check_release_dates(self.repo_root)
         self.assertEqual([], errors, f"Unexpected stale release date errors: {errors}")
 
+    def test_current_repo_release_state_matches_publication_metadata(self):
+        errors = doc_verifier.check_release_state_consistency(self.repo_root)
+        self.assertEqual([], errors, f"Unexpected release-state errors: {errors}")
+
+    def test_release_state_check_rejects_stale_readme_version(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "config/compatibility").mkdir(parents=True)
+            (root / "config/compatibility/publication-topology.json").write_text(
+                '{"publicationTaxonomy":{"latestPublishedStableVersion":"1.1.0",'
+                '"currentSnapshot":"1.1.1-SNAPSHOT","currentSnapshotPublished":false}}',
+                encoding="utf-8",
+            )
+            (root / "README.md").write_text(
+                "| **Latest Published Stable Release** | `1.0.1` (published) |\n"
+                "| **Active Development** | `1.1.1-SNAPSHOT` |\n",
+                encoding="utf-8",
+            )
+            (root / "CHANGELOG.md").write_text("## [1.1.0] - 2026-10-03\n", encoding="utf-8")
+            (root / "pom.xml").write_text(
+                "<artifactId>viet-template-parent</artifactId>\n<version>1.1.1-SNAPSHOT</version>",
+                encoding="utf-8",
+            )
+            (root / "build.gradle.kts").write_text('version = "1.1.1-SNAPSHOT"\n', encoding="utf-8")
+            errors = doc_verifier.check_release_state_consistency(root)
+            self.assertEqual(1, len(errors))
+            self.assertIn("README latest published stable release", errors[0])
+
+    def test_release_state_check_rejects_stale_gradle_version(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            (root / "config/compatibility").mkdir(parents=True)
+            (root / "config/compatibility/publication-topology.json").write_text(
+                '{"publicationTaxonomy":{"latestPublishedStableVersion":"1.1.0",'
+                '"currentSnapshot":"1.1.1-SNAPSHOT","currentSnapshotPublished":false}}',
+                encoding="utf-8",
+            )
+            (root / "README.md").write_text(
+                "| **Latest Published Stable Release** | `1.1.0` (published) |\n"
+                "| **Active Development** | `1.1.1-SNAPSHOT` |\n",
+                encoding="utf-8",
+            )
+            (root / "CHANGELOG.md").write_text("## [1.1.0] - 2026-10-03\n", encoding="utf-8")
+            (root / "pom.xml").write_text(
+                "<artifactId>viet-template-parent</artifactId>\n<version>1.1.1-SNAPSHOT</version>",
+                encoding="utf-8",
+            )
+            (root / "build.gradle.kts").write_text('version = "1.1.0"\n', encoding="utf-8")
+            errors = doc_verifier.check_release_state_consistency(root)
+            self.assertEqual(1, len(errors))
+            self.assertIn("build.gradle.kts version", errors[0])
+
     def test_current_repo_has_no_developer_specific_file_links(self):
         errors = doc_verifier.check_developer_specific_file_links(self.repo_root)
         self.assertEqual([], errors, f"Unexpected absolute file links: {errors}")

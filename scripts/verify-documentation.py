@@ -29,6 +29,7 @@ Automated documentation verification infrastructure for Viet Template:
 """
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -95,6 +96,61 @@ def check_release_dates(repo_root: Path) -> list[str]:
                         f"Stale release date '{stale}' in {rel_path}:{line_no} "
                         f"(expected '{EXPECTED_RELEASE_DATE}'): {line.strip()}"
                     )
+    return errors
+
+
+def check_release_state_consistency(repo_root: Path) -> list[str]:
+    """Keep the README and root build version aligned with publication metadata."""
+    errors = []
+    metadata_path = repo_root / "config" / "compatibility" / "publication-topology.json"
+    try:
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        taxonomy = metadata["publicationTaxonomy"]
+        stable = taxonomy["latestPublishedStableVersion"]
+        snapshot = taxonomy["currentSnapshot"]
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+        return [f"Cannot read current release metadata from {metadata_path}: {exc}"]
+
+    readme_path = repo_root / "README.md"
+    changelog_path = repo_root / "CHANGELOG.md"
+    pom_path = repo_root / "pom.xml"
+    gradle_path = repo_root / "build.gradle.kts"
+    for path in (readme_path, changelog_path, pom_path):
+        if not path.is_file():
+            errors.append(f"Required release-state file is missing: {path.relative_to(repo_root)}")
+    if errors:
+        return errors
+
+    readme = readme_path.read_text(encoding="utf-8")
+    stable_line = next((line for line in readme.splitlines() if "Latest Published Stable Release" in line), "")
+    development_line = next((line for line in readme.splitlines() if "Active Development" in line), "")
+    if f"`{stable}`" not in stable_line or "published" not in stable_line.lower():
+        errors.append(
+            f"README latest published stable release does not match publication metadata ({stable})."
+        )
+    if f"`{snapshot}`" not in development_line:
+        errors.append(
+            f"README active development version does not match publication metadata ({snapshot})."
+        )
+
+    changelog = changelog_path.read_text(encoding="utf-8")
+    if not re.search(rf"^## \[{re.escape(stable)}\] - \d{{4}}-\d{{2}}-\d{{2}}$", changelog, re.MULTILINE):
+        errors.append(f"CHANGELOG.md has no dated release heading for current stable version {stable}.")
+
+    pom = pom_path.read_text(encoding="utf-8")
+    if not re.search(
+        rf"<artifactId>viet-template-parent</artifactId>\s*<version>{re.escape(snapshot)}</version>",
+        pom,
+    ):
+        errors.append(f"Root pom.xml version does not match current development snapshot {snapshot}.")
+    if gradle_path.is_file():
+        gradle = gradle_path.read_text(encoding="utf-8")
+        if not re.search(rf'\bversion\s*=\s*"{re.escape(snapshot)}"', gradle):
+            errors.append(
+                f"Root build.gradle.kts version does not match current development snapshot {snapshot}."
+            )
+    if snapshot.endswith("-SNAPSHOT") and taxonomy.get("currentSnapshotPublished") is not False:
+        errors.append("Publication metadata must mark the active SNAPSHOT as unpublished.")
     return errors
 
 
@@ -183,6 +239,14 @@ def check_all_consumer_snippets(
 ) -> list[str]:
     """Verifies consumer installation snippets in README.md and active docs."""
     errors = []
+    if released_version is None:
+        metadata_path = repo_root / "config" / "compatibility" / "publication-topology.json"
+        try:
+            released_version = json.loads(metadata_path.read_text(encoding="utf-8"))[
+                "publicationTaxonomy"
+            ]["latestPublishedStableVersion"]
+        except (OSError, json.JSONDecodeError, KeyError, TypeError):
+            released_version = DEFAULT_RELEASED_VERSION
     # Check README.md (primary consumer installation guide)
     readme_path = repo_root / "README.md"
     if readme_path.is_file():
@@ -855,6 +919,7 @@ def verify_all(repo_root: Path, verbose: bool = False) -> list[str]:
 
     checks = [
         ("Release Date Integrity", check_release_dates),
+        ("Release Metadata and Documentation", check_release_state_consistency),
         ("Consumer Installation Snippets", check_all_consumer_snippets),
         ("Maven Coordinates & Gradle Plugin ID", check_all_coordinates),
         ("Compiler Baseline Documentation", check_compiler_baseline_documented),
