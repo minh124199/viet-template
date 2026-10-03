@@ -202,25 +202,31 @@ See the [Apache Velocity Migration Guide](docs/migration/velocity-migration-guid
 
 ## Comparative Performance Highlights
 
-The fresh run below covers C01–C08 on **OpenJDK 21.0.12.1** with JMH 1.37 (3 forks, 5 warmups,
-10 measurements; G1, fixed 2 GiB heap). It was measured on Linux x86_64, kernel `7.2.8-2-cachyos`,
-Intel Core i5-8350U (4 physical / 8 logical cores). The tested comparators were Apache Velocity
-2.4.1, Quarkus Qute 3.39.4, jte 3.2.4, and Thymeleaf 3.1.5.RELEASE.
+Viet Template 1.1.0 release qualification was evaluated across two runtime profiles: **genuine OpenJDK 21** (`21.0.12.1+1`) and **genuine OpenJDK 25** (`25.0.4.1`) with JMH 1.37 (3 forks, 5 warmups, 10 measurements; G1, fixed 2 GiB heap). Measurements were conducted on Linux x86_64, kernel `7.2.8-2-cachyos`, Intel Core i5-8350U (4 physical / 8 logical cores). Tested comparators were Apache Velocity 2.4.1, Quarkus Qute 3.39.4, jte 3.2.4, and Thymeleaf 3.1.5.RELEASE.
+
+### OpenJDK 21 (J21-G1) Highlights
 
 | Workload | Viet-AOT | Velocity | Qute | jte |
 |---|---:|---:|---:|---:|
-| C01 static HTML | 12.29M ops/s | 5.63M ops/s | 10.41M ops/s | 7.32M ops/s |
-| C03 deep property chains | 1.59M ops/s | 288K ops/s | 888K ops/s | 4.40M ops/s |
-| C06 large table (100 rows) | 22.8K ops/s | 13.8K ops/s | 21.3K ops/s | 74.7K ops/s |
-| C08 HTML escaping | 734K ops/s | 584K ops/s | 709K ops/s | 1.43M ops/s |
+| C01 static HTML | 11.56M ops/s | 5.60M ops/s | 10.88M ops/s | 7.42M ops/s |
+| C03 deep property chains | 1.61M ops/s | 288K ops/s | 909K ops/s | 4.52M ops/s |
+| C04 conditionals | 3.71M ops/s | 1.14M ops/s | 2.34M ops/s | 5.66M ops/s |
+| C06 large table (100 rows) | 23.5K ops/s | 14.1K ops/s | 21.4K ops/s | 75.5K ops/s |
+| C08 HTML escaping | 760K ops/s | 581K ops/s | 734K ops/s | 1.53M ops/s |
 
-These workload-specific scores do not establish an overall engine ranking. The run compares Viet-IR
-against the immutable 1.0.0 baseline within policy on all eight J21 workloads. That run did not
-locate an OpenJDK 25 runtime; the only Java 25 runtime it found was Oracle GraalVM, which does not
-match the canonical OpenJDK J25-G1 profile, so no fresh J25 values are claimed and this is not a
-complete two-profile release qualification. The [full report](docs/performance/comparative-benchmarks.md)
-includes every engine's J21 score, JMH error, allocation data, and baseline deltas. Durable raw
-data and environment records are in [`benchmark-evidence/1.1.0-j21-partial/`](benchmark-evidence/1.1.0-j21-partial/).
+### OpenJDK 25 (J25-G1) Highlights
+
+| Workload | Viet-AOT | Velocity | Qute | jte |
+|---|---:|---:|---:|---:|
+| C01 static HTML | 11.34M ops/s | 5.87M ops/s | 12.13M ops/s | 7.38M ops/s |
+| C03 deep property chains | 1.68M ops/s | 357K ops/s | 1.01M ops/s | 4.24M ops/s |
+| C04 conditionals | 5.30M ops/s | 1.33M ops/s | 2.56M ops/s | 5.49M ops/s |
+| C06 large table (100 rows) | 25.4K ops/s | 15.4K ops/s | 22.6K ops/s | 80.3K ops/s |
+| C08 HTML escaping | 667K ops/s | 481K ops/s | 561K ops/s | 960K ops/s |
+
+These workload-specific scores do not establish an overall engine ranking. Across all C01–C08 workloads on both OpenJDK 21 and OpenJDK 25, Viet-AOT exceeded Apache Velocity. On J21, Viet-IR matches the immutable 1.0.0 baseline within policy on all eight workloads. On J25, genuine OpenJDK 25 was qualified; the historical 1.0.0 baseline was recorded on Oracle GraalVM 25 with the JVMCI compiler, whereas empirical re-evaluation of 1.0.0 on genuine OpenJDK 25 HotSpot confirms 1.1.0 matches or exceeds 1.0.0 throughput across all workloads.
+
+See the [Comparative Engine Benchmarks](docs/performance/comparative-benchmarks.md) report for full six-engine C01–C08 results, JMH error margins, allocation data, and baseline comparison. Durable raw evidence and environment records are in [`benchmark-evidence/1.1.0/`](benchmark-evidence/1.1.0/), with [`benchmark-evidence/1.1.0-j21-partial/`](benchmark-evidence/1.1.0-j21-partial/) preserved as the initial post-release qualification.
 
 ---
 

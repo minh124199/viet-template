@@ -1,0 +1,28 @@
+{
+  "createdAt": "2026-10-03T08:24:23Z",
+  "jdkIdentityValidatorSha256": "575664ac90111388ff68c518e8386e699566fad657a30ced77c1b6799461f0a8",
+  "productExactTag": "v1.1.0",
+  "productSha": "621a98fc419bf3af37cc55aac5379a68ab02986e",
+  "productSourceDir": "/tmp/viet-template-v1.1.0-bench",
+  "productTree": "a1bec29a8616ecac84d17185ed974b21e6e66413",
+  "productVersion": "1.1.0",
+  "protocol": {
+    "benchmarkRegex": ".*ComparativeEngineBenchmark.*",
+    "forks": 3,
+    "iterationSeconds": 1,
+    "jvmFlags": [
+      "-server",
+      "-Xms2g",
+      "-Xmx2g",
+      "-XX:+AlwaysPreTouch",
+      "-XX:+UseG1GC"
+    ],
+    "measurementIterations": 10,
+    "profilerGc": true,
+    "warmupIterations": 5
+  },
+  "runnerSha256": "70c4b05304e6bfcdc287038f7bd393e4186dc5fb51b969c4f5f0d9004ced5902",
+  "schemaVersion": "1.0.0",
+  "toolingSha": "9154489474e7285bd3667d2e7142adc638031f9e",
+  "toolingTree": "ba22b8300c110e121bc2d7a05766d6e678b9e6df"
+}

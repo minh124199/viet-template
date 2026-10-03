@@ -1,0 +1,57 @@
+Property settings:
+    file.encoding = UTF-8
+    file.separator = /
+    java.class.path =
+    java.class.version = 65.0
+    java.home = /opt/fixture/opt/graalvm-community-openjdk-21.0.2+13.1
+    java.io.tmpdir = /tmp
+    java.library.path = /usr/java/packages/lib
+        /usr/lib64
+        /lib64
+        /lib
+        /usr/lib
+    java.runtime.name = OpenJDK Runtime Environment
+    java.runtime.version = 21.0.2+13-jvmci-23.1-b30
+    java.specification.name = Java Platform API Specification
+    java.specification.vendor = Oracle Corporation
+    java.specification.version = 21
+    java.vendor = GraalVM Community
+    java.vendor.url = https://www.graalvm.org/
+    java.vendor.url.bug = https://github.com/oracle/graal/issues
+    java.vendor.version = GraalVM CE 21.0.2+13.1
+    java.version = 21.0.2
+    java.version.date = 2024-01-16
+    java.vm.compressedOopsMode = Zero based
+    java.vm.info = mixed mode, sharing
+    java.vm.name = OpenJDK 64-Bit Server VM
+    java.vm.specification.name = Java Virtual Machine Specification
+    java.vm.specification.vendor = Oracle Corporation
+    java.vm.specification.version = 21
+    java.vm.vendor = GraalVM Community
+    java.vm.version = 21.0.2+13-jvmci-23.1-b30
+    jdk.debug = release
+    jdk.internal.vm.ci.enabled = true
+    line.separator = \n
+    native.encoding = UTF-8
+    os.arch = amd64
+    os.name = Linux
+    os.version = 7.2.8-2-cachyos
+    path.separator = :
+    stderr.encoding = UTF-8
+    stdout.encoding = UTF-8
+    sun.arch.data.model = 64
+    sun.boot.library.path = /opt/fixture/opt/graalvm-community-openjdk-21.0.2+13.1/lib
+    sun.cpu.endian = little
+    sun.io.unicode.encoding = UnicodeLittle
+    sun.java.launcher = SUN_STANDARD
+    sun.jnu.encoding = UTF-8
+    sun.management.compiler = HotSpot 64-Bit Tiered Compilers
+    user.country = VN
+    user.dir = /opt/fixture/current_source/viet-template-repo
+    user.home = /opt/fixture
+    user.language = vi
+    user.name = fixture-user
+
+openjdk version "21.0.2" 2024-01-16
+OpenJDK Runtime Environment GraalVM CE 21.0.2+13.1 (build 21.0.2+13-jvmci-23.1-b30)
+OpenJDK 64-Bit Server VM GraalVM CE 21.0.2+13.1 (build 21.0.2+13-jvmci-23.1-b30, mixed mode, sharing)

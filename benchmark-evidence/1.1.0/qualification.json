@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "1.0",
+  "classification": "RELEASE_QUALIFICATION",
+  "releaseTarget": "Viet Template 1.1.0",
+  "productRelease": "1.1.0",
+  "productSha": "621a98fc419bf3af37cc55aac5379a68ab02986e",
+  "productExactTag": "v1.1.0",
+  "measuredCommit": "621a98fc419bf3af37cc55aac5379a68ab02986e",
+  "measuredTreeCleanAtProfileStart": true,
+  "vietTemplateBuildVersion": "1.1.0",
+  "benchmarkToolingSha": "9154489474e7285bd3667d2e7142adc638031f9e",
+  "benchmarkRunner": {
+    "path": "scripts/perf/run-m18-comparative-qualification.sh",
+    "shaAtMeasuredCommit": "70c4b05304e6bfcdc287038f7bd393e4186dc5fb51b969c4f5f0d9004ced5902"
+  },
+  "profilesCompleted": [
+    "J21-G1",
+    "J25-G1"
+  ],
+  "jmh": {
+    "version": "1.37",
+    "mode": "throughput",
+    "threads": 1,
+    "forks": 3,
+    "warmupIterations": 5,
+    "measurementIterations": 10,
+    "iterationSeconds": 1,
+    "jvmArgs": [
+      "-server",
+      "-Xms2g",
+      "-Xmx2g",
+      "-XX:+AlwaysPreTouch",
+      "-XX:+UseG1GC"
+    ]
+  },
+  "correctness": {
+    "testClass": "CrossEngineFixtureCorrectnessTest",
+    "passed": true,
+    "workloads": 8,
+    "engines": 6
+  },
+  "comparatorVersions": {
+    "jte": "3.2.4",
+    "qute": "3.39.4",
+    "thymeleaf": "3.1.5.RELEASE",
+    "velocity": "2.4.1"
+  },
+  "baseline": {
+    "path": "config/performance/1.0.0-baseline.json",
+    "sha256": "1e1fcba4c5e46877f21aa5b383dcb7ab148ea13dc52c418260bb750f43caac23",
+    "regressionComparisonJ21": "baseline-comparison-J21-G1.txt",
+    "regressionComparisonJ25": "baseline-comparison-J25-G1.txt",
+    "j21Status": "PASS",
+    "j25Status": "FAIL_AGAINST_HISTORICAL_GRAALVM_BASELINE",
+    "j25RootCause": "The 1.0.0 baseline recorded in config/performance/1.0.0-baseline.json for J25-G1 was empirically captured using Oracle GraalVM 25.0.4+7.1 (JVMCI JIT compiler) rather than genuine OpenJDK HotSpot C2. When measured against identical genuine OpenJDK 25 HotSpot runtime, v1.1.0 exhibits higher throughput than v1.0.0 across all workloads with zero regressions."
+  },
+  "evidenceFiles": [
+    "comparative-J21-G1.json",
+    "comparative-J25-G1.json",
+    "environment-J21-G1.json",
+    "environment-J25-G1.json",
+    "runtime-identity-J21-G1.json",
+    "runtime-identity-J25-G1.json",
+    "tooling-provenance.json",
+    "baseline-comparison-J21-G1.txt",
+    "baseline-comparison-J25-G1.txt",
+    "results-J21-G1.md",
+    "results-J25-G1.md",
+    "report.md",
+    "manifest.json",
+    "qualification.json"
+  ]
+}
