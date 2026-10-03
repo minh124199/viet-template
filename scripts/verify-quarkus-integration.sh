@@ -7,16 +7,25 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 echo "=== Viet Template Quarkus AOT Integration & Parity Verification ==="
 
 FORCE_NATIVE=false
+JVM_ONLY=false
 for arg in "$@"; do
     case "${arg}" in
         --force-native)
             FORCE_NATIVE=true
+            ;;
+        --jvm-only)
+            JVM_ONLY=true
             ;;
     esac
 done
 
 if [ "${FORCE_NATIVE_BUILD:-false}" = "true" ]; then
     FORCE_NATIVE=true
+fi
+
+if [ "${JVM_ONLY}" = "true" ] && [ "${FORCE_NATIVE}" = "true" ]; then
+    echo "[FAIL] --jvm-only cannot be combined with --force-native or FORCE_NATIVE_BUILD=true."
+    exit 2
 fi
 
 APP_PID=""
@@ -368,6 +377,11 @@ kill -9 "${APP_PID}" 2>/dev/null || true
 wait "${APP_PID}" 2>/dev/null || true
 APP_PID=""
 echo "[PASS] Gradle Quarkus runner verified successfully across all endpoints."
+
+if [ "${JVM_ONLY}" = "true" ]; then
+    echo "[PASS] Quarkus JVM integration complete; native coverage is provided by exact-SHA CI evidence."
+    exit 0
+fi
 
 # Native builds use clean to guarantee fresh executables. Run them only after
 # JVM parity and live-server checks, since clean removes their packaged JARs.

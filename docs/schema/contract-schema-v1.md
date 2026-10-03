@@ -207,13 +207,15 @@ To ensure 100% reproducible builds and byte-for-byte parity across build tools:
 
 ### 6.1 Maven Plugin (`viet-template-maven-plugin`)
 
+This example uses the `1.1.0` release-preparation coordinate, which is not published yet. The latest published stable version remains `1.0.1` until the release is completed.
+
 The `generate-schemas` goal executes during the `process-classes` lifecycle phase:
 
 ```xml
 <plugin>
   <groupId>io.github.minh124199</groupId>
   <artifactId>viet-template-maven-plugin</artifactId>
-  <version>1.1.0-SNAPSHOT</version>
+  <version>1.1.0</version>
   <executions>
     <execution>
       <goals>

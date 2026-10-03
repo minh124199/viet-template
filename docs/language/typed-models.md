@@ -1,5 +1,7 @@
 # Typed Models & Semantic Analysis Guide
 
+The plugin coordinate shown in the build example is `1.1.0`, the current release-preparation version. It is not published yet; `1.0.1` remains the latest version available from Maven Central.
+
 ## 1. Overview & Conceptual Architecture
 
 While standard VTL executes dynamically, Viet Template features a static **Semantic Analyzer** and **Type System** (`VType`) capable of performing compile-time verification, type inference, and Ahead-of-Time (AOT) direct bytecode generation.
@@ -131,7 +133,7 @@ Security checks take precedence over typo suggestions:
 <plugin>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-maven-plugin</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.1.0</version>
     <configuration>
         <!-- Type checking mode: OFF (default), WARN, or ERROR -->
         <typeChecking>ERROR</typeChecking>
@@ -146,4 +148,3 @@ vietTemplate {
     typeChecking.set("ERROR")
 }
 ```
-

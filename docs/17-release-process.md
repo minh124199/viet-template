@@ -399,9 +399,20 @@ python3 scripts/verify-ga-product-freeze.py --release-state pre-ga \
 `verify-ga-readiness.py` remains a static aggregator; post-GA it reports
 `PATCH_RELEASE_REQUIRED` or `NOT_READY_FOR_1_0_1`, never permission to tag 1.0.0.
 Its framework-entrypoint checks do not execute native or public consumers.
-This section records the 1.0.1 patch qualification context; it is not the current
-development version. At present, the root POM and Gradle build use `1.1.0-SNAPSHOT`.
+This section records the 1.0.1 patch qualification context and is historical.
+At that time, the root POM and Gradle build used `1.1.0-SNAPSHOT`.
 Run the native and consumer suites separately and retain their logs. Central
 verification and Central-only smoke tests continue to target **published 1.0.0**;
 at that time, local/CI reactor and staged consumer tests targeted **1.0.1-SNAPSHOT**. Success for
 published 1.0.0 does not qualify the unreleased patch artifact.
+
+## Current release preparation: 1.1.0
+
+The 1.1.0 candidate branch uses the exact release version `1.1.0`; this version
+does not become a published release until its preparation PR is merged and the
+separate tagging and publication procedure is completed. Until then, `1.0.1`
+remains the latest published stable version. The release-preparation PR must
+remain open and unmerged until reviewed. Do not create the `v1.1.0` tag, upload
+Central artifacts, or create a GitHub Release during preparation. After the
+release is later published, the project advances to `1.1.1-SNAPSHOT` in the
+separate post-release step.
