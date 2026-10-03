@@ -1,6 +1,6 @@
 # Typed Models & Semantic Analysis Guide
 
-The plugin coordinate shown in the build example is `1.1.0`, the current release-preparation version. It is not published yet; `1.0.1` remains the latest version available from Maven Central.
+The plugin coordinate shown in the build example is `1.1.0`, available from Maven Central.
 
 ## 1. Overview & Conceptual Architecture
 

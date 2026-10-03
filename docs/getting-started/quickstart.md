@@ -20,27 +20,27 @@ Use Viet Template directly in any Java application without framework dependencie
 Add `viet-template-api`, `viet-template-runtime`, and `viet-template-vtl-interpreter` to your `pom.xml`:
 
 ```xml
-<!-- Latest Published Stable: 1.0.1 -->
+<!-- Latest Published Stable: 1.1.0 -->
 <dependencies>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-api</artifactId>
-        <version>1.0.1</version>
+        <version>1.1.0</version>
     </dependency>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-runtime</artifactId>
-        <version>1.0.1</version>
+        <version>1.1.0</version>
     </dependency>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-vtl-interpreter</artifactId>
-        <version>1.0.1</version>
+        <version>1.1.0</version>
     </dependency>
 </dependencies>
 ```
 
-*(For Gradle, use `implementation("io.github.minh124199:viet-template-api:1.0.1")`, etc.)*
+*(For Gradle, use `implementation("io.github.minh124199:viet-template-api:1.1.0")`, etc.)*
 
 ### 1.2 Create a Template
 
@@ -100,11 +100,11 @@ Viet Template provides a turnkey Spring Boot 4 starter with automated view resol
 ### 2.1 Add Starter Dependency
 
 ```xml
-<!-- Latest Published Stable: 1.0.1 -->
+<!-- Latest Published Stable: 1.1.0 -->
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-boot-starter</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 

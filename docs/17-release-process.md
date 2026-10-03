@@ -406,13 +406,9 @@ verification and Central-only smoke tests continue to target **published 1.0.0**
 at that time, local/CI reactor and staged consumer tests targeted **1.0.1-SNAPSHOT**. Success for
 published 1.0.0 does not qualify the unreleased patch artifact.
 
-## Current release preparation: 1.1.0
+## Historical release: 1.1.0
 
-The 1.1.0 candidate branch uses the exact release version `1.1.0`; this version
-does not become a published release until its preparation PR is merged and the
-separate tagging and publication procedure is completed. Until then, `1.0.1`
-remains the latest published stable version. The release-preparation PR must
-remain open and unmerged until reviewed. Do not create the `v1.1.0` tag, upload
-Central artifacts, or create a GitHub Release during preparation. After the
-release is later published, the project advances to `1.1.1-SNAPSHOT` in the
-separate post-release step.
+The 1.1.0 release preparation PR was merged into `main` and tagged `v1.1.0`
+on 2026-10-03, followed by successful publication to Maven Central and creation of
+the GitHub Release. Following the completion of the 1.1.0 publication cycle,
+the project advanced to `1.1.1-SNAPSHOT` for active development.

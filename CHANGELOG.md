@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - Release preparation (not yet published)
+## [Unreleased]
+
+### Release Engineering
+- Open `1.1.1-SNAPSHOT` development baseline following the successful release of `1.1.0`.
+
+## [1.1.0] - 2026-10-03
 
 ### Compatibility
 - Release qualification finds **0 known backward API/SPI breaks** against the five preserved 1.0 compatibility baselines. The generated-template runtime ABI adds one bridge method while preserving the existing calls.
@@ -197,7 +202,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Automatically registered generated source directories with Maven project compile source roots and Gradle Java source set conventions.
 
 ### Release Engineering
-- Release candidate prepared from the successful `1.0.1` stable baseline. The `1.1.0` coordinates are not published until the later release task completes.
+- Release 1.1.0 published to Maven Central from the successful `1.0.1` stable baseline.
 
 ## [1.0.1] - 2026-09-28
 
