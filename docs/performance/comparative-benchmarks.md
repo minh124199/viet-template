@@ -4,9 +4,9 @@
 
 The current comparative report contains a fresh **J21-G1** measurement from commit
 `e01046ade5abc9a108e91db2a92dbb3cc2ff00be`. It is a complete C01–C08, six-engine run, but it is
-**not a complete release qualification** because this host did not have the OpenJDK 25 runtime
-required by the canonical J25-G1 profile. The only installed Java 25 runtime was Oracle GraalVM
-25.0.4+7.1; it was not accepted as OpenJDK evidence. No current J25 comparative values are claimed.
+**not a complete release qualification** because the run did not locate the OpenJDK 25 runtime
+required by the canonical J25-G1 profile; the only Java 25 runtime it found was Oracle GraalVM
+25.0.4+7.1, which was not accepted as OpenJDK evidence. No current J25 comparative values are claimed.
 
 The measured commit is the post-release `1.1.1-SNAPSHOT` main build. Its production Java source
 files are unchanged from the `v1.1.0` tag, but its Maven/Gradle version metadata is newer. The
@@ -74,9 +74,10 @@ constitute a complete release qualification.
 
 ## Interpretation and evidence classes
 
-- On this J21-G1 run, Viet-AOT exceeded the measured Velocity result on C01, C02, C03, C05, C06,
-  C07, and C08; Velocity exceeded Viet-AOT on C04. jte led the measured engines on C02, C03, C04,
-  C05, C06, C07, and C08. The table shows the exact workload-level scores and errors.
+- On this J21-G1 run, Viet-AOT exceeded the measured Velocity result on all eight workloads
+  (C01–C08). jte led the measured engines on C02–C08, and Viet-AOT had the highest measured C01
+  score (12,288,174 vs Qute 10,408,407, jte 7,316,579). The table shows the exact workload-level
+  scores and errors.
 - Viet-IR is the engine measured by the regression-baseline comparison. That baseline is an
   intra-project regression reference, not a cross-engine ranking.
 - Internal specialization, linker, output, escaping, and cache microbenchmarks are engineering

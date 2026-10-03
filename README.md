@@ -215,10 +215,10 @@ Intel Core i5-8350U (4 physical / 8 logical cores). The tested comparators were 
 | C08 HTML escaping | 734K ops/s | 584K ops/s | 709K ops/s | 1.43M ops/s |
 
 These workload-specific scores do not establish an overall engine ranking. The run compares Viet-IR
-against the immutable 1.0.0 baseline within policy on all eight J21 workloads. OpenJDK 25 was not
-installed on the measurement host; its only Java 25 runtime was GraalVM, which does not match the
-canonical OpenJDK J25-G1 profile, so no fresh J25 values are claimed and this is not a complete
-two-profile release qualification. The [full report](docs/performance/comparative-benchmarks.md)
+against the immutable 1.0.0 baseline within policy on all eight J21 workloads. That run did not
+locate an OpenJDK 25 runtime; the only Java 25 runtime it found was Oracle GraalVM, which does not
+match the canonical OpenJDK J25-G1 profile, so no fresh J25 values are claimed and this is not a
+complete two-profile release qualification. The [full report](docs/performance/comparative-benchmarks.md)
 includes every engine's J21 score, JMH error, allocation data, and baseline deltas. Durable raw
 data and environment records are in [`benchmark-evidence/1.1.0-j21-partial/`](benchmark-evidence/1.1.0-j21-partial/).
 
