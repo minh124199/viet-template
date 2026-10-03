@@ -4,7 +4,7 @@
 
 Viet Template provides complete build-time Ahead-Of-Time (AOT) compilation and Spring Boot integration for Apache Maven projects.
 
-The latest published stable release is **`1.0.1`** (published 2026-09-28; based on the 1.0.0 GA line). The `1.1.0` release candidate is under preparation and is not published yet. Consumer examples below use the available `1.0.1` coordinates unless they explicitly describe the release candidate.
+The latest published stable release is **`1.1.0`** (published 2026-10-03; following 1.0.1 and 1.0.0 GA). Consumer examples below use the available `1.1.0` coordinates.
 
 ### Minimum Requirements
 - **Java**: Java 21 (`--release 21`) or newer.
@@ -21,7 +21,7 @@ For standalone Java applications without Spring:
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-runtime</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -31,7 +31,7 @@ To include the standard VTL interpreter engine:
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-vtl-interpreter</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -42,7 +42,7 @@ For Spring Boot applications (Spring MVC, auto-configuration, and view resolutio
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-boot-starter</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -53,7 +53,7 @@ For authenticated user and CSRF view facades:
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-security</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -71,7 +71,7 @@ Add the plugin to the `<build><plugins>` section of your `pom.xml`:
 <plugin>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-maven-plugin</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
     <executions>
         <execution>
             <id>compile-templates</id>

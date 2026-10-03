@@ -247,18 +247,18 @@ To enable Spring Security integration in a Spring Boot application:
 **Maven (`pom.xml`)**:
 ```xml
 <dependencies>
-    <!-- Latest Published Stable: 1.0.1 -->
+    <!-- Latest Published Stable: 1.1.0 -->
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-spring-boot-starter</artifactId>
-        <version>1.0.1</version>
+        <version>1.1.0</version>
     </dependency>
 
     <!-- Spring Security Module -->
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-spring-security</artifactId>
-        <version>1.0.1</version>
+        <version>1.1.0</version>
     </dependency>
 
     <!-- Spring Boot Security Starter -->
@@ -272,9 +272,9 @@ To enable Spring Security integration in a Spring Boot application:
 **Gradle (`build.gradle.kts`)**:
 ```kotlin
 dependencies {
-    // Latest Published Stable: 1.0.1
-    implementation("io.github.minh124199:viet-template-spring-boot-starter:1.0.1")
-    implementation("io.github.minh124199:viet-template-spring-security:1.0.1")
+    // Latest Published Stable: 1.1.0
+    implementation("io.github.minh124199:viet-template-spring-boot-starter:1.1.0")
+    implementation("io.github.minh124199:viet-template-spring-security:1.1.0")
     implementation("org.springframework.boot:spring-boot-starter-security")
 }
 ```

@@ -1,6 +1,6 @@
 # Support Matrix & Compatibility
 
-This document outlines the official environment support matrix for **Viet Template 1.0.1** (the 1.0.0 GA compatibility line), including JDK runtimes, build tooling, framework integrations, and execution environments.
+This document outlines the official environment support matrix for **Viet Template 1.1.0**, including JDK runtimes, build tooling, framework integrations, and execution environments.
 
 ---
 
@@ -23,8 +23,8 @@ Both Apache Maven and Gradle are supported as first-class build tools with verif
 
 | Build Tool | Declared Minimum | Verified Versions | Canonical Version | Plugin Coordinates |
 |---|---|---|---|---|
-| **Apache Maven** | `3.8.0` | `3.9.9` | `3.9.9` (wrapper) | `io.github.minh124199:viet-template-maven-plugin:1.0.1` |
-| **Gradle** | `8.5` | `9.7.1` | `9.7.1` (wrapper) | `io.github.minh124199.viet-template:1.0.1` |
+| **Apache Maven** | `3.8.0` | `3.9.9` | `3.9.9` (wrapper) | `io.github.minh124199:viet-template-maven-plugin:1.1.0` |
+| **Gradle** | `8.5` | `9.7.1` | `9.7.1` (wrapper) | `io.github.minh124199.viet-template:1.1.0` |
 
 ---
 

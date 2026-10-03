@@ -4,7 +4,7 @@
 
 Viet Template provides a dedicated Gradle plugin (`io.github.minh124199.viet-template`) for build-time Ahead-Of-Time (AOT) template compilation, compatible with Gradle 8.x and Gradle 9.x.
 
-The latest published stable release is **`1.0.1`** (published 2026-09-28; based on the 1.0.0 GA line). The `1.1.0` release candidate is under preparation and is not published yet. Consumer examples below show the available Gradle Plugin DSL resolution (`plugins { id("io.github.minh124199.viet-template") version "1.0.1" }`).
+The latest published stable release is **`1.1.0`** (published 2026-10-03; following 1.0.1 and 1.0.0 GA). Consumer examples below show the available Gradle Plugin DSL resolution (`plugins { id("io.github.minh124199.viet-template") version "1.1.0" }`).
 
 ### Minimum Requirements
 - **Java**: Java 21 (`jvmToolchain(21)`) or newer.
@@ -21,7 +21,7 @@ In `build.gradle.kts` (Kotlin DSL):
 ```kotlin
 plugins {
     java
-    id("io.github.minh124199.viet-template") version "1.0.1"
+    id("io.github.minh124199.viet-template") version "1.1.0"
 }
 
 java {
@@ -36,7 +36,7 @@ Or in `build.gradle` (Groovy DSL):
 ```groovy
 plugins {
     id 'java'
-    id 'io.github.minh124199.viet-template' version '1.0.1'
+    id 'io.github.minh124199.viet-template' version '1.1.0'
 }
 
 java {
@@ -52,8 +52,8 @@ For Spring Boot applications:
 
 ```kotlin
 dependencies {
-    implementation("io.github.minh124199:viet-template-spring-boot-starter:1.0.1")
-    implementation("io.github.minh124199:viet-template-spring-security:1.0.1")
+    implementation("io.github.minh124199:viet-template-spring-boot-starter:1.1.0")
+    implementation("io.github.minh124199:viet-template-spring-security:1.1.0")
 }
 ```
 
@@ -61,8 +61,8 @@ For plain Java applications without Spring:
 
 ```kotlin
 dependencies {
-    implementation("io.github.minh124199:viet-template-runtime:1.0.1")
-    implementation("io.github.minh124199:viet-template-vtl-interpreter:1.0.1")
+    implementation("io.github.minh124199:viet-template-runtime:1.1.0")
+    implementation("io.github.minh124199:viet-template-vtl-interpreter:1.1.0")
 }
 ```
 
