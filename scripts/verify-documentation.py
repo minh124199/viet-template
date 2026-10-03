@@ -934,6 +934,12 @@ STALE_UNSUPPORTED_BENCHMARK_NUMBERS = [
     re.compile(r"\b252K\b"),
 ]
 
+OVERSTATED_BENCHMARK_REGRESSION_PATTERNS = [
+    re.compile(r"\bzero\s+(?:code|performance)\s+regressions?\b", re.IGNORECASE),
+    re.compile(r"\bmatches\s+or\s+exceeds\b[^\n]*\b(?:all\s+eight|all\s+8|all\s+workloads)\b", re.IGNORECASE),
+    re.compile(r"\bno\s+(?:code\s+|performance\s+)?regressions?\s+across\s+all\b", re.IGNORECASE),
+]
+
 README_BENCHMARK_WORKLOAD_MAP = {
     "C01 static HTML": "c01_staticHtml",
     "C03 deep property chains": "c03_deepPropertyChains",
@@ -943,11 +949,38 @@ README_BENCHMARK_WORKLOAD_MAP = {
 }
 
 
+def check_same_runtime_has_negative_deltas(repo_root: Path) -> bool:
+    """Returns True if benchmark evidence records negative deltas for same-runtime comparison."""
+    rerun_comparison = repo_root / "benchmark-evidence" / "1.0.0-openjdk25-rerun" / "baseline-comparison-J25-G1.txt"
+    if rerun_comparison.is_file():
+        try:
+            text = rerun_comparison.read_text(encoding="utf-8")
+            if re.search(r"\s+-\d+(?:\.\d+)?%", text):
+                return True
+            return False
+        except Exception:
+            pass
+
+    qual_path = repo_root / "benchmark-evidence" / "1.1.0" / "qualification.json"
+    if qual_path.is_file():
+        try:
+            qual = json.loads(qual_path.read_text(encoding="utf-8"))
+            conclusion = qual.get("baseline", {}).get("j25SameRuntimeConclusion", "")
+            if "negative" in conclusion.lower():
+                return True
+        except Exception:
+            pass
+
+    # Default to True when evidence is not explicitly non-negative
+    return True
+
+
 def check_benchmark_claims_consistency(repo_root: Path) -> list[str]:
     """Validates benchmark claims against raw JMH evidence and rejects unevidenced claims."""
     errors = []
+    has_negative_deltas = check_same_runtime_has_negative_deltas(repo_root)
 
-    # 1. Reject unevidenced claims and stale numbers in living documentation
+    # 1. Reject unevidenced claims, stale numbers, and overstated regression claims in living documentation
     for file_path in get_living_doc_files(repo_root):
         rel_path = file_path.relative_to(repo_root)
         try:
@@ -971,6 +1004,12 @@ def check_benchmark_claims_consistency(repo_root: Path) -> list[str]:
                     errors.append(
                         f"Stale unevidenced benchmark number in {rel_path}:{line_no}: {line.strip()}"
                     )
+            if has_negative_deltas:
+                for pat in OVERSTATED_BENCHMARK_REGRESSION_PATTERNS:
+                    if pat.search(line):
+                        errors.append(
+                            f"Overstated benchmark regression claim in {rel_path}:{line_no}: {line.strip()}"
+                        )
 
     # 2. Validate README headline benchmark numbers against raw JMH JSON
     readme_path = repo_root / "README.md"
