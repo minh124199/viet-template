@@ -11,7 +11,7 @@ This evidence package contains the empirical same-runtime re-evaluation of **Vie
 
 ### Invariants
 1. **Historical Baseline Immutability**: This run does **NOT** alter or replace `config/performance/1.0.0-baseline.json`. The historical baseline remains immutable.
-2. **Controlled Comparison**: This dataset provides durable proof that under an apples-to-apples genuine OpenJDK 25 HotSpot execution, Viet Template 1.1.0 does not exhibit regressions against 1.0.0 across any of the eight workloads (all 8/8 PASS within regression threshold).
+2. **Controlled Comparison**: This dataset provides durable proof that under an apples-to-apples genuine OpenJDK 25 HotSpot execution, Viet Template 1.1.0 passes configured same-runtime regression thresholds across all eight workloads (all 8/8 PASS within regression threshold; no policy-significant performance regressions detected across C01-C08; workloads C02 (-1.7%), C04 (-4.5%), C06 (-1.0%), and C08 (-6.8%) measured small negative throughput deltas, but all remained within the configured 10%/15% regression gates).
 
 ## Results Summary (Viet-IR on genuine OpenJDK 25 HotSpot C2)
 

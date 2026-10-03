@@ -116,7 +116,7 @@ The root cause of the J25-G1 baseline failure is an environment mismatch in the 
 | c07_nestedForeach | 113,960 ± 4,880 | 119,390 ± 1,913 | +4.8% | 10.0% | PASS |
 | c08_htmlEscaping | 278,885 ± 17,128 | 259,869 ± 5,611 | -6.8% | 10.0% | PASS |
 
-The historical baseline FAIL results remain visible and immutable in `config/performance/1.0.0-baseline.json`. The controlled same-runtime comparison in [`benchmark-evidence/1.0.0-openjdk25-rerun/`](../../benchmark-evidence/1.0.0-openjdk25-rerun/) proves that zero code regressions occurred when run on the same runtime.
+The historical baseline FAIL results remain visible and immutable in `config/performance/1.0.0-baseline.json`. The controlled same-runtime comparison in [`benchmark-evidence/1.0.0-openjdk25-rerun/`](../../benchmark-evidence/1.0.0-openjdk25-rerun/) proves that all eight workloads pass the configured same-runtime regression thresholds (no policy-significant performance regressions detected across C01–C08; some workloads measured small negative throughput deltas, but all remained within the configured 10%/15% regression gates).
 
 ## Cross-engine interpretation
 

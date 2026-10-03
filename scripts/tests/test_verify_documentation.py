@@ -527,6 +527,52 @@ viet-template.non-existent=123
                 f"Expected checksum mismatch error not found: {errors}",
             )
 
+    def test_benchmark_claims_rejects_overstated_regression_claims(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            (tmp_root / "docs" / "performance").mkdir(parents=True)
+            doc = tmp_root / "docs" / "performance" / "perf.md"
+            doc.write_text("1.1.0 exhibits zero code regressions across workloads.\n", encoding="utf-8")
+            errors = doc_verifier.check_benchmark_claims_consistency(tmp_root)
+            self.assertTrue(
+                any("Overstated benchmark regression claim" in err for err in errors),
+                f"Expected overstated claim error not found: {errors}",
+            )
+
+    def test_benchmark_claims_rejects_matches_or_exceeds_when_negative_deltas(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            rerun_dir = tmp_root / "benchmark-evidence" / "1.0.0-openjdk25-rerun"
+            rerun_dir.mkdir(parents=True)
+            (rerun_dir / "baseline-comparison-J25-G1.txt").write_text(
+                "c02_scalarVariables 1,299,877 1,278,306 -1.7% 10.0% PASS\n", encoding="utf-8"
+            )
+            (rerun_dir / "SHA256SUMS").write_text(
+                f"{doc_verifier.hashlib.sha256((rerun_dir / 'baseline-comparison-J25-G1.txt').read_bytes()).hexdigest()}  baseline-comparison-J25-G1.txt\n",
+                encoding="utf-8",
+            )
+            (tmp_root / "docs" / "performance").mkdir(parents=True)
+            doc = tmp_root / "docs" / "performance" / "perf.md"
+            doc.write_text("Viet Template matches or exceeds all eight workloads.\n", encoding="utf-8")
+            errors = doc_verifier.check_benchmark_claims_consistency(tmp_root)
+            self.assertTrue(
+                any("Overstated benchmark regression claim" in err for err in errors),
+                f"Expected overstated claim error not found: {errors}",
+            )
+
+    def test_benchmark_claims_allows_factual_threshold_language(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            (tmp_root / "docs" / "performance").mkdir(parents=True)
+            doc = tmp_root / "docs" / "performance" / "perf.md"
+            doc.write_text(
+                "All eight workloads pass configured same-runtime regression thresholds with small negative deltas.\n",
+                encoding="utf-8",
+            )
+            errors = doc_verifier.check_benchmark_claims_consistency(tmp_root)
+            overstated = [err for err in errors if "Overstated benchmark regression claim" in err]
+            self.assertEqual([], overstated, f"Unexpected overstated claim error: {overstated}")
+
     # -------------------------------------------------------------------------
     # Orchestration
     # -------------------------------------------------------------------------
