@@ -52,7 +52,7 @@
     "regressionComparisonJ25": "baseline-comparison-J25-G1.txt",
     "j21Status": "PASS",
     "j25Status": "FAIL_AGAINST_HISTORICAL_GRAALVM_BASELINE",
-    "j25RootCause": "The 1.0.0 baseline recorded in config/performance/1.0.0-baseline.json for J25-G1 was empirically captured using Oracle GraalVM 25.0.4+7.1 (JVMCI JIT compiler) rather than genuine OpenJDK HotSpot C2. When measured against identical genuine OpenJDK 25 HotSpot runtime, v1.1.0 exhibits higher throughput than v1.0.0 across all workloads with zero regressions."
+    "j25RootCause": "The 1.0.0 baseline recorded in config/performance/1.0.0-baseline.json for J25-G1 was empirically captured using Oracle GraalVM 25.0.4+7.1 (JVMCI JIT compiler) rather than genuine OpenJDK HotSpot C2. The historical and current measurements were produced by materially different JIT/runtime configurations, so the raw delta is not a valid same-runtime regression comparison. When measured against identical genuine OpenJDK 25 HotSpot runtime under the canonical JMH protocol, v1.1.0 passes within regression thresholds across all eight workloads with zero code regressions (durable evidence in benchmark-evidence/1.0.0-openjdk25-rerun/)."
   },
   "evidenceFiles": [
     "comparative-J21-G1.json",

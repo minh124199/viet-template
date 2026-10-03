@@ -26,9 +26,13 @@ Automated documentation verification infrastructure for Viet Template:
     documentation does not contain outdated pre-publication wording or unreleased snapshots.
 11. Velocity Compatibility Claims in Living Docs: Ensures living user-facing
     documentation does not assert unsubstantiated Velocity compatibility overclaims.
+12. Benchmark Claims Consistency: Validates that README.md headline benchmark
+    numbers match raw JMH evidence, rejects unevidenced allocation and throughput claims
+    in living docs, rejects stale unevidenced numbers, and validates benchmark evidence SHA256SUMS integrity.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -811,6 +815,7 @@ def get_living_doc_files(repo_root: Path) -> list[Path]:
         "docs/native-image/**/*.md",
         "docs/migration/**/*.md",
         "docs/diagnostics/**/*.md",
+        "docs/performance/**/*.md",
     ]
     for pattern in living_globs:
         candidates.extend(repo_root.glob(pattern))
@@ -910,6 +915,191 @@ def check_developer_specific_file_links(repo_root: Path) -> list[str]:
 
 
 # =============================================================================
+# CHECK 12: Benchmark Claims Consistency
+# =============================================================================
+
+UNSUPPORTED_BENCHMARK_ALLOCATION_PATTERNS = [
+    re.compile(r"<\s*8\s*B/op", re.IGNORECASE),
+    re.compile(r"40\s*[-–]\s*80\s*B/op", re.IGNORECASE),
+]
+
+UNSUPPORTED_BENCHMARK_THROUGHPUT_PATTERNS = [
+    re.compile(r"\bup\s+to\s+8x\b", re.IGNORECASE),
+    re.compile(r"\b8x\b[^\n]*\bVelocity\b", re.IGNORECASE),
+]
+
+STALE_UNSUPPORTED_BENCHMARK_NUMBERS = [
+    re.compile(r"\b3\.72M\b"),
+    re.compile(r"\b1\.02M\b"),
+    re.compile(r"\b252K\b"),
+]
+
+README_BENCHMARK_WORKLOAD_MAP = {
+    "C01 static HTML": "c01_staticHtml",
+    "C03 deep property chains": "c03_deepPropertyChains",
+    "C04 conditionals": "c04_conditionals",
+    "C06 large table (100 rows)": "c06_largeTableForeach",
+    "C08 HTML escaping": "c08_htmlEscaping",
+}
+
+
+def check_benchmark_claims_consistency(repo_root: Path) -> list[str]:
+    """Validates benchmark claims against raw JMH evidence and rejects unevidenced claims."""
+    errors = []
+
+    # 1. Reject unevidenced claims and stale numbers in living documentation
+    for file_path in get_living_doc_files(repo_root):
+        rel_path = file_path.relative_to(repo_root)
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+
+        for line_no, line in enumerate(content.splitlines(), start=1):
+            for pat in UNSUPPORTED_BENCHMARK_ALLOCATION_PATTERNS:
+                if pat.search(line):
+                    errors.append(
+                        f"Unevidenced allocation claim in {rel_path}:{line_no}: {line.strip()}"
+                    )
+            for pat in UNSUPPORTED_BENCHMARK_THROUGHPUT_PATTERNS:
+                if pat.search(line):
+                    errors.append(
+                        f"Unevidenced throughput claim in {rel_path}:{line_no}: {line.strip()}"
+                    )
+            for pat in STALE_UNSUPPORTED_BENCHMARK_NUMBERS:
+                if pat.search(line):
+                    errors.append(
+                        f"Stale unevidenced benchmark number in {rel_path}:{line_no}: {line.strip()}"
+                    )
+
+    # 2. Validate README headline benchmark numbers against raw JMH JSON
+    readme_path = repo_root / "README.md"
+    evidence_110_dir = repo_root / "benchmark-evidence" / "1.1.0"
+    if readme_path.is_file() and evidence_110_dir.is_dir():
+        readme_text = readme_path.read_text(encoding="utf-8")
+        target_profiles = [
+            ("J21-G1", "### OpenJDK 21 (J21-G1) Highlights"),
+            ("J25-G1", "### OpenJDK 25 (J25-G1) Highlights"),
+        ]
+        target_engines = ["Viet-AOT", "Velocity", "Qute", "jte"]
+
+        for profile_id, section_header in target_profiles:
+            json_path = evidence_110_dir / f"comparative-{profile_id}.json"
+            if not json_path.is_file():
+                errors.append(f"Missing benchmark evidence file: {json_path.relative_to(repo_root)}")
+                continue
+
+            try:
+                with open(json_path, "r", encoding="utf-8") as f:
+                    raw_jmh = json.load(f)
+            except Exception as e:
+                errors.append(f"Cannot parse JMH JSON {json_path.relative_to(repo_root)}: {e}")
+                continue
+
+            raw_scores: dict[tuple[str, str], float] = {}
+            for item in raw_jmh:
+                bname = item.get("benchmark", "").split(".")[-1]
+                engine = item.get("params", {}).get("engine", "")
+                score = item.get("primaryMetric", {}).get("score", 0.0)
+                raw_scores[(bname, engine)] = score
+
+            if section_header not in readme_text:
+                errors.append(f"Missing section '{section_header}' in README.md")
+                continue
+
+            section_part = readme_text.split(section_header, 1)[1]
+            table_lines = []
+            for line in section_part.splitlines():
+                stripped = line.strip()
+                if stripped.startswith("### ") or (stripped.startswith("## ") and not stripped.startswith(section_header)):
+                    break
+                if stripped.startswith("|"):
+                    table_lines.append(stripped)
+
+            parsed_rows: dict[str, dict[str, str]] = {}
+            header_engines: list[str] = []
+            for line in table_lines:
+                cells = [c.strip() for c in line.split("|")[1:-1]]
+                if not cells or cells[0].startswith("---"):
+                    continue
+                if cells[0] == "Workload":
+                    header_engines = cells[1:]
+                elif cells[0] in README_BENCHMARK_WORKLOAD_MAP:
+                    parsed_rows[cells[0]] = dict(zip(header_engines, cells[1:]))
+
+            for wl_label, jmh_name in README_BENCHMARK_WORKLOAD_MAP.items():
+                if wl_label not in parsed_rows:
+                    errors.append(f"Missing row '{wl_label}' under '{section_header}' in README.md")
+                    continue
+                row_data = parsed_rows[wl_label]
+                for engine in target_engines:
+                    claim = row_data.get(engine, "")
+                    m = re.match(r"^([\d.]+)\s*([MK])\s*ops/s$", claim)
+                    if not m:
+                        errors.append(
+                            f"Malformed benchmark cell '{claim}' for {wl_label} / {engine} under '{section_header}' in README.md"
+                        )
+                        continue
+                    val = float(m.group(1)) * (1_000_000 if m.group(2) == "M" else 1_000)
+                    raw_score = raw_scores.get((jmh_name, engine))
+                    if raw_score is None:
+                        errors.append(
+                            f"No raw JMH benchmark score found for {jmh_name} / {engine} in {json_path.relative_to(repo_root)}"
+                        )
+                    else:
+                        rel_diff = abs(val - raw_score) / raw_score
+                        if rel_diff > 0.01:
+                            errors.append(
+                                f"README benchmark claim mismatch under '{section_header}': "
+                                f"{wl_label} {engine} claim '{claim}' ({val:,.0f} ops/s) differs from "
+                                f"raw score {raw_score:,.1f} ops/s (delta {rel_diff * 100:.2f}%)"
+                            )
+
+    # 3. Validate benchmark-evidence/1.0.0-openjdk25-rerun/ SHA256SUMS integrity
+    rerun_dir = repo_root / "benchmark-evidence" / "1.0.0-openjdk25-rerun"
+    if rerun_dir.is_dir():
+        checksums_path = rerun_dir / "SHA256SUMS"
+        if not checksums_path.is_file():
+            errors.append(f"Missing SHA256SUMS in {rerun_dir.relative_to(repo_root)}")
+        else:
+            try:
+                lines = checksums_path.read_text(encoding="utf-8").splitlines()
+                checked_files = 0
+                for line_no, line in enumerate(lines, start=1):
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    parts = line.split(None, 1)
+                    if len(parts) != 2:
+                        errors.append(
+                            f"Malformed SHA256SUMS entry in {checksums_path.relative_to(repo_root)}:{line_no}: {line}"
+                        )
+                        continue
+                    expected_sha, file_name = parts[0], parts[1].strip()
+                    file_path = rerun_dir / file_name
+                    if not file_path.is_file():
+                        errors.append(
+                            f"Missing evidence file listed in {checksums_path.relative_to(repo_root)}: {file_name}"
+                        )
+                        continue
+                    actual_sha = hashlib.sha256(file_path.read_bytes()).hexdigest()
+                    if actual_sha != expected_sha:
+                        errors.append(
+                            f"Checksum mismatch in {checksums_path.relative_to(repo_root)} for {file_name}: "
+                            f"expected {expected_sha}, got {actual_sha}"
+                        )
+                    checked_files += 1
+                if checked_files == 0:
+                    errors.append(f"No checksum entries in {checksums_path.relative_to(repo_root)}")
+            except Exception as exc:
+                errors.append(f"Could not read {checksums_path.relative_to(repo_root)}: {exc}")
+    elif (repo_root / "benchmark-evidence").is_dir():
+        errors.append("Missing required directory benchmark-evidence/1.0.0-openjdk25-rerun")
+
+    return errors
+
+
+# =============================================================================
 # TOP-LEVEL VERIFICATION ORCHESTRATION
 # =============================================================================
 
@@ -931,6 +1121,7 @@ def verify_all(repo_root: Path, verbose: bool = False) -> list[str]:
         ("Stale Pre-Publication Language in Living Docs", check_stale_release_language_in_living_docs),
         ("Velocity Compatibility Claims in Living Docs", check_velocity_compatibility_overclaims_in_living_docs),
         ("Developer-Specific File Links", check_developer_specific_file_links),
+        ("Benchmark Claims Consistency", check_benchmark_claims_consistency),
     ]
 
     for name, check_fn in checks:

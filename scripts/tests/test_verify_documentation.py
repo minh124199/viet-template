@@ -440,6 +440,94 @@ viet-template.non-existent=123
             self.assertEqual([], errors)
 
     # -------------------------------------------------------------------------
+    # Check 12: Benchmark Claims Consistency
+    # -------------------------------------------------------------------------
+
+    def test_current_repo_benchmark_claims_are_clean_and_consistent(self):
+        errors = doc_verifier.check_benchmark_claims_consistency(self.repo_root)
+        self.assertEqual([], errors, f"Unexpected benchmark claim errors: {errors}")
+
+    def test_benchmark_claims_rejects_mismatched_readme_headline_number(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            readme_src = (self.repo_root / "README.md").read_text(encoding="utf-8")
+            altered_readme = readme_src.replace("11.56M ops/s", "15.00M ops/s", 1)
+            self.assertNotEqual(readme_src, altered_readme)
+            (tmp_root / "README.md").write_text(altered_readme, encoding="utf-8")
+
+            ev_dir = tmp_root / "benchmark-evidence" / "1.1.0"
+            ev_dir.mkdir(parents=True)
+            for jf in ["comparative-J21-G1.json", "comparative-J25-G1.json"]:
+                (ev_dir / jf).write_text(
+                    (self.repo_root / "benchmark-evidence" / "1.1.0" / jf).read_text(encoding="utf-8"),
+                    encoding="utf-8",
+                )
+
+            rerun_dir = tmp_root / "benchmark-evidence" / "1.0.0-openjdk25-rerun"
+            rerun_dir.mkdir(parents=True)
+            for rf in (self.repo_root / "benchmark-evidence" / "1.0.0-openjdk25-rerun").iterdir():
+                if rf.is_file():
+                    (rerun_dir / rf.name).write_bytes(rf.read_bytes())
+
+            errors = doc_verifier.check_benchmark_claims_consistency(tmp_root)
+            self.assertTrue(
+                any("README benchmark claim mismatch" in err and "15.00M ops/s" in err for err in errors),
+                f"Expected mismatch error not found: {errors}",
+            )
+
+    def test_benchmark_claims_rejects_unevidenced_allocation_claims(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            (tmp_root / "docs" / "performance").mkdir(parents=True)
+            doc = tmp_root / "docs" / "performance" / "perf.md"
+            doc.write_text("Viet Template achieves < 8 B/op in tight loops.\n", encoding="utf-8")
+            errors = doc_verifier.check_benchmark_claims_consistency(tmp_root)
+            self.assertTrue(
+                any("Unevidenced allocation claim" in err for err in errors),
+                f"Expected allocation claim error not found: {errors}",
+            )
+
+    def test_benchmark_claims_rejects_unevidenced_throughput_claims(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            (tmp_root / "docs" / "performance").mkdir(parents=True)
+            doc = tmp_root / "docs" / "performance" / "perf.md"
+            doc.write_text("Demonstrates up to 8x throughput vs Velocity.\n", encoding="utf-8")
+            errors = doc_verifier.check_benchmark_claims_consistency(tmp_root)
+            self.assertTrue(
+                any("Unevidenced throughput claim" in err for err in errors),
+                f"Expected throughput claim error not found: {errors}",
+            )
+
+    def test_benchmark_claims_rejects_stale_numbers(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            (tmp_root / "docs" / "performance").mkdir(parents=True)
+            doc = tmp_root / "docs" / "performance" / "perf.md"
+            doc.write_text("Historical C01 baseline was 3.72M ops/s.\n", encoding="utf-8")
+            errors = doc_verifier.check_benchmark_claims_consistency(tmp_root)
+            self.assertTrue(
+                any("Stale unevidenced benchmark number" in err for err in errors),
+                f"Expected stale number error not found: {errors}",
+            )
+
+    def test_benchmark_claims_rejects_corrupted_rerun_checksum(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_root = Path(tmp_dir)
+            rerun_dir = tmp_root / "benchmark-evidence" / "1.0.0-openjdk25-rerun"
+            rerun_dir.mkdir(parents=True)
+            (rerun_dir / "README.md").write_text("corrupted content", encoding="utf-8")
+            (rerun_dir / "SHA256SUMS").write_text(
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  README.md\n",
+                encoding="utf-8",
+            )
+            errors = doc_verifier.check_benchmark_claims_consistency(tmp_root)
+            self.assertTrue(
+                any("Checksum mismatch" in err for err in errors),
+                f"Expected checksum mismatch error not found: {errors}",
+            )
+
+    # -------------------------------------------------------------------------
     # Orchestration
     # -------------------------------------------------------------------------
 
