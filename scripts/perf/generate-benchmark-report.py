@@ -80,10 +80,26 @@ def allocation_metric(result: dict) -> tuple[float, float, str]:
     return 0.0, 0.0, "B/op"
 
 
+def is_jmh_result_file(path: Path) -> bool:
+    """Check whether a JSON file contains JMH benchmark results."""
+    if path.name == "manifest.json" or path.name.startswith("environment-"):
+        return False
+    if path.name in ("qualification.json", "tooling-provenance.json") or path.name.startswith("runtime-identity-"):
+        return False
+    if path.name.startswith("comparative-") and path.suffix == ".json":
+        return True
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        return isinstance(payload, list)
+    except Exception:
+        return False
+
+
 def generate_report(input_dir: Path, output_path: Path, generated_at: str | None = None) -> bool:
     json_files = sorted(
         path for path in input_dir.glob("*.json")
-        if path.name != "manifest.json" and not path.name.startswith("environment-")
+        if is_jmh_result_file(path)
     )
 
     if not json_files:

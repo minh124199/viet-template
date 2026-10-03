@@ -1,0 +1,28 @@
+{
+  "createdAt": "2026-10-03T14:32:29Z",
+  "historicalBaselineNote": "This run does NOT replace config/performance/1.0.0-baseline.json. The historical baseline remains immutable; this evidence exists specifically to explain the runtime mismatch with Oracle GraalVM JVMCI.",
+  "jdkIdentityValidatorSha256": "575664ac90111388ff68c518e8386e699566fad657a30ced77c1b6799461f0a8",
+  "productExactTag": "v1.0.0",
+  "productSha": "b951021e9975b8e8103b2402dc244b32a96afaa8",
+  "productVersion": "1.0.0",
+  "protocol": {
+    "benchmarkRegex": ".*ComparativeEngineBenchmark.*",
+    "engine": "Viet-IR",
+    "forks": 3,
+    "iterationSeconds": 1,
+    "jvmFlags": [
+      "-server",
+      "-Xms2g",
+      "-Xmx2g",
+      "-XX:+AlwaysPreTouch",
+      "-XX:+UseG1GC"
+    ],
+    "measurementIterations": 10,
+    "profilerGc": true,
+    "warmupIterations": 5
+  },
+  "purpose": "Controlled same-runtime re-evaluation of Viet Template v1.0.0 on genuine OpenJDK 25 HotSpot (C2) to establish apples-to-apples regression baseline against v1.1.0",
+  "schemaVersion": "1.0.0",
+  "toolingSha": "5725f6b529c69faa4031d8af66941d99cc538074",
+  "toolingTree": "09ff11bee1986e9a337372efda098ee333ac5476"
+}
