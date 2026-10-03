@@ -1,0 +1,5 @@
+[Global flags]
+     bool EnableJVMCI                              = true                                {JVMCI product} {jimage}
+     bool EnableJVMCIProduct                       = true                                {JVMCI product} {jimage}
+     bool UseG1GC                                  = true                                      {product} {ergonomic}
+     bool UseJVMCICompiler                         = true                                {JVMCI product} {default}

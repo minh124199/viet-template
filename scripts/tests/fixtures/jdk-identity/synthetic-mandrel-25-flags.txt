@@ -1,0 +1,6 @@
+# SYNTHETIC FIXTURE: Mandrel 25 flags
+[Global flags]
+     bool EnableJVMCI                              = false                          {JVMCI experimental} {default}
+     bool EnableJVMCIProduct                       = false                          {JVMCI experimental} {default}
+     bool UseG1GC                                  = true                                     {product} {default}
+     bool UseJVMCICompiler                         = false                          {JVMCI experimental} {default}

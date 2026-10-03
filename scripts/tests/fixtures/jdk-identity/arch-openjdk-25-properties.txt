@@ -1,0 +1,56 @@
+Property settings:
+    file.encoding = UTF-8
+    file.separator = /
+    java.class.path =
+    java.class.version = 69.0
+    java.home = /opt/fixture/opt/jdk25-pkg/usr/lib/jvm/java-25-openjdk
+    java.io.tmpdir = /tmp
+    java.library.path = /usr/java/packages/lib
+        /usr/lib64
+        /lib64
+        /lib
+        /usr/lib
+    java.runtime.name = OpenJDK Runtime Environment
+    java.runtime.version = 25.0.4.1
+    java.specification.name = Java Platform API Specification
+    java.specification.vendor = Oracle Corporation
+    java.specification.version = 25
+    java.vendor = Arch Linux
+    java.vendor.url = https://openjdk.org/
+    java.vendor.url.bug = https://bugreport.java.com/bugreport/
+    java.version = 25.0.4.1
+    java.version.date = 2026-08-18
+    java.vm.compressedOopsMode = Zero based
+    java.vm.info = mixed mode, sharing
+    java.vm.name = OpenJDK 64-Bit Server VM
+    java.vm.specification.name = Java Virtual Machine Specification
+    java.vm.specification.vendor = Oracle Corporation
+    java.vm.specification.version = 25
+    java.vm.vendor = Arch Linux
+    java.vm.version = 25.0.4.1
+    jdk.debug = release
+    line.separator = \n
+    native.encoding = UTF-8
+    os.arch = amd64
+    os.name = Linux
+    os.version = 7.2.8-2-cachyos
+    path.separator = :
+    stderr.encoding = UTF-8
+    stdin.encoding = UTF-8
+    stdout.encoding = UTF-8
+    sun.arch.data.model = 64
+    sun.boot.library.path = /opt/fixture/opt/jdk25-pkg/usr/lib/jvm/java-25-openjdk/lib
+    sun.cpu.endian = little
+    sun.io.unicode.encoding = UnicodeLittle
+    sun.java.launcher = SUN_STANDARD
+    sun.jnu.encoding = UTF-8
+    sun.management.compiler = HotSpot 64-Bit Tiered Compilers
+    user.country = VN
+    user.dir = /opt/fixture/current_source/viet-template-repo
+    user.home = /opt/fixture
+    user.language = vi
+    user.name = fixture-user
+
+openjdk version "25.0.4.1" 2026-08-18
+OpenJDK Runtime Environment (build 25.0.4.1)
+OpenJDK 64-Bit Server VM (build 25.0.4.1, mixed mode, sharing)
