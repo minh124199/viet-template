@@ -1,0 +1,34 @@
+{
+  "accepted": true,
+  "identity": {
+    "enableJvmci": false,
+    "javaExecutable": "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+    "javaExecutableSha256": "e08a8b21479a8d39d46b23af483d78fb88a891b7fe0e2c9abd50a8fe16ad2a15",
+    "javaHome": "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk",
+    "javaVersion": "21.0.12.1",
+    "javaVersionDate": "2026-08-18",
+    "releaseFile": {
+      "IMPLEMENTOR": "Arch Linux",
+      "JAVA_RUNTIME_VERSION": "21.0.12.1+1",
+      "JAVA_VERSION": "21.0.12.1",
+      "JAVA_VERSION_DATE": "2026-08-18",
+      "LIBC": "gnu",
+      "OS_ARCH": "x86_64",
+      "OS_NAME": "Linux",
+      "SOURCE": ""
+    },
+    "runtimeName": "OpenJDK Runtime Environment",
+    "runtimeVersion": "21.0.12.1+1",
+    "specificationVersion": "21",
+    "useJvmciCompiler": false,
+    "vendor": "Arch Linux",
+    "vendorUrl": "https://openjdk.org/",
+    "vendorVersion": null,
+    "vmName": "OpenJDK 64-Bit Server VM",
+    "vmVendor": "Arch Linux",
+    "vmVersion": "21.0.12.1+1"
+  },
+  "profile": "J21-G1",
+  "reasons": [],
+  "requiredMajor": 21
+}
