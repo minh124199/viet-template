@@ -1,0 +1,57 @@
+{
+  "baseline": {
+    "path": "config/performance/1.0.0-baseline.json",
+    "regressionComparison": "baseline-comparison-J21-G1.txt",
+    "sha256": "1e1fcba4c5e46877f21aa5b383dcb7ab148ea13dc52c418260bb750f43caac23"
+  },
+  "benchmarkRunner": {
+    "path": "scripts/perf/run-m18-comparative-qualification.sh",
+    "shaAtMeasuredCommit": "c77a3ff7479457d2abf5a721037f3adb54133860"
+  },
+  "classification": "PARTIAL_MEASUREMENT_NOT_RELEASE_QUALIFICATION",
+  "comparatorVersions": {
+    "jte": "3.2.4",
+    "qute": "3.39.4",
+    "thymeleaf": "3.1.5.RELEASE",
+    "velocity": "2.4.1"
+  },
+  "correctness": {
+    "engines": 6,
+    "passed": true,
+    "testClass": "CrossEngineFixtureCorrectnessTest",
+    "workloads": 8
+  },
+  "evidenceFiles": [
+    "comparative-J21-G1.json",
+    "environment-J21-G1.json",
+    "baseline-comparison-J21-G1.txt",
+    "results-J21-G1.md"
+  ],
+  "jmh": {
+    "forks": 3,
+    "iterationSeconds": 1,
+    "jvmArgs": [
+      "-server",
+      "-Xms2g",
+      "-Xmx2g",
+      "-XX:+AlwaysPreTouch",
+      "-XX:+UseG1GC"
+    ],
+    "measurementIterations": 10,
+    "mode": "throughput",
+    "threads": 1,
+    "version": "1.37",
+    "warmupIterations": 5
+  },
+  "measuredAt": "2026-10-03T04:04:57Z",
+  "measuredBranch": "main",
+  "measuredCommit": "e01046ade5abc9a108e91db2a92dbb3cc2ff00be",
+  "measuredTreeCleanAtProfileStart": true,
+  "profileCompleted": "J21-G1",
+  "profileNotCompleted": "J25-G1",
+  "reasonIncomplete": "No OpenJDK 25 runtime was installed. The available Java 25 runtime was Oracle GraalVM 25.0.4+7.1, which is not the OpenJDK 25 runtime specified by the canonical J25-G1 profile and was not used for accepted results.",
+  "releaseTarget": "Viet Template 1.1.0 code line",
+  "schemaVersion": "1.0",
+  "versionNote": "Measured commit is post-v1.1.0 main; production Java source files match v1.1.0, but repository build metadata identifies this build as 1.1.1-SNAPSHOT.",
+  "vietTemplateBuildVersion": "1.1.1-SNAPSHOT"
+}

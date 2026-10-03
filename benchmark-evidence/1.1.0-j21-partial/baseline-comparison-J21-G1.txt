@@ -1,0 +1,22 @@
+================================================================================
+Viet Template Performance Baseline Comparison
+================================================================================
+  Baseline : /home/lynguyen/current_source/viet-template-repo/config/performance/1.0.0-baseline.json
+  Results  : benchmark-evidence/1.1.0-j21-partial/comparative-J21-G1.json
+  Profile  : J21-G1
+  Version  : 1.0.0
+  Commit   : b951021e9975b8e8103b2402dc244b32a96afaa8
+
+  Workload                         Baseline (ops/s)    Current (ops/s)    Delta %  Threshold %   Status
+  ----------------------------------------------------------------------------------------------------
+  c01_staticHtml                          4,835,233          4,721,163       -2.4         10.0     PASS
+  c02_scalarVariables                     1,177,241          1,221,961       +3.8         10.0     PASS
+  c03_deepPropertyChains                    194,230            192,722       -0.8         15.0     PASS
+  c04_conditionals                        1,334,333          1,371,820       +2.8         10.0     PASS
+  c05_smallTableForeach                     114,466            113,899       -0.5         10.0     PASS
+  c06_largeTableForeach                       6,282              6,650       +5.9         10.0     PASS
+  c07_nestedForeach                         102,524            107,327       +4.7         10.0     PASS
+  c08_htmlEscaping                          257,200            252,939       -1.7         10.0     PASS
+
+  Compared 8 workload(s).
+[PASS] All benchmarks within regression threshold.

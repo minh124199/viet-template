@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-10-03T04:04:57Z",
+  "git": {
+    "commit": "e01046ade5abc9a108e91db2a92dbb3cc2ff00be",
+    "shortCommit": "e01046a",
+    "branch": "main",
+    "dirty": false
+  },
+  "environment": {
+    "os": "Linux",
+    "kernel": "7.2.8-2-cachyos",
+    "osDistro": "CachyOS",
+    "arch": "x86_64",
+    "cpuModel": "Intel(R) Core(TM) i5-8350U CPU @ 1.70GHz",
+    "processorCount": 8,
+    "totalMemoryBytes": 12262789120
+  },
+  "java": {
+    "profile": "J21-G1",
+    "version": "21.0.12.1",
+    "majorVersion": 21,
+    "vm": "OpenJDK Runtime Environment (build 21.0.12.1+1)",
+    "vendor": "Arch Linux",
+    "executable": "/home/lynguyen/opt/jdk21-pkg/usr/lib/jvm/java-21-openjdk/bin/java",
+    "collector": "G1",
+    "compactObjectHeaders": false,
+    "virtualThreadsSupported": true,
+    "aotSupported": false,
+    "standardJvmFlags": [
+      "-server",
+      "-Xms2g",
+      "-Xmx2g",
+      "-XX:+AlwaysPreTouch",
+      "-XX:+UseG1GC"
+    ]
+  },
+  "jmh": {
+    "version": "1.37",
+    "forks": null,
+    "threads": null,
+    "warmupIterations": null,
+    "measurementIterations": null
+  }
+}
