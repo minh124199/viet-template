@@ -1,13 +1,13 @@
 # Viet Template
 
-A compile-first, low-allocation JVM template engine featuring Velocity Template Language (VTL) compatibility, modern execution backends, and defense-in-depth security defaults.
+A compile-first JVM template engine featuring Velocity Template Language (VTL) compatibility, modern execution backends, and defense-in-depth security defaults.
 
 [![CI](https://github.com/minh124199/viet-template/actions/workflows/ci.yml/badge.svg)](https://github.com/minh124199/viet-template/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.minh124199/viet-template-api)](https://central.sonatype.com/artifact/io.github.minh124199/viet-template-api)
 [![Java 21+](https://img.shields.io/badge/Java-21%2B-blue.svg)](https://adoptium.net/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Viet Template is an independent JVM template engine designed for modern Java applications that value the familiar syntax of Apache Velocity templates but require modern JVM performance, low object allocation, native GraalVM compilation, and robust security boundaries.
+Viet Template is an independent JVM template engine for modern Java applications that use Apache Velocity-style templates and need compiled execution, GraalVM native-image integration, and explicit security boundaries. Performance and allocation depend on the workload; see the qualified comparative report below.
 
 ---
 
@@ -15,12 +15,12 @@ Viet Template is an independent JVM template engine designed for modern Java app
 
 Many enterprise JVM applications still rely on legacy template engines that depend on heavy dynamic reflection, lack GraalVM native image support, allocate excessive heap memory, or expose dangerous reflection attack surfaces. Viet Template solves this:
 
-- **Drop-in Velocity Syntax Compatibility**: Drop-in syntax compatibility for Velocity Template Language (VTL) covering 80/80 supported grammar features and 100% accounted differential behavior coverage across 301 differential scenarios against Apache Velocity 2.4.1 in the Technology Compatibility Kit (TCK): 295 exact matches (98.01%), 5 documented expected differences, 1 extension, 0 unsupported, 0 regressions.
-- **High-Throughput Multi-Tier Execution**: Offers both a lightweight development interpreter (Viet-IR) and a high-performance Ahead-Of-Time bytecode compiler (Viet-AOT) delivering **1.3x to 5.3x higher throughput** than Apache Velocity 2.4.1.
-- **Precompiled Bytecode & Zero Reflection**: Compiles templates to standard Java 21 bytecode (`.class` files) with compiler-assigned variable slots and pre-encoded UTF-8 literals, eliminating runtime reflection and AST traversal.
+- **Velocity Language Compatibility**: Implements 80 supported VTL grammar features and accounts for 301 differential scenarios against Apache Velocity 2.4.1 in the Technology Compatibility Kit (295 exact matches, 5 documented expected differences, 1 extension, and 0 unsupported or unclassified regressions).
+- **Multi-Tier Execution**: Offers a development interpreter (Viet-IR) and ahead-of-time bytecode compilation (Viet-AOT); performance depends on workload and is summarized in the qualified comparative report below.
+- **Compiled Bytecode**: Compiles templates to standard Java 21 bytecode (`.class` files), with compiler-assigned variable slots and pre-encoded UTF-8 literals. Dynamic property and method access remains governed by the runtime access policy.
 - **GraalVM Native Image Ready**: Seamlessly compiles to native executables via out-of-the-box `VietTemplateRuntimeHints`, Spring AOT, and Quarkus deployment build steps (empirically qualified on Linux x86_64 Mandrel 25.0.4.1-Final and Oracle GraalVM 25.0.4+7.1).
-- **First-Class Spring & Quarkus Ecosystems**: Turnkey auto-configuration for Spring Boot 4 / Spring Framework 7 / Spring Security 7 with secure-by-default HTML auto-escaping for web views, and idiomatic CDI extension for Quarkus 3 with build-time AOT compilation and dev-mode hot reload.
-- **Defense-in-Depth Security**: Denies access to reflection (`java.lang.reflect.*`, `java.lang.invoke.*`), classloaders, and system resources by default. Distinguishes developer-friendly denylist defense-in-depth (`MemberAccessPolicy.standard()`) from strict fail-closed sandboxing (`MemberAccessPolicy.safe()`), with monotonic execution budgets (`RenderBudget`) and macro recursion limits.
+- **Spring & Quarkus Integrations**: Spring Boot / MVC integration defaults HTML auto-escaping on for views; optional Spring Security integration supplies presentation facades. Quarkus provides a CDI extension with build-time template compilation and dev-mode reload; its optional security integration supplies `$security` and CSRF presentation facades when Quarkus Security is present.
+- **Defense-in-Depth Security**: Blocks universal reflection and class-loading pivots by default. Distinguishes the developer-oriented denylist (`MemberAccessPolicy.standard()`) from the strict allowlist (`MemberAccessPolicy.safe()`), with monotonic render budgets and a separate macro invocation limit.
 
 ---
 
@@ -37,7 +37,7 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 | **JPMS Status** | Ordinary non-modular JARs (no `module-info.java`, no `Automatic-Module-Name` header) |
 
 > [!NOTE] Java Module System (JPMS) Disclaimer
-> Viet Template 1.0.0 ships as ordinary non-modular JARs. When placed on the Java module path they may be treated by the JVM as automatic modules using derived names, but those derived names are not a frozen compatibility contract.
+> Viet Template releases are ordinary non-modular JARs. When placed on the Java module path they may be treated by the JVM as automatic modules using derived names, but those derived names are not a frozen compatibility contract.
 
 ---
 
@@ -184,7 +184,7 @@ public class HelloResource {
 }
 ```
 
-Templates placed in `src/main/resources/templates/` are compiled ahead-of-time during `mvn package` or `gradle build` (producing ~52 MB native binaries on Linux x86_64) and hot-reloaded during `quarkus dev`. See the [Quarkus Extension Guide](docs/extensions/quarkus.md) for details.
+Templates placed in `src/main/resources/templates/` are discovered and compiled by the Quarkus build-time extension; Quarkus dev mode watches templates and reloads changes. Native executable generation is a separate native-image build step. See the [Quarkus Extension Guide](docs/extensions/quarkus.md) for details.
 
 ---
 
@@ -193,30 +193,34 @@ Templates placed in `src/main/resources/templates/` are compiled ahead-of-time d
 Viet Template was engineered as an independent, modern replacement for Apache Velocity:
 
 1. **Step 1: Swap Dependencies**: Replace `org.apache.velocity:velocity-engine-core` with `viet-template-spring-boot-starter` or `viet-template-api`.
-2. **Step 2: Keep Existing Templates**: Retain all existing `.vm` and `.vtl` files. Configure `viet-template.suffixes=.vtl,.vm` for ordered multi-extension lookup during gradual migration. Viet Template achieves 100% compatibility across all 80 standard VTL grammar features.
+2. **Step 2: Keep Existing Templates**: Retain existing `.vm` and `.vtl` files where their syntax and behavior are covered by Viet Template's compatibility contract. Configure `viet-template.suffixes=.vtl,.vm` for ordered multi-suffix lookup during gradual migration; review the [compatibility matrix](docs/migration/compatibility-matrix.md) and [differences catalog](docs/migration/velocity-differences.md) before migrating.
 3. **Step 3: Update Engine Initialization**: Replace `VelocityEngine` and `VelocityContext` with `TemplateEngine` and `RenderContext`.
 
-See the comprehensive [Apache Velocity Migration Guide](docs/migration/velocity-migration-guide.md) and [Velocity Differences Catalog](docs/migration/velocity-differences.md) for full details.
+See the [Apache Velocity Migration Guide](docs/migration/velocity-migration-guide.md), [Velocity Differences Catalog](docs/migration/velocity-differences.md), and [Compatibility Matrix](docs/migration/compatibility-matrix.md) before migration.
 
 ---
 
 ## Comparative Performance Highlights
 
-Evaluated across workloads **C01–C08** in JMH 1.37 benchmarks on a reference Linux x86_64 host (Intel Core i5-8350U @ 1.70GHz, 4 physical cores / 8 logical threads, 12 GB RAM, Linux 7.2.4-3-cachyos) across **Java 21 LTS** (OpenJDK 21.0.12.1+1) and **Java 25** (Oracle GraalVM 25.0.4+7.1) using standardized flags (`-server -Xms2g -Xmx2g -XX:+AlwaysPreTouch -XX:+UseG1GC`; canonical 1.0.0 baseline commit `b951021`):
+The fresh run below covers C01–C08 on **OpenJDK 21.0.12.1** with JMH 1.37 (3 forks, 5 warmups,
+10 measurements; G1, fixed 2 GiB heap). It was measured on Linux x86_64, kernel `7.2.8-2-cachyos`,
+Intel Core i5-8350U (4 physical / 8 logical cores). The tested comparators were Apache Velocity
+2.4.1, Quarkus Qute 3.39.4, jte 3.2.4, and Thymeleaf 3.1.5.RELEASE.
 
-| Workload | Viet-IR | Viet-AOT | Apache Velocity 2.4.1 | Quarkus Qute 3.39.4 | jte 3.2.4 | Thymeleaf 3.1.5 |
-|---|---|---|---|---|---|---|
-| **C01 Static HTML** (J25) | 10.76M ops/s | **55.30M ops/s** | 14.99M ops/s | 21.35M ops/s | 9.26M ops/s | 1.34M ops/s |
-| **C02 Scalar Vars** (J25) | 1.85M ops/s | **2.27M ops/s** | 1.07M ops/s | 2.12M ops/s | 5.33M ops/s | 290.3K ops/s |
-| **C03 Deep Chains** (J25) | 192.7K ops/s | **924.9K ops/s** | 298.8K ops/s | 1.01M ops/s | 5.62M ops/s | 78.3K ops/s |
-| **C04 Conditionals** (J25) | 1.50M ops/s | **6.63M ops/s** | 1.25M ops/s | 2.79M ops/s | 6.70M ops/s | 277.4K ops/s |
-| **C07 Nested Loop** (J25) | 99.9K ops/s | **547.9K ops/s** | 220.8K ops/s | 432.8K ops/s | 3.22M ops/s | 52.3K ops/s |
+| Workload | Viet-AOT | Velocity | Qute | jte |
+|---|---:|---:|---:|---:|
+| C01 static HTML | 12.29M ops/s | 5.63M ops/s | 10.41M ops/s | 7.32M ops/s |
+| C03 deep property chains | 1.59M ops/s | 288K ops/s | 888K ops/s | 4.40M ops/s |
+| C06 large table (100 rows) | 22.8K ops/s | 13.8K ops/s | 21.3K ops/s | 74.7K ops/s |
+| C08 HTML escaping | 734K ops/s | 584K ops/s | 709K ops/s | 1.43M ops/s |
 
-- **Velocity Modernization Payoff**: Under the evaluated benchmark configuration, Viet-AOT achieved higher throughput than Apache Velocity 2.4.1 across all C01–C08 scenarios, delivering up to **5.3x higher throughput** on conditional logic (C04).
-- **Compiled Standing**: Under the evaluated benchmark environment, Viet-AOT achieved higher throughput on raw static HTML rendering (**55.30M ops/s**) than tested alternatives and reached parity with jte 3.2.4 on conditional logic (**6.63M vs 6.70M ops/s**). On deep reflection graphs and collection iterations, jte leads compiled throughput.
-- **Low Memory Allocation**: Allocated as few as **176 bytes/op** on static output (C01) on Java 25 (fewer bytes per operation than all tested alternatives).
-
-For full methodology, allocation metrics, confidence intervals, and Java 21 results, see [Comparative Engine Benchmarks](docs/performance/comparative-benchmarks.md).
+These workload-specific scores do not establish an overall engine ranking. The run compares Viet-IR
+against the immutable 1.0.0 baseline within policy on all eight J21 workloads. OpenJDK 25 was not
+installed on the measurement host; its only Java 25 runtime was GraalVM, which does not match the
+canonical OpenJDK J25-G1 profile, so no fresh J25 values are claimed and this is not a complete
+two-profile release qualification. The [full report](docs/performance/comparative-benchmarks.md)
+includes every engine's J21 score, JMH error, allocation data, and baseline deltas. Durable raw
+data and environment records are in [`benchmark-evidence/1.1.0-j21-partial/`](benchmark-evidence/1.1.0-j21-partial/).
 
 ---
 
@@ -250,17 +254,17 @@ Explore the complete documentation suite organized by topic:
 
 ### Build Tooling
 - **[Apache Maven Plugin](docs/build-tooling/maven.md)** — Build-time AOT precompilation and verification via `viet-template-maven-plugin`.
-- **[Gradle Plugin](docs/build-tooling/gradle.md)** — Gradle Kotlin/Groovy DSL plugin configuration (`plugins { id("io.github.minh124199.viet-template") version "1.0.1" }`) and incremental build-cache.
+- **[Gradle Plugin](docs/build-tooling/gradle.md)** — Gradle Kotlin/Groovy DSL plugin configuration (`plugins { id("io.github.minh124199.viet-template") version "1.1.0" }`) and incremental build-cache.
 
 ### Developer Tooling & Schemas
 - **[Canonical Tooling Schemas](docs/schema/contract-schema-v1.md)** — Language-neutral JSON schema format (`*.vt-schema.json`) for template parameters and types.
 - **[TypeScript Declaration Projection](docs/schema/typescript-projection-v1.md)** — Automated, deterministic generation of TypeScript declaration files (`*.d.ts`) from contract schemas.
 - **[Language Server Protocol (LSP)](docs/tooling/language-server-foundation.md)** — Language server implementation providing diagnostics, autocompletion, hover, and definition navigation.
-- **[Visual Studio Code Extension](docs/tooling/vscode-extension.md)** — Official VS Code editor integration (`editors/vscode`) delivering language features, TextMate syntax highlighting, and LSP integration.
-- **[IntelliJ IDEA Plugin](docs/tooling/intellij-plugin.md)** — Official IntelliJ IDEA plugin (`editors/intellij`) providing file type registration, syntax highlighting, commenter, and LSP integration backed by the Viet Template Language Server.
+- **[Visual Studio Code Extension](docs/tooling/vscode-extension.md)** — Repository-maintained VS Code client (`editors/vscode`) with TextMate syntax highlighting and LSP integration; local VSIX packaging is documented, marketplace publication is not established.
+- **[IntelliJ IDEA Plugin](docs/tooling/intellij-plugin.md)** — Repository-maintained IntelliJ client (`editors/intellij`) with file type registration, syntax highlighting, commenter, and LSP integration; local ZIP packaging is documented, marketplace publication is not established.
 
 ### Framework Integrations
-- **[Spring Boot Integration Guide](docs/spring/spring-boot-integration.md)** — Spring Boot 4 / Framework 7 starter, property catalog, and reactive view resolution.
+- **[Spring Boot Integration Guide](docs/spring/spring-boot-integration.md)** — Spring Boot starter, current property catalog, and Spring MVC view resolution.
 - **[Spring Security Integration](docs/36-spring-security-integration.md)** — `$security` and `$csrf` template facades with contextual escaping.
 - **[Quarkus Extension Guide](docs/extensions/quarkus.md)** — Quarkus 3 CDI extension, AOT template compilation, live reload, and Qute coexistence.
 

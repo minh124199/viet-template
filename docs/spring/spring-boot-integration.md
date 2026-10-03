@@ -89,7 +89,10 @@ All properties reside under the `viet-template.*` namespace and map to `VietTemp
 | `viet-template.hot-reload` | `boolean` | `false` | Enables filesystem watcher for dynamic template reloading during local development. |
 | `viet-template.watch-debounce-millis` | `long` | `50` | Debounce window in milliseconds for filesystem modification events. |
 | `viet-template.order` | `int` | `Ordered.LOWEST_PRECEDENCE` | Order priority of `VietTemplateViewResolver` in the Spring MVC view resolver chain. |
+| `viet-template.auto-escape` | `boolean` | `true` | Enables HTML escaping for Spring MVC template output expressions by default. Set to `false` only when unescaped legacy output is intentionally required. |
 | `viet-template.security.enabled` | `boolean` | `true` | Enables Spring Security integration and exposes `$security` and `$csrf` in templates. |
+
+The 1.0 frozen configuration inventory is retained in `config/compatibility/framework-configuration-keys.json`. The current 1.1 inventory, including `auto-escape` and the Quarkus compilation profile, is `config/compatibility/framework-configuration-keys-1.1.json`.
 
 ---
 

@@ -1,4 +1,6 @@
-# 18 — Implementation Roadmap
+# 18 — Implementation Roadmap (Historical Milestone Record and Current Status)
+
+> **Status note (2026-10-03):** This document preserves the project's milestone history. Viet Template 1.1.0 is the latest published stable release, and active development is `1.1.1-SNAPSHOT` on `main`. Earlier release-phase plans are historical records; unfinished 1.0 RC soak/readiness wording below is closed by the subsequent 1.0.0 GA release, and must not be read as current work.
 
 ## Overview
 
@@ -50,7 +52,7 @@ Milestone M19.1 is complete, establishing the dedicated benchmark and profiling 
   9. `MacroAndLayoutBenchmark` (B11, B12)
 - **Baseline Capture**:
   - **M19.1a (Internal Java 17 Baseline - Completed)**: Official internal baseline captured on commit `aad9d35` across all canonical benchmark suites (`viet-template-benchmarks/build/reports/jmh/baseline-java17.json`).
-  - **M19.1b (Cross-Engine Comparators - Pending)**: Comparative benchmarks against handwritten Java, Apache Velocity 2.4.1, Quarkus Qute, jte, and Thymeleaf remain planned as separate comparator suites before adopting cross-engine claims.
+  - **M19.1b (Cross-Engine Comparators - COMPLETE)**: The comparative C01–C08 suite covers Viet-IR, Viet-AOT, Apache Velocity 2.4.1, Quarkus Qute, jte, and Thymeleaf. See the qualification evidence in `benchmark-evidence/` and `docs/performance/comparative-benchmarks.md`.
   - **M19.1c (Cross-JDK Validation - Completed)**: Cross-JDK validation across Java 17, 21, and 25 completed with identical methodology on clean commit `26567ca` (`baseline-java17.json`, `baseline-java21.json`, `baseline-java25.json`).
   - Viet Template aims to reduce rendering overhead relative to reflection-heavy interpreted template execution while approaching generated or compiled Java performance where its semantics permit. Comparative performance claims against other template engines must be based on reproducible benchmarks using equivalent workloads, configuration, escaping behavior, data models, warmup, and runtime conditions.
   - M19.1 establishes the benchmark methodology and measured baseline before numerical claims are adopted.
@@ -74,7 +76,7 @@ Release `0.2.0` introduces the next major internal runtime evolution, transition
 **Post-release infrastructure status**: 0.2.x release infrastructure hardening is COMPLETE. Central
 submission, publication monitoring, public-coordinate verification, consumer smoke testing, and
 idempotent GitHub Release finalization are separate resumable stages. This operational follow-up is
-not M19.3; M19.3 remains NOT STARTED. M15 is COMPLETE (see Milestone M15 below).
+not M19.3; M19.3 is COMPLETE (see Milestone M19.3 below). M15 is COMPLETE (see Milestone M15 below).
 
 ### Key Milestones & Capabilities (Milestone M19.2)
 
@@ -307,20 +309,14 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
     - Updated release workflow to ensure GitHub Release sets `prerelease=true` for release candidates.
     - Enforced one-SHA release provenance invariant and artifact manifest rule across documentation and tooling.
     - Reached verdict: `RC1_READY_FOR_AUTHORIZED_PUBLICATION`.
-- **Milestone M9 (Public RC Publication, External Soak, Final Compatibility Reconfirmation, and 1.0 GA Promotion Readiness) — IN PROGRESS**:
-    - **Completed (Remote RC1 Publication & Verification)**:
-        - Executed authorized remote publication of `1.0.0-RC1` to Maven Central across all 13 published artifacts and Gradle plugin marker.
-        - Created GitHub prerelease `v1.0.0-RC1` with release notes and artifact checksum manifest.
-        - Verified Central artifact propagation and completed external consumer smoke verification using `scripts/smoke-central-consumers.sh`.
-    - **Remaining (Public RC Soak & GA Promotion)**:
-        - Multi-week public RC soak evaluating real-world downstream adoption, public plugin resolution, and external migration feedback.
-        - Issue remediation and final API/ABI stability reconfirmation.
-        - Final compatibility reconfirmation and 1.0.0 GA promotion readiness decision.
+- **Milestone M9 (Public RC Publication, Compatibility Reconfirmation, and 1.0 GA Promotion) — CLOSED BY RELEASE**:
+    - The 1.0.0-RC1 publication and Central consumer verification recorded above were followed by the published 1.0.0 GA release on 2026-09-26 (commit `b951021`) and patch 1.0.1 on 2026-09-28 (commit `a6d96e3`). This closes the 1.0 promotion work; this roadmap does not claim that a multi-week public soak occurred.
+    - Subsequent releases, including 1.1.0 on 2026-10-03, supersede this historical readiness phase. Current support and release state are in the [support matrix](getting-started/support-matrix.md) and [README](../README.md).
 
 - **Roadmap Sequence Towards 1.0 GA**:
   - **0.2.3 Status**: Historical release prepared across POMs but held without tagging or publication (`PREPARED_HELD`).
   - **0.3.0 Development Line**: Completed public surface encapsulation (M1–M3.5), runtime architecture (M4), warmed-lookup simplification (M5), exception semantics hardening (M6), 1.0 candidate contract reconciliation (M7.9), and 1.0 candidate contract freeze (M8.1).
-  - **1.0.0-RC1 (Published Prerelease / Release Candidate)**: Published to Maven Central and GitHub Releases on 2026-09-24, candidate contract frozen, provenance reconciled, and undergoing public RC soak.
+  - **1.0.0-RC1 (Published Prerelease / Release Candidate)**: Published to Maven Central and GitHub Releases on 2026-09-24; the RC was superseded by GA two days later.
   - **1.0.0 GA**: General Availability release locking permanent SemVer binary backwards compatibility following RC soak (published 2026-09-26, commit b951021; patch release 1.0.1 on 2026-09-28, commit a6d96e3).
 
 ---

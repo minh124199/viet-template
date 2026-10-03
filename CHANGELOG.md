@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Receiver-Aware Dangerous Method Filtering in MemberAccessPolicy**:
     - Split dangerous method filtering into universal dangerous pivots (reflection, classloaders, modules, dynamic lookups; blocked globally on any class) and receiver-specific dangerous methods (`exit`, `halt`, `load`, `loadLibrary`, `shutdown`, `shutdownNow`, `wait`, `notify`, `interrupt`, `suspend`, `resume`).
     - Safely permits legitimate application business methods (`cache.load()`, `service.shutdown()`, `workflow.resume()`) on user-defined beans under `MemberAccessPolicy.standard()`.
-    - Documented host object exposure boundaries: standard (denylist for trusted developer templates) permits standard host classes (`File`, `Path`, `URI`, `URL`), whereas safe (fail-closed allowlist for untrusted user templates) strictly forbids all host and infrastructure classes.
+    - Documented host-object exposure boundaries: `standard()` is a developer-oriented denylist and may expose standard host classes when the application binds them; `safe()` is a fail-closed allowlist that blocks unannotated arbitrary classes while allowing the documented safe types, records, `@TemplateData` models, and explicitly permitted members.
   - **VTL_MIGRATION Profile Containment**:
     - Decoupled method invocation from dynamic evaluation: `VTL_MIGRATION` allows application domain methods (`$user.getName()`, `$service.find($id)`) while `#evaluate` remains strictly disallowed across all tiers.
   - **Compilation Profile Propagation Across Build Tools**:

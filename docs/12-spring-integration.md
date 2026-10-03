@@ -181,9 +181,9 @@ watch -> dependency invalidation -> recompile -> atomic registry swap
 
 Boot DevTools restart remains compatible but not required for template-only changes.
 
-## 15. Typed future API
+## 15. Typed template contracts
 
-A generated model/view result can provide compile-time model types while ordinary string view names continue to work.
+Viet Template supports optional typed template contracts and generated typed Java facades. They add compile-time model checking and typed invocation APIs while ordinary string view names and dynamic rendering continue to work. See the [typed-model guide](language/typed-models.md) and current Maven/Gradle tooling documentation.
 
 ## 16. Spring AOT/native
 

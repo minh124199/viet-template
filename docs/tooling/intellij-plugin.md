@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Milestone M31 establishes the official IntelliJ IDEA editor integration (`editors/intellij`) for Viet Template (`minh124199/viet-template`). The plugin connects IntelliJ IDEA to the pure Java 21 Viet Template Language Server (`VietTemplateLanguageServer`), providing first-class editing support for templates across JetBrains IDE development workflows.
+Milestone M31 provides the repository-maintained IntelliJ IDEA client (`editors/intellij`) for Viet Template (`minh124199/viet-template`). The plugin connects IntelliJ IDEA to the Java 21 Viet Template Language Server (`VietTemplateLanguageServer`), providing editing support for templates across JetBrains IDE workflows.
 
 The plugin is designed around these architectural principles:
 - **Zero Overhead on Core Java Builds**: Maintained in `editors/intellij`, leaving core Maven and Gradle reactor builds completely independent of the IntelliJ Platform SDK.
@@ -131,6 +131,8 @@ editors/intellij/build/distributions/viet-template-intellij-1.1.0.zip
 The plugin can be installed in IntelliJ IDEA (2024.2 - 2025.1.x, build range 242 to 251.*) via:
 - **Settings / Preferences > Plugins > ⚙ (Gear icon) > Install Plugin from Disk...**
 - Select `viet-template-intellij-1.1.0.zip`.
+
+This is a local plugin ZIP workflow. The repository configures packaging and compatibility verification; a ZIP build does not establish publication to JetBrains Marketplace.
 
 ---
 

@@ -2,14 +2,14 @@
 
 ## Supported Versions
 
-During the 1.0 release candidate qualification and soak period, two release tracks are actively supported: the latest stable release (`0.2.2`) receives critical backported security fixes, and the active release candidate (`1.0.0-RC1`) receives security fixes directly in the 1.0 candidate line.
+The repository records Viet Template `1.1.0` as the latest published stable release. The `1.1.1-SNAPSHOT` line is active development and is not a published release. Security fixes are prepared against the active development line; consumers should use the latest published stable release and update when a fixed release is available.
 
 | Version | Supported | Notes |
 | :--- | :--- | :--- |
-| `0.2.2` | :white_check_mark: | Latest published stable release |
-| `1.0.0-RC1` | :white_check_mark: | Published prerelease / release candidate; active qualification and soak; fixes roll into 1.0 candidate line |
+| `1.1.0` | :white_check_mark: | Latest published stable release, tagged `v1.1.0` |
+| `1.1.1-SNAPSHOT` | :x: | Active development; not a published release |
 | `0.2.3` | :x: | Prepared/held, not released |
-| `< 0.2.2` | :x: | Superseded / unsupported |
+| `< 1.1.0` | :x: | Superseded / unsupported by the current security policy |
 
 ## Security Model and Boundaries
 

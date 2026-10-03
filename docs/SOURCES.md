@@ -47,10 +47,10 @@ Integration baselines:
 - Spring Boot reference: <https://docs.spring.io/spring-boot/reference/>
 - Spring Boot auto-configuration authoring: <https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html>
 
-At the time this design pack was written (September 2026), target the current stable Spring Framework 7.0.x and Spring Boot 4.1.x lines, while treating later preview lines as CI-only compatibility targets until stable.
+**Historical design baseline:** This source inventory was written during the 1.0/1.1 development cycle. Current framework minima and independently tested versions are maintained in [`config/compatibility/framework-support.json`](../config/compatibility/framework-support.json) and summarized in the [support matrix](getting-started/support-matrix.md); do not use this initial design note as a current compatibility guarantee.
 
 > [!NOTE]
-> **Production Implementation Baseline**: Milestone M16 established the production integration with verified baseline **Spring Framework 6.1.14** and **Spring Boot 3.3.5** on Java 17 / Jakarta Servlet 6.0 (intended compatibility line: Spring Framework 6.1.x / Spring Boot 3.3.x; untested versions are not independently guaranteed; see [`docs/35-m16-spring-integration.md`](35-m16-spring-integration.md)). Spring Framework 7 / Spring Boot 4 are planned future targets, not current guarantees.
+> **Historical 1.0 implementation baseline:** Milestone M16 established an earlier Spring integration baseline of Spring Framework 6.1.14 / Spring Boot 3.3.5. Java 17 in the original design note predates the current Java 21 minimum. Framework 7 / Boot 4 are now tested; the current declared minima and exact tested versions are in [`config/compatibility/framework-support.json`](../config/compatibility/framework-support.json). This historical note does not define current support.
 
 ## Java/JVM
 

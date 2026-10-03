@@ -1,5 +1,7 @@
 # 20 — Implementation Checklist
 
+> **Historical plan and review template (2026-10-03):** This checklist spans pre-1.0 planning through the released 1.1.0 milestones. Unchecked items inside review templates are prompts for applicable future changes, not open release work. Current release and milestone state is summarized in [`18-roadmap.md`](18-roadmap.md). Explicitly deferred/disqualified candidates remain deferred rather than planned work.
+
 Status legend:
 
 - `[ ]` not started
@@ -683,7 +685,7 @@ Every optimization must preserve:
 - [x] Implement Workload B15: `TemplateCompilationCacheBenchmark` (concurrent parse, analyze, compile, and invalidation of 1,000 templates).
 - [x] Implement Workloads B11, B12: `MacroAndLayoutBenchmark` (macro parameter passing, block macros, and two-stage layout rendering).
 - [x] Milestone M19.1a: Internal Java 17 benchmark infrastructure & baseline measurement completed on clean commit `aad9d35` (`baseline-java17.json`).
-- [ ] Milestone M19.1b: Set up comparator baselines in benchmark suite: handwritten Java, Apache Velocity 2.4.1, Quarkus Qute (dynamic and typed), jte, and Thymeleaf.
+- [x] Milestone M19.1b: Implemented comparative C01–C08 benchmarks for Viet-IR, Viet-AOT, Apache Velocity 2.4.1, Quarkus Qute, jte, and Thymeleaf. See `viet-template-benchmarks/src/main/java/io/github/minh124199/viettemplate/benchmarks/comparative/` and `docs/performance/comparative-benchmarks.md`.
 - [x] Milestone M19.1c: Cross-JDK validation across Java 17, 21, and 25 completed with identical methodology on clean commit `26567ca` (`baseline-java17.json`, `baseline-java21.json`, `baseline-java25.json`).
 - [x] Document preservation of 0.1.x simple high-performance data structures: contiguous `AccessLink[]` array scan for PIC depth <= 4 (low constant factors, good locality, avoiding unnecessary hashing or node overhead), dependency graph reverse index `Map<TemplateId, Set<TemplateId>>` + cycle-safe BFS traversal using standard `ArrayDeque` and visited `HashSet`, `ExecutionContext` with `ArrayDeque<LocalScope>` and `HashMap`.
 
@@ -776,13 +778,15 @@ Post-0.2.0 baseline performance characterization, multi-JDK comparisons, and emp
   - [x] **M19.3c.5 (Foreach Metadata Observability & Elision — COMPLETE & FROZEN)**: Implemented conservative compile-time analysis in `ForeachMetadataObservability` to elide metadata object construction, wrappers, slot writes, and scope synchronization when `$foreach` is unobservable (~60% IR allocation drop for $N=100$, ~5.65 KB/op eliminated, neutral on J25 AOT), while preserving immutable snapshots when observed or dynamic hazards exist.
   - [x] **Rejected / Deferred Decisions Tracked**: RandomAccess indexing (rejected), SmallLocalScope (rejected), tagged/raw ExecutionFrame (rejected), mutable ForeachMetadata reuse (rejected), internal virtual-thread rendering (rejected by architecture), scope/map pooling and ThreadLocal caches (rejected), dense function IDs (deferred).
   - [x] **Stopping Rule & Final Program Freeze**: Fresh post-M19.3c.5 profiling did not identify another production optimization with a sufficiently favorable performance-to-complexity ratio; no M19.3c.6 selected; program frozen.
-- [ ] *(Deferred)*: Lexer and parser token allocation reductions (disqualified: token allocations <0.1% in steady state).
-- [ ] *(Deferred)*: Concurrent read-path optimizations in `TemplateDependencyGraph` (disqualified: 0 contention events observed).
-- [ ] *(Deferred)*: `invokedynamic` dynamic property resolution prototype (disqualified: contiguous `AccessLink[]` PIC scan achieves 51-85M ops/s, <1.5% rendering CPU time).
+- **Deferred/disqualified**: Lexer and parser token allocation reductions (token allocations <0.1% in the characterized steady state).
+- **Deferred/disqualified**: Concurrent read-path optimizations in `TemplateDependencyGraph` (no contention events observed in the cited study).
+- **Deferred/disqualified**: `invokedynamic` dynamic property resolution prototype (the measured contiguous `AccessLink[]` PIC scan was retained).
 
 ### 19.4 Performance PR Review Checklist
 
 Every PR modifying runtime execution paths, data structures, or caching algorithms must verify:
+
+The unchecked boxes below are a per-change review template. They do not mean a repository milestone or release gate is currently incomplete.
 
 - [ ] 1. **JMH Benchmark Evidence**: Includes before/after JMH results on relevant benchmarks.
 - [ ] 2. **Balanced Allocation & Performance Tradeoff**: Measures allocation rate (`bytes/op`) using `-prof gc`; evaluates throughput, latency, allocation rate, retained memory, and contention together on representative workloads.
@@ -806,21 +810,21 @@ Do not advertise ratios before measurement. Internal engineering targets:
 
 ---
 
-## 20. Documentation and developer experience
+## 20. Documentation and developer experience (Historical 1.0 checklist — complete)
 
-- [ ] language reference.
-- [ ] migration guide from Velocity.
-- [ ] compatibility matrix.
-- [ ] secure-template guide.
-- [ ] typed-model guide.
-- [ ] Maven/Gradle setup.
+- [x] language reference.
+- [x] migration guide from Velocity.
+- [x] compatibility matrix.
+- [x] secure-template guide.
+- [x] typed-model guide.
+- [x] Maven/Gradle setup.
 - [x] Spring MVC/Boot setup.
-- [ ] production/AOT setup.
-- [ ] native-image guide.
-- [ ] optimization/explain guide.
-- [ ] benchmark methodology.
-- [ ] error-code catalog.
-- [ ] extension author guide.
+- [x] production/AOT setup.
+- [x] native-image guide.
+- [x] optimization/explain guide.
+- [x] benchmark methodology.
+- [x] error-code catalog.
+- [x] extension author guide.
 
 ---
 
