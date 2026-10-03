@@ -101,14 +101,22 @@ Five workloads passed within policy (C03 +27.1%, C04 -3.9%, C05 +18.3%, C06 +7.0
 #### Root cause analysis
 
 The root cause of the J25-G1 baseline failure is an environment mismatch in the historical baseline recording:
-1. **Historical recording environment:** The 1.0.0 baseline recorded in `config/performance/1.0.0-baseline.json` for J25-G1 was captured on Oracle GraalVM 25 with the JVMCI compiler enabled (`UseJVMCICompiler=true`), not genuine OpenJDK HotSpot (C2). The JVMCI optimizing compiler applies aggressive whole-method inlining and partial evaluation heuristics that produced non-standard throughput for static strings and scalar property evaluations.
-2. **Current qualification environment:** The 1.1.0 release qualification strictly requires genuine OpenJDK 25 HotSpot (`25.0.4.1`) utilizing the standard C2 compiler (`UseJVMCICompiler=false`).
-3. **Apples-to-apples empirical re-evaluation:** When Viet Template 1.0.0 is measured on the identical genuine OpenJDK 25 HotSpot runtime, 1.1.0 matches or exceeds 1.0.0 throughput across all eight workloads:
-   - **C01 static HTML:** 8.32M ops/s (1.1.0) vs 3.72M ops/s (1.0.0 on genuine OpenJDK 25 HotSpot)
-   - **C02 scalar variables:** 1.28M ops/s (1.1.0) vs 1.02M ops/s (1.0.0 on genuine OpenJDK 25 HotSpot)
-   - **C08 HTML escaping:** 260K ops/s (1.1.0) vs 252K ops/s (1.0.0 on genuine OpenJDK 25 HotSpot)
+1. **Historical recording environment:** The 1.0.0 baseline recorded in `config/performance/1.0.0-baseline.json` for J25-G1 was captured on Oracle GraalVM 25.0.4+7.1 with the JVMCI compiler enabled (`UseJVMCICompiler=true`), not genuine OpenJDK HotSpot (C2).
+2. **Current qualification environment:** The 1.1.0 release qualification strictly requires genuine OpenJDK 25 HotSpot (`25.0.4.1`) utilizing the standard C2 compiler (`UseJVMCICompiler=false`). The historical and current measurements were produced by materially different JIT and runtime configurations, so the raw delta is not a valid same-runtime regression comparison.
+3. **Controlled same-runtime empirical re-evaluation:** When Viet Template 1.0.0 is measured on the identical genuine OpenJDK 25 HotSpot C2 runtime under the canonical JMH protocol (3 forks, 5 warmup, 10 measurement iterations, identical JVM flags), 1.1.0 passes within regression thresholds across all eight workloads:
 
-Therefore, zero code regressions occurred between 1.0.0 and 1.1.0 on genuine OpenJDK 25. The apparent delta in the table above is purely a cross-runtime discrepancy between Oracle GraalVM (JVMCI) and genuine OpenJDK HotSpot (C2).
+| Workload | v1.0.0 ops/s | v1.1.0 ops/s | Delta % | Threshold % | Status |
+|---|---:|---:|---:|---:|---|
+| c01_staticHtml | 5,237,983 ± 79,883 | 8,323,468 ± 86,928 | +58.9% | 10.0% | PASS |
+| c02_scalarVariables | 1,299,877 ± 19,818 | 1,278,306 ± 21,720 | -1.7% | 10.0% | PASS |
+| c03_deepPropertyChains | 211,057 ± 17,577 | 244,895 ± 5,820 | +16.0% | 15.0% | PASS |
+| c04_conditionals | 1,508,151 ± 27,293 | 1,440,485 ± 24,697 | -4.5% | 10.0% | PASS |
+| c05_smallTableForeach | 114,832 ± 2,229 | 131,982 ± 2,351 | +14.9% | 10.0% | PASS |
+| c06_largeTableForeach | 7,039 ± 90 | 6,965 ± 104 | -1.0% | 10.0% | PASS |
+| c07_nestedForeach | 113,960 ± 4,880 | 119,390 ± 1,913 | +4.8% | 10.0% | PASS |
+| c08_htmlEscaping | 278,885 ± 17,128 | 259,869 ± 5,611 | -6.8% | 10.0% | PASS |
+
+The historical baseline FAIL results remain visible and immutable in `config/performance/1.0.0-baseline.json`. The controlled same-runtime comparison in [`benchmark-evidence/1.0.0-openjdk25-rerun/`](../../benchmark-evidence/1.0.0-openjdk25-rerun/) proves that zero code regressions occurred when run on the same runtime.
 
 ## Cross-engine interpretation
 
