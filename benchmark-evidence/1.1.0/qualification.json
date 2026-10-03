@@ -52,9 +52,12 @@
     "regressionComparisonJ25": "baseline-comparison-J25-G1.txt",
     "j21Status": "PASS",
     "j25Status": "FAIL_AGAINST_HISTORICAL_GRAALVM_BASELINE",
-    "j25RootCause": "The 1.0.0 baseline recorded in config/performance/1.0.0-baseline.json for J25-G1 was empirically captured using Oracle GraalVM 25.0.4+7.1 (JVMCI JIT compiler) rather than genuine OpenJDK HotSpot C2. The historical and current measurements were produced by materially different JIT/runtime configurations, so the raw delta is not a valid same-runtime regression comparison. When measured against identical genuine OpenJDK 25 HotSpot runtime under the canonical JMH protocol, v1.1.0 passes within regression thresholds across all eight workloads with zero code regressions (durable evidence in benchmark-evidence/1.0.0-openjdk25-rerun/)."
+    "j25SameRuntimeStatus": "PASS_WITHIN_POLICY",
+    "j25SameRuntimeConclusion": "All eight workloads remain within configured regression thresholds under the same OpenJDK 25 HotSpot profile. Four workloads measured small negative throughput deltas but did not trigger the configured regression gate.",
+    "j25RootCause": "The 1.0.0 baseline recorded in config/performance/1.0.0-baseline.json for J25-G1 was empirically captured using Oracle GraalVM 25.0.4+7.1 (JVMCI JIT compiler) rather than genuine OpenJDK HotSpot C2. The historical and current measurements were produced by materially different JIT/runtime configurations, so the raw delta is not a valid same-runtime regression comparison. When measured against identical genuine OpenJDK 25 HotSpot runtime under the canonical JMH protocol, v1.1.0 passes within regression thresholds across all eight workloads with no policy-significant performance regressions (durable evidence in benchmark-evidence/1.0.0-openjdk25-rerun/)."
   },
   "evidenceFiles": [
+    "benchmark-definition.json",
     "comparative-J21-G1.json",
     "comparative-J25-G1.json",
     "environment-J21-G1.json",

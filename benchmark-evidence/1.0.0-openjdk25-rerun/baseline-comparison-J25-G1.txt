@@ -9,15 +9,14 @@ Viet Template v1.0.0 vs v1.1.0 Controlled Same-Runtime Comparison (OpenJDK 25)
 
   Workload                           v1.0.0 (ops/s)     v1.1.0 (ops/s)    Delta %   Thresh %   Status
   --------------------------------------------------------------------------------------------------
-  c01_staticHtml                          5,237,983          1,216,521     -76.8%      10.0%     FAIL
-  c02_scalarVariables                     1,299,877            287,802     -77.9%      10.0%     FAIL
-  c03_deepPropertyChains                    211,057             73,982     -64.9%      15.0%     FAIL
-  c04_conditionals                        1,508,151            291,259     -80.7%      10.0%     FAIL
-  c05_smallTableForeach                     114,832             38,494     -66.5%      10.0%     FAIL
-  c06_largeTableForeach                       7,039              2,150     -69.5%      10.0%     FAIL
-  c07_nestedForeach                         113,960             41,506     -63.6%      10.0%     FAIL
-  c08_htmlEscaping                          278,885            140,161     -49.7%      10.0%     FAIL
+  c01_staticHtml                          5,237,983          8,323,468     +58.9%      10.0%     PASS
+  c02_scalarVariables                     1,299,877          1,278,306      -1.7%      10.0%     PASS
+  c03_deepPropertyChains                    211,057            244,895     +16.0%      15.0%     PASS
+  c04_conditionals                        1,508,151          1,440,485      -4.5%      10.0%     PASS
+  c05_smallTableForeach                     114,832            131,982     +14.9%      10.0%     PASS
+  c06_largeTableForeach                       7,039              6,965      -1.0%      10.0%     PASS
+  c07_nestedForeach                         113,960            119,390      +4.8%      10.0%     PASS
+  c08_htmlEscaping                          278,885            259,869      -6.8%      10.0%     PASS
 
   Compared 8 workload(s).
-  [FAIL] Regression detected.
-
+  [PASS] All benchmarks within regression threshold.

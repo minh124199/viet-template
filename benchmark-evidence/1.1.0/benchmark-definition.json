@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "1.0.0",
+  "benchmarkSuite": "ComparativeEngineBenchmark",
+  "toolingSha": "9154489474e7285bd3667d2e7142adc638031f9e",
+  "equivalenceStatus": "IDENTICAL",
+  "protocol": {
+    "benchmarkRegex": ".*ComparativeEngineBenchmark.*",
+    "forks": 3,
+    "iterationSeconds": 1,
+    "jvmArgs": [
+      "-server",
+      "-Xms2g",
+      "-Xmx2g",
+      "-XX:+AlwaysPreTouch",
+      "-XX:+UseG1GC"
+    ],
+    "measurementIterations": 10,
+    "profilerGc": true,
+    "warmupIterations": 5
+  },
+  "runtimeIdentity": {
+    "enableJvmci": false,
+    "javaExecutableSha256": "7152ca6a1afc68a4d582a508589fbbf1dabbab5334e85639a26f0bf03c059c43",
+    "javaVersion": "25.0.4.1",
+    "useJvmciCompiler": false,
+    "vmName": "OpenJDK 64-Bit Server VM",
+    "vmVersion": "25.0.4.1"
+  },
+  "benchmarkFiles": {
+    "ComparativeEngineBenchmark.java": {
+      "path": "viet-template-benchmarks/src/main/java/io/github/minh124199/viettemplate/benchmarks/comparative/ComparativeEngineBenchmark.java",
+      "sha256": "85ae226357d6e2d11cf43edf87c8df00af87dfdc92d9e2c9f370838c4695d687"
+    },
+    "ComparativeWorkloads.java": {
+      "path": "viet-template-benchmarks/src/main/java/io/github/minh124199/viettemplate/benchmarks/comparative/ComparativeWorkloads.java",
+      "sha256": "0e8cb56820b42d57daad03361dd965cd172cba4358f59ff979e14d34227a44b1"
+    },
+    "BenchmarkEngineAdapter.java": {
+      "path": "viet-template-benchmarks/src/main/java/io/github/minh124199/viettemplate/benchmarks/comparative/BenchmarkEngineAdapter.java",
+      "sha256": "8f991184e0e6495de66dc18051794235b9cef9c10cde0060c042bf5fbcf3bed5"
+    },
+    "VietIrAdapter.java": {
+      "path": "viet-template-benchmarks/src/main/java/io/github/minh124199/viettemplate/benchmarks/comparative/VietIrAdapter.java",
+      "sha256": "86640fa9c703bba798aea8fefbbd33da5acef4cf1e09ba2799f82b9f19ea971e"
+    },
+    "VietAotAdapter.java": {
+      "path": "viet-template-benchmarks/src/main/java/io/github/minh124199/viettemplate/benchmarks/comparative/VietAotAdapter.java",
+      "sha256": "9cfe945ba3a64234d67ba9bacd9340d8daca73fc253c46586f89fa753df801c3"
+    },
+    "VelocityAdapter.java": {
+      "path": "viet-template-benchmarks/src/main/java/io/github/minh124199/viettemplate/benchmarks/comparative/VelocityAdapter.java",
+      "sha256": "7b4ed82613c0846a76ebe201f77ab590dfd23e898ff8490bc07e486e75699a42"
+    },
+    "QuteAdapter.java": {
+      "path": "viet-template-benchmarks/src/main/java/io/github/minh124199/viettemplate/benchmarks/comparative/QuteAdapter.java",
+      "sha256": "8fee32863c6d79d62fc6a1a5e1f6ea75bc470ba2f8ae7d156f564f758d5026c4"
+    },
+    "JteAdapter.java": {
+      "path": "viet-template-benchmarks/src/main/java/io/github/minh124199/viettemplate/benchmarks/comparative/JteAdapter.java",
+      "sha256": "e08a5e2bcbda1c41f56114261045c6ec66cd9fd7e7de71f010fbabc1b751b451"
+    },
+    "ThymeleafAdapter.java": {
+      "path": "viet-template-benchmarks/src/main/java/io/github/minh124199/viettemplate/benchmarks/comparative/ThymeleafAdapter.java",
+      "sha256": "c51735e9d25f2bd36d5dcc39d0e9acde186d5cf0dfed12419d8da1c5f525bdb8"
+    },
+    "CrossEngineFixtureCorrectnessTest.java": {
+      "path": "viet-template-benchmarks/src/test/java/io/github/minh124199/viettemplate/benchmarks/comparative/CrossEngineFixtureCorrectnessTest.java",
+      "sha256": "caf0c320b5b912853cdcd5af50f8819e3335467f8014d74101078fbdd3e22295"
+    },
+    "scripts/perf/run-m18-comparative-qualification.sh": {
+      "path": "scripts/perf/run-m18-comparative-qualification.sh",
+      "sha256": "70c4b05304e6bfcdc287038f7bd393e4186dc5fb51b969c4f5f0d9004ced5902"
+    },
+    "scripts/perf/jdk_identity.py": {
+      "path": "scripts/perf/jdk_identity.py",
+      "sha256": "575664ac90111388ff68c518e8386e699566fad657a30ced77c1b6799461f0a8"
+    }
+  }
+}
