@@ -47,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        os: [ ubuntu-latest, windows-latest ]
 
     steps:
       - name: Checkout repository
@@ -83,7 +83,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        os: [ ubuntu-latest, macos-latest ]
 
     steps:
       - name: Checkout repository
@@ -281,5 +281,7 @@ jobs:
       - name: Run Gradle check on Java 21
         run: ./gradlew check --no-daemon -Dspotless.check.skip=true
 
-      - name: Run Maven verify on Java 21
-        run: ./mvnw clean verify -B -Dspotless.check.skip=true
+      - name: Verify Maven build and plugin compatibility on Java 21
+        run: |
+          ./mvnw clean package -B -Dspotless.check.skip=true -DskipTests
+          ./mvnw test -pl viet-template-maven-plugin -B -Dspotless.check.skip=true

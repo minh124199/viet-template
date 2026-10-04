@@ -116,30 +116,48 @@ class ActionPinsWorkflowTests(unittest.TestCase):
                     total_actions_scanned += 1
 
         self.assertEqual([], all_errors, f"Found action pin errors:\n" + "\n".join(all_errors))
-        self.assertEqual(
-            82,
+        self.assertGreater(
             total_actions_scanned,
-            f"Expected exactly 82 action uses across workflows, found {total_actions_scanned}",
+            0,
+            "Expected at least one action use across workflows to be scanned",
         )
 
     def test_modernized_shas_and_comments_are_present(self):
-        expected_pins = {
-            "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1": 27,
-            "actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1": 20,
-            "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0": 11,
-            "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1": 7,
-            "gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0": 17,
+        canonical_pins = {
+            "actions/checkout": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1",
+            "actions/setup-java": "actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1",
+            "actions/setup-python": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0",
+            "actions/upload-artifact": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1",
+            "gradle/actions/setup-gradle": "gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0",
         }
 
-        counts = {k: 0 for k in expected_pins}
+        counts = {family: 0 for family in canonical_pins}
         for workflow_file in sorted(WORKFLOWS_DIR.glob("*.yml")):
             content = workflow_file.read_text(encoding="utf-8")
-            for line in content.splitlines():
-                for pin in expected_pins:
-                    if pin in line:
-                        counts[pin] += 1
+            for lineno, line in enumerate(content.splitlines(), 1):
+                stripped = line.strip()
+                if stripped.startswith("#"):
+                    continue
+                match = USES_LINE_PATTERN.match(line)
+                if not match:
+                    continue
+                raw_expr = match.group(1).strip()
+                action_target = raw_expr.split("#", 1)[0].strip().strip("'\"")
+                action_name = action_target.partition("@")[0].strip()
+                if action_name in canonical_pins:
+                    self.assertEqual(
+                        canonical_pins[action_name],
+                        raw_expr,
+                        f"Action {action_name} in {workflow_file.name}:{lineno} does not match canonical pin",
+                    )
+                    counts[action_name] += 1
 
-        self.assertEqual(expected_pins, counts)
+        for family, count in counts.items():
+            self.assertGreater(
+                count,
+                0,
+                f"Expected action family '{family}' to be used at least once across workflows",
+            )
 
     def test_stale_action_shas_are_completely_absent(self):
         stale_shas = [

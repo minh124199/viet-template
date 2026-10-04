@@ -817,11 +817,11 @@ signVietTemplatePluginMarkerMavenPublication - Signs the publication 'vietTempla
             self.assertFalse(result.passed)
             self.assertTrue(any("REGRESSION DETECTED: Publication with name 'pluginMaven' not found" in d for d in result.diagnostics))
 
-    def test_release_gates_script_includes_gate_10(self):
+    def test_release_gates_script_includes_gate_9(self):
         script = ROOT / "scripts" / "verify-m18-release-gates.sh"
         self.assertTrue(script.exists())
         content = script.read_text(encoding="utf-8")
-        self.assertIn("Gate 10", content)
+        self.assertIn("Gate 9", content)
         self.assertIn("verify-gradle-signing-lifecycle.py", content)
 
     def test_validate_metadata_supports_check_signing_lifecycle(self):

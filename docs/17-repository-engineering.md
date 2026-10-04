@@ -118,6 +118,14 @@ reproducible-build
 
 Full benchmark/fuzz campaigns run nightly.
 
+### 8.1 Qualification Tiers
+
+The continuous integration and verification pipeline is structured into three explicit qualification tiers to balance rapid pull request feedback with exhaustive scheduled exploration and deterministic release validation:
+
+1. **Pull Request (PR) Qualification**: Fast, reliable regression detection across authoritative semantic suites (Linux Gradle & Maven), targeted platform checks (Gradle Windows, Maven macOS), JDK 21 baseline compatibility, build parity, public API/SPI contracts, clean-room M18 release gates, pairwise DevTools lifecycle, canonical Spring native compilation with byte-for-byte AOT parity, and Quarkus native security.
+2. **Deep / Scheduled Qualification**: Overnight / weekly exploration including targeted deep fuzzing with run-specific reproducible seed (`fuzz.yml`), full DevTools matrix, full native image cross-product, and performance benchmarks (`performance.yml`).
+3. **Release Qualification**: Clean-room release qualification (`release.yml`, `scripts/verify-m18-release-gates.sh --clean-room --require-evidence`), full TCK conformance, publication signing lifecycle, public consumer fixtures, ABI stability, and release metadata verification.
+
 ## 9. Release docs
 
 Every release documents compatibility matrix, JDK/framework support, security defaults, migration notes, known limitations, benchmark report and generated-artifact compatibility.

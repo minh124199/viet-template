@@ -6,6 +6,15 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      bootGeneration:
+        description: 'Target Spring Boot generation (boot3, boot4)'
+        required: false
+        type: string
+      buildTool:
+        description: 'Target build tool (all, maven, gradle)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -21,8 +30,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ '25' ]
-        bootGeneration: [ 'boot3', 'boot4' ]
+        include:
+          - java: '25'
+            bootGeneration: 'boot3'
+            buildTool: 'maven'
+          - java: '25'
+            bootGeneration: 'boot4'
+            buildTool: 'gradle'
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -43,13 +57,13 @@ jobs:
           native-image --version
 
       - name: Run GraalVM Native Image Verification Suite
-        run: bash scripts/verify-native-image-integration.sh "${{ matrix.bootGeneration }}"
+        run: bash scripts/verify-native-image-integration.sh "${{ matrix.bootGeneration }}" "${{ matrix.buildTool }}"
 
       - name: Upload Native Application Logs on Failure
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: native-image-failure-logs-${{ matrix.bootGeneration }}-jdk${{ matrix.java }}
+          name: native-image-failure-logs-${{ matrix.bootGeneration }}-${{ matrix.buildTool }}-jdk${{ matrix.java }}
           path: |
             /tmp/native-app-*.log
             integration-tests/native/**/target/reports/

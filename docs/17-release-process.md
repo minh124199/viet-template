@@ -373,7 +373,7 @@ To ensure that signing lifecycle failures cannot recur in future release candida
    - Validates that unauthenticated developer builds remain unaffected (zero signing tasks, configuration succeeds).
    - Validates that signing-enabled builds discover both publications and register both signing tasks.
    - Validates that staged signing generates valid `.asc` signature files.
-2. **Gate 10 in M18 Qualification (`scripts/verify-m18-release-gates.sh`)**:
+2. **Gate 9 in M18 Qualification (`scripts/verify-m18-release-gates.sh`)**:
    - Unconditionally executes `scripts/verify-gradle-signing-lifecycle.py`.
 3. **CI Release Workflow Enforced**:
    - Release workflow (`.github/workflows/release.yml`) executes `scripts/verify-gradle-signing-lifecycle.py` in `package-and-validate-bundle`.

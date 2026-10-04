@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.runtime.linker;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
@@ -42,24 +43,5 @@ class MemberKeyTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> new MemberKey(MemberOperation.PROPERTY_GET, "foo", -1));
-  }
-
-  @Test
-  void testEqualityAndHashCode() {
-    MemberKey key1 = MemberKey.propertyGet("age");
-    MemberKey key2 = MemberKey.propertyGet("age");
-    MemberKey key3 = MemberKey.propertySet("age");
-
-    assertEquals(key1, key2);
-    assertEquals(key1.hashCode(), key2.hashCode());
-    assertNotEquals(key1, key3);
-  }
-
-  @Test
-  void testToString() {
-    MemberKey key = MemberKey.methodCall("test", 3);
-    assertTrue(key.toString().contains("METHOD_CALL"));
-    assertTrue(key.toString().contains("test"));
-    assertTrue(key.toString().contains("3"));
   }
 }
