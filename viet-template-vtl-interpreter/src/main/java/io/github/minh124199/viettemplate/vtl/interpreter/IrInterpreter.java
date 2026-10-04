@@ -12,7 +12,6 @@ import io.github.minh124199.viettemplate.api.TemplateRenderException;
 import io.github.minh124199.viettemplate.api.TemplateResourceException;
 import io.github.minh124199.viettemplate.api.TemplateSecurityException;
 import io.github.minh124199.viettemplate.api.UndefinedReferencePolicy;
-import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrLocal;
@@ -465,8 +464,10 @@ final class IrInterpreter {
       }
     }
 
-    if (frame.options.profile() == VtlProfile.VTL_SAFE) {
-      if (!frame.options.securityPolicy().isClassPermitted(value.getClass())) {
+    if (RenderSecurityEnforcement.shouldCheckRenderableClass(
+        frame.options.profile(), frame.options.securityPolicy())) {
+      if (frame.options.securityPolicy() != null
+          && !frame.options.securityPolicy().isClassPermitted(value.getClass())) {
         throw new TemplateSecurityException(
             "Rendering class " + value.getClass().getName() + " is denied by security policy",
             frame.templateId,
