@@ -13,6 +13,11 @@ on:
         options:
           - deep
           - normal
+      seed:
+        description: 'Fuzz seed (optional)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -46,11 +51,44 @@ jobs:
       - name: Bootstrap reactor artifacts for clean-room verification
         run: ./mvnw install -DskipTests -Dspotless.check.skip=true -B
 
-      - name: Run Deep Fuzzing via Gradle
-        run: ./gradlew test -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} --no-daemon
+      - name: Configure fuzzing seed and environment
+        run: |
+          if [ -n "${{ inputs.seed }}" ]; then
+            FUZZ_SEED="${{ inputs.seed }}"
+          else
+            FUZZ_SEED=$(printf "0x%016x" "${{ github.run_id }}")
+          fi
+          echo "FUZZ_SEED=${FUZZ_SEED}" >> $GITHUB_ENV
+          echo "Configured fuzz seed: ${FUZZ_SEED}"
+          echo "Local reproduction command (Gradle):"
+          echo "  ./gradlew :viet-template-api:test --tests TemplateIdPropertyTest -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} -DvietTemplate.fuzz.seed=${FUZZ_SEED} --no-daemon"
+          echo "  ./gradlew :viet-template-language-vtl:test --tests VtlMutationParserFuzzTest --tests VtlParserPropertyFuzzTest -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} -DvietTemplate.fuzz.seed=${FUZZ_SEED} --no-daemon"
+          echo "  ./gradlew :viet-template-runtime:test --tests EscaperPropertyTest --tests SafeUrlValidatorPropertyTest -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} -DvietTemplate.fuzz.seed=${FUZZ_SEED} --no-daemon"
+          echo "  ./gradlew :viet-template-tck:test --tests AstIrAotDifferentialFuzzTest --tests VelocityDifferentialFuzzTest -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} -DvietTemplate.fuzz.seed=${FUZZ_SEED} --no-daemon"
+          echo "Local reproduction command (Maven):"
+          echo "  ./mvnw test -pl viet-template-api,viet-template-language-vtl,viet-template-runtime,viet-template-tck -Dtest=TemplateIdPropertyTest,VtlMutationParserFuzzTest,VtlParserPropertyFuzzTest,EscaperPropertyTest,SafeUrlValidatorPropertyTest,AstIrAotDifferentialFuzzTest,VelocityDifferentialFuzzTest -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} -DvietTemplate.fuzz.seed=${FUZZ_SEED} -B"
 
-      - name: Run Deep Fuzzing via Maven
-        run: ./mvnw test -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} -B
+      - name: Run Targeted Deep Fuzzing via Gradle
+        run: |
+          ./gradlew :viet-template-api:test --tests TemplateIdPropertyTest \
+            -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} \
+            -DvietTemplate.fuzz.seed=${FUZZ_SEED} --no-daemon
+          ./gradlew :viet-template-language-vtl:test --tests VtlMutationParserFuzzTest --tests VtlParserPropertyFuzzTest \
+            -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} \
+            -DvietTemplate.fuzz.seed=${FUZZ_SEED} --no-daemon
+          ./gradlew :viet-template-runtime:test --tests EscaperPropertyTest --tests SafeUrlValidatorPropertyTest \
+            -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} \
+            -DvietTemplate.fuzz.seed=${FUZZ_SEED} --no-daemon
+          ./gradlew :viet-template-tck:test --tests AstIrAotDifferentialFuzzTest --tests VelocityDifferentialFuzzTest \
+            -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} \
+            -DvietTemplate.fuzz.seed=${FUZZ_SEED} --no-daemon
+
+      - name: Run Targeted Deep Fuzzing via Maven
+        run: |
+          ./mvnw test -pl viet-template-api,viet-template-language-vtl,viet-template-runtime,viet-template-tck \
+            -Dtest=TemplateIdPropertyTest,VtlMutationParserFuzzTest,VtlParserPropertyFuzzTest,EscaperPropertyTest,SafeUrlValidatorPropertyTest,AstIrAotDifferentialFuzzTest,VelocityDifferentialFuzzTest \
+            -DvietTemplate.fuzz.mode=${{ inputs.fuzz_mode || 'deep' }} \
+            -DvietTemplate.fuzz.seed=${FUZZ_SEED} -B
 
       - name: Upload test reports on failure
         if: failure()
