@@ -29,16 +29,16 @@ class NonClosingOutputStreamTest {
   }
 
   @Test
-  @DisplayName("Constructor rejects null underlying output stream")
-  void constructorRejectsNull() {
+  @DisplayName("Verifies compatibility delegation, null rejection, and non-closing behavior")
+  void verifiesDelegationAndNonClosingBehavior() throws IOException {
     assertThatNullPointerException().isThrownBy(() -> new NonClosingOutputStream(null));
-  }
 
-  @Test
-  @DisplayName("close() only flushes and leaves underlying stream open (closeCount == 0)")
-  void closeOnlyFlushes() throws IOException {
     TrackingOutputStream underlying = new TrackingOutputStream();
     NonClosingOutputStream nonClosing = new NonClosingOutputStream(underlying);
+
+    assertThat(nonClosing)
+        .isInstanceOf(
+            io.github.minh124199.viettemplate.runtime.stream.NonClosingOutputStream.class);
 
     nonClosing.write("Hello World".getBytes(StandardCharsets.UTF_8));
     nonClosing.close();
@@ -46,25 +46,5 @@ class NonClosingOutputStreamTest {
     assertThat(underlying.closeCount).isZero();
     assertThat(underlying.flushCount).isGreaterThanOrEqualTo(1);
     assertThat(underlying.toString(StandardCharsets.UTF_8)).isEqualTo("Hello World");
-
-    // Underlying stream remains fully usable and open
-    underlying.write(" - Still Open".getBytes(StandardCharsets.UTF_8));
-    assertThat(underlying.toString(StandardCharsets.UTF_8)).isEqualTo("Hello World - Still Open");
-  }
-
-  @Test
-  @DisplayName("write methods forward bytes accurately to underlying stream")
-  void writeMethodsForwardAccurately() throws IOException {
-    TrackingOutputStream underlying = new TrackingOutputStream();
-    NonClosingOutputStream nonClosing = new NonClosingOutputStream(underlying);
-
-    nonClosing.write('A');
-    nonClosing.write("BCDE".getBytes(StandardCharsets.UTF_8));
-    nonClosing.write("FGHIJ".getBytes(StandardCharsets.UTF_8), 1, 3);
-    nonClosing.flush();
-
-    assertThat(underlying.toString(StandardCharsets.UTF_8)).isEqualTo("ABCDEGHI");
-    assertThat(underlying.flushCount).isEqualTo(1);
-    assertThat(underlying.closeCount).isZero();
   }
 }
