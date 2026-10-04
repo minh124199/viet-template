@@ -241,7 +241,7 @@ The 1.0 release establishes stable public APIs, seamless Spring ecosystem integr
     - Backend parity verified: 75 dual-backend features produce bit-identical output; 5 IR-only features documented with rationale (`BackendParityTest.java`).
     - Independent consumer fixture: Maven and Gradle standalone projects verify external TCK consumption without reactor access (`integration-tests/tck-consumer/`, `scripts/verify-tck-consumer.sh`).
     - Comparative JMH benchmarks against Apache Velocity 2.4.1, Quarkus Qute 3.39.4, jte 3.2.4, Thymeleaf 3.1.5.RELEASE across workloads C01–C08 (`ComparativeEngineBenchmark`); cross-engine fixture correctness verified (48 tests).
-    - Master release gate: `./scripts/verify-m18-release-gates.sh` (8 gates: coverage, surface, API compat, TCK suite, cross-engine correctness, independent consumer, JSON validity × 2).
+    - Master release gate: `./scripts/verify-m18-release-gates.sh` (9 gates: coverage, surface, API compat, TCK suite, cross-engine correctness, independent consumer, benchmark manifest, evidence contract, signing lifecycle).
     - Evidence infrastructure: `benchmark-evidence/m18/`, report generator `scripts/perf/generate-benchmark-report.py`, `config/benchmark-manifest.json` (C01–C08 + B01–B15).
 - **Milestone M20 (1.0 Adoption Readiness, Migration & Documentation Suite) — COMPLETE**:
     - Complete user documentation suite across 11 thematic areas in `docs/` (`getting-started/`, `language/`, `migration/`, `security/`, `deployment/`, `native-image/`, `build-tooling/`, `spring/`, `diagnostics/`, `extensions/`, `performance/`).

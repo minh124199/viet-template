@@ -199,6 +199,15 @@ python3 scripts/verify-api-compatibility.py
 
 # Gate 6: Independent consumer fixture
 ./scripts/verify-tck-consumer.sh
+
+# Gate 7: Benchmark manifest semantic validity
+python3 scripts/verify-benchmark-manifest.py
+
+# Gate 8: Formal evidence contract (when --require-evidence is used)
+python3 scripts/perf/verify-m18-evidence.py --expected-sha $(git rev-parse HEAD)
+
+# Gate 9: Gradle plugin publication signing lifecycle & topology
+python3 scripts/verify-gradle-signing-lifecycle.py
 ```
 
 ---

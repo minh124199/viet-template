@@ -14,10 +14,9 @@
 #   4. TCK conformance suite
 #   5. Cross-engine fixture correctness
 #   6. Independent consumer fixture — Maven + Gradle (./scripts/verify-tck-consumer.sh)
-#   7. Feature matrix semantic validity
-#   8. Benchmark manifest semantic validity
-#   9. Formal evidence contract (when --require-evidence is used)
-#  10. Gradle plugin publication signing lifecycle & topology (python3 scripts/verify-gradle-signing-lifecycle.py)
+#   7. Benchmark manifest semantic validity
+#   8. Formal evidence contract (when --require-evidence is used)
+#   9. Gradle plugin publication signing lifecycle & topology (python3 scripts/verify-gradle-signing-lifecycle.py)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -144,45 +143,35 @@ else
   tail -20 /tmp/m18-gate6.log
 fi
 
-# ---------- Gate 7: Feature matrix JSON validity ----------
-echo "[Gate 7] Feature matrix JSON validity..."
-MATRIX="${ROOT_DIR}/config/tck/vtl-feature-matrix.json"
-if [ -f "${MATRIX}" ] && python3 "${ROOT_DIR}/scripts/verify-tck-coverage.py" > /tmp/m18-gate7.log 2>&1; then
-  FEAT_COUNT=$(python3 -c "import json; d=json.load(open('${MATRIX}')); print(len(d['features']))")
-  gate_pass "Gate 7: Feature matrix JSON valid (${FEAT_COUNT} features)"
-else
-  gate_fail "Gate 7: Feature matrix JSON FAILED — see /tmp/m18-gate7.log"
-fi
-
-# ---------- Gate 8: Benchmark manifest JSON validity ----------
-echo "[Gate 8] Benchmark manifest JSON validity..."
+# ---------- Gate 7: Benchmark manifest JSON validity ----------
+echo "[Gate 7] Benchmark manifest JSON validity..."
 MANIFEST="${ROOT_DIR}/config/benchmark-manifest.json"
-if [ -f "${MANIFEST}" ] && python3 "${ROOT_DIR}/scripts/verify-benchmark-manifest.py" > /tmp/m18-gate8.log 2>&1; then
+if [ -f "${MANIFEST}" ] && python3 "${ROOT_DIR}/scripts/verify-benchmark-manifest.py" > /tmp/m18-gate7.log 2>&1; then
   BENCH_COUNT=$(python3 -c "import json; d=json.load(open('${MANIFEST}')); print(len(d['workloads']))")
-  gate_pass "Gate 8: Benchmark manifest semantically valid (${BENCH_COUNT} current workloads)"
+  gate_pass "Gate 7: Benchmark manifest semantically valid (${BENCH_COUNT} current workloads)"
 else
-  gate_fail "Gate 8: Benchmark manifest JSON FAILED — see /tmp/m18-gate8.log"
+  gate_fail "Gate 7: Benchmark manifest JSON FAILED — see /tmp/m18-gate7.log"
 fi
 
-# ---------- Gate 9: formal evidence contract ----------
+# ---------- Gate 8: formal evidence contract ----------
 if [[ "${REQUIRE_EVIDENCE}" == "true" ]]; then
-  echo "[Gate 9] Formal M18 benchmark evidence contract..."
+  echo "[Gate 8] Formal M18 benchmark evidence contract..."
   if python3 "${ROOT_DIR}/scripts/perf/verify-m18-evidence.py" \
-      --expected-sha "$(git -C "${ROOT_DIR}" rev-parse HEAD)" > /tmp/m18-gate9.log 2>&1; then
-    gate_pass "Gate 9: Formal evidence manifest, checksums, SHA, and report"
+      --expected-sha "$(git -C "${ROOT_DIR}" rev-parse HEAD)" > /tmp/m18-gate8.log 2>&1; then
+    gate_pass "Gate 8: Formal evidence manifest, checksums, SHA, and report"
   else
-    gate_fail "Gate 9: Formal evidence contract FAILED — see /tmp/m18-gate9.log"
-    cat /tmp/m18-gate9.log
+    gate_fail "Gate 8: Formal evidence contract FAILED — see /tmp/m18-gate8.log"
+    cat /tmp/m18-gate8.log
   fi
 fi
 
-# ---------- Gate 10: Gradle plugin publication signing lifecycle & topology ----------
-echo "[Gate 10] Gradle plugin publication signing lifecycle & topology..."
-if python3 "${ROOT_DIR}/scripts/verify-gradle-signing-lifecycle.py" > /tmp/m18-gate10.log 2>&1; then
-  gate_pass "Gate 10: Gradle plugin publication signing lifecycle & topology"
+# ---------- Gate 9: Gradle plugin publication signing lifecycle & topology ----------
+echo "[Gate 9] Gradle plugin publication signing lifecycle & topology..."
+if python3 "${ROOT_DIR}/scripts/verify-gradle-signing-lifecycle.py" > /tmp/m18-gate9.log 2>&1; then
+  gate_pass "Gate 9: Gradle plugin publication signing lifecycle & topology"
 else
-  gate_fail "Gate 10: Gradle plugin publication signing lifecycle FAILED — see /tmp/m18-gate10.log"
-  cat /tmp/m18-gate10.log
+  gate_fail "Gate 9: Gradle plugin publication signing lifecycle FAILED — see /tmp/m18-gate9.log"
+  cat /tmp/m18-gate9.log
 fi
 
 # ---------- Summary ----------
