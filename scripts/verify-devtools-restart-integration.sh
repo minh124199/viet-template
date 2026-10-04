@@ -4,6 +4,21 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+TARGET_TOOL="${1:-all}"
+TARGET_BOOT="${2:-all}"
+
+should_run() {
+    local tool="$1"
+    local boot="$2"
+    if [ "${TARGET_TOOL}" != "all" ] && [ "${TARGET_TOOL}" != "${tool}" ]; then
+        return 1
+    fi
+    if [ "${TARGET_BOOT}" != "all" ] && [ "${TARGET_BOOT}" != "${boot}" ]; then
+        return 1
+    fi
+    return 0
+}
+
 MAVEN_REPO_LOCAL="${MAVEN_REPO_LOCAL:-${VT_DEVTOOLS_M2_REPO:-/tmp/viet-template-devtools-m2}}"
 PROJECT_VERSION="$(sed -n 's/^[[:space:]]*<version>\([^<]*\)<\/version>/\1/p' "${ROOT_DIR}/pom.xml" | head -n 1)"
 
@@ -332,7 +347,12 @@ verify_fixture() {
     cur_cl=$(wait_for_restart "${port}" "${cur_cl}")
 
     # Step 7: 10x Restart stress test & ClassLoader reclaimability
-    echo "[STEP 7] Performing restart stress test & verifying ClassLoader reclaimability..."
+    # The 10x lifecycle qualification consists of:
+    #   - 3 functional restart turnovers: Mode B AOT recompile (Step 5),
+    #     stale template deletion (Step 6), and stale template restoration (Step 6)
+    #   - 7 stress cycles (below)
+    #   = 10 total RestartClassLoader turnovers before the GC leak check.
+    echo "[STEP 7] Performing restart stress test (7 stress cycles, 10 total turnovers) & verifying ClassLoader reclaimability..."
     for i in {1..7}; do
         if [ "${build_tool}" = "maven" ]; then
             touch "${fixture_dir}/target/classes/io/github/minh124199/test/devtools/DevToolsTestController.class"
@@ -363,11 +383,33 @@ verify_fixture() {
     echo "[PASS] Fixture [${build_tool}] ${rel_dir} successfully verified."
 }
 
-# Run all 4 DevTools fixtures
-verify_fixture "maven"  "boot3" "integration-tests/devtools/maven-boot3-devtools"  19081
-verify_fixture "gradle" "boot3" "integration-tests/devtools/gradle-boot3-devtools" 19082
-verify_fixture "maven"  "boot4" "integration-tests/devtools/maven-boot4-devtools"  19083
-verify_fixture "gradle" "boot4" "integration-tests/devtools/gradle-boot4-devtools" 19084
+# Run DevTools fixtures matching TARGET_TOOL and TARGET_BOOT filters
+FIXTURES_EXECUTED=0
+
+if should_run "maven" "boot3"; then
+    verify_fixture "maven"  "boot3" "integration-tests/devtools/maven-boot3-devtools"  19081
+    FIXTURES_EXECUTED=$((FIXTURES_EXECUTED + 1))
+fi
+
+if should_run "gradle" "boot3"; then
+    verify_fixture "gradle" "boot3" "integration-tests/devtools/gradle-boot3-devtools" 19082
+    FIXTURES_EXECUTED=$((FIXTURES_EXECUTED + 1))
+fi
+
+if should_run "maven" "boot4"; then
+    verify_fixture "maven"  "boot4" "integration-tests/devtools/maven-boot4-devtools"  19083
+    FIXTURES_EXECUTED=$((FIXTURES_EXECUTED + 1))
+fi
+
+if should_run "gradle" "boot4"; then
+    verify_fixture "gradle" "boot4" "integration-tests/devtools/gradle-boot4-devtools" 19084
+    FIXTURES_EXECUTED=$((FIXTURES_EXECUTED + 1))
+fi
+
+if [ "${FIXTURES_EXECUTED}" -eq 0 ]; then
+    echo "[FAIL] No DevTools fixtures matched filter: tool='${TARGET_TOOL}', boot='${TARGET_BOOT}'!"
+    exit 1
+fi
 
 echo ""
 echo "================================================================================"
