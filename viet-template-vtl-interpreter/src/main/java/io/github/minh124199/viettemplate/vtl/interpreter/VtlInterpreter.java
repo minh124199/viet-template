@@ -486,14 +486,8 @@ public final class VtlInterpreter {
       return;
     }
 
-    boolean shouldEscapeHtml =
-        (options.profile() == VtlProfile.VTL_SAFE)
-            || (options.securityPolicy() != null && options.securityPolicy().isAutoEscapeHtml());
-    if (shouldEscapeHtml) {
-      if (value instanceof SafeHtml safe) {
-        state.output.write(safe.content());
-        return;
-      }
+    if (RenderSecurityEnforcement.shouldCheckRenderableClass(
+        options.profile(), options.securityPolicy())) {
       if (options.securityPolicy() != null
           && !options.securityPolicy().isClassPermitted(value.getClass())) {
         throw new TemplateSecurityException(
@@ -501,6 +495,16 @@ public final class VtlInterpreter {
             state.templateId,
             SourceSpan.UNKNOWN,
             InterpreterDiagnosticCodes.SECURITY_VIOLATION);
+      }
+    }
+
+    boolean shouldEscapeHtml =
+        (options.profile() == VtlProfile.VTL_SAFE)
+            || (options.securityPolicy() != null && options.securityPolicy().isAutoEscapeHtml());
+    if (shouldEscapeHtml) {
+      if (value instanceof SafeHtml safe) {
+        state.output.write(safe.content());
+        return;
       }
       CharSequence cs = (value instanceof CharSequence seq) ? seq : String.valueOf(value);
       StandardEscapers.htmlText().escape(cs, state.output);

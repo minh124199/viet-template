@@ -380,8 +380,7 @@ public final class BytecodeRuntimeBridge {
       }
     }
 
-    if (escapeMode != EscapeMode.RAW
-        || (securityPolicy != null && securityPolicy.isSafeProfile())) {
+    if (shouldCheckRenderableClass(securityPolicy)) {
       if (securityPolicy != null && !securityPolicy.isClassPermitted(value.getClass())) {
         throw new TemplateSecurityException(
             "Rendering class " + value.getClass().getName() + " is denied by security policy",
@@ -393,6 +392,10 @@ public final class BytecodeRuntimeBridge {
 
     CharSequence cs = (value instanceof CharSequence seq) ? seq : String.valueOf(value);
     StandardEscapers.get(escapeMode).escape(cs, output);
+  }
+
+  private static boolean shouldCheckRenderableClass(LinkerAccessPolicy securityPolicy) {
+    return securityPolicy != null && securityPolicy.isSafeProfile();
   }
 
   private static void renderEscaped(
@@ -447,8 +450,7 @@ public final class BytecodeRuntimeBridge {
       }
     }
 
-    if (escapeMode != EscapeMode.RAW
-        || (securityPolicy != null && securityPolicy.isSafeProfile())) {
+    if (shouldCheckRenderableClass(securityPolicy)) {
       if (securityPolicy != null && !securityPolicy.isClassPermitted(value.getClass())) {
         TemplateId templateId =
             templateIdStr != null ? TemplateId.of(templateIdStr) : TemplateId.of("<generated>");
