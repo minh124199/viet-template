@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI & Infrastructure
+- **GitHub Actions Modernization**: Modernized GitHub Actions dependencies across all workflows to current supported Node-24 releases (`actions/checkout` v7.0.1, `actions/setup-java` v6.0.1, `actions/setup-python` v7.0.0, `actions/upload-artifact` v7.0.1, `gradle/actions/setup-gradle` v6.4.0) while preserving full commit-SHA supply-chain pinning.
+
 ### Release Engineering
 - Open `1.1.1-SNAPSHOT` development baseline following the successful release of `1.1.0`.
 
