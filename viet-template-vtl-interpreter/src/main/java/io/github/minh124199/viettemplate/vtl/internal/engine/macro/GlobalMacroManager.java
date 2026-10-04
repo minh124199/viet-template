@@ -109,7 +109,7 @@ public final class GlobalMacroManager {
     return precedence;
   }
 
-  public void invalidate(TemplateId id) {
+  public synchronized void invalidate(TemplateId id) {
     if (libraryIds.isEmpty() || !libraryIds.contains(id)) {
       return;
     }
@@ -118,7 +118,7 @@ public final class GlobalMacroManager {
     macroGeneration.incrementAndGet();
   }
 
-  public void invalidateAll() {
+  public synchronized void invalidateAll() {
     if (libraryIds.isEmpty()) {
       return;
     }
