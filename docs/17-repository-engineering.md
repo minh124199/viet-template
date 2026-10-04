@@ -89,6 +89,12 @@ Spring adapter: Spring APIs
 
 Testing/benchmarks may use richer dependencies.
 
+### CI & Workflow Actions
+
+- **Update Discovery**: GitHub Actions dependency updates are proposed by Dependabot (`.github/dependabot.yml`) on a weekly cadence.
+- **Immutable Pinning**: External actions must remain pinned to immutable 40-character commit SHAs with same-line version comments (`# vX.Y.Z`).
+- **Enforcement**: Automated tests in `scripts/tests/test_action_pins.py` enforce full-SHA pinning and reject mutable tags, short SHAs, or missing comments.
+
 ## 7. Logging
 
 Use tiny event/listener or `System.Logger`; concrete logging adapter optional. No noisy hot-path logging by default.
