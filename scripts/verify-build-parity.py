@@ -5,7 +5,7 @@ scripts/verify-build-parity.py
 Verifies build parity between Gradle Kotlin DSL and Apache Maven builds:
 1. Module consistency across settings.gradle.kts and pom.xml
 2. Identity consistency: groupId, version
-3. Java baseline: release 17
+3. Java baseline: release 21
 4. Dependency version parity for key dependencies (JUnit, AssertJ, ArchUnit, google-java-format)
 5. Compiler flag parity (-parameters, -Xlint:all, -Werror, UTF-8)
 6. JAR entry parity (classes and resources) when artifacts are compiled

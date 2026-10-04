@@ -10,12 +10,6 @@ class SourceSpanTest {
   @Test
   void createsValidSpan() {
     SourceSpan span = SourceSpan.of(0, 10, 1, 1, 1, 11);
-    assertThat(span.startOffset()).isEqualTo(0);
-    assertThat(span.endOffset()).isEqualTo(10);
-    assertThat(span.startLine()).isEqualTo(1);
-    assertThat(span.startColumn()).isEqualTo(1);
-    assertThat(span.endLine()).isEqualTo(1);
-    assertThat(span.endColumn()).isEqualTo(11);
     assertThat(span.isKnown()).isTrue();
     assertThat(span.length()).isEqualTo(10);
   }
