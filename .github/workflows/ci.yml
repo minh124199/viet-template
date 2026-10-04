@@ -97,12 +97,7 @@ jobs:
           cache: 'maven'
 
       - name: Run Maven verify
-        run: |
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            ./mvnw clean verify -B -Dspotless.check.skip=true
-          else
-            ./mvnw clean verify -B -Dspotless.check.skip=true -pl '!viet-template-vtl-interpreter'
-          fi
+        run: ./mvnw clean verify -B -Dspotless.check.skip=true
 
   tck-gates-tier-a:
     name: Tier A — M18 TCK & Performance Release Gates (JDK 25)
