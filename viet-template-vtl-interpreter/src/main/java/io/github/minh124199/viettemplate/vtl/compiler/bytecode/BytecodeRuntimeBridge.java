@@ -304,7 +304,7 @@ public final class BytecodeRuntimeBridge {
       } else {
         ESCAPERS_BY_IR_MODE[escapeModeOrdinal].escape(val, output);
       }
-    } else if (nullModeOrdinal == 1 && literal != null && !literal.isEmpty()) {
+    } else if (nullModeOrdinal == 0 && literal != null && !literal.isEmpty()) {
       output.write(literal);
     }
   }
