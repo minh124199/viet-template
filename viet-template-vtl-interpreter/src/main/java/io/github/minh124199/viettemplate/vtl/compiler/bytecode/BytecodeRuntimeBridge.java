@@ -287,6 +287,28 @@ public final class BytecodeRuntimeBridge {
         securityPolicy);
   }
 
+  /**
+   * Specialized, high-throughput string output path for typed AOT templates.
+   *
+   * <p>Bypasses generic 12-argument dispatch, dynamic boxing/unboxing checks, primitive instanceof
+   * chains, and SafeHtml checks when the value is statically proven to be a String.
+   */
+  public static void writeString(
+      String val, TemplateOutput output, int escapeModeOrdinal, int nullModeOrdinal, String literal)
+      throws IOException {
+    if (val != null) {
+      if (escapeModeOrdinal == 0) {
+        output.write(val);
+      } else if (escapeModeOrdinal == 1) {
+        StandardEscapers.htmlText().escape(val, output);
+      } else {
+        ESCAPERS_BY_IR_MODE[escapeModeOrdinal].escape(val, output);
+      }
+    } else if (nullModeOrdinal == 0 && literal != null && !literal.isEmpty()) {
+      output.write(literal);
+    }
+  }
+
   public static void handleUndefinedReference(
       String literal, TemplateId templateId, SourceSpan span, UndefinedReferencePolicy policy) {
     UndefinedReferencePolicy effective = policy != null ? policy : UndefinedReferencePolicy.SILENT;

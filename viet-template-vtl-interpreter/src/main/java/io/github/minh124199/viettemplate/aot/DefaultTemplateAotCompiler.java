@@ -3,6 +3,7 @@ package io.github.minh124199.viettemplate.aot;
 import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.DiagnosticCode;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
+import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
 import io.github.minh124199.viettemplate.api.SourceSpan;
 import io.github.minh124199.viettemplate.api.TemplateContract;
 import io.github.minh124199.viettemplate.api.TemplateId;
@@ -16,6 +17,7 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnaly
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.BackendOptions;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.BackendResult;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.CompilationStatus;
@@ -108,7 +110,6 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
     Map<TemplateId, StateEntry> newState = new LinkedHashMap<>();
     List<PendingClassWrite> pendingWrites = new ArrayList<>();
     BytecodeTemplateCompiler compiler = new BytecodeTemplateCompiler();
-    BackendOptions backendOptions = BackendOptions.builder().packagePrefix(packagePrefix).build();
     boolean compilationFailed = false;
 
     if (request.generateTypedFacades()) {
@@ -292,6 +293,9 @@ class DefaultTemplateAotCompiler implements TemplateAotCompiler {
           AstToIrLowerer.lower(parseResult.template(), source, analysis, semanticOptions);
       BackendOptions.Builder backendOptionsBuilder =
           BackendOptions.builder().packagePrefix(packagePrefix);
+      if (semanticOptions.profile() == VtlProfile.VTL_SAFE) {
+        backendOptionsBuilder.securityPolicy(LinkerAccessPolicy.of(MemberAccessPolicy.safe()));
+      }
       if (modelSchema != null) {
         backendOptionsBuilder.modelSchema(modelSchema);
       }

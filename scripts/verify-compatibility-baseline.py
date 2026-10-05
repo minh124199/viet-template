@@ -106,6 +106,7 @@ ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {
 
 ALLOWED_ADDITIVE_1_X_ABI_METHODS: set[str] = {
     "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countMacroInvocation(io.github.minh124199.viettemplate.api.TemplateOutput)",
+    "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.writeString(java.lang.String, io.github.minh124199.viettemplate.api.TemplateOutput, int, int, java.lang.String)",
 }
 
 

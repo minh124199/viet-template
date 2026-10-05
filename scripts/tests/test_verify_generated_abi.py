@@ -202,9 +202,9 @@ TYPE com.example.Bar
         }
         self.assertEqual(set(baseline.keys()), expected_types)
 
-        # Check BytecodeRuntimeBridge has 17 methods including countLoopIteration and countMacroInvocation
+        # Check BytecodeRuntimeBridge has 18 methods including countLoopIteration, countMacroInvocation, and writeString
         bridge_members = baseline["io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge"]
-        self.assertEqual(len(bridge_members), 17)
+        self.assertEqual(len(bridge_members), 18)
         self.assertTrue(
             bridge_members.matches_method(
                 "countLoopIteration",
@@ -216,6 +216,19 @@ TYPE com.example.Bar
             bridge_members.matches_method(
                 "countMacroInvocation",
                 ["io.github.minh124199.viettemplate.api.TemplateOutput"],
+                "void",
+            )
+        )
+        self.assertTrue(
+            bridge_members.matches_method(
+                "writeString",
+                [
+                    "java.lang.String",
+                    "io.github.minh124199.viettemplate.api.TemplateOutput",
+                    "int",
+                    "int",
+                    "java.lang.String",
+                ],
                 "void",
             )
         )
@@ -475,6 +488,22 @@ class TestAbiValidation(unittest.TestCase):
             [
                 "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.countMacroInvocation(io.github.minh124199.viettemplate.api.TemplateOutput)"
             ],
+        )
+
+    def test_validation_passes_on_write_string_additive_1_x_method(self):
+        import copy
+
+        report = copy.deepcopy(self.valid_report)
+        report["runtime_abi"]["viet_template_methods"].append(
+            "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.writeString(java.lang.String, io.github.minh124199.viettemplate.api.TemplateOutput, int, int, java.lang.String)"
+        )
+        res = verifier.validate_abi(report, self.baseline)
+        self.assertEqual(res["status"], "PASSED")
+        self.assertEqual(res["errors"], [])
+        self.assertEqual(res["total_methods"], 24)
+        self.assertIn(
+            "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.writeString(java.lang.String, io.github.minh124199.viettemplate.api.TemplateOutput, int, int, java.lang.String)",
+            res["additive_methods"],
         )
 
     def test_validation_fails_on_removed_historical_method(self):
