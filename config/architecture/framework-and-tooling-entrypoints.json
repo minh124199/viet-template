@@ -124,6 +124,18 @@
       "description": "Maven Mojo goal generating TypeScript declaration files (*.d.ts) during process-classes phase."
     },
     {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.maven.VietTemplateValidateMojo",
+      "module": "viet-template-maven-plugin",
+      "entrypointKind": "MAVEN_MOJO",
+      "metadataSource": "@Mojo(name = \"validate\") / META-INF/maven/plugin.xml",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": false,
+      "userJavaApi": false,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Maven Mojo goal validating templates for syntax, contract conformity, and static dependencies during validate phase."
+    },
+    {
       "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask",
       "module": "viet-template-gradle-plugin",
       "entrypointKind": "GRADLE_TASK",
@@ -158,6 +170,18 @@
       "userJavaApi": true,
       "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
       "description": "Gradle task type generating TypeScript declaration files (*.d.ts) Ahead-Of-Time."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateValidateTask",
+      "module": "viet-template-gradle-plugin",
+      "entrypointKind": "GRADLE_TASK",
+      "metadataSource": "Registered by VietTemplatePlugin as validateVietTemplates task",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": true,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Gradle task type validating templates for syntax, contract conformity, and static dependencies during verification."
     },
     {
       "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension",

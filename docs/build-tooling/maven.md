@@ -114,10 +114,11 @@ Add the plugin to the `<build><plugins>` section of your `pom.xml`:
 
 ### 3.2 Plugin Goals
 
-The `viet-template-maven-plugin` provides four goals for build-time operations:
+The `viet-template-maven-plugin` provides five goals for build-time operations:
 
 | Goal | Default Phase | Description |
 |---|---|---|
+| `validate` | `validate` | Validates templates in-memory for syntax, contract conformity, and static `#parse`/`#include` dependencies without rendering. |
 | `compile` | `process-classes` | Compiles VTL templates Ahead-Of-Time into JVM bytecode and generates the registration index `META-INF/viet-template/templates.idx`. |
 | `generate-facades` | `generate-sources` | Generates strongly-typed Java facade classes from declared template contracts for compile-time safe model binding. |
 | `generate-schemas` | `process-classes` | Extracts canonical JSON contract schemas (`*.vt-schema.json`) for templates with declared `#*contract ... *#` blocks. |

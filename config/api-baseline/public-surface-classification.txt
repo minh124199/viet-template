@@ -1,14 +1,14 @@
 # Viet Template Public Surface Classification Baseline
-# Total Types: 359
-# STABLE_API: 106
-# STABLE_SPI: 27
+# Total Types: 368
+# STABLE_API: 111
+# STABLE_SPI: 28
 # EXPERIMENTAL: 5
 # FRAMEWORK_ENTRYPOINT: 4
-# BUILD_TOOL_ENTRYPOINT: 12
+# BUILD_TOOL_ENTRYPOINT: 14
 # SERVICE_ENTRYPOINT: 0
 # GENERATED_RUNTIME_ABI: 1
 # INTERNAL_CROSS_MODULE: 59
-# INTERNAL_CROSS_PACKAGE: 57
+# INTERNAL_CROSS_PACKAGE: 58
 # BENCHMARK_SUPPORT_INTERNAL: 3
 # PUBLIC_BUT_INTERNAL_ACCIDENT: 85
 #
@@ -325,10 +325,12 @@ io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateSchemasTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateTypeScriptTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplatePlugin BUILD_TOOL_ENTRYPOINT
+io.github.minh124199.viettemplate.tooling.gradle.VietTemplateValidateTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateCompileMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateFacadesMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateSchemasMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateTypeScriptMojo BUILD_TOOL_ENTRYPOINT
+io.github.minh124199.viettemplate.tooling.maven.VietTemplateValidateMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge GENERATED_RUNTIME_ABI
 io.github.minh124199.viettemplate.vtl.engine.EngineFingerprint INTERNAL_CROSS_PACKAGE
 io.github.minh124199.viettemplate.vtl.engine.VtlTemplate STABLE_API
@@ -388,3 +390,7 @@ io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter STABLE_API
 io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions STABLE_API
 io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder STABLE_API
 io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy STABLE_SPI
+io.github.minh124199.viettemplate.validation.TemplateValidationRequest STABLE_API
+io.github.minh124199.viettemplate.validation.TemplateValidationRequest$Builder STABLE_API
+io.github.minh124199.viettemplate.validation.TemplateValidationResult STABLE_API
+io.github.minh124199.viettemplate.validation.TemplateValidator STABLE_API

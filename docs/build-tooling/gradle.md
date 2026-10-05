@@ -104,10 +104,11 @@ vietTemplate {
 
 ## 4. Gradle Plugin Tasks & Cacheability
 
-The plugin registers four tasks for build-time operations:
+The plugin registers five tasks for build-time operations:
 
 | Task Name | Task Class | Description |
 |---|---|---|
+| `validateVietTemplates` | `VietTemplateValidateTask` | Validates templates in-memory for syntax, contract conformity, and static `#parse`/`#include` dependencies during `check`. |
 | `compileVietTemplates` | `VietTemplateCompileTask` | Compiles VTL templates Ahead-Of-Time into JVM bytecode and generates `META-INF/viet-template/templates.idx`. |
 | `generateVietTemplateFacades` | `VietTemplateGenerateFacadesTask` | Generates strongly-typed Java facade classes from declared template contracts. |
 | `generateVietTemplateSchemas` | `VietTemplateGenerateSchemasTask` | Generates canonical contract schemas (`*.vt-schema.json`) for templates with contracts. |
