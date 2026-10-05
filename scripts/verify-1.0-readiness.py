@@ -86,6 +86,12 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.lsp.VietTemplateLanguageServer",
     "io.github.minh124199.viettemplate.quarkus.security.QuarkusCsrfView",
     "io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityViewFactory",
+    "io.github.minh124199.viettemplate.validation.TemplateValidator",
+    "io.github.minh124199.viettemplate.validation.TemplateValidationRequest",
+    "io.github.minh124199.viettemplate.validation.TemplateValidationRequest$Builder",
+    "io.github.minh124199.viettemplate.validation.TemplateValidationResult",
+    "io.github.minh124199.viettemplate.tooling.maven.VietTemplateValidateMojo",
+    "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateValidateTask",
 }
 
 ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {

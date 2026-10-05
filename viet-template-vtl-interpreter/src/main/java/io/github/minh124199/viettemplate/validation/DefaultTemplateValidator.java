@@ -122,41 +122,27 @@ class DefaultTemplateValidator implements TemplateValidator {
       }
 
       if (request.validateDependencies()) {
-        try {
-          IrTemplate ir =
-              AstToIrLowerer.lower(parseResult.template(), source, analysis, semanticOptions);
-          Set<TemplateDependency> deps =
-              StaticDependencyExtractor.extract(
-                  ir, request.globalMacroLibraries(), request.layoutId());
-          dependencyGraph.replaceDependencies(templateId, deps);
-          for (TemplateDependency dep : deps) {
-            TemplateId targetId = dep.target();
-            if (!existsTarget(targetId, dt, request.sourceDirectories(), discovered)) {
-              allDiagnostics.add(
-                  new TemplateAotDiagnostic(
-                      templateId,
-                      dt.relPath(),
-                      DiagnosticSeverity.ERROR,
-                      DiagnosticCode.of("RESOURCE", "NOT_FOUND"),
-                      "Referenced template dependency not found: " + targetId.value(),
-                      -1,
-                      -1,
-                      -1,
-                      -1));
-            }
+        IrTemplate ir =
+            AstToIrLowerer.lower(parseResult.template(), source, analysis, semanticOptions);
+        Set<TemplateDependency> deps =
+            StaticDependencyExtractor.extract(
+                ir, request.globalMacroLibraries(), request.layoutId());
+        dependencyGraph.replaceDependencies(templateId, deps);
+        for (TemplateDependency dep : deps) {
+          TemplateId targetId = dep.target();
+          if (!existsTarget(targetId, dt, request.sourceDirectories(), discovered)) {
+            allDiagnostics.add(
+                new TemplateAotDiagnostic(
+                    templateId,
+                    dt.relPath(),
+                    DiagnosticSeverity.ERROR,
+                    DiagnosticCode.of("RESOURCE", "NOT_FOUND"),
+                    "Referenced template dependency not found: " + targetId.value(),
+                    -1,
+                    -1,
+                    -1,
+                    -1));
           }
-        } catch (Exception e) {
-          allDiagnostics.add(
-              new TemplateAotDiagnostic(
-                  templateId,
-                  dt.relPath(),
-                  DiagnosticSeverity.ERROR,
-                  DiagnosticCode.of("COMPILER", "CODEGEN_ERROR"),
-                  "Failed to lower template for dependency extraction: " + e.getMessage(),
-                  -1,
-                  -1,
-                  -1,
-                  -1));
         }
       }
     }
