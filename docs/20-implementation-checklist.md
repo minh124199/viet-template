@@ -1121,3 +1121,13 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **X8.** Server Bundling & Offline Packaging: Configured `bundleLspServer` task packaging core engine classes into `server/viet-template-lsp.jar` and built installable plugin ZIP archive `viet-template-intellij-1.1.0.zip`.
 - [x] **X9.** Comprehensive Test Suite: Implemented 29 automated tests covering unit tests (Java runtime discovery, server launcher, configuration), platform tests, and real LSP integration tests exercising `VietTemplateLanguageServer` over stdio with zero process leaks.
 - [x] **X10.** Governance & Path Safety: Implemented `scripts/verify-intellij-plugin.py` and unit tests in `scripts/tests/test_verify_intellij_plugin.py` validating descriptor metadata, build configuration, packaging, and zero hardcoded machine paths.
+
+### Deliverable Y: Build-Time Template Validation (Milestone M32 / 1.1.1)
+
+- [x] **Y1.** Shared Validation Core Architecture: Introduced `TemplateValidator`, `TemplateValidationRequest`, and `TemplateValidationResult` in `io.github.minh124199.viettemplate.validation` (`viet-template-vtl-interpreter`).
+- [x] **Y2.** In-Memory Syntax & Contract Analysis: Executes syntax parsing, `#*contract ... *#` semantic typing analysis, and static `#parse`/`#include` dependency validation purely in-memory without runtime rendering or template execution.
+- [x] **Y3.** Maven Plugin Validation Goal: Implemented `viet-template:validate` (`VietTemplateValidateMojo`) bound by default to the Maven `validate` lifecycle phase with configurable `failOnWarning`, `validateDependencies`, contract schemas, includes/excludes, and VTL compilation profiles.
+- [x] **Y4.** Gradle Plugin Validation Task: Implemented `validateVietTemplates` (`VietTemplateValidateTask`) registered under the `verification` task group and wired into Gradle's standard lifecycle `check` task.
+- [x] **Y5.** Maven & Gradle Parity: Verified 100% feature and diagnostic parity across Maven and Gradle validation tooling via `VietTemplateMavenGradleParityTest`.
+- [x] **Y6.** Governance & Public Surface Enforcement: Classified all validation public types as `STABLE_API` or `BUILD_TOOL_ENTRYPOINT` with zero non-stable signature leaks, passing all API baseline and framework entrypoint checks.
+

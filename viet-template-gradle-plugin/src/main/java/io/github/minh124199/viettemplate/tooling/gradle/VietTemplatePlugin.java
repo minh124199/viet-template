@@ -15,6 +15,7 @@ public class VietTemplatePlugin implements Plugin<Project> {
   public static final String GENERATE_FACADES_TASK_NAME = "generateVietTemplateFacades";
   public static final String GENERATE_SCHEMAS_TASK_NAME = "generateVietTemplateSchemas";
   public static final String GENERATE_TYPESCRIPT_TASK_NAME = "generateVietTemplateTypeScript";
+  public static final String VALIDATE_TASK_NAME = "validateVietTemplates";
 
   @Override
   public void apply(Project project) {
@@ -151,6 +152,26 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   typeScriptTask.dependsOn(generateSchemasTask);
                 });
 
+    TaskProvider<VietTemplateValidateTask> validateTask =
+        project
+            .getTasks()
+            .register(
+                VALIDATE_TASK_NAME,
+                VietTemplateValidateTask.class,
+                vTask -> {
+                  vTask.setDescription(
+                      "Validates Viet Template files at build time without template execution.");
+                  vTask.setGroup("verification");
+
+                  vTask.getSourceDirectory().convention(extension.getSourceDirectory());
+                  vTask.getIncludes().convention(extension.getIncludes());
+                  vTask.getExcludes().convention(extension.getExcludes());
+                  vTask.getEncoding().convention(extension.getEncoding());
+                  vTask.getFailOnWarning().convention(extension.getFailOnWarning());
+                  vTask.getTypeChecking().convention(extension.getTypeChecking());
+                  vTask.getProfile().convention(extension.getProfile());
+                });
+
     // When java plugin applied:
     // sourceSets.named("main").get().getOutput().dir(task.getOutputDirectory())
     // sourceSets.named("main").get().getResources().srcDir(task.getResourceOutputDirectory())
@@ -207,6 +228,14 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   .getTasks()
                   .named(JavaPlugin.CLASSES_TASK_NAME)
                   .configure(t -> t.dependsOn(typeScriptTask));
+
+              VietTemplateValidateTask vTask = validateTask.get();
+              vTask
+                  .getClasspath()
+                  .from(
+                      mainSourceSet.getCompileClasspath(),
+                      mainSourceSet.getOutput().getClassesDirs());
+              project.getTasks().named("check").configure(t -> t.dependsOn(validateTask));
             });
   }
 }

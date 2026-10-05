@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.minh124199.viettemplate.aot.TemplateAotCompiler;
 import io.github.minh124199.viettemplate.aot.TemplateAotRequest;
 import io.github.minh124199.viettemplate.aot.TypeScriptDeclarationProjector;
+import io.github.minh124199.viettemplate.validation.TemplateValidationRequest;
+import io.github.minh124199.viettemplate.validation.TemplateValidationResult;
+import io.github.minh124199.viettemplate.validation.TemplateValidator;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -207,5 +210,86 @@ class VietTemplateMavenGradleParityTest {
     assertThat(gradleSha256)
         .as("Maven and Gradle TypeScript outputs must have identical SHA-256 digests")
         .isEqualTo(mavenSha256);
+  }
+
+  @Test
+  @DisplayName("Maven and Gradle validation exhibit 100% diagnostic and exit parity")
+  void testMavenGradleValidationParity(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"parity-val-project\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path srcDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(srcDir);
+
+    // 1. Success parity test
+    Files.writeString(
+        srcDir.resolve("valid.vtl"), "Valid template with $name", StandardCharsets.UTF_8);
+
+    // Gradle execution
+    BuildResult gradleSuccessResult =
+        createRunner(projectDir).withArguments(VietTemplatePlugin.VALIDATE_TASK_NAME).build();
+    assertThat(gradleSuccessResult.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME)).isNotNull();
+    assertThat(gradleSuccessResult.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+
+    // Maven validation core execution on identical source
+    TemplateValidationRequest mavenRequest =
+        TemplateValidationRequest.builder()
+            .sourceDirectory(srcDir)
+            .encoding(StandardCharsets.UTF_8)
+            .build();
+    TemplateValidationResult mavenResult = TemplateValidator.create().validate(mavenRequest);
+    assertThat(mavenResult.isSuccess()).isTrue();
+    assertThat(mavenResult.errorCount()).isZero();
+
+    // 2. Syntax error failure parity test
+    Files.writeString(
+        srcDir.resolve("broken-syntax.vtl"), "#if($condition) unclosed", StandardCharsets.UTF_8);
+
+    BuildResult gradleSyntaxFail =
+        createRunner(projectDir)
+            .withArguments(VietTemplatePlugin.VALIDATE_TASK_NAME)
+            .buildAndFail();
+    assertThat(gradleSyntaxFail.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME)).isNotNull();
+    assertThat(gradleSyntaxFail.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.FAILED);
+    assertThat(gradleSyntaxFail.getOutput()).contains("[SYNTAX:PARSE_ERROR]");
+
+    TemplateValidationResult mavenSyntaxResult = TemplateValidator.create().validate(mavenRequest);
+    assertThat(mavenSyntaxResult.isSuccess()).isFalse();
+    assertThat(mavenSyntaxResult.diagnostics())
+        .anyMatch(d -> d.code().qualifiedCode().equals("SYNTAX:PARSE_ERROR"));
+
+    // 3. Missing dependency failure parity test
+    Files.delete(srcDir.resolve("broken-syntax.vtl"));
+    Files.writeString(
+        srcDir.resolve("missing-dep.vtl"), "#parse('non-existent.vtl')", StandardCharsets.UTF_8);
+
+    BuildResult gradleDepFail =
+        createRunner(projectDir)
+            .withArguments(VietTemplatePlugin.VALIDATE_TASK_NAME)
+            .buildAndFail();
+    assertThat(gradleDepFail.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME)).isNotNull();
+    assertThat(gradleDepFail.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.FAILED);
+    assertThat(gradleDepFail.getOutput()).contains("[RESOURCE:NOT_FOUND]");
+
+    TemplateValidationResult mavenDepResult = TemplateValidator.create().validate(mavenRequest);
+    assertThat(mavenDepResult.isSuccess()).isFalse();
+    assertThat(mavenDepResult.diagnostics())
+        .anyMatch(d -> d.code().qualifiedCode().equals("RESOURCE:NOT_FOUND"));
   }
 }

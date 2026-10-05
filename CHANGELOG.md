@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Milestone M32: Build-Time Template Validation**:
+  - **Shared Validation Core (`viet-template-vtl-interpreter`)**:
+    - Introduced public `TemplateValidator` interface, `TemplateValidationRequest`, and `TemplateValidationResult` in `io.github.minh124199.viettemplate.validation`.
+    - Purely in-memory validation of template syntax, contract conformity, and static `#parse`/`#include` dependency graphs without template execution or runtime rendering.
+    - Zero modification to VTL grammar, runtime semantics, or existing compiler behavior.
+  - **Maven Plugin Validation Goal (`viet-template-maven-plugin`)**:
+    - Added `viet-template:validate` goal (`VietTemplateValidateMojo`) bound to the `validate` lifecycle phase.
+    - Configurable `failOnWarning`, `validateDependencies`, contract schemas, includes/excludes, and VTL compilation profiles.
+  - **Gradle Plugin Validation Task (`viet-template-gradle-plugin`)**:
+    - Added `validateVietTemplates` task (`VietTemplateValidateTask`) registered under the `verification` task group and wired into Gradle's standard lifecycle `check` task.
+    - Full 100% feature and diagnostic parity with Maven validation tooling.
+
 ### CI & Infrastructure
 - **Dependabot for GitHub Actions**: Configured Dependabot (`.github/dependabot.yml`) to propose GitHub Actions updates on a weekly schedule while preserving immutable full-SHA pinning and same-line version comments.
 - **GitHub Actions Modernization**: Modernized GitHub Actions dependencies across all workflows to current supported Node-24 releases (`actions/checkout` v7.0.1, `actions/setup-java` v6.0.1, `actions/setup-python` v7.0.0, `actions/upload-artifact` v7.0.1, `gradle/actions/setup-gradle` v6.4.0) while preserving full commit-SHA supply-chain pinning.

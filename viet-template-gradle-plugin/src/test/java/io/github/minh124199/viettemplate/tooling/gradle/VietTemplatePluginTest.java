@@ -106,6 +106,24 @@ class VietTemplatePluginTest {
             tempDir.resolve("build/generated/viet-template/schemas").toFile().getCanonicalFile());
     assertThat(schemasTask.getDependsOn()).contains(JavaPlugin.COMPILE_JAVA_TASK_NAME);
     assertThat(classesTask.getDependsOn()).contains(schemasTaskObj);
+
+    // Verify validate task
+    Task validateTaskObj = project.getTasks().findByName(VietTemplatePlugin.VALIDATE_TASK_NAME);
+    assertThat(validateTaskObj).isInstanceOf(VietTemplateValidateTask.class);
+    VietTemplateValidateTask validateTask = (VietTemplateValidateTask) validateTaskObj;
+    assertThat(validateTask.getGroup()).isEqualTo("verification");
+    assertThat(validateTask.getTypeChecking().get()).isEqualTo("OFF");
+    assertThat(validateTask.getProfile().get()).isEqualTo("VTL_MIGRATION");
+    Task checkTask = project.getTasks().getByName("check");
+    assertThat(checkTask.getDependsOn())
+        .anySatisfy(
+            dep -> {
+              if (dep instanceof org.gradle.api.tasks.TaskProvider<?> tp) {
+                assertThat(tp.get()).isEqualTo(validateTaskObj);
+              } else {
+                assertThat(dep).isEqualTo(validateTaskObj);
+              }
+            });
   }
 
   @Test
