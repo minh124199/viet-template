@@ -309,6 +309,21 @@ public final class BytecodeRuntimeBridge {
     }
   }
 
+  /**
+   * Specialized, high-throughput integer output path for typed AOT templates.
+   *
+   * <p>Bypasses generic 12-argument dispatch, primitive instanceof chains, and SafeHtml checks when
+   * the value is statically proven to be an Integer or primitive int.
+   */
+  public static void writeInteger(
+      Integer val, TemplateOutput output, int nullModeOrdinal, String literal) throws IOException {
+    if (val != null) {
+      output.writeInt(val.intValue());
+    } else if (nullModeOrdinal == 0 && literal != null && !literal.isEmpty()) {
+      output.write(literal);
+    }
+  }
+
   public static void handleUndefinedReference(
       String literal, TemplateId templateId, SourceSpan span, UndefinedReferencePolicy policy) {
     UndefinedReferencePolicy effective = policy != null ? policy : UndefinedReferencePolicy.SILENT;

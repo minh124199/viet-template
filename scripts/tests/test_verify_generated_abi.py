@@ -202,9 +202,9 @@ TYPE com.example.Bar
         }
         self.assertEqual(set(baseline.keys()), expected_types)
 
-        # Check BytecodeRuntimeBridge has 18 methods including countLoopIteration, countMacroInvocation, and writeString
+        # Check BytecodeRuntimeBridge has 19 methods including countLoopIteration, countMacroInvocation, writeString, and writeInteger
         bridge_members = baseline["io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge"]
-        self.assertEqual(len(bridge_members), 18)
+        self.assertEqual(len(bridge_members), 19)
         self.assertTrue(
             bridge_members.matches_method(
                 "countLoopIteration",
@@ -226,6 +226,18 @@ TYPE com.example.Bar
                     "java.lang.String",
                     "io.github.minh124199.viettemplate.api.TemplateOutput",
                     "int",
+                    "int",
+                    "java.lang.String",
+                ],
+                "void",
+            )
+        )
+        self.assertTrue(
+            bridge_members.matches_method(
+                "writeInteger",
+                [
+                    "java.lang.Integer",
+                    "io.github.minh124199.viettemplate.api.TemplateOutput",
                     "int",
                     "java.lang.String",
                 ],
@@ -503,6 +515,22 @@ class TestAbiValidation(unittest.TestCase):
         self.assertEqual(res["total_methods"], 24)
         self.assertIn(
             "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.writeString(java.lang.String, io.github.minh124199.viettemplate.api.TemplateOutput, int, int, java.lang.String)",
+            res["additive_methods"],
+        )
+
+    def test_validation_passes_on_write_integer_additive_1_x_method(self):
+        import copy
+
+        report = copy.deepcopy(self.valid_report)
+        report["runtime_abi"]["viet_template_methods"].append(
+            "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.writeInteger(java.lang.Integer, io.github.minh124199.viettemplate.api.TemplateOutput, int, java.lang.String)"
+        )
+        res = verifier.validate_abi(report, self.baseline)
+        self.assertEqual(res["status"], "PASSED")
+        self.assertEqual(res["errors"], [])
+        self.assertEqual(res["total_methods"], 24)
+        self.assertIn(
+            "io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge.writeInteger(java.lang.Integer, io.github.minh124199.viettemplate.api.TemplateOutput, int, java.lang.String)",
             res["additive_methods"],
         )
 

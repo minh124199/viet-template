@@ -50,6 +50,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStoreLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteConst;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteValue;
 import io.github.minh124199.viettemplate.language.vtl.ir.verifier.IrVerifier;
+import io.github.minh124199.viettemplate.language.vtl.semantics.type.PrimitiveKind;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite;
 import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
@@ -814,6 +815,38 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       return;
     }
 
+    if (!isStrict
+        && !isSafeProfile
+        && wv.nullMode()
+            != io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode.THROW_ERROR
+        && isStaticInt(wv.value(), context)) {
+      compileExpression(wv.value(), mw, context);
+      mw.checkcast("java/lang/Integer");
+      mw.aload(2); // output
+      mw.iconst(wv.nullMode().ordinal());
+
+      String literal = null;
+      if (wv.nullMode()
+              == io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode
+                  .LITERAL_EXPRESSION
+          && wv.span() != null
+          && wv.span().isKnown()) {
+        literal = "$" + extractRootName(wv.value());
+      }
+
+      if (literal != null) {
+        mw.ldc(literal);
+      } else {
+        mw.aconst_null();
+      }
+
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "writeInteger",
+          "(Ljava/lang/Integer;Lio/github/minh124199/viettemplate/api/TemplateOutput;ILjava/lang/String;)V");
+      return;
+    }
+
     compileExpression(wv.value(), mw, context);
     mw.aload(2); // output
     mw.iconst(wv.escapeMode().ordinal());
@@ -887,6 +920,64 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         return ct.javaClass().get() == String.class;
       }
       return "java.lang.String".equals(ct.className());
+    }
+    return false;
+  }
+
+  private static boolean isStaticInt(IrExpression expr) {
+    return isStaticInt(expr, null);
+  }
+
+  private static boolean isStaticInt(IrExpression expr, CompilerContext context) {
+    if (expr == null) {
+      return false;
+    }
+    if (context != null && !context.isTyped()) {
+      return false;
+    }
+    if (expr instanceof IrConst c) {
+      return c.value() instanceof Integer;
+    }
+    if (expr instanceof IrLoadParam param) {
+      return isIntegerType(param.type());
+    }
+    if (expr instanceof IrLoadLocal local) {
+      if (context != null && context.isNonIntLocal(local.slot())) {
+        return false;
+      }
+      return isIntegerType(local.type());
+    }
+    if (expr instanceof IrGetProperty prop) {
+      AccessPlan plan = prop.accessPlan();
+      if (plan instanceof AccessPlan.DirectRecord rec) {
+        return rec.returnType() == int.class || rec.returnType() == Integer.class;
+      }
+      if (plan instanceof AccessPlan.DirectGetter getter) {
+        return getter.returnType() == int.class || getter.returnType() == Integer.class;
+      }
+      if (plan instanceof AccessPlan.DirectField field) {
+        return field.fieldType() == int.class || field.fieldType() == Integer.class;
+      }
+      return false;
+    }
+    if (expr instanceof IrConvert conv) {
+      return isIntegerType(conv.type());
+    }
+    return false;
+  }
+
+  private static boolean isIntegerType(VType type) {
+    if (type == null) {
+      return false;
+    }
+    if (type instanceof VType.PrimitiveType pt) {
+      return pt.kind() == PrimitiveKind.INT;
+    }
+    if (type instanceof VType.ClassType ct) {
+      if (ct.javaClass().isPresent()) {
+        return ct.javaClass().get() == Integer.class || ct.javaClass().get() == int.class;
+      }
+      return "java.lang.Integer".equals(ct.className()) || "int".equals(ct.className());
     }
     return false;
   }
@@ -1903,6 +1994,8 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
     final String internalName;
     final String fqcn;
     final String fingerprint;
+    final boolean isTyped;
+    final Set<Integer> nonIntLocalSlots = new HashSet<>();
     final List<DynamicSiteSpec> dynamicSites = new ArrayList<>();
     final List<byte[]> utf8Chunks = new ArrayList<>();
     final List<TemplateSidecarIndex.SourceMapping> sourceMappings = new ArrayList<>();
@@ -1948,6 +2041,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       this.internalName = internalName;
       this.fqcn = fqcn;
       this.fingerprint = fingerprint;
+      this.isTyped = options.modelSchema().isPresent() || !template.parameters().isEmpty();
       this.layout = IrSlotLayout.layout(template);
       if (baseTempSlot < SLOT_OFFSET) {
         throw new IllegalStateException(
@@ -1961,6 +2055,43 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       this.scratchSlot = scratchSlot;
       this.scratchSlotBase = scratchSlot;
       this.totalLocals = totalLocals;
+      if (this.isTyped) {
+        int prevSize;
+        do {
+          prevSize = nonIntLocalSlots.size();
+          scanNonIntLocals(template.root());
+          for (IrFunction fn : template.functions()) {
+            scanNonIntLocals(fn.body());
+          }
+        } while (nonIntLocalSlots.size() > prevSize);
+      }
+    }
+
+    boolean isTyped() {
+      return isTyped;
+    }
+
+    boolean isNonIntLocal(int slot) {
+      return nonIntLocalSlots.contains(slot);
+    }
+
+    private void scanNonIntLocals(IrBlock block) {
+      if (block == null) {
+        return;
+      }
+      for (IrStatement stmt : block.statements()) {
+        if (stmt instanceof IrStoreLocal sl) {
+          if (!isStaticInt(sl.value(), this)) {
+            nonIntLocalSlots.add(sl.local().slot());
+          }
+        } else if (stmt instanceof IrIf ifStmt) {
+          scanNonIntLocals(ifStmt.thenBlock());
+          ifStmt.elseBlock().ifPresent(this::scanNonIntLocals);
+        } else if (stmt instanceof IrLoop loop) {
+          scanNonIntLocals(loop.body());
+          loop.elseBody().ifPresent(this::scanNonIntLocals);
+        }
+      }
     }
 
     int registerDynamicSite(String memberName, MemberOperation operation, int arity) {
