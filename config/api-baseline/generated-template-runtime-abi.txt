@@ -49,3 +49,4 @@ TYPE io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBrid
   MEMBER public static java.lang.Object unaryOp(java.lang.Object, int, java.lang.String, int, int, int, int)
   MEMBER public static void writeConst(io.github.minh124199.viettemplate.api.TemplateOutput, java.lang.String, byte[])
   MEMBER public static void writeValue(java.lang.Object, io.github.minh124199.viettemplate.api.TemplateOutput, int, int, java.lang.String, boolean, java.lang.String, int, int, int, int, io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy)
+  MEMBER public static void writeString(java.lang.String, io.github.minh124199.viettemplate.api.TemplateOutput, int, int, java.lang.String)

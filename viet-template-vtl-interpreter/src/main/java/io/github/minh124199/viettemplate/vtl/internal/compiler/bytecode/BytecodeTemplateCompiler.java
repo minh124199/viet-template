@@ -50,6 +50,7 @@ import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStoreLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteConst;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteValue;
 import io.github.minh124199.viettemplate.language.vtl.ir.verifier.IrVerifier;
+import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite;
 import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
 import io.github.minh124199.viettemplate.runtime.linker.MemberOperation;
@@ -771,6 +772,48 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
   private static void compileWriteValue(
       IrWriteValue wv, ClassFileWriter.MethodWriter mw, CompilerContext context) {
+    boolean isStrict =
+        context.options.strictReferences()
+            || wv.nullMode()
+                == io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode
+                    .THROW_ERROR;
+    boolean isSafeProfile =
+        context.options.securityPolicy() != null
+            && context.options.securityPolicy().isSafeProfile();
+
+    if (!isStrict
+        && !isSafeProfile
+        && wv.nullMode()
+            != io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode.THROW_ERROR
+        && isStaticString(wv.value())) {
+      compileExpression(wv.value(), mw, context);
+      mw.checkcast("java/lang/String");
+      mw.aload(2); // output
+      mw.iconst(wv.escapeMode().ordinal());
+      mw.iconst(wv.nullMode().ordinal());
+
+      String literal = null;
+      if (wv.nullMode()
+              == io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode
+                  .LITERAL_EXPRESSION
+          && wv.span() != null
+          && wv.span().isKnown()) {
+        literal = "$" + extractRootName(wv.value());
+      }
+
+      if (literal != null) {
+        mw.ldc(literal);
+      } else {
+        mw.aconst_null();
+      }
+
+      mw.invokestatic(
+          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+          "writeString",
+          "(Ljava/lang/String;Lio/github/minh124199/viettemplate/api/TemplateOutput;IILjava/lang/String;)V");
+      return;
+    }
+
     compileExpression(wv.value(), mw, context);
     mw.aload(2); // output
     mw.iconst(wv.escapeMode().ordinal());
@@ -788,11 +831,6 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       mw.aconst_null();
     }
 
-    boolean isStrict =
-        context.options.strictReferences()
-            || wv.nullMode()
-                == io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode
-                    .THROW_ERROR;
     mw.iconst(isStrict ? 1 : 0);
     mw.ldc(context.template.id().value());
     SourceSpan span = wv.span();
@@ -809,6 +847,48 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
         "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
         "writeValue",
         "(Ljava/lang/Object;Lio/github/minh124199/viettemplate/api/TemplateOutput;IILjava/lang/String;ZLjava/lang/String;IIIILio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;)V");
+  }
+
+  private static boolean isStaticString(IrExpression expr) {
+    if (expr == null) {
+      return false;
+    }
+    if (expr instanceof IrConst c) {
+      return c.value() instanceof String;
+    }
+    if (expr instanceof IrLoadParam param) {
+      return isStringType(param.type());
+    }
+    if (expr instanceof IrLoadLocal local) {
+      return isStringType(local.type());
+    }
+    if (expr instanceof IrGetProperty prop) {
+      AccessPlan plan = prop.accessPlan();
+      if (plan instanceof AccessPlan.DirectRecord rec) {
+        return rec.returnType() == String.class;
+      }
+      if (plan instanceof AccessPlan.DirectGetter getter) {
+        return getter.returnType() == String.class;
+      }
+      if (plan instanceof AccessPlan.DirectField field) {
+        return field.fieldType() == String.class;
+      }
+      return false;
+    }
+    if (expr instanceof IrConvert conv) {
+      return isStringType(conv.type());
+    }
+    return false;
+  }
+
+  private static boolean isStringType(VType type) {
+    if (type instanceof VType.ClassType ct) {
+      if (ct.javaClass().isPresent()) {
+        return ct.javaClass().get() == String.class;
+      }
+      return "java.lang.String".equals(ct.className());
+    }
+    return false;
   }
 
   private static void compileIf(
