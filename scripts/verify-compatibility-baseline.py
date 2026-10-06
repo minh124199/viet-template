@@ -105,6 +105,22 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.OutputSpecializationDecider",
     "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.WriteDispatchDecision",
     "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.WriteDispatchKind",
+    "io.github.minh124199.viettemplate.migration.MigrationCategory",
+    "io.github.minh124199.viettemplate.migration.MigrationClassification",
+    "io.github.minh124199.viettemplate.migration.MigrationConfidence",
+    "io.github.minh124199.viettemplate.migration.MigrationFinding",
+    "io.github.minh124199.viettemplate.migration.MigrationReadinessStatus",
+    "io.github.minh124199.viettemplate.migration.MigrationReport",
+    "io.github.minh124199.viettemplate.migration.MigrationRule",
+    "io.github.minh124199.viettemplate.migration.MigrationRuleRegistry",
+    "io.github.minh124199.viettemplate.migration.MigrationSeverity",
+    "io.github.minh124199.viettemplate.migration.MigrationSummary",
+    "io.github.minh124199.viettemplate.migration.SingleTemplateMigration",
+    "io.github.minh124199.viettemplate.migration.TemplateMigrationAnalyzer",
+    "io.github.minh124199.viettemplate.migration.TemplateMigrationRequest",
+    "io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder",
+    "io.github.minh124199.viettemplate.tooling.maven.VietTemplateMigrationReportMojo",
+    "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateMigrationReportTask",
 }
 
 ALLOWED_ADDITIVE_1_X_ENTRYPOINTS: set[str] = {
@@ -120,6 +136,8 @@ ALLOWED_ADDITIVE_1_X_ENTRYPOINTS: set[str] = {
     "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateValidateTask",
     "io.github.minh124199.viettemplate.tooling.maven.VietTemplateExplainMojo",
     "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExplainTask",
+    "io.github.minh124199.viettemplate.tooling.maven.VietTemplateMigrationReportMojo",
+    "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateMigrationReportTask",
 }
 
 ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {

@@ -104,12 +104,13 @@ vietTemplate {
 
 ## 4. Gradle Plugin Tasks & Cacheability
 
-The plugin registers six tasks for build-time operations:
+The plugin registers seven tasks for build-time operations:
 
 | Task Name | Task Class | Description |
 |---|---|---|
 | `validateVietTemplates` | `VietTemplateValidateTask` | Validates templates in-memory for syntax, contract conformity, and static `#parse`/`#include` dependencies during `check`. |
 | `explainVietTemplates` | `VietTemplateExplainTask` | Explains compiler decisions (types, access planning, output dispatch specialization, AOT eligibility) in structured text/JSON without rendering (`help` group). |
+| `migrationReport` | `VietTemplateMigrationReportTask` | Analyzes existing Apache Velocity templates against documented compatibility facts, producing structured text/JSON migration reports with readiness status and remediation guidance (`help` group). |
 | `compileVietTemplates` | `VietTemplateCompileTask` | Compiles VTL templates Ahead-Of-Time into JVM bytecode and generates `META-INF/viet-template/templates.idx`. |
 | `generateVietTemplateFacades` | `VietTemplateGenerateFacadesTask` | Generates strongly-typed Java facade classes from declared template contracts. |
 | `generateVietTemplateSchemas` | `VietTemplateGenerateSchemasTask` | Generates canonical contract schemas (`*.vt-schema.json`) for templates with contracts. |
@@ -151,6 +152,26 @@ The `explainVietTemplates` task exposes structured compiler truth regarding type
 
 # Fail if dynamic fallback paths are required
 ./gradlew explainVietTemplates -PvietTemplate.failOnDynamicFallback=true
+```
+
+### 4.3 Velocity Migration Report (`migrationReport`)
+The `migrationReport` task analyzes existing Apache Velocity templates against documented compatibility facts, producing a structured migration readiness report:
+
+```bash
+# Human-readable migration analysis of templates in src/main/viet-template
+./gradlew migrationReport
+
+# Target a specific template
+./gradlew migrationReport -PvietTemplate.template=order.vm
+
+# Output structured JSON report
+./gradlew migrationReport -PvietTemplate.format=json -PvietTemplate.outputFile=build/reports/velocity-migration-report.json
+
+# Fail build on migration blockers
+./gradlew migrationReport -PvietTemplate.failOnBlocker=true
+
+# Analyze under strict reference mode
+./gradlew migrationReport -PvietTemplate.strictReferences=true
 ```
 
 ---

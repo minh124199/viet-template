@@ -148,6 +148,18 @@
       "description": "Maven Mojo goal explaining template compilation and expression-level compiler decisions."
     },
     {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.maven.VietTemplateMigrationReportMojo",
+      "module": "viet-template-maven-plugin",
+      "entrypointKind": "MAVEN_MOJO",
+      "metadataSource": "@Mojo(name = \"migration-report\") / META-INF/maven/plugin.xml",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": false,
+      "userJavaApi": false,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Maven Mojo goal generating Apache Velocity 2.4.1 migration report."
+    },
+    {
       "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask",
       "module": "viet-template-gradle-plugin",
       "entrypointKind": "GRADLE_TASK",
@@ -206,6 +218,18 @@
       "userJavaApi": true,
       "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
       "description": "Gradle task type explaining template compilation and expression-level compiler decisions."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateMigrationReportTask",
+      "module": "viet-template-gradle-plugin",
+      "entrypointKind": "GRADLE_TASK",
+      "metadataSource": "Registered by VietTemplatePlugin as migrationReport task",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": true,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Gradle task type generating Apache Velocity 2.4.1 migration report."
     },
     {
       "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension",

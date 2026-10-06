@@ -10,6 +10,11 @@ import io.github.minh124199.viettemplate.explanation.SingleTemplateExplanation;
 import io.github.minh124199.viettemplate.explanation.TemplateExplainRequest;
 import io.github.minh124199.viettemplate.explanation.TemplateExplainer;
 import io.github.minh124199.viettemplate.explanation.TemplateExplanation;
+import io.github.minh124199.viettemplate.migration.MigrationReport;
+import io.github.minh124199.viettemplate.migration.MigrationRuleRegistry;
+import io.github.minh124199.viettemplate.migration.MigrationSeverity;
+import io.github.minh124199.viettemplate.migration.TemplateMigrationAnalyzer;
+import io.github.minh124199.viettemplate.migration.TemplateMigrationRequest;
 import io.github.minh124199.viettemplate.validation.TemplateValidationRequest;
 import io.github.minh124199.viettemplate.validation.TemplateValidationResult;
 import io.github.minh124199.viettemplate.validation.TemplateValidator;
@@ -431,5 +436,112 @@ class VietTemplateMavenGradleParityTest {
             .orElseThrow();
     assertThat(dynamicExpr.aotEligible()).isFalse();
     assertThat(dynamicExpr.aotRejectionReasons()).contains("UNTYPED_TEMPLATE");
+  }
+
+  @Test
+  @DisplayName(
+      "Maven and Gradle migration report produce byte-for-byte identical structured JSON and"
+          + " identical findings")
+  void testMavenGradleMigrationReportParity(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"parity-migration-project\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n"
+            + "tasks.named<io.github.minh124199.viettemplate.tooling.gradle.VietTemplateMigrationReportTask>(\"migrationReport\")"
+            + " {\n"
+            + "    format.set(\"json\")\n"
+            + "    outputFile.set(layout.buildDirectory.file(\"migration-report.json\"))\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path srcDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(srcDir);
+
+    // 1. Exact compatible template
+    Files.writeString(
+        srcDir.resolve("1_exact.vtl"),
+        "#set($title = 'Welcome')\n<h1>$title</h1>\n#if($user)\n<p>Hello $user.name</p>\n#end\n",
+        StandardCharsets.UTF_8);
+
+    // 2. Division by zero template
+    Files.writeString(
+        srcDir.resolve("2_divzero.vtl"), "#set($x = 10 / 0)\n", StandardCharsets.UTF_8);
+
+    // 3. Dynamic parse template
+    Files.writeString(
+        srcDir.resolve("3_dynamic_parse.vtl"), "#parse($dynamicPage)\n", StandardCharsets.UTF_8);
+
+    // 4. Security class access template
+    Files.writeString(
+        srcDir.resolve("4_security.vtl"),
+        "$user.class\n$user.getClass()\n",
+        StandardCharsets.UTF_8);
+
+    // Execute Gradle migrationReport task
+    BuildResult gradleResult =
+        createRunner(projectDir)
+            .withArguments(VietTemplatePlugin.MIGRATION_REPORT_TASK_NAME)
+            .build();
+
+    assertThat(gradleResult.task(":" + VietTemplatePlugin.MIGRATION_REPORT_TASK_NAME)).isNotNull();
+    assertThat(gradleResult.task(":" + VietTemplatePlugin.MIGRATION_REPORT_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+
+    Path gradleOutputFile = projectDir.resolve("build/migration-report.json");
+    assertThat(gradleOutputFile).isRegularFile();
+    byte[] gradleBytes = Files.readAllBytes(gradleOutputFile);
+    String gradleSha256 = sha256Hex(gradleBytes);
+
+    // Execute Maven migration report logic on identical input source directory
+    Path mavenOutputDir = projectDir.resolve("target");
+    Path mavenOutputFile = mavenOutputDir.resolve("migration-report.json");
+    TemplateMigrationRequest mavenRequest =
+        TemplateMigrationRequest.builder()
+            .sourceDirectory(srcDir)
+            .format("json")
+            .outputFile(mavenOutputFile)
+            .failOnBlocker(false)
+            .failOnWarning(false)
+            .build();
+
+    TemplateMigrationAnalyzer analyzer = TemplateMigrationAnalyzer.create();
+    MigrationReport mavenReport = analyzer.analyze(mavenRequest);
+    String mavenJson = mavenReport.asJson();
+    Files.createDirectories(mavenOutputDir);
+    Files.writeString(mavenOutputFile, mavenJson, StandardCharsets.UTF_8);
+
+    byte[] mavenBytes = Files.readAllBytes(mavenOutputFile);
+    String mavenSha256 = sha256Hex(mavenBytes);
+
+    // Verify exact byte-for-byte and SHA-256 parity
+    assertThat(gradleBytes)
+        .as("Maven and Gradle migration report JSON outputs must be byte-for-byte identical")
+        .isEqualTo(mavenBytes);
+    assertThat(gradleSha256)
+        .as("Maven and Gradle migration report JSON outputs must have identical SHA-256 digests")
+        .isEqualTo(mavenSha256);
+
+    // Verify summary counts and findings
+    assertThat(mavenReport.summary().totalTemplates()).isEqualTo(4);
+    assertThat(mavenReport.summary().findingsBySeverity().get(MigrationSeverity.BLOCKER))
+        .isGreaterThan(0);
+    assertThat(mavenReport.summary().findingsBySeverity().get(MigrationSeverity.WARNING))
+        .isGreaterThan(0);
+
+    // Check specific rule findings are present
+    assertThat(mavenReport.allFindings())
+        .anyMatch(f -> f.ruleId().equals(MigrationRuleRegistry.ID_ARITH_DIV_ZERO))
+        .anyMatch(f -> f.ruleId().equals(MigrationRuleRegistry.ID_PARSE_DYNAMIC))
+        .anyMatch(f -> f.ruleId().equals(MigrationRuleRegistry.ID_SEC_CLASS_ACCESS));
   }
 }

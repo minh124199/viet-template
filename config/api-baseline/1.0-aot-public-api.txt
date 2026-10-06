@@ -281,3 +281,229 @@ TYPE public final class io.github.minh124199.viettemplate.explanation.TemplateEx
   MEMBER public java.util.List<io.github.minh124199.viettemplate.explanation.SingleTemplateExplanation> templates()
 
 
+TYPE public final class io.github.minh124199.viettemplate.migration.MigrationCategory extends java.lang.Enum<io.github.minh124199.viettemplate.migration.MigrationCategory>
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationCategory ARITHMETIC
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationCategory DYNAMIC_BEHAVIOR
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationCategory EVALUATE
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationCategory EXTENSION
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationCategory FOREACH
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationCategory INCLUDE
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationCategory MACRO
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationCategory NULL_UNDEFINED
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationCategory PARSE
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationCategory REFERENCE
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationCategory SECURITY
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationCategory STRICT_REFERENCES
+  MEMBER public static io.github.minh124199.viettemplate.migration.MigrationCategory valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.migration.MigrationCategory[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.migration.MigrationClassification extends java.lang.Enum<io.github.minh124199.viettemplate.migration.MigrationClassification>
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationClassification COMPATIBLE_WITH_CONFIGURATION
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationClassification DYNAMICALLY_UNVERIFIABLE
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationClassification EXACT_COMPATIBLE
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationClassification KNOWN_BEHAVIOR_DIFFERENCE
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationClassification SECURITY_RESTRICTED
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationClassification UNSUPPORTED
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationClassification VIET_TEMPLATE_EXTENSION
+  MEMBER public static io.github.minh124199.viettemplate.migration.MigrationClassification valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.migration.MigrationClassification[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.migration.MigrationConfidence extends java.lang.Enum<io.github.minh124199.viettemplate.migration.MigrationConfidence>
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationConfidence DOCUMENTED_DIFFERENCE
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationConfidence DYNAMICALLY_UNVERIFIABLE
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationConfidence STATICALLY_VERIFIED
+  MEMBER public static io.github.minh124199.viettemplate.migration.MigrationConfidence valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.migration.MigrationConfidence[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.migration.MigrationFinding extends java.lang.Record implements java.io.Serializable
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.SourceSpan sourceSpan()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId templateId()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationCategory category()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationClassification classification()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationConfidence confidence()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationFinding(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.migration.MigrationCategory, io.github.minh124199.viettemplate.migration.MigrationSeverity, io.github.minh124199.viettemplate.migration.MigrationClassification, io.github.minh124199.viettemplate.migration.MigrationConfidence, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.util.Optional<io.github.minh124199.viettemplate.api.DiagnosticCode>)
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationSeverity severity()
+  MEMBER public java.lang.String construct()
+  MEMBER public java.lang.String message()
+  MEMBER public java.lang.String migrationAction()
+  MEMBER public java.lang.String ruleId()
+  MEMBER public java.lang.String velocityBehavior()
+  MEMBER public java.lang.String vietTemplateBehavior()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.DiagnosticCode> relatedDiagnosticCode()
+  MEMBER public static io.github.minh124199.viettemplate.migration.MigrationFinding of(java.lang.String, io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.SourceSpan, io.github.minh124199.viettemplate.migration.MigrationCategory, io.github.minh124199.viettemplate.migration.MigrationSeverity, io.github.minh124199.viettemplate.migration.MigrationClassification, io.github.minh124199.viettemplate.migration.MigrationConfidence, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.github.minh124199.viettemplate.api.DiagnosticCode)
+
+TYPE public final class io.github.minh124199.viettemplate.migration.MigrationReadinessStatus extends java.lang.Enum<io.github.minh124199.viettemplate.migration.MigrationReadinessStatus>
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationReadinessStatus ATTENTION_REQUIRED
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationReadinessStatus BLOCKED
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationReadinessStatus READY
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationReadinessStatus READY_WITH_WARNINGS
+  MEMBER public static io.github.minh124199.viettemplate.migration.MigrationReadinessStatus valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.migration.MigrationReadinessStatus[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.migration.MigrationReport extends java.lang.Record implements java.io.Serializable
+  MEMBER public boolean success()
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationReadinessStatus readinessStatus()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationReport(java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.github.minh124199.viettemplate.migration.MigrationSummary, java.util.List<io.github.minh124199.viettemplate.migration.SingleTemplateMigration>, java.util.List<io.github.minh124199.viettemplate.migration.MigrationFinding>, java.util.List<io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic>, io.github.minh124199.viettemplate.migration.MigrationReadinessStatus, boolean)
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationSummary summary()
+  MEMBER public java.lang.String asJson()
+  MEMBER public java.lang.String asText()
+  MEMBER public java.lang.String sourceEngine()
+  MEMBER public java.lang.String sourceVersion()
+  MEMBER public java.lang.String targetEngine()
+  MEMBER public java.lang.String targetVersion()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic> validationDiagnostics()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.migration.MigrationFinding> allFindings()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.migration.SingleTemplateMigration> templates()
+
+TYPE public final class io.github.minh124199.viettemplate.migration.MigrationRule extends java.lang.Record implements java.io.Serializable
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationCategory category()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationClassification classification()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationConfidence confidence()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationRule(java.lang.String, io.github.minh124199.viettemplate.migration.MigrationCategory, io.github.minh124199.viettemplate.migration.MigrationSeverity, io.github.minh124199.viettemplate.migration.MigrationClassification, java.lang.String, java.lang.String, java.lang.String, java.lang.String, io.github.minh124199.viettemplate.migration.MigrationConfidence, java.util.List<java.lang.String>, java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationSeverity defaultSeverity()
+  MEMBER public java.lang.String adr()
+  MEMBER public java.lang.String id()
+  MEMBER public java.lang.String migrationAction()
+  MEMBER public java.lang.String specSection()
+  MEMBER public java.lang.String title()
+  MEMBER public java.lang.String velocityBehavior()
+  MEMBER public java.lang.String vietTemplateBehavior()
+  MEMBER public java.util.List<java.lang.String> evidenceScenarioIds()
+
+TYPE public final class io.github.minh124199.viettemplate.migration.MigrationRuleRegistry
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationRule RULE_ARITH_DIV_ZERO
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationRule RULE_EVALUATE_DYNAMIC
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationRule RULE_EXT_ALT_VALUE
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationRule RULE_EXT_FOREACH_STOP
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationRule RULE_INCLUDE_DYNAMIC
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationRule RULE_PARSE_DYNAMIC
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationRule RULE_REF_DYNAMIC_RESOLVE
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationRule RULE_SEC_CLASS_ACCESS
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationRule RULE_SEC_SAFE_PROFILE
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationRule RULE_SET_NULL_RHS
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationRule RULE_STRICT_REF
+  MEMBER public static final java.lang.String ID_ARITH_DIV_ZERO
+  MEMBER public static final java.lang.String ID_EVALUATE_DYNAMIC
+  MEMBER public static final java.lang.String ID_EXT_ALT_VALUE
+  MEMBER public static final java.lang.String ID_EXT_FOREACH_STOP
+  MEMBER public static final java.lang.String ID_INCLUDE_DYNAMIC
+  MEMBER public static final java.lang.String ID_PARSE_DYNAMIC
+  MEMBER public static final java.lang.String ID_REF_DYNAMIC_RESOLVE
+  MEMBER public static final java.lang.String ID_SEC_CLASS_ACCESS
+  MEMBER public static final java.lang.String ID_SEC_SAFE_PROFILE
+  MEMBER public static final java.lang.String ID_SET_NULL_RHS
+  MEMBER public static final java.lang.String ID_STRICT_REF
+  MEMBER public static io.github.minh124199.viettemplate.migration.MigrationRule getRule(java.lang.String)
+  MEMBER public static java.util.List<io.github.minh124199.viettemplate.migration.MigrationRule> allRules()
+  MEMBER public static java.util.Map<java.lang.String, io.github.minh124199.viettemplate.migration.MigrationRule> rulesById()
+  MEMBER public static java.util.Optional<io.github.minh124199.viettemplate.migration.MigrationRule> findById(java.lang.String)
+
+TYPE public final class io.github.minh124199.viettemplate.migration.MigrationSeverity extends java.lang.Enum<io.github.minh124199.viettemplate.migration.MigrationSeverity>
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationSeverity BLOCKER
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationSeverity ERROR
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationSeverity INFO
+  MEMBER public static final io.github.minh124199.viettemplate.migration.MigrationSeverity WARNING
+  MEMBER public static io.github.minh124199.viettemplate.migration.MigrationSeverity valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.migration.MigrationSeverity[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.migration.MigrationSummary extends java.lang.Record implements java.io.Serializable
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public int compatibleTemplates()
+  MEMBER public int totalFindings()
+  MEMBER public int totalTemplates()
+  MEMBER public int validTemplates()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationReadinessStatus readinessStatus()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationSummary(int, int, int, int, io.github.minh124199.viettemplate.migration.MigrationReadinessStatus, java.util.Map<io.github.minh124199.viettemplate.migration.MigrationSeverity, java.lang.Integer>, java.util.Map<io.github.minh124199.viettemplate.migration.MigrationCategory, java.lang.Integer>)
+  MEMBER public java.util.Map<io.github.minh124199.viettemplate.migration.MigrationCategory, java.lang.Integer> findingsByCategory()
+  MEMBER public java.util.Map<io.github.minh124199.viettemplate.migration.MigrationSeverity, java.lang.Integer> findingsBySeverity()
+
+TYPE public final class io.github.minh124199.viettemplate.migration.SingleTemplateMigration extends java.lang.Record implements java.io.Serializable
+  MEMBER public boolean compatible()
+  MEMBER public boolean valid()
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.api.TemplateId templateId()
+  MEMBER public io.github.minh124199.viettemplate.migration.SingleTemplateMigration(io.github.minh124199.viettemplate.api.TemplateId, java.lang.String, java.util.List<io.github.minh124199.viettemplate.migration.MigrationFinding>, java.util.List<io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic>, boolean, boolean)
+  MEMBER public java.lang.String relPath()
+  MEMBER public java.lang.String relativePath()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic> diagnostics()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.migration.MigrationFinding> findings()
+
+TYPE public interface io.github.minh124199.viettemplate.migration.TemplateMigrationAnalyzer
+  MEMBER public abstract io.github.minh124199.viettemplate.migration.MigrationReport analyze(io.github.minh124199.viettemplate.migration.TemplateMigrationRequest)
+  MEMBER public static io.github.minh124199.viettemplate.migration.TemplateMigrationAnalyzer create()
+
+TYPE public final class io.github.minh124199.viettemplate.migration.TemplateMigrationRequest
+  MEMBER public boolean equals(java.lang.Object)
+  MEMBER public boolean failOnBlocker()
+  MEMBER public boolean failOnWarning()
+  MEMBER public boolean strictReferences()
+  MEMBER public int hashCode()
+  MEMBER public io.github.minh124199.viettemplate.api.TypeCheckingMode typeCheckingMode()
+  MEMBER public io.github.minh124199.viettemplate.migration.MigrationSeverity minimumSeverity()
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder toBuilder()
+  MEMBER public java.lang.String format()
+  MEMBER public java.lang.String toString()
+  MEMBER public java.nio.charset.Charset encoding()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.api.TemplateId> globalMacroLibraries()
+  MEMBER public java.util.List<java.lang.String> excludePatterns()
+  MEMBER public java.util.List<java.lang.String> excludes()
+  MEMBER public java.util.List<java.lang.String> includePatterns()
+  MEMBER public java.util.List<java.lang.String> includes()
+  MEMBER public java.util.List<java.nio.file.Path> sourceDirectories()
+  MEMBER public java.util.Map<io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.TemplateContract> contracts()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.api.TemplateId> layoutId()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.language.vtl.VtlProfile> profile()
+  MEMBER public java.util.Optional<java.lang.ClassLoader> classLoader()
+  MEMBER public java.util.Optional<java.lang.String> template()
+  MEMBER public java.util.Optional<java.nio.file.Path> outputFile()
+  MEMBER public static io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder builder()
+
+TYPE public final class io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest build()
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder classLoader(java.lang.ClassLoader)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder contract(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.TemplateContract)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder contracts(java.util.Map<io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.api.TemplateContract>)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder encoding(java.nio.charset.Charset)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder exclude(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder excludePattern(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder excludePatterns(java.lang.String...)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder excludePatterns(java.util.List<java.lang.String>)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder excludes(java.lang.String...)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder excludes(java.util.List<java.lang.String>)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder failOnBlocker(boolean)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder failOnWarning(boolean)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder format(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder globalMacroLibraries(io.github.minh124199.viettemplate.api.TemplateId...)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder globalMacroLibraries(java.util.List<io.github.minh124199.viettemplate.api.TemplateId>)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder globalMacroLibrary(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder include(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder includePattern(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder includePatterns(java.lang.String...)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder includePatterns(java.util.List<java.lang.String>)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder includes(java.lang.String...)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder includes(java.util.List<java.lang.String>)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder layoutId(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder minimumSeverity(io.github.minh124199.viettemplate.migration.MigrationSeverity)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder outputFile(java.nio.file.Path)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder profile(io.github.minh124199.viettemplate.language.vtl.VtlProfile)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder sourceDirectories(java.nio.file.Path...)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder sourceDirectories(java.util.List<java.nio.file.Path>)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder sourceDirectory(java.nio.file.Path)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder strictReferences(boolean)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder template(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder typeCheckingMode(io.github.minh124199.viettemplate.api.TypeCheckingMode)
+  MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder()
+

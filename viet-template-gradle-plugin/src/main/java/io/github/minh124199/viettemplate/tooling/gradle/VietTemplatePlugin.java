@@ -17,6 +17,7 @@ public class VietTemplatePlugin implements Plugin<Project> {
   public static final String GENERATE_TYPESCRIPT_TASK_NAME = "generateVietTemplateTypeScript";
   public static final String VALIDATE_TASK_NAME = "validateVietTemplates";
   public static final String EXPLAIN_TASK_NAME = "explainVietTemplates";
+  public static final String MIGRATION_REPORT_TASK_NAME = "migrationReport";
 
   @Override
   public void apply(Project project) {
@@ -193,6 +194,27 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   eTask.getProfile().convention(extension.getProfile());
                 });
 
+    TaskProvider<VietTemplateMigrationReportTask> migrationReportTask =
+        project
+            .getTasks()
+            .register(
+                MIGRATION_REPORT_TASK_NAME,
+                VietTemplateMigrationReportTask.class,
+                mTask -> {
+                  mTask.setDescription(
+                      "Analyzes Apache Velocity templates and generates a migration readiness"
+                          + " report.");
+                  mTask.setGroup("help");
+
+                  mTask.getSourceDirectory().convention(extension.getSourceDirectory());
+                  mTask.getIncludes().convention(extension.getIncludes());
+                  mTask.getExcludes().convention(extension.getExcludes());
+                  mTask.getEncoding().convention(extension.getEncoding());
+                  mTask.getTypeChecking().convention(extension.getTypeChecking());
+                  mTask.getProfile().convention(extension.getProfile());
+                  mTask.getFailOnWarning().convention(extension.getFailOnWarning());
+                });
+
     // When java plugin applied:
     // sourceSets.named("main").get().getOutput().dir(task.getOutputDirectory())
     // sourceSets.named("main").get().getResources().srcDir(task.getResourceOutputDirectory())
@@ -260,6 +282,13 @@ public class VietTemplatePlugin implements Plugin<Project> {
 
               VietTemplateExplainTask eTask = explainTask.get();
               eTask
+                  .getClasspath()
+                  .from(
+                      mainSourceSet.getCompileClasspath(),
+                      mainSourceSet.getOutput().getClassesDirs());
+
+              VietTemplateMigrationReportTask mTask = migrationReportTask.get();
+              mTask
                   .getClasspath()
                   .from(
                       mainSourceSet.getCompileClasspath(),

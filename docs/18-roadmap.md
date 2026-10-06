@@ -405,11 +405,17 @@ Release Phase 1.1.x evolves Viet Template with optional compile-time typed templ
     - **M33.3 (Maven Plugin Explain Goal)**: Implemented `viet-template:explain` (`VietTemplateExplainMojo`), supporting human-readable CLI logging, file output, JSON/text formats, template/line/column filtering, and `failOnDynamicFallback`.
     - **M33.4 (Gradle Plugin Explain Task)**: Implemented `explainVietTemplates` (`VietTemplateExplainTask`) registered under the `help` task group with full configuration cache compatibility and identical CLI/format parameters.
     - **M33.5 (Tooling Parity & Governance)**: Verified 100% structured explanation decision parity between Maven and Gradle plugins via `VietTemplateMavenGradleParityTest`. Enforced public surface classifications and verified zero signature leaks across all API baselines.
+- **Milestone M34 (Velocity Migration Report Tooling — target 1.2.0) — COMPLETE / QUALIFIED**:
+    - **M34.1 (Shared Core Migration Analysis Engine)**: Implemented `TemplateMigrationAnalyzer`, `TemplateMigrationRequest`, `MigrationReport`, `MigrationFinding`, `MigrationSummary`, and canonical `MigrationRuleRegistry` in `viet-template-vtl-interpreter` (`io.github.minh124199.viettemplate.migration`). Grounded strictly in documented and tested compatibility facts (`migration finding == documented and tested compatibility fact`), mapping directly to differential TCK evidence scenarios without heuristic guesswork.
+    - **M34.2 (Finding & Severity Taxonomy)**: Established 4-tier severity model (`INFO`, `WARNING`, `ERROR`, `BLOCKER`), 7 compatibility classifications (`EXACT_COMPATIBLE`, `COMPATIBLE_WITH_CONFIGURATION`, `KNOWN_BEHAVIOR_DIFFERENCE`, `DYNAMICALLY_UNVERIFIABLE`, `SECURITY_RESTRICTED`, `VIET_TEMPLATE_EXTENSION`, `UNSUPPORTED`), and 4-state readiness status (`READY`, `READY_WITH_WARNINGS`, `ATTENTION_REQUIRED`, `BLOCKED`).
+    - **M34.3 (Deterministic Text and JSON Formatters)**: Implemented machine-readable JSON format (`formatVersion = 1`) and human-readable text presentation using logical template IDs, sorted deterministically by template, source span, severity, category, and rule ID.
+    - **M34.4 (Maven Plugin Migration Report Goal)**: Implemented `viet-template:migration-report` (`VietTemplateMigrationReportMojo`), supporting direct CLI execution, JSON/text output formats, file emission, `failOnBlocker`, `failOnWarning`, and strict reference profiling.
+    - **M34.5 (Gradle Plugin Migration Report Task)**: Implemented `migrationReport` (`VietTemplateMigrationReportTask`) registered under the `help` group, ensuring non-cacheable informational execution without interfering with standard lifecycle `check` or `build`.
+    - **M34.6 (Tooling Parity & Differential Oracle Qualification)**: Verified 100% byte-for-byte and finding-for-finding parity between Maven and Gradle plugins via `VietTemplateMavenGradleParityTest`. Verified live differential comparison against Apache Velocity 2.4.1 in `viet-template-tck` (`VelocityMigrationDifferentialTest`), confirming 0 false warnings on exact parity and precise rule triggering across all compatibility difference cases.
 
 ---
 
-## Future Milestones (Post-M33 / 1.2 Development Line)
+## Future Milestones (Post-M34 / 1.2 Development Line)
 
-- **Milestone M34**: Velocity migration report
 - **Milestone M35**: Cross-language schema interoperability
 

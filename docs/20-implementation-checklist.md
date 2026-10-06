@@ -1140,4 +1140,16 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **Z5.** Gradle Plugin Explain Task: Implemented `explainVietTemplates` (`VietTemplateExplainTask`) registered under the `help` task group with configuration-cache compatibility and full parity with Maven options.
 - [x] **Z6.** Parity Verification & Governance: Verified bit-for-bit and structured decision parity via `VietTemplateMavenGradleParityTest`, classified public surface types (`STABLE_API`, `BUILD_TOOL_ENTRYPOINT`), and qualified all governance gates with 0 signature leaks.
 
+### Deliverable AA: Velocity Migration Report Tooling (Milestone M34 / 1.2.0)
+
+- [x] **AA1.** Shared Migration Analysis Engine: Implemented `TemplateMigrationAnalyzer`, `TemplateMigrationRequest`, `MigrationReport`, `SingleTemplateMigration`, `MigrationFinding`, `MigrationSummary`, and package-private `MigrationRuleRegistry` in `io.github.minh124199.viettemplate.migration` (`viet-template-vtl-interpreter`).
+- [x] **AA2.** Tested and Documented Invariant: Enforced `migration finding == documented and tested compatibility fact`. Every rule maps to concrete differential TCK scenarios and authoritative compatibility specification sections without heuristic speculation.
+- [x] **AA3.** Taxonomy & Classifications: Implemented 4 severities (`INFO`, `WARNING`, `ERROR`, `BLOCKER`), 7 compatibility classifications (`EXACT_COMPATIBLE`, `COMPATIBLE_WITH_CONFIGURATION`, `KNOWN_BEHAVIOR_DIFFERENCE`, `DYNAMICALLY_UNVERIFIABLE`, `SECURITY_RESTRICTED`, `VIET_TEMPLATE_EXTENSION`, `UNSUPPORTED`), and 4 readiness states (`READY`, `READY_WITH_WARNINGS`, `ATTENTION_REQUIRED`, `BLOCKED`).
+- [x] **AA4.** Deterministic Formatters: Implemented deterministic text and JSON (`formatVersion = 1`) reporting with sorted logical template IDs, source spans, and summary statistics.
+- [x] **AA5.** Maven Plugin Migration Report Goal: Implemented `viet-template:migration-report` (`VietTemplateMigrationReportMojo`) supporting CLI invocation, JSON/text formats, file output, `failOnBlocker`, `failOnWarning`, and strict reference profiling.
+- [x] **AA6.** Gradle Plugin Migration Report Task: Implemented `migrationReport` (`VietTemplateMigrationReportTask`) registered in the `help` group as an untracked, non-cacheable informational task.
+- [x] **AA7.** Build Tool Parity & Differential Oracle Tests: Verified identical findings and SHA-256 JSON report parity between Maven and Gradle via `VietTemplateMavenGradleParityTest`. Verified differential oracle qualifications against live Apache Velocity 2.4.1 in `VelocityMigrationDifferentialTest`.
+- [x] **AA8.** Governance & Public Surface Verification: Registered 14 stable migration types in `config/api-baseline/public-surface-classification.txt` and `config/api-baseline/1.0-aot-public-api.txt`, registered Maven/Gradle entrypoints, and passed all 11 governance verification scripts with zero signature leaks.
+
+
 
