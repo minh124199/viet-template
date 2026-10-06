@@ -25,7 +25,6 @@ import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.IgnoreEmptyDirectories;
 import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputDirectory;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.PathSensitive;
@@ -49,7 +48,7 @@ public abstract class VietTemplateValidateTask extends DefaultTask {
     getProfile().convention("VTL_MIGRATION");
   }
 
-  @InputDirectory
+  @InputFiles
   @Optional
   @PathSensitive(PathSensitivity.RELATIVE)
   @IgnoreEmptyDirectories

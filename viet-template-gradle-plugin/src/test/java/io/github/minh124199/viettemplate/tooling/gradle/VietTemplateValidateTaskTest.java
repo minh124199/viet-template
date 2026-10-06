@@ -169,4 +169,135 @@ class VietTemplateValidateTaskTest {
     assertThat(result.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME).getOutcome())
         .isEqualTo(TaskOutcome.SUCCESS);
   }
+
+  @Test
+  @DisplayName("Non-existent template directory skips gracefully during validateVietTemplates")
+  void testValidateNonExistentSourceDirectorySucceeds(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"test-missing-dir\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    BuildResult result =
+        createRunner(projectDir)
+            .withArguments(VietTemplatePlugin.VALIDATE_TASK_NAME, "--info")
+            .build();
+
+    assertThat(result.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME)).isNotNull();
+    assertThat(result.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+    assertThat(result.getOutput()).contains("source directory does not exist, skipping");
+  }
+
+  @Test
+  @DisplayName("Empty template directory skips gracefully during validateVietTemplates")
+  void testValidateEmptySourceDirectorySucceeds(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"test-empty-dir\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path templateDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(templateDir);
+
+    BuildResult result =
+        createRunner(projectDir)
+            .withArguments(VietTemplatePlugin.VALIDATE_TASK_NAME, "--info")
+            .build();
+
+    assertThat(result.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME)).isNotNull();
+    assertThat(result.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+    assertThat(result.getOutput()).contains("source directory is empty, skipping");
+  }
+
+  @Test
+  @DisplayName("validateVietTemplates task is fully compatible with Gradle Configuration Cache")
+  void testValidateConfigurationCacheCompatible(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"test-val-config-cache\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path templateDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(templateDir);
+    Files.writeString(
+        templateDir.resolve("hello.vtl"), "Hello, $name! Welcome.", StandardCharsets.UTF_8);
+
+    BuildResult result =
+        createRunner(projectDir)
+            .withArguments(VietTemplatePlugin.VALIDATE_TASK_NAME, "--configuration-cache")
+            .build();
+
+    assertThat(result.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME)).isNotNull();
+    assertThat(result.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+  }
+
+  @Test
+  @DisplayName("validateVietTemplates can be cleanly opted out via task enabled property")
+  void testValidateCleanOptOut(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"test-val-opt-out\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n"
+            + "tasks.named(\"validateVietTemplates\") {\n"
+            + "    enabled = false\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path templateDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(templateDir);
+    Files.writeString(
+        templateDir.resolve("hello.vtl"), "Hello, $name! Welcome.", StandardCharsets.UTF_8);
+
+    BuildResult result = createRunner(projectDir).withArguments("check").build();
+
+    assertThat(result.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME)).isNotNull();
+    assertThat(result.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SKIPPED);
+  }
 }
