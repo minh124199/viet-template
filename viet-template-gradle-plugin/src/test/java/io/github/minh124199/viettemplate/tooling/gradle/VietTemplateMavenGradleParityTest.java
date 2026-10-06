@@ -5,6 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.minh124199.viettemplate.aot.TemplateAotCompiler;
 import io.github.minh124199.viettemplate.aot.TemplateAotRequest;
 import io.github.minh124199.viettemplate.aot.TypeScriptDeclarationProjector;
+import io.github.minh124199.viettemplate.explanation.ExpressionExplanation;
+import io.github.minh124199.viettemplate.explanation.SingleTemplateExplanation;
+import io.github.minh124199.viettemplate.explanation.TemplateExplainRequest;
+import io.github.minh124199.viettemplate.explanation.TemplateExplainer;
+import io.github.minh124199.viettemplate.explanation.TemplateExplanation;
 import io.github.minh124199.viettemplate.validation.TemplateValidationRequest;
 import io.github.minh124199.viettemplate.validation.TemplateValidationResult;
 import io.github.minh124199.viettemplate.validation.TemplateValidator;
@@ -291,5 +296,140 @@ class VietTemplateMavenGradleParityTest {
     assertThat(mavenDepResult.isSuccess()).isFalse();
     assertThat(mavenDepResult.diagnostics())
         .anyMatch(d -> d.code().qualifiedCode().equals("RESOURCE:NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName(
+      "Maven and Gradle explanation produce byte-for-byte identical structured JSON and identical"
+          + " decisions")
+  void testMavenGradleExplainParity(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"parity-explain-project\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n"
+            + "tasks.named<io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExplainTask>(\"explainVietTemplates\")"
+            + " {\n"
+            + "    format.set(\"json\")\n"
+            + "    outputFile.set(layout.buildDirectory.file(\"explanation.json\"))\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path srcDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(srcDir);
+
+    // 1. Template with String specialization and Integer specialization
+    Files.writeString(
+        srcDir.resolve("typed.vtl"), "User: $username, Level: $level", StandardCharsets.UTF_8);
+    Files.writeString(
+        srcDir.resolve("typed.vtl.contract"),
+        "username=String\nlevel=int\n",
+        StandardCharsets.UTF_8);
+
+    // 2. Template requiring dynamic fallback
+    Files.writeString(
+        srcDir.resolve("dynamic.vtl"), "Dynamic: $unknownField", StandardCharsets.UTF_8);
+
+    // Execute Gradle explain task
+    BuildResult gradleResult =
+        createRunner(projectDir).withArguments(VietTemplatePlugin.EXPLAIN_TASK_NAME).build();
+
+    assertThat(gradleResult.task(":" + VietTemplatePlugin.EXPLAIN_TASK_NAME)).isNotNull();
+    assertThat(gradleResult.task(":" + VietTemplatePlugin.EXPLAIN_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+
+    Path gradleOutputFile = projectDir.resolve("build/explanation.json");
+    assertThat(gradleOutputFile).isRegularFile();
+    byte[] gradleBytes = Files.readAllBytes(gradleOutputFile);
+    String gradleSha256 = sha256Hex(gradleBytes);
+
+    // Execute Maven explanation logic on identical input source directory
+    Path mavenOutputDir = projectDir.resolve("target");
+    Path mavenOutputFile = mavenOutputDir.resolve("explanation.json");
+    TemplateExplainRequest mavenRequest =
+        TemplateExplainRequest.builder()
+            .sourceDirectory(srcDir)
+            .format("json")
+            .outputFile(mavenOutputFile)
+            .build();
+
+    TemplateExplainer explainer = TemplateExplainer.create();
+    TemplateExplanation mavenExplanation = explainer.explain(mavenRequest);
+    String mavenJson = mavenExplanation.asJson();
+    Files.createDirectories(mavenOutputDir);
+    Files.writeString(mavenOutputFile, mavenJson, StandardCharsets.UTF_8);
+
+    byte[] mavenBytes = Files.readAllBytes(mavenOutputFile);
+    String mavenSha256 = sha256Hex(mavenBytes);
+
+    // Verify exact byte-for-byte and SHA-256 parity
+    assertThat(gradleBytes)
+        .as("Maven and Gradle explanation JSON outputs must be byte-for-byte identical")
+        .isEqualTo(mavenBytes);
+    assertThat(gradleSha256)
+        .as("Maven and Gradle explanation JSON outputs must have identical SHA-256 digests")
+        .isEqualTo(mavenSha256);
+
+    // Verify structured decisions on the explanation
+    assertThat(mavenExplanation.success()).isTrue();
+    assertThat(mavenExplanation.totalTemplates()).isEqualTo(2);
+
+    SingleTemplateExplanation typedExplanation =
+        mavenExplanation.templates().stream()
+            .filter(t -> t.templateId().value().equals("typed.vtl"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(typedExplanation.typed()).isTrue();
+    assertThat(typedExplanation.aotEligible()).isTrue();
+    assertThat(typedExplanation.compilationStatus()).isEqualTo("AOT_OK");
+
+    ExpressionExplanation strExpr =
+        typedExplanation.expressions().stream()
+            .filter(e -> e.sourceText().equals("$username"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(strExpr.inferredType()).isEqualTo("java.lang.String");
+    assertThat(strExpr.resolutionStrategy()).isEqualTo("ROOT_PARAMETER");
+    assertThat(strExpr.outputDispatch()).contains("WRITE_STRING_SPECIALIZED");
+    assertThat(strExpr.outputMethod()).contains("BytecodeRuntimeBridge.writeString");
+    assertThat(strExpr.aotEligible()).isTrue();
+
+    ExpressionExplanation intExpr =
+        typedExplanation.expressions().stream()
+            .filter(e -> e.sourceText().equals("$level"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(intExpr.inferredType()).isEqualTo("int");
+    assertThat(intExpr.resolutionStrategy()).isEqualTo("ROOT_PARAMETER");
+    assertThat(intExpr.outputDispatch()).contains("WRITE_INTEGER_SPECIALIZED");
+    assertThat(intExpr.outputMethod()).contains("BytecodeRuntimeBridge.writeInteger");
+    assertThat(intExpr.aotEligible()).isTrue();
+
+    SingleTemplateExplanation dynamicExplanation =
+        mavenExplanation.templates().stream()
+            .filter(t -> t.templateId().value().equals("dynamic.vtl"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(dynamicExplanation.typed()).isFalse();
+    assertThat(dynamicExplanation.aotEligible()).isFalse();
+    assertThat(dynamicExplanation.compilationStatus()).isEqualTo("AOT_OK_WITH_DYNAMIC_SITES");
+    assertThat(dynamicExplanation.aotRejectionReasons()).contains("UNTYPED_TEMPLATE");
+
+    ExpressionExplanation dynamicExpr =
+        dynamicExplanation.expressions().stream()
+            .filter(e -> e.sourceText().equals("$unknownField"))
+            .findFirst()
+            .orElseThrow();
+    assertThat(dynamicExpr.aotEligible()).isFalse();
+    assertThat(dynamicExpr.aotRejectionReasons()).contains("UNTYPED_TEMPLATE");
   }
 }
