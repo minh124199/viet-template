@@ -194,8 +194,7 @@ class VelocityMigrationDifferentialTest {
     assertThat(finding.severity()).isEqualTo(MigrationSeverity.BLOCKER);
     assertThat(finding.classification()).isEqualTo(MigrationClassification.SECURITY_RESTRICTED);
     assertThat(finding.relatedDiagnosticCode()).isPresent();
-    assertThat(finding.relatedDiagnosticCode().get().qualifiedCode())
-        .isEqualTo("VTLSEC:2401");
+    assertThat(finding.relatedDiagnosticCode().get().qualifiedCode()).isEqualTo("VTLSEC:2401");
   }
 
   @Test
