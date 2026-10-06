@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Milestone M34: Velocity Migration Report Tooling**:
+  - **Shared Migration Analysis Core (`io.github.minh124199.viettemplate.migration`)**:
+    - Introduced public `TemplateMigrationAnalyzer` interface, `TemplateMigrationRequest`, `MigrationReport`, `SingleTemplateMigration`, `MigrationFinding`, `MigrationSummary`, `MigrationSeverity`, `MigrationCategory`, `MigrationClassification`, `MigrationConfidence`, and `MigrationReadinessStatus`.
+    - Implemented canonical `MigrationRuleRegistry` defining 11 verified migration rules grounded strictly in documented and tested compatibility facts: arithmetic division by zero (`MIG-ARITH-DIV-ZERO`), security reflection denial (`MIG-SEC-CLASS-ACCESS`), null RHS assignment (`MIG-SET-NULL-RHS`), `$foreach.stop()` extension (`MIG-EXT-FOREACH-STOP`), alternative default value extension (`MIG-EXT-ALT-VALUE`), dynamic `#parse` (`MIG-PARSE-DYNAMIC`), dynamic `#include` (`MIG-INCLUDE-DYNAMIC`), dynamic `#evaluate` (`MIG-EVALUATE-DYNAMIC`), strict reference checks (`MIG-STRICT-REF`), safe profile restrictions (`MIG-SEC-SAFE-PROFILE`), and dynamic member resolution (`MIG-REF-DYNAMIC-RESOLVE`).
+    - Enforced the invariant: `migration finding == documented and tested compatibility fact`. Templates with exact compatibility produce zero warnings and `READY` status.
+    - Purely in-memory AST and semantic inspection without template execution or speculative rewriting.
+    - Deterministic text and JSON formatters (`formatVersion = 1`) with logical template identifiers and stable finding sorting.
+  - **Maven Plugin Migration Report Goal (`viet-template-maven-plugin`)**:
+    - Added `viet-template:migration-report` goal (`VietTemplateMigrationReportMojo`).
+    - Configurable `format` (`text`, `json`), `outputFile`, `failOnBlocker`, `failOnWarning`, `strictReferences`, `minimumSeverity`, and template filtering.
+  - **Gradle Plugin Migration Report Task (`viet-template-gradle-plugin`)**:
+    - Added `migrationReport` task (`VietTemplateMigrationReportTask`) registered in the `help` task group as an untracked informational task.
+    - Full 100% feature, finding, and byte-for-byte JSON parity with Maven migration report tooling.
+  - **Differential Oracle Qualification (`viet-template-tck`)**:
+    - Added `VelocityMigrationDifferentialTest` verifying migration findings directly against live Apache Velocity 2.4.1 execution and differential TCK evidence.
 - **Milestone M33: Compiler Explanation Tooling**:
   - **Shared Decision Logic & Specialization Decider (`viet-template-vtl-interpreter`)**:
     - Extracted write output dispatch and specialization decision logic into shared immutable compiler models (`OutputSpecializationDecider`, `WriteDispatchDecision`, `WriteDispatchKind`, `OutputSpecializationContext`).

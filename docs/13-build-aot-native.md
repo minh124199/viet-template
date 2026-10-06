@@ -26,7 +26,7 @@ viet-template:explain
 ```
 
 > [!NOTE]
-> **Implementation Status**: The `viet-template:compile` goal was implemented in Milestone M15 (`VietTemplateCompileMojo`; see [`docs/34-m15-aot-build-tooling.md`](34-m15-aot-build-tooling.md)). The `viet-template:validate` goal was implemented in Milestone M32 (`VietTemplateValidateMojo`). The `viet-template:explain` goal was implemented in Milestone M33 (`VietTemplateExplainMojo`). The other goal (`migration-report`) remains planned for future milestones.
+> **Implementation Status**: The `viet-template:compile` goal was implemented in Milestone M15 (`VietTemplateCompileMojo`; see [`docs/34-m15-aot-build-tooling.md`](34-m15-aot-build-tooling.md)). The `viet-template:validate` goal was implemented in Milestone M32 (`VietTemplateValidateMojo`). The `viet-template:explain` goal was implemented in Milestone M33 (`VietTemplateExplainMojo`). The `viet-template:migration-report` goal was implemented in Milestone M34 (`VietTemplateMigrationReportMojo`). All documented goals are now implemented.
 
 Important config: template roots, compatibility profile, execution mode, security profile, `failOnDynamicFallback`.
 
@@ -41,12 +41,12 @@ Tasks:
 ```text
 validateVietTemplates
 compileVietTemplates
-vietTemplateMigrationReport
+migrationReport
 explainVietTemplates
 ```
 
 > [!NOTE]
-> **Implementation Status**: The `compileVietTemplates` task was implemented in Milestone M15 (`VietTemplateCompileTask`; see [`docs/34-m15-aot-build-tooling.md`](34-m15-aot-build-tooling.md)). The `validateVietTemplates` task was implemented in Milestone M32 (`VietTemplateValidateTask`). The `explainVietTemplates` task was implemented in Milestone M33 (`VietTemplateExplainTask`). The other task (`vietTemplateMigrationReport`) remains planned for future milestones.
+> **Implementation Status**: The `compileVietTemplates` task was implemented in Milestone M15 (`VietTemplateCompileTask`; see [`docs/34-m15-aot-build-tooling.md`](34-m15-aot-build-tooling.md)). The `validateVietTemplates` task was implemented in Milestone M32 (`VietTemplateValidateTask`). The `explainVietTemplates` task was implemented in Milestone M33 (`VietTemplateExplainTask`). The `migrationReport` task was implemented in Milestone M34 (`VietTemplateMigrationReportTask`). All documented tasks are now implemented.
 
 Declare inputs for incremental builds: template sources, relevant model classpath/schema fingerprints, config, engine/compiler version and extension jars.
 

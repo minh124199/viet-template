@@ -359,12 +359,133 @@ When migrating, audit template files for these common Velocity anti-patterns:
 
 ---
 
-## 10. Summary Checklist for Migration
+## 10. Automated Velocity Migration Report (Milestone M34)
 
-- [ ] Update build dependencies to `viet-template-spring-boot-starter:1.0.0`.
+To systematically identify template constructs requiring attention prior to migration, Viet Template provides an automated migration analysis engine grounded in verified compatibility facts:
+
+$$\text{migration finding} == \text{documented and tested compatibility fact}$$
+
+The migration tool does not guess runtime behavior from memory, construct a second Velocity engine, or blindly rewrite code. It performs in-memory AST and semantic analysis against the authoritative compatibility specification and differential TCK evidence.
+
+### 10.1 Running the Migration Report
+
+#### Apache Maven
+```bash
+# Print human-readable report to console
+mvn viet-template:migration-report
+
+# Output machine-readable JSON for CI integration
+mvn viet-template:migration-report -Dviet-template.format=json -Dviet-template.outputFile=target/migration-report.json
+
+# Enforce build failure on blockers or warnings
+mvn viet-template:migration-report -Dviet-template.failOnBlocker=true -Dviet-template.failOnWarning=true
+```
+
+#### Gradle
+```bash
+# Print human-readable report to console
+./gradlew migrationReport
+
+# Output machine-readable JSON for CI integration
+./gradlew migrationReport -PvietTemplate.format=json -PvietTemplate.outputFile=build/reports/migration-report.json
+
+# Enforce build failure on blockers
+./gradlew migrationReport -PvietTemplate.failOnBlocker=true
+```
+
+### 10.2 Taxonomy & Severity Model
+
+Each finding provides source-located coordinates, the offending construct, Velocity vs. Viet Template behavior, and concrete remediation advice:
+
+| Severity | Meaning |
+|---|---|
+| `INFO` | Viet Template extension or non-problematic behavioral difference (e.g. `$foreach.stop()`, `${var\|'default'}`). |
+| `WARNING` | Configuration-dependent behavior or dynamic constructs that cannot be statically verified (e.g. dynamic `#parse($path)`). |
+| `ERROR` | Unsupported construct or known semantic divergence requiring template changes. |
+| `BLOCKER` | Known fatal divergence or security violation that will fail rendering (e.g. `$user.getClass()`, literal division by zero). |
+
+The overall template suite receives an actionable **readiness status**:
+- `READY`: All templates are fully compatible with zero warnings or blockers.
+- `READY_WITH_WARNINGS`: Templates are compatible; review informational extensions.
+- `ATTENTION_REQUIRED`: Templates contain dynamic dependencies or configuration-dependent semantics.
+- `BLOCKED`: Templates contain fatal security violations, syntax errors, or known semantic blockers.
+
+### 10.3 Canonical Migration Rule Registry
+
+| Rule ID | Category | Severity | Compatibility Classification | Summary |
+|---|---|---|---|---|
+| `MIG-ARITH-DIV-ZERO` | `ARITHMETIC` | `BLOCKER` / `WARNING` | `KNOWN_BEHAVIOR_DIFFERENCE` | Velocity yields null; Viet Template throws division by zero. |
+| `MIG-SEC-CLASS-ACCESS` | `SECURITY` | `BLOCKER` | `SECURITY_RESTRICTED` | Universal reflection denial (`getClass()`, `.class`, classloaders). |
+| `MIG-SET-NULL-RHS` | `NULL_UNDEFINED` | `INFO` | `COMPATIBLE_WITH_CONFIGURATION` | `#set` with null/undefined RHS assigns null. |
+| `MIG-EXT-FOREACH-STOP` | `EXTENSION` | `INFO` | `VIET_TEMPLATE_EXTENSION` | `$foreach.stop()` loop termination extension. |
+| `MIG-EXT-ALT-VALUE` | `EXTENSION` | `INFO` | `VIET_TEMPLATE_EXTENSION` | `${var\|'default'}` default value fallback syntax. |
+| `MIG-PARSE-DYNAMIC` | `PARSE` | `WARNING` | `DYNAMICALLY_UNVERIFIABLE` | Dynamic `#parse` path cannot be statically verified. |
+| `MIG-INCLUDE-DYNAMIC` | `INCLUDE` | `WARNING` | `DYNAMICALLY_UNVERIFIABLE` | Dynamic `#include` path cannot be statically verified. |
+| `MIG-EVALUATE-DYNAMIC` | `EVALUATE` | `WARNING` / `BLOCKER` | `DYNAMICALLY_UNVERIFIABLE` / `SECURITY_RESTRICTED` | Dynamic `#evaluate` expression evaluation (denied in `VTL_SAFE`). |
+| `MIG-STRICT-REF` | `STRICT_REFERENCES`| `WARNING` | `COMPATIBLE_WITH_CONFIGURATION` | Undefined reference behavior under strict reference mode. |
+| `MIG-SEC-SAFE-PROFILE` | `SECURITY` | `BLOCKER` | `SECURITY_RESTRICTED` | Restricted member access under `VTL_SAFE` security profile. |
+| `MIG-REF-DYNAMIC-RESOLVE`| `REFERENCE` | `INFO` | `EXACT_COMPATIBLE` | Dynamic property/method access resolved via runtime policy. |
+
+### 10.4 JSON Report Format (`formatVersion = 1`)
+
+Machine-readable JSON reports provide deterministic outputs suitable for automated migration dashboards:
+
+```json
+{
+  "formatVersion": 1,
+  "sourceEngine": "Apache Velocity",
+  "sourceVersion": "2.4.1",
+  "targetEngine": "Viet Template",
+  "targetVersion": "1.2.0-SNAPSHOT",
+  "readinessStatus": "BLOCKED",
+  "summary": {
+    "totalTemplates": 12,
+    "compatibleTemplates": 10,
+    "templatesWithFindings": 2,
+    "totalFindings": 3,
+    "blockers": 1,
+    "errors": 0,
+    "warnings": 1,
+    "infos": 1,
+    "readinessStatus": "BLOCKED"
+  },
+  "templates": [
+    {
+      "templateId": "templates/order.vm",
+      "relativePath": "templates/order.vm",
+      "valid": true,
+      "compatible": false,
+      "findings": [
+        {
+          "ruleId": "MIG-SEC-CLASS-ACCESS",
+          "templateId": "templates/order.vm",
+          "sourceSpan": { "startLine": 14, "startColumn": 5, "endLine": 14, "endColumn": 22 },
+          "category": "SECURITY",
+          "severity": "BLOCKER",
+          "classification": "SECURITY_RESTRICTED",
+          "confidence": "STATICALLY_VERIFIED",
+          "construct": "$order.getClass()",
+          "message": "Direct reflection/classloader access is denied by Viet Template security policy",
+          "velocityBehavior": "Velocity allows reflective access to Class and ClassLoader by default",
+          "vietTemplateBehavior": "Viet Template MemberAccessPolicy denies reflective pivots by default",
+          "migrationAction": "Remove reflection/classloader calls from templates; expose required data via model attributes",
+          "relatedDiagnosticCode": "VTLSEC:2401"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 11. Summary Checklist for Migration
+
+- [ ] Update build dependencies to `viet-template-spring-boot-starter:1.1.0`.
+- [ ] Run automated migration report (`mvn viet-template:migration-report` or `./gradlew migrationReport`).
+- [ ] Resolve any reported `BLOCKER` and `ERROR` migration findings.
 - [ ] Replace `VelocityEngine` initialization with `TemplateEngine.builder()`.
 - [ ] Replace `VelocityContext` with `RenderContext.builder()`.
 - [ ] Verify template directory locations and configure `TemplateRepository`.
 - [ ] Replace custom reflective tools with immutable Java records or `RenderContextContributor`.
-- [ ] Check templates for `$user.getClass()` or `$a / 0` and update them.
 - [ ] Enable Ahead-Of-Time (AOT) compilation via Maven or Gradle plugin for production deployment.

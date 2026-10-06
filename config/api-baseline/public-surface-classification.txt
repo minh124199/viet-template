@@ -1,32 +1,31 @@
-# Viet Template Public Surface Classification Baseline
-# Total Types: 379
-# STABLE_API: 117
-# STABLE_SPI: 28
-# EXPERIMENTAL: 5
-# FRAMEWORK_ENTRYPOINT: 4
-# BUILD_TOOL_ENTRYPOINT: 16
-# SERVICE_ENTRYPOINT: 0
-# GENERATED_RUNTIME_ABI: 1
-# INTERNAL_CROSS_MODULE: 59
-# INTERNAL_CROSS_PACKAGE: 61
-# BENCHMARK_SUPPORT_INTERNAL: 3
-# PUBLIC_BUT_INTERNAL_ACCIDENT: 85
 #
-# Categories:
-#   STABLE_API: Supported application API under strict 1.0 backward compatibility guarantee
-#   STABLE_SPI: Supported extension/contributor interfaces for third-party implementors under strict 1.0 guarantee
+#
+#   BENCHMARK_SUPPORT_INTERNAL: Types exposed solely for unpublished JMH benchmark suite slot-level measurement
+#   BUILD_TOOL_ENTRYPOINT: Public class required solely for Maven/Gradle build plugin execution; not supported as library Java API
 #   EXPERIMENTAL: Emerging language/compiler APIs subject to evolution before 1.0
 #   FRAMEWORK_ENTRYPOINT: Public class required solely for Spring/Quarkus/CDI metadata discovery; not supported as library Java API
-#   BUILD_TOOL_ENTRYPOINT: Public class required solely for Maven/Gradle build plugin execution; not supported as library Java API
-#   SERVICE_ENTRYPOINT: Service provider class discovered via java.util.ServiceLoader
 #   GENERATED_RUNTIME_ABI: Types linked by generated template bytecode at runtime under ADR-0016 guarantee
 #   INTERNAL_CROSS_MODULE: Production contracts between internal Viet Template modules prior to JPMS encapsulation
 #   INTERNAL_CROSS_PACKAGE: Types intentionally public within their owning artifact due to cross-package callers in the same JAR
-#   BENCHMARK_SUPPORT_INTERNAL: Types exposed solely for unpublished JMH benchmark suite slot-level measurement
 #   PUBLIC_BUT_INTERNAL_ACCIDENT: Accidental public classes awaiting internalization or language/topology resolution
-#
+#   SERVICE_ENTRYPOINT: Service provider class discovered via java.util.ServiceLoader
+#   STABLE_API: Supported application API under strict 1.0 backward compatibility guarantee
+#   STABLE_SPI: Supported extension/contributor interfaces for third-party implementors under strict 1.0 guarantee
+# BENCHMARK_SUPPORT_INTERNAL: 3
+# BUILD_TOOL_ENTRYPOINT: 16
+# Categories:
+# EXPERIMENTAL: 5
+# FRAMEWORK_ENTRYPOINT: 4
 # Format: <FULLY_QUALIFIED_CLASS_NAME> <CATEGORY>
-
+# GENERATED_RUNTIME_ABI: 1
+# INTERNAL_CROSS_MODULE: 59
+# INTERNAL_CROSS_PACKAGE: 61
+# PUBLIC_BUT_INTERNAL_ACCIDENT: 85
+# SERVICE_ENTRYPOINT: 0
+# STABLE_API: 117
+# STABLE_SPI: 28
+# Total Types: 379
+# Viet Template Public Surface Classification Baseline
 io.github.minh124199.viettemplate.aot.TemplateAotArtifact STABLE_API
 io.github.minh124199.viettemplate.aot.TemplateAotCompiler STABLE_API
 io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic STABLE_API
@@ -270,6 +269,20 @@ io.github.minh124199.viettemplate.language.vtl.semantics.type.VType$UnionType PU
 io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.language.vtl.source.SourceText STABLE_API
 io.github.minh124199.viettemplate.lsp.VietTemplateLanguageServer BUILD_TOOL_ENTRYPOINT
+io.github.minh124199.viettemplate.migration.MigrationCategory STABLE_API
+io.github.minh124199.viettemplate.migration.MigrationClassification STABLE_API
+io.github.minh124199.viettemplate.migration.MigrationConfidence STABLE_API
+io.github.minh124199.viettemplate.migration.MigrationFinding STABLE_API
+io.github.minh124199.viettemplate.migration.MigrationReadinessStatus STABLE_API
+io.github.minh124199.viettemplate.migration.MigrationReport STABLE_API
+io.github.minh124199.viettemplate.migration.MigrationRule STABLE_API
+io.github.minh124199.viettemplate.migration.MigrationRuleRegistry STABLE_API
+io.github.minh124199.viettemplate.migration.MigrationSeverity STABLE_API
+io.github.minh124199.viettemplate.migration.MigrationSummary STABLE_API
+io.github.minh124199.viettemplate.migration.SingleTemplateMigration STABLE_API
+io.github.minh124199.viettemplate.migration.TemplateMigrationAnalyzer STABLE_API
+io.github.minh124199.viettemplate.migration.TemplateMigrationRequest STABLE_API
+io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder STABLE_API
 io.github.minh124199.viettemplate.quarkus.VietTemplateConfig STABLE_API
 io.github.minh124199.viettemplate.quarkus.VietTemplateProducer FRAMEWORK_ENTRYPOINT
 io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer STABLE_API
@@ -331,6 +344,7 @@ io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension BUILD_TOO
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateSchemasTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateTypeScriptTask BUILD_TOOL_ENTRYPOINT
+io.github.minh124199.viettemplate.tooling.gradle.VietTemplateMigrationReportTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplatePlugin BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateValidateTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateCompileMojo BUILD_TOOL_ENTRYPOINT
@@ -338,7 +352,12 @@ io.github.minh124199.viettemplate.tooling.maven.VietTemplateExplainMojo BUILD_TO
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateFacadesMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateSchemasMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateTypeScriptMojo BUILD_TOOL_ENTRYPOINT
+io.github.minh124199.viettemplate.tooling.maven.VietTemplateMigrationReportMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateValidateMojo BUILD_TOOL_ENTRYPOINT
+io.github.minh124199.viettemplate.validation.TemplateValidationRequest STABLE_API
+io.github.minh124199.viettemplate.validation.TemplateValidationRequest$Builder STABLE_API
+io.github.minh124199.viettemplate.validation.TemplateValidationResult STABLE_API
+io.github.minh124199.viettemplate.validation.TemplateValidator STABLE_API
 io.github.minh124199.viettemplate.vtl.compiler.bytecode.BytecodeRuntimeBridge GENERATED_RUNTIME_ABI
 io.github.minh124199.viettemplate.vtl.engine.EngineFingerprint INTERNAL_CROSS_PACKAGE
 io.github.minh124199.viettemplate.vtl.engine.VtlTemplate STABLE_API
@@ -402,7 +421,3 @@ io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreter STABLE_API
 io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions STABLE_API
 io.github.minh124199.viettemplate.vtl.interpreter.VtlInterpreterOptions$Builder STABLE_API
 io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy STABLE_SPI
-io.github.minh124199.viettemplate.validation.TemplateValidationRequest STABLE_API
-io.github.minh124199.viettemplate.validation.TemplateValidationRequest$Builder STABLE_API
-io.github.minh124199.viettemplate.validation.TemplateValidationResult STABLE_API
-io.github.minh124199.viettemplate.validation.TemplateValidator STABLE_API

@@ -188,13 +188,14 @@ Templates placed in `src/main/resources/templates/` are discovered and compiled 
 
 ---
 
-## Migrating from Apache Velocity in 3 Steps
+## Migrating from Apache Velocity
 
 Viet Template was engineered as an independent, modern replacement for Apache Velocity:
 
-1. **Step 1: Swap Dependencies**: Replace `org.apache.velocity:velocity-engine-core` with `viet-template-spring-boot-starter` or `viet-template-api`.
-2. **Step 2: Keep Existing Templates**: Retain existing `.vm` and `.vtl` files where their syntax and behavior are covered by Viet Template's compatibility contract. Configure `viet-template.suffixes=.vtl,.vm` for ordered multi-suffix lookup during gradual migration; review the [compatibility matrix](docs/migration/compatibility-matrix.md) and [differences catalog](docs/migration/velocity-differences.md) before migrating.
-3. **Step 3: Update Engine Initialization**: Replace `VelocityEngine` and `VelocityContext` with `TemplateEngine` and `RenderContext`.
+1. **Step 1: Run Migration Report**: Scan your existing `.vm` templates with `mvn viet-template:migration-report` or `./gradlew migrationReport` to identify any behavioral differences or security restrictions before migrating.
+2. **Step 2: Swap Dependencies**: Replace `org.apache.velocity:velocity-engine-core` with `viet-template-spring-boot-starter` or `viet-template-api`.
+3. **Step 3: Keep Existing Templates**: Retain existing `.vm` and `.vtl` files where their syntax and behavior are covered by Viet Template's compatibility contract. Configure `viet-template.suffixes=.vtl,.vm` for ordered multi-suffix lookup during gradual migration; review the [compatibility matrix](docs/migration/compatibility-matrix.md) and [differences catalog](docs/migration/velocity-differences.md) before migrating.
+4. **Step 4: Update Engine Initialization**: Replace `VelocityEngine` and `VelocityContext` with `TemplateEngine` and `RenderContext`.
 
 See the [Apache Velocity Migration Guide](docs/migration/velocity-migration-guide.md), [Velocity Differences Catalog](docs/migration/velocity-differences.md), and [Compatibility Matrix](docs/migration/compatibility-matrix.md) before migration.
 
@@ -259,8 +260,8 @@ Explore the complete documentation suite organized by topic:
 - **[GraalVM Native Image Guide](docs/native-image/graalvm-native-image.md)** — Ahead-of-Time compilation, runtime hints, and native binary packaging.
 
 ### Build Tooling
-- **[Apache Maven Plugin](docs/build-tooling/maven.md)** — Build-time validation, compiler explanation (`mvn viet-template:explain`), and AOT precompilation via `viet-template-maven-plugin`.
-- **[Gradle Plugin](docs/build-tooling/gradle.md)** — Gradle Kotlin/Groovy DSL plugin configuration, compiler explanation (`./gradlew explainVietTemplates`), and incremental build-cache.
+- **[Apache Maven Plugin](docs/build-tooling/maven.md)** — Build-time validation, compiler explanation (`mvn viet-template:explain`), migration reporting (`mvn viet-template:migration-report`), and AOT precompilation via `viet-template-maven-plugin`.
+- **[Gradle Plugin](docs/build-tooling/gradle.md)** — Gradle Kotlin/Groovy DSL plugin configuration, compiler explanation (`./gradlew explainVietTemplates`), migration reporting (`./gradlew migrationReport`), and incremental build-cache.
 
 ### Developer Tooling & Schemas
 - **[Canonical Tooling Schemas](docs/schema/contract-schema-v1.md)** — Language-neutral JSON schema format (`*.vt-schema.json`) for template parameters and types.

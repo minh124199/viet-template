@@ -114,19 +114,20 @@ Add the plugin to the `<build><plugins>` section of your `pom.xml`:
 
 ### 3.2 Plugin Goals
 
-The `viet-template-maven-plugin` provides six goals for build-time operations:
+The `viet-template-maven-plugin` provides seven goals for build-time operations:
 
 | Goal | Default Phase | Description |
 |---|---|---|
 | `validate` | `validate` | Validates templates in-memory for syntax, contract conformity, and static `#parse`/`#include` dependencies without rendering. |
 | `explain` | None (CLI) | Explains compiler decisions (types, access planning, output dispatch specialization, AOT eligibility) in structured text/JSON without rendering. |
+| `migration-report` | None (CLI) | Analyzes existing Apache Velocity templates against documented compatibility facts, producing structured text/JSON migration reports with readiness status and remediation guidance. |
 | `compile` | `process-classes` | Compiles VTL templates Ahead-Of-Time into JVM bytecode and generates the registration index `META-INF/viet-template/templates.idx`. |
 | `generate-facades` | `generate-sources` | Generates strongly-typed Java facade classes from declared template contracts for compile-time safe model binding. |
 | `generate-schemas` | `process-classes` | Extracts canonical JSON contract schemas (`*.vt-schema.json`) for templates with declared `#*contract ... *#` blocks. |
 | `generate-typescript` | `process-classes` | Projects canonical contract schemas into TypeScript interface declarations (`*.d.ts`) for frontend/fullstack type safety. |
 
 > [!NOTE] Lifecycle Execution
-> In Maven, goals run automatically during lifecycle builds (e.g. `mvn compile`, `mvn verify`) when configured under `<executions>` in `pom.xml`. The `validate` goal binds by default to the `validate` phase. Direct CLI invocation is always supported via `mvn viet-template:validate` and `mvn viet-template:explain`.
+> In Maven, goals run automatically during lifecycle builds (e.g. `mvn compile`, `mvn verify`) when configured under `<executions>` in `pom.xml`. The `validate` goal binds by default to the `validate` phase. Direct CLI invocation is always supported via `mvn viet-template:validate`, `mvn viet-template:explain`, and `mvn viet-template:migration-report`.
 
 ### 3.3 Compilation Phase & Execution
 The `compile` goal binds by default to `process-classes`. It runs after Java source compilation, ensuring compiled domain classes and DTOs are available on the compilation classpath for typed model inspection.
@@ -156,6 +157,26 @@ mvn viet-template:explain -Dviet-template.format=json -Dviet-template.outputFile
 
 # Fail build if dynamic fallback paths are required
 mvn viet-template:explain -Dviet-template.failOnDynamicFallback=true
+```
+
+### 3.6 Velocity Migration Report (`viet-template:migration-report`)
+The `migration-report` goal analyzes existing Apache Velocity templates against Viet Template's documented compatibility specifications and differential TCK evidence, answering: *"What in my existing Velocity templates requires attention before I move them to Viet Template?"*
+
+```bash
+# Human-readable migration analysis of all templates in src/main/viet-template
+mvn viet-template:migration-report
+
+# Target a specific template
+mvn viet-template:migration-report -Dviet-template.template=order.vm
+
+# Emit machine-readable JSON migration report
+mvn viet-template:migration-report -Dviet-template.format=json -Dviet-template.outputFile=target/migration-report.json
+
+# Enforce CI migration gates (fail build on blockers or warnings)
+mvn viet-template:migration-report -Dviet-template.failOnBlocker=true -Dviet-template.failOnWarning=true
+
+# Analyze under strict reference mode
+mvn viet-template:migration-report -Dviet-template.strictReferences=true
 ```
 
 ---
