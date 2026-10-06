@@ -507,3 +507,290 @@ TYPE public final class io.github.minh124199.viettemplate.migration.TemplateMigr
   MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder typeCheckingMode(io.github.minh124199.viettemplate.api.TypeCheckingMode)
   MEMBER public io.github.minh124199.viettemplate.migration.TemplateMigrationRequest$Builder()
 
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel
+  MEMBER public static java.lang.String simpleName(java.lang.String)
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ArrayTypeRef extends java.lang.Record implements io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ArrayTypeRef(io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef componentType()
+  MEMBER public java.lang.String displayName()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$CanonicalSchema extends java.lang.Record implements java.io.Serializable
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$CanonicalSchema(java.lang.String, io.github.minh124199.viettemplate.schema.SchemaFormat, java.lang.String, java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ParameterDef>, java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeDef>, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaFormat format()
+  MEMBER public java.lang.String contractFingerprint()
+  MEMBER public java.lang.String rawSource()
+  MEMBER public java.lang.String templateId()
+  MEMBER public java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ParameterDef> parameters()
+  MEMBER public java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeDef> types()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ClassTypeRef extends java.lang.Record implements io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ClassTypeRef(java.lang.String)
+  MEMBER public java.lang.String displayName()
+  MEMBER public java.lang.String name()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$DynamicTypeRef extends java.lang.Record implements io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$DynamicTypeRef()
+  MEMBER public java.lang.String displayName()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$EnumTypeRef extends java.lang.Record implements io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$EnumTypeRef(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$EnumTypeRef(java.lang.String, java.util.List<java.lang.String>)
+  MEMBER public java.lang.String displayName()
+  MEMBER public java.lang.String name()
+  MEMBER public java.util.List<java.lang.String> symbols()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$MapTypeRef extends java.lang.Record implements io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$MapTypeRef(io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef keyType()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef valueType()
+  MEMBER public java.lang.String displayName()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$NamedTypeRef extends java.lang.Record implements io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$NamedTypeRef(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$NamedTypeRef(java.lang.String, java.util.List<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef>)
+  MEMBER public java.lang.String displayName()
+  MEMBER public java.lang.String name()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef> arguments()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ParameterDef extends java.lang.Record implements java.io.Serializable
+  MEMBER public boolean nullable()
+  MEMBER public boolean optional()
+  MEMBER public boolean required()
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ParameterDef(java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef, boolean)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ParameterDef(java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef, boolean, boolean)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ParameterDef(java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef, boolean, boolean, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef type()
+  MEMBER public java.lang.String documentation()
+  MEMBER public java.lang.String name()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ParameterizedTypeRef extends java.lang.Record implements io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ParameterizedTypeRef(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ParameterizedTypeRef(java.lang.String, java.util.List<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef>)
+  MEMBER public java.lang.String displayName()
+  MEMBER public java.lang.String rawType()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef> arguments()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$PrimitiveTypeRef extends java.lang.Record implements io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$PrimitiveTypeRef(java.lang.String)
+  MEMBER public java.lang.String displayName()
+  MEMBER public java.lang.String name()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$PropertyDef extends java.lang.Record implements java.io.Serializable
+  MEMBER public boolean nullable()
+  MEMBER public boolean optional()
+  MEMBER public boolean required()
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$PropertyDef(java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef, boolean)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$PropertyDef(java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef, boolean, boolean)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$PropertyDef(java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef, boolean, boolean, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef type()
+  MEMBER public java.lang.String documentation()
+  MEMBER public java.lang.String name()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeDef extends java.lang.Record implements java.io.Serializable
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeDef(java.lang.String, java.lang.String, java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$PropertyDef>)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeDef(java.lang.String, java.lang.String, java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$PropertyDef>, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeDef(java.lang.String, java.lang.String, java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$PropertyDef>, java.util.List<java.lang.String>)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeDef(java.lang.String, java.lang.String, java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$PropertyDef>, java.util.List<java.lang.String>, java.util.Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef>, java.lang.String)
+  MEMBER public java.lang.String documentation()
+  MEMBER public java.lang.String kind()
+  MEMBER public java.lang.String name()
+  MEMBER public java.util.List<java.lang.String> enumConstants()
+  MEMBER public java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$PropertyDef> properties()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef> mapValueType()
+
+TYPE public interface io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef extends java.io.Serializable
+  MEMBER public abstract java.lang.String displayName()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$UnionTypeRef extends java.lang.Record implements io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$UnionTypeRef(java.util.List<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef>)
+  MEMBER public java.lang.String displayName()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef> options()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$WildcardTypeRef extends java.lang.Record implements io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$WildcardTypeRef()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$WildcardTypeRef(java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$WildcardTypeRef(java.lang.String, java.util.Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef>)
+  MEMBER public java.lang.String boundKind()
+  MEMBER public java.lang.String displayName()
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef> bound()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver()
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver(java.lang.ClassLoader)
+  MEMBER public java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$PropertyDef> getAccessibleProperties(java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef, io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$CanonicalSchema> resolveSchema(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$CanonicalSchema> resolveSchema(io.github.minh124199.viettemplate.api.TemplateId, java.nio.file.Path)
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$CanonicalSchema> resolveSchema(java.lang.String)
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$ParameterDef> getParameter(java.lang.String, java.lang.String)
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeDef> getTypeDef(java.lang.String, java.lang.String)
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef> resolveChainedType(java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef, java.util.List<java.lang.String>)
+  MEMBER public java.util.Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef> resolveReceiverType(java.lang.String, java.lang.String, java.util.List<java.lang.String>)
+  MEMBER public java.util.Optional<java.nio.file.Path> getSchemaFilePath(io.github.minh124199.viettemplate.api.TemplateId)
+  MEMBER public java.util.Optional<java.nio.file.Path> getSchemaFilePath(java.lang.String)
+  MEMBER public java.util.Optional<java.nio.file.Path> schemaDirectory()
+  MEMBER public static final int EXPECTED_VT_SCHEMA_VERSION
+  MEMBER public static final java.lang.String EXPECTED_VT_SCHEMA_FORMAT
+  MEMBER public static java.lang.String normalizeKey(java.lang.String)
+  MEMBER public void registerSchema(io.github.minh124199.viettemplate.api.TemplateId, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$CanonicalSchema)
+  MEMBER public void registerSchema(java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$CanonicalSchema)
+  MEMBER public void registerSchemaFile(java.nio.file.Path) throws java.io.IOException
+  MEMBER public void registerSchemaFile(java.nio.file.Path, java.lang.String) throws java.io.IOException
+  MEMBER public void registerSource(io.github.minh124199.viettemplate.schema.SchemaSource)
+  MEMBER public void setSchemaDirectory(java.nio.file.Path)
+
+TYPE public final class io.github.minh124199.viettemplate.schema.CompositeSchemaImporter implements io.github.minh124199.viettemplate.schema.SchemaImporter
+  MEMBER public io.github.minh124199.viettemplate.schema.CompositeSchemaImporter register(io.github.minh124199.viettemplate.schema.SchemaFormat, io.github.minh124199.viettemplate.schema.SchemaImporter)
+  MEMBER public io.github.minh124199.viettemplate.schema.CompositeSchemaImporter()
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importSchemas(io.github.minh124199.viettemplate.schema.SchemaImportRequest)
+
+TYPE public final class io.github.minh124199.viettemplate.schema.JavaModelSchemaImporter implements io.github.minh124199.viettemplate.schema.SchemaImporter
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef mapJavaType(java.lang.reflect.Type, io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$TypeRef mapTemplateType(io.github.minh124199.viettemplate.api.TemplateType, io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public io.github.minh124199.viettemplate.schema.JavaModelSchemaImporter()
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importBean(java.lang.Class<?>, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importBean(java.lang.Class<?>, java.lang.String, io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importClass(java.lang.Class<?>)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importClass(java.lang.Class<?>, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importClass(java.lang.Class<?>, java.lang.String, io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importContract(io.github.minh124199.viettemplate.api.TemplateContract)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importContract(io.github.minh124199.viettemplate.api.TemplateContract, io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importEnum(java.lang.Class<?>, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importModel(java.lang.Class<?>, java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importModel(java.lang.Class<?>, java.lang.String, java.lang.String, io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importRecord(java.lang.Class<?>, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importRecord(java.lang.Class<?>, java.lang.String, io.github.minh124199.viettemplate.api.MemberAccessPolicy)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importSchemas(io.github.minh124199.viettemplate.schema.SchemaImportRequest)
+  MEMBER public static final java.lang.String CODE_CLASS_NOT_FOUND
+  MEMBER public static final java.lang.String CODE_REFLECTION_ERROR
+
+TYPE public final class io.github.minh124199.viettemplate.schema.JsonSchemaImporter implements io.github.minh124199.viettemplate.schema.SchemaImporter
+  MEMBER public io.github.minh124199.viettemplate.schema.JsonSchemaImporter()
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importPath(java.nio.file.Path)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importPath(java.nio.file.Path, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importSchemas(io.github.minh124199.viettemplate.schema.SchemaImportRequest)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importString(java.lang.String, java.lang.String)
+  MEMBER public static final java.lang.String CODE_SYNTAX_ERROR
+  MEMBER public static final java.lang.String CODE_UNRESOLVED_REFERENCE
+  MEMBER public static final java.lang.String CODE_UNSUPPORTED_REMOTE_REF
+
+TYPE public final class io.github.minh124199.viettemplate.schema.SchemaDiagnostic extends java.lang.Record implements java.io.Serializable
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public int column()
+  MEMBER public int line()
+  MEMBER public io.github.minh124199.viettemplate.api.DiagnosticSeverity severity()
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaDiagnostic(java.lang.String, int, int, io.github.minh124199.viettemplate.schema.SchemaFormat, java.lang.String, io.github.minh124199.viettemplate.api.DiagnosticSeverity, java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaFormat format()
+  MEMBER public java.lang.String code()
+  MEMBER public java.lang.String message()
+  MEMBER public java.lang.String sourcePath()
+  MEMBER public java.lang.String suggestedAction()
+  MEMBER public static io.github.minh124199.viettemplate.schema.SchemaDiagnostic error(java.lang.String, int, int, io.github.minh124199.viettemplate.schema.SchemaFormat, java.lang.String, java.lang.String, java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.schema.SchemaDiagnostic info(java.lang.String, int, int, io.github.minh124199.viettemplate.schema.SchemaFormat, java.lang.String, java.lang.String, java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.schema.SchemaDiagnostic warning(java.lang.String, int, int, io.github.minh124199.viettemplate.schema.SchemaFormat, java.lang.String, java.lang.String, java.lang.String)
+
+TYPE public final class io.github.minh124199.viettemplate.schema.SchemaFormat extends java.lang.Enum<io.github.minh124199.viettemplate.schema.SchemaFormat>
+  MEMBER public static final io.github.minh124199.viettemplate.schema.SchemaFormat CONTRACT
+  MEMBER public static final io.github.minh124199.viettemplate.schema.SchemaFormat JAVA
+  MEMBER public static final io.github.minh124199.viettemplate.schema.SchemaFormat JSON_SCHEMA
+  MEMBER public static final io.github.minh124199.viettemplate.schema.SchemaFormat TYPESCRIPT
+  MEMBER public static io.github.minh124199.viettemplate.schema.SchemaFormat valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.schema.SchemaFormat[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.SchemaImportRequest extends java.lang.Record implements java.io.Serializable
+  MEMBER public boolean failOnWarning()
+  MEMBER public boolean strictMode()
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportRequest(io.github.minh124199.viettemplate.schema.SchemaSource)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportRequest(java.util.List<io.github.minh124199.viettemplate.schema.SchemaSource>)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportRequest(java.util.List<io.github.minh124199.viettemplate.schema.SchemaSource>, boolean, boolean)
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.schema.SchemaSource> sources()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.SchemaImportResult extends java.lang.Record implements java.io.Serializable
+  MEMBER public boolean hasErrors()
+  MEMBER public boolean isPartial()
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult(java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$CanonicalSchema>, java.util.List<io.github.minh124199.viettemplate.schema.SchemaDiagnostic>, boolean, boolean)
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.schema.SchemaDiagnostic> diagnostics()
+  MEMBER public java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$CanonicalSchema> schemas()
+  MEMBER public static io.github.minh124199.viettemplate.schema.SchemaImportResult failure(java.util.List<io.github.minh124199.viettemplate.schema.SchemaDiagnostic>)
+  MEMBER public static io.github.minh124199.viettemplate.schema.SchemaImportResult of(java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$CanonicalSchema>, java.util.List<io.github.minh124199.viettemplate.schema.SchemaDiagnostic>)
+  MEMBER public static io.github.minh124199.viettemplate.schema.SchemaImportResult success(java.util.Map<java.lang.String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel$CanonicalSchema>)
+
+TYPE public interface io.github.minh124199.viettemplate.schema.SchemaImporter
+  MEMBER public abstract io.github.minh124199.viettemplate.schema.SchemaImportResult importSchemas(io.github.minh124199.viettemplate.schema.SchemaImportRequest)
+  MEMBER public default io.github.minh124199.viettemplate.schema.SchemaImportResult importSource(io.github.minh124199.viettemplate.schema.SchemaSource)
+  MEMBER public static io.github.minh124199.viettemplate.schema.SchemaImporter create()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.SchemaSource extends java.lang.Record implements java.io.Serializable
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaFormat format()
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaSource(java.nio.file.Path, io.github.minh124199.viettemplate.schema.SchemaFormat)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaSource(java.nio.file.Path, io.github.minh124199.viettemplate.schema.SchemaFormat, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaSource(java.nio.file.Path, io.github.minh124199.viettemplate.schema.SchemaFormat, java.util.Optional<java.lang.String>)
+  MEMBER public java.nio.file.Path path()
+  MEMBER public java.util.Optional<java.lang.String> templateId()
+
+TYPE public final class io.github.minh124199.viettemplate.schema.TypeScriptSchemaImporter implements io.github.minh124199.viettemplate.schema.SchemaImporter
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importPath(java.nio.file.Path)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importPath(java.nio.file.Path, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importSchemas(io.github.minh124199.viettemplate.schema.SchemaImportRequest)
+  MEMBER public io.github.minh124199.viettemplate.schema.SchemaImportResult importString(java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.schema.TypeScriptSchemaImporter()
+  MEMBER public static final java.lang.String CODE_SYNTAX_ERROR
+  MEMBER public static final java.lang.String CODE_UNSUPPORTED_CONDITIONAL_TYPE
+  MEMBER public static final java.lang.String CODE_UNSUPPORTED_FUNCTION_TYPE
+  MEMBER public static final java.lang.String CODE_UNSUPPORTED_MAPPED_TYPE
+  MEMBER public static final java.lang.String CODE_UNSUPPORTED_NPM_IMPORT
+  MEMBER public static final java.lang.String CODE_UNSUPPORTED_TEMPLATE_LITERAL
+

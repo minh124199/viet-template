@@ -112,4 +112,45 @@ class MemberResolverTest {
     assertThat(sysRes.isFound()).isFalse();
     assertThat(sysRes.kind()).isEqualTo(MemberResolution.Kind.DENIED);
   }
+
+  @Test
+  @DisplayName("Shape-only property resolution via ModelSchema without JVM reflection class")
+  void testShapeOnlyPropertyResolution() {
+    VType shapeUserType =
+        VType.ClassType.of("CustomUser", java.util.List.of(), Nullability.NON_NULL);
+    io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema schema =
+        io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema.builder()
+            .addType("CustomUser", Map.of("name", VTypes.STRING, "age", VTypes.INT))
+            .build();
+
+    MemberResolution nameRes =
+        MemberResolver.resolveProperty(
+            shapeUserType,
+            "name",
+            io.github.minh124199.viettemplate.api.MemberAccessPolicy.standard(),
+            schema);
+    assertThat(nameRes.isFound()).isTrue();
+    assertThat(nameRes.kind()).isEqualTo(MemberResolution.Kind.GETTER);
+    assertThat(nameRes.resultType()).isEqualTo(VTypes.STRING);
+    assertThat(nameRes.targetMember()).isEmpty();
+
+    MemberResolution typoRes =
+        MemberResolver.resolveProperty(
+            shapeUserType,
+            "nmae",
+            io.github.minh124199.viettemplate.api.MemberAccessPolicy.standard(),
+            schema);
+    assertThat(typoRes.isFound()).isFalse();
+    assertThat(typoRes.kind()).isEqualTo(MemberResolution.Kind.NOT_FOUND);
+    assertThat(typoRes.typoSuggestion()).contains("name");
+
+    MemberResolution missingRes =
+        MemberResolver.resolveProperty(
+            shapeUserType,
+            "totallyUnknown",
+            io.github.minh124199.viettemplate.api.MemberAccessPolicy.standard(),
+            schema);
+    assertThat(missingRes.isFound()).isFalse();
+    assertThat(missingRes.typoSuggestion()).isEmpty();
+  }
 }

@@ -49,8 +49,12 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.SemanticAnalysis
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnalyzer;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema;
+import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.CanonicalSchema;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver;
+import io.github.minh124199.viettemplate.schema.SchemaSource;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.OutputSpecializationContext;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.OutputSpecializationDecider;
 import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.WriteDispatchDecision;
@@ -92,6 +96,15 @@ class DefaultTemplateExplainer implements TemplateExplainer {
     int totalExpressionsAcrossTemplates = 0;
     boolean hasDynamicFallbackError = false;
 
+    CanonicalSchemaResolver schemaResolver =
+        new CanonicalSchemaResolver(request.classLoader().orElse(null));
+    for (SchemaSource source : request.schemaSources()) {
+      schemaResolver.registerSource(source);
+    }
+    for (Map.Entry<TemplateId, CanonicalSchema> entry : request.canonicalSchemas().entrySet()) {
+      schemaResolver.registerSchema(entry.getKey(), entry.getValue());
+    }
+
     for (DiscoveredTemplate dt : sortedTemplates) {
       TemplateId templateId = dt.templateId();
       Path sourceFile = dt.file();
@@ -122,6 +135,14 @@ class DefaultTemplateExplainer implements TemplateExplainer {
                 .orElse(null);
       }
 
+      CanonicalSchema canonicalSchema = null;
+      if (contract == null) {
+        canonicalSchema = request.canonicalSchemas().get(templateId);
+        if (canonicalSchema == null) {
+          canonicalSchema = schemaResolver.resolveSchema(templateId, sourceFile).orElse(null);
+        }
+      }
+
       SourceText source = SourceText.of(templateId, sourceText);
       VtlParseResult parseResult = VtlParser.parse(source);
       for (Diagnostic diag : parseResult.diagnostics()) {
@@ -136,6 +157,8 @@ class DefaultTemplateExplainer implements TemplateExplainer {
       IrEscapeMode escapeMode =
           profile == VtlProfile.VTL_SAFE ? IrEscapeMode.HTML_TEXT : IrEscapeMode.RAW;
 
+      boolean isTypedEarly = contract != null || canonicalSchema != null;
+
       if (parseResult.hasErrors()) {
         templateExplanations.add(
             new SingleTemplateExplanation(
@@ -146,8 +169,8 @@ class DefaultTemplateExplainer implements TemplateExplainer {
                 request.strictReferences(),
                 nullRenderMode.name(),
                 escapeMode.name(),
-                contract != null,
-                deriveContractClassName(contract),
+                isTypedEarly,
+                deriveContractClassName(contract, canonicalSchema),
                 List.of(),
                 false,
                 "UNSUPPORTED_LANGUAGE_FEATURE",
@@ -156,7 +179,14 @@ class DefaultTemplateExplainer implements TemplateExplainer {
         continue;
       }
 
-      ModelSchema modelSchema = contract != null ? ModelSchema.fromContract(contract) : null;
+      ModelSchema modelSchema = null;
+      if (contract != null) {
+        modelSchema = ModelSchema.fromContract(contract);
+      } else if (canonicalSchema != null) {
+        modelSchema =
+            io.github.minh124199.viettemplate.schema.internal.CanonicalModelSchemaConverter
+                .toModelSchema(canonicalSchema, request.classLoader().orElse(null));
+      }
       VtlSemanticOptions.Builder semOptionsBuilder =
           VtlSemanticOptions.builder()
               .profile(profile)
@@ -291,7 +321,7 @@ class DefaultTemplateExplainer implements TemplateExplainer {
               nullRenderMode.name(),
               escapeMode.name(),
               isTyped,
-              deriveContractClassName(contract),
+              deriveContractClassName(contract, canonicalSchema),
               sortedDeps,
               aotEligible,
               compilationStatus,
@@ -342,15 +372,19 @@ class DefaultTemplateExplainer implements TemplateExplainer {
     return result;
   }
 
-  private static Optional<String> deriveContractClassName(TemplateContract contract) {
-    if (contract == null || contract.isEmpty()) {
-      return Optional.empty();
+  private static Optional<String> deriveContractClassName(
+      TemplateContract contract, CanonicalSchema canonicalSchema) {
+    if (contract != null && !contract.isEmpty()) {
+      if (contract.parameters().size() == 1) {
+        TemplateParameter p = contract.parameters().get(0);
+        return Optional.of(p.type().typeName());
+      }
+      return Optional.of(contract.templateId().value() + "Contract");
     }
-    if (contract.parameters().size() == 1) {
-      TemplateParameter p = contract.parameters().get(0);
-      return Optional.of(p.type().typeName());
+    if (canonicalSchema != null) {
+      return Optional.of("external schema");
     }
-    return Optional.of(contract.templateId().value() + "Contract");
+    return Optional.empty();
   }
 
   private static List<ExpressionExplanation> extractAndExplainExpressions(
@@ -1078,15 +1112,15 @@ class DefaultTemplateExplainer implements TemplateExplainer {
           switch (res.kindName()) {
             case "RECORD_COMPONENT" -> {
               resolutionStrategy = "DIRECT_RECORD";
-              directAccess = true;
+              directAccess = res.memberName().isPresent();
             }
             case "GETTER", "BOOLEAN_GETTER" -> {
               resolutionStrategy = "DIRECT_GETTER";
-              directAccess = true;
+              directAccess = res.memberName().isPresent();
             }
             case "FIELD" -> {
               resolutionStrategy = "DIRECT_FIELD";
-              directAccess = true;
+              directAccess = res.memberName().isPresent();
             }
             case "MAP_ENTRY" -> {
               resolutionStrategy = "MAP_GET";
@@ -1174,9 +1208,15 @@ class DefaultTemplateExplainer implements TemplateExplainer {
         || "char".equals(inferredType)) {
       nullability = "NON_NULL";
     } else if ("ROOT_MODEL".equals(symbolOrigin)
-        && contract != null
-        && contract.parameter(rootName).isPresent()
-        && !contract.parameter(rootName).get().nullable()) {
+        && ((contract != null
+                && contract.parameter(rootName).isPresent()
+                && !contract.parameter(rootName).get().nullable())
+            || (contract == null
+                && modelSchema != null
+                && modelSchema
+                    .find(rootName)
+                    .map(p -> p.type().nullability() == Nullability.NON_NULL)
+                    .orElse(false)))) {
       nullability = "NON_NULL";
     } else if ("dynamic".equals(inferredType)) {
       nullability = "UNKNOWN";

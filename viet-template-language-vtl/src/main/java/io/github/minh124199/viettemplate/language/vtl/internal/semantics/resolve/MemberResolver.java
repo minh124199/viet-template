@@ -1,6 +1,7 @@
 package io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve;
 
 import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
+import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
@@ -35,11 +36,16 @@ public final class MemberResolver {
   private MemberResolver() {}
 
   public static MemberResolution resolveProperty(VType receiverType, String propertyName) {
-    return resolveProperty(receiverType, propertyName, MemberAccessPolicy.standard());
+    return resolveProperty(receiverType, propertyName, MemberAccessPolicy.standard(), null);
   }
 
   public static MemberResolution resolveProperty(
       VType receiverType, String propertyName, MemberAccessPolicy policy) {
+    return resolveProperty(receiverType, propertyName, policy, null);
+  }
+
+  public static MemberResolution resolveProperty(
+      VType receiverType, String propertyName, MemberAccessPolicy policy, ModelSchema modelSchema) {
     Objects.requireNonNull(receiverType, "receiverType must not be null");
     Objects.requireNonNull(propertyName, "propertyName must not be null");
     MemberAccessPolicy effectivePolicy = policy != null ? policy : MemberAccessPolicy.standard();
@@ -58,9 +64,20 @@ public final class MemberResolver {
       return MemberResolution.notFound(VTypes.ERROR, Optional.of("length"));
     }
 
-    if (receiverType instanceof VType.ClassType ct && ct.javaClass().isPresent()) {
-      Class<?> clazz = ct.javaClass().get();
-      return resolveClassProperty(clazz, ct, propertyName, effectivePolicy);
+    if (receiverType instanceof VType.ClassType ct) {
+      if (ct.javaClass().isPresent()) {
+        Class<?> clazz = ct.javaClass().get();
+        return resolveClassProperty(clazz, ct, propertyName, effectivePolicy);
+      } else if (modelSchema != null && modelSchema.hasType(ct.className())) {
+        Optional<VType> propType = modelSchema.findPropertyType(ct.className(), propertyName);
+        if (propType.isPresent()) {
+          return MemberResolution.of(MemberResolution.Kind.GETTER, propType.get(), null);
+        }
+        Optional<String> typo =
+            LevenshteinDistance.findClosestMatch(
+                propertyName, modelSchema.propertyNames(ct.className()), 2);
+        return MemberResolution.notFound(VTypes.ERROR, typo);
+      }
     }
 
     return MemberResolution.notFound(VTypes.ERROR, Optional.empty());

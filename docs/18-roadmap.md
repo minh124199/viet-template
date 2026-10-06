@@ -415,7 +415,16 @@ Release Phase 1.1.x evolves Viet Template with optional compile-time typed templ
 
 ---
 
-## Future Milestones (Post-M34 / 1.2 Development Line)
+- **Milestone M35 (Cross-Language Schema Interoperability — target 1.2.0) — COMPLETE / QUALIFIED**:
+    - **M35.1 (Canonical Schema Model & Zero-Dependency Normalization)**: Introduced `CanonicalSchemaModel` in `io.github.minh124199.viettemplate.schema` (`viet-template-vtl-interpreter`) defining a rich, sealed `TypeRef` hierarchy (`PrimitiveTypeRef`, `ClassTypeRef`, `NamedTypeRef`, `ArrayTypeRef`, `MapTypeRef`, `EnumTypeRef`, `UnionTypeRef`, `WildcardTypeRef`, `ParameterizedTypeRef`, `DynamicTypeRef`) and `CanonicalSchema`. Enforced the core architectural invariant: every external schema format normalizes into one canonical schema model before downstream tooling consumes it.
+    - **M35.2 (JSON Schema Importer)**: Implemented zero-dependency, offline JSON Schema Draft 7 / 2020-12 importer (`JsonSchemaImporter`) tracking 1-based line/column positions, resolving local `$defs`/`definitions` with cycle bounding, distinguishing all 4 nullability/optionality states, and rejecting remote network references offline (`JSON_SCHEMA_UNSUPPORTED_REMOTE_REF`).
+    - **M35.3 (TypeScript Declaration Importer)**: Implemented handcrafted lexer and recursive descent parser (`TypeScriptSchemaImporter`) for TypeScript declaration subsets (`interface`, `type`, `enum`, literal unions, arrays, maps, nested objects, recursive references) without Node.js, npm, or JS execution, emitting structured diagnostics for unsupported language constructs.
+    - **M35.4 (Java Model & Companion Contract Normalization)**: Implemented `JavaModelSchemaImporter` introspecting Java records, JavaBeans, interfaces, enums, collections, maps, and companion contracts using class metadata and member access policies safely without executing static initializers.
+    - **M35.5 (Multi-Format Schema Resolver & Tooling Integration)**: Implemented `CanonicalSchemaResolver` auto-discovering companion schemas (`*.vt-schema.json`, `*.schema.json`, `*.d.ts`, `*.contract`). Integrated canonical schemas into M32 template validation (`TemplateValidator`), M33 compiler explanation (`TemplateExplainer`), and language server (LSP) tooling with complete semantic parity.
+    - **M35.6 (Shape-Only Semantic Typing & AOT Guard)**: Extended `ModelSchema` and `MemberResolver` to resolve shape-only properties from imported external schemas with Levenshtein typo suggestions. Guaranteed compiler safety: shape-only properties lacking JVM bytecode members automatically configure dynamic member resolution, preventing incorrect static bytecode getter generation while preserving strict compile-time verification.
+    - **M35.7 (TypeScript Declaration Projection & Build Tooling Parity)**: Extended `TypeScriptDeclarationProjector` to project canonical schemas into deterministic `.d.ts` declaration files. Updated Maven (`VietTemplateGenerateTypeScriptMojo`) and Gradle (`VietTemplateGenerateTypeScriptTask`) plugins to discover and project both `*.vt-schema.json` and `*.schema.json`, verified with 100% build tool parity (`VietTemplateMavenGradleParityTest`).
 
-- **Milestone M35**: Cross-language schema interoperability
+---
+
+## Future Milestones (Post-M35 / 1.2 Development Line)
 

@@ -5,6 +5,8 @@ import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.CanonicalSchema;
+import io.github.minh124199.viettemplate.schema.SchemaSource;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -32,6 +34,8 @@ public final class TemplateValidationRequest {
   private final boolean validateDependencies;
   private final List<TemplateId> globalMacroLibraries;
   private final TemplateId layoutId;
+  private final Map<TemplateId, CanonicalSchema> canonicalSchemas;
+  private final List<SchemaSource> schemaSources;
 
   TemplateValidationRequest(
       List<Path> sourceDirectories,
@@ -46,7 +50,9 @@ public final class TemplateValidationRequest {
       boolean failOnWarning,
       boolean validateDependencies,
       List<TemplateId> globalMacroLibraries,
-      TemplateId layoutId) {
+      TemplateId layoutId,
+      Map<TemplateId, CanonicalSchema> canonicalSchemas,
+      List<SchemaSource> schemaSources) {
     this.sourceDirectories =
         List.copyOf(
             Objects.requireNonNull(sourceDirectories, "sourceDirectories must not be null"));
@@ -65,6 +71,40 @@ public final class TemplateValidationRequest {
     this.globalMacroLibraries =
         globalMacroLibraries != null ? List.copyOf(globalMacroLibraries) : List.of();
     this.layoutId = layoutId;
+    this.canonicalSchemas = canonicalSchemas != null ? Map.copyOf(canonicalSchemas) : Map.of();
+    this.schemaSources = schemaSources != null ? List.copyOf(schemaSources) : List.of();
+  }
+
+  TemplateValidationRequest(
+      List<Path> sourceDirectories,
+      List<String> includePatterns,
+      List<String> excludePatterns,
+      Charset encoding,
+      VtlProfile profile,
+      TypeCheckingMode typeCheckingMode,
+      Map<TemplateId, TemplateContract> contracts,
+      ClassLoader classLoader,
+      VtlSemanticOptions semanticOptions,
+      boolean failOnWarning,
+      boolean validateDependencies,
+      List<TemplateId> globalMacroLibraries,
+      TemplateId layoutId) {
+    this(
+        sourceDirectories,
+        includePatterns,
+        excludePatterns,
+        encoding,
+        profile,
+        typeCheckingMode,
+        contracts,
+        classLoader,
+        semanticOptions,
+        failOnWarning,
+        validateDependencies,
+        globalMacroLibraries,
+        layoutId,
+        Map.of(),
+        List.of());
   }
 
   public static Builder builder() {
@@ -123,6 +163,14 @@ public final class TemplateValidationRequest {
     return Optional.ofNullable(layoutId);
   }
 
+  public Map<TemplateId, CanonicalSchema> canonicalSchemas() {
+    return canonicalSchemas;
+  }
+
+  public List<SchemaSource> schemaSources() {
+    return schemaSources;
+  }
+
   public Builder toBuilder() {
     Builder b = new Builder();
     b.sourceDirectories.addAll(this.sourceDirectories);
@@ -140,6 +188,8 @@ public final class TemplateValidationRequest {
     b.validateDependencies = this.validateDependencies;
     b.globalMacroLibraries.addAll(this.globalMacroLibraries);
     b.layoutId = this.layoutId;
+    b.canonicalSchemas.putAll(this.canonicalSchemas);
+    b.schemaSources.addAll(this.schemaSources);
     return b;
   }
 
@@ -163,7 +213,9 @@ public final class TemplateValidationRequest {
         && Objects.equals(classLoader, that.classLoader)
         && Objects.equals(semanticOptions, that.semanticOptions)
         && Objects.equals(globalMacroLibraries, that.globalMacroLibraries)
-        && Objects.equals(layoutId, that.layoutId);
+        && Objects.equals(layoutId, that.layoutId)
+        && Objects.equals(canonicalSchemas, that.canonicalSchemas)
+        && Objects.equals(schemaSources, that.schemaSources);
   }
 
   @Override
@@ -181,7 +233,9 @@ public final class TemplateValidationRequest {
         failOnWarning,
         validateDependencies,
         globalMacroLibraries,
-        layoutId);
+        layoutId,
+        canonicalSchemas,
+        schemaSources);
   }
 
   @Override
@@ -213,6 +267,10 @@ public final class TemplateValidationRequest {
         + globalMacroLibraries
         + ", layoutId="
         + layoutId
+        + ", canonicalSchemas="
+        + canonicalSchemas
+        + ", schemaSources="
+        + schemaSources
         + '}';
   }
 
@@ -225,6 +283,8 @@ public final class TemplateValidationRequest {
     private VtlProfile profile;
     private TypeCheckingMode typeCheckingMode = TypeCheckingMode.OFF;
     private final Map<TemplateId, TemplateContract> contracts = new LinkedHashMap<>();
+    private final Map<TemplateId, CanonicalSchema> canonicalSchemas = new LinkedHashMap<>();
+    private final List<SchemaSource> schemaSources = new ArrayList<>();
     private ClassLoader classLoader;
     private VtlSemanticOptions semanticOptions;
     private boolean failOnWarning = false;
@@ -353,6 +413,34 @@ public final class TemplateValidationRequest {
       return this;
     }
 
+    public Builder canonicalSchema(TemplateId templateId, CanonicalSchema schema) {
+      if (templateId != null && schema != null) {
+        this.canonicalSchemas.put(templateId, schema);
+      }
+      return this;
+    }
+
+    public Builder canonicalSchemas(Map<TemplateId, CanonicalSchema> schemas) {
+      if (schemas != null) {
+        this.canonicalSchemas.putAll(schemas);
+      }
+      return this;
+    }
+
+    public Builder schemaSource(SchemaSource schemaSource) {
+      if (schemaSource != null) {
+        this.schemaSources.add(schemaSource);
+      }
+      return this;
+    }
+
+    public Builder schemaSources(List<SchemaSource> schemaSources) {
+      if (schemaSources != null) {
+        this.schemaSources.addAll(schemaSources);
+      }
+      return this;
+    }
+
     public Builder classLoader(ClassLoader classLoader) {
       this.classLoader = classLoader;
       return this;
@@ -428,7 +516,9 @@ public final class TemplateValidationRequest {
           failOnWarning,
           validateDependencies,
           globalMacroLibraries,
-          layoutId);
+          layoutId,
+          canonicalSchemas,
+          schemaSources);
     }
   }
 }

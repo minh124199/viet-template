@@ -17,6 +17,9 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticAnaly
 import io.github.minh124199.viettemplate.language.vtl.semantics.VtlSemanticOptions;
 import io.github.minh124199.viettemplate.language.vtl.semantics.model.ModelSchema;
 import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.CanonicalSchema;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver;
+import io.github.minh124199.viettemplate.schema.SchemaSource;
 import io.github.minh124199.viettemplate.vtl.engine.dependency.DefaultTemplateDependencyGraph;
 import io.github.minh124199.viettemplate.vtl.internal.engine.dependency.StaticDependencyExtractor;
 import java.io.IOException;
@@ -50,6 +53,15 @@ class DefaultTemplateValidator implements TemplateValidator {
 
     List<TemplateAotDiagnostic> allDiagnostics = new ArrayList<>();
 
+    CanonicalSchemaResolver schemaResolver =
+        new CanonicalSchemaResolver(request.classLoader().orElse(null));
+    for (SchemaSource source : request.schemaSources()) {
+      schemaResolver.registerSource(source);
+    }
+    for (Map.Entry<TemplateId, CanonicalSchema> entry : request.canonicalSchemas().entrySet()) {
+      schemaResolver.registerSchema(entry.getKey(), entry.getValue());
+    }
+
     for (DiscoveredTemplate dt : sortedTemplates) {
       TemplateId templateId = dt.templateId();
       Path sourceFile = dt.file();
@@ -80,6 +92,14 @@ class DefaultTemplateValidator implements TemplateValidator {
                 .orElse(null);
       }
 
+      CanonicalSchema canonicalSchema = null;
+      if (contract == null) {
+        canonicalSchema = request.canonicalSchemas().get(templateId);
+        if (canonicalSchema == null) {
+          canonicalSchema = schemaResolver.resolveSchema(templateId, sourceFile).orElse(null);
+        }
+      }
+
       SourceText source = SourceText.of(templateId, sourceText);
       VtlParseResult parseResult = VtlParser.parse(source);
       for (Diagnostic diag : parseResult.diagnostics()) {
@@ -89,15 +109,24 @@ class DefaultTemplateValidator implements TemplateValidator {
         continue;
       }
 
-      ModelSchema modelSchema = contract != null ? ModelSchema.fromContract(contract) : null;
+      ModelSchema modelSchema = null;
+      if (contract != null) {
+        modelSchema = ModelSchema.fromContract(contract);
+      } else if (canonicalSchema != null) {
+        modelSchema =
+            io.github.minh124199.viettemplate.schema.internal.CanonicalModelSchemaConverter
+                .toModelSchema(canonicalSchema, request.classLoader().orElse(null));
+      }
+
+      ModelSchema finalModelSchema = modelSchema;
       VtlSemanticOptions semanticOptions =
           request
               .semanticOptions()
               .map(
                   options -> {
-                    if (modelSchema != null
+                    if (finalModelSchema != null
                         && (options.modelSchema() == null || options.modelSchema().isEmpty())) {
-                      return options.toBuilder().modelSchema(modelSchema).build();
+                      return options.toBuilder().modelSchema(finalModelSchema).build();
                     }
                     return options;
                   })
@@ -109,8 +138,8 @@ class DefaultTemplateValidator implements TemplateValidator {
                             .profile(profile)
                             .allowArbitraryMethods(profile.isArbitraryMethodsAllowed())
                             .typeCheckingMode(request.typeCheckingMode());
-                    if (modelSchema != null) {
-                      semanticOptionsBuilder.modelSchema(modelSchema);
+                    if (finalModelSchema != null) {
+                      semanticOptionsBuilder.modelSchema(finalModelSchema);
                     }
                     return semanticOptionsBuilder.build();
                   });

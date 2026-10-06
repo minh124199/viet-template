@@ -6,6 +6,7 @@ import io.github.minh124199.viettemplate.language.vtl.semantics.type.Nullability
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.language.vtl.semantics.type.VTypes;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -92,5 +93,24 @@ class ModelSchemaTest {
     assertThat(schema.contains("count")).isTrue();
     assertThat(schema.find("user").orElseThrow().type()).isEqualTo(VTypes.STRING);
     assertThat(schema.find("count").orElseThrow().type()).isEqualTo(VTypes.INT);
+  }
+
+  @Test
+  @DisplayName("ModelSchema supports registered types and property lookup")
+  void testTypesInModelSchema() {
+    ModelSchema schema =
+        ModelSchema.builder()
+            .add("user", VType.ClassType.of("User", java.util.List.of(), Nullability.NON_NULL))
+            .addType("User", Map.of("name", VTypes.STRING, "age", VTypes.INT))
+            .build();
+
+    assertThat(schema.hasType("User")).isTrue();
+    assertThat(schema.hasType("Unknown")).isFalse();
+    assertThat(schema.propertyNames("User")).containsExactlyInAnyOrder("name", "age");
+    assertThat(schema.findPropertyType("User", "name")).contains(VTypes.STRING);
+    assertThat(schema.findPropertyType("User", "age")).contains(VTypes.INT);
+    assertThat(schema.findPropertyType("User", "missing")).isEmpty();
+    assertThat(schema.types()).containsKey("User");
+    assertThat(schema.fingerprint()).isNotEmpty();
   }
 }

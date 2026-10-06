@@ -544,4 +544,94 @@ class VietTemplateMavenGradleParityTest {
         .anyMatch(f -> f.ruleId().equals(MigrationRuleRegistry.ID_PARSE_DYNAMIC))
         .anyMatch(f -> f.ruleId().equals(MigrationRuleRegistry.ID_SEC_CLASS_ACCESS));
   }
+
+  @Test
+  @DisplayName(
+      "Maven and Gradle cross-language schema validation and TypeScript generation produce"
+          + " identical results")
+  void testMavenGradleCrossLanguageSchemaParity(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"parity-cross-schema-project\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n"
+            + "vietTemplate {\n"
+            + "    typeChecking.set(\"ERROR\")\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path srcDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(srcDir);
+
+    // 1. Template with companion JSON Schema
+    Files.writeString(
+        srcDir.resolve("user-profile.vtl"),
+        "User: $user.name (Age: $user.age)",
+        StandardCharsets.UTF_8);
+
+    String userSchemaJson =
+        """
+        {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$id": "user-profile.vtl",
+          "type": "object",
+          "properties": {
+            "user": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "age": { "type": "integer" }
+              },
+              "required": ["name", "age"]
+            }
+          },
+          "required": ["user"]
+        }
+        """;
+    Files.writeString(
+        srcDir.resolve("user-profile.schema.json"), userSchemaJson, StandardCharsets.UTF_8);
+
+    // Run Gradle validation
+    BuildResult gradleVal =
+        createRunner(projectDir).withArguments(VietTemplatePlugin.VALIDATE_TASK_NAME).build();
+    assertThat(gradleVal.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME)).isNotNull();
+    assertThat(gradleVal.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+
+    // Run Maven validation logic
+    TemplateValidationRequest mavenRequest =
+        TemplateValidationRequest.builder()
+            .sourceDirectory(srcDir)
+            .typeCheckingMode(io.github.minh124199.viettemplate.api.TypeCheckingMode.ERROR)
+            .encoding(StandardCharsets.UTF_8)
+            .build();
+    TemplateValidationResult mavenVal = TemplateValidator.create().validate(mavenRequest);
+    assertThat(mavenVal.isSuccess()).isTrue();
+    assertThat(mavenVal.errorCount()).isZero();
+
+    // 2. Introduce invalid property reference and verify identical failure
+    Files.writeString(
+        srcDir.resolve("user-profile.vtl"), "User: $user.unknownProp", StandardCharsets.UTF_8);
+
+    BuildResult gradleFail =
+        createRunner(projectDir)
+            .withArguments(VietTemplatePlugin.VALIDATE_TASK_NAME)
+            .buildAndFail();
+    assertThat(gradleFail.task(":" + VietTemplatePlugin.VALIDATE_TASK_NAME).getOutcome())
+        .isEqualTo(TaskOutcome.FAILED);
+    assertThat(gradleFail.getOutput()).contains("[VTLS:2104]");
+
+    TemplateValidationResult mavenFail = TemplateValidator.create().validate(mavenRequest);
+    assertThat(mavenFail.isSuccess()).isFalse();
+    assertThat(mavenFail.diagnostics()).anyMatch(d -> d.code().qualifiedCode().equals("VTLS:2104"));
+  }
 }

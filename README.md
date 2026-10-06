@@ -264,6 +264,7 @@ Explore the complete documentation suite organized by topic:
 - **[Gradle Plugin](docs/build-tooling/gradle.md)** — Gradle Kotlin/Groovy DSL plugin configuration, compiler explanation (`./gradlew explainVietTemplates`), migration reporting (`./gradlew migrationReport`), and incremental build-cache.
 
 ### Developer Tooling & Schemas
+- **[Cross-Language Schema Interoperability](docs/schema/cross-language-schema-interoperability.md)** — Universal normalization of Java models, JSON Schema (Draft 7/2020-12), and TypeScript declarations into canonical schemas for validation, explanation, and LSP.
 - **[Canonical Tooling Schemas](docs/schema/contract-schema-v1.md)** — Language-neutral JSON schema format (`*.vt-schema.json`) for template parameters and types.
 - **[TypeScript Declaration Projection](docs/schema/typescript-projection-v1.md)** — Automated, deterministic generation of TypeScript declaration files (`*.d.ts`) from contract schemas.
 - **[Language Server Protocol (LSP)](docs/tooling/language-server-foundation.md)** — Language server implementation providing diagnostics, autocompletion, hover, and definition navigation.

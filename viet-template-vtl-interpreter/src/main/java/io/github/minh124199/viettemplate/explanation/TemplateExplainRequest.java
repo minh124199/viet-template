@@ -4,6 +4,8 @@ import io.github.minh124199.viettemplate.api.TemplateContract;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.CanonicalSchema;
+import io.github.minh124199.viettemplate.schema.SchemaSource;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -36,6 +38,8 @@ public final class TemplateExplainRequest {
   private final Path outputFile;
   private final boolean failOnDynamicFallback;
   private final boolean strictReferences;
+  private final Map<TemplateId, CanonicalSchema> canonicalSchemas;
+  private final List<SchemaSource> schemaSources;
 
   TemplateExplainRequest(
       List<Path> sourceDirectories,
@@ -54,7 +58,9 @@ public final class TemplateExplainRequest {
       ClassLoader classLoader,
       Path outputFile,
       boolean failOnDynamicFallback,
-      boolean strictReferences) {
+      boolean strictReferences,
+      Map<TemplateId, CanonicalSchema> canonicalSchemas,
+      List<SchemaSource> schemaSources) {
     this.sourceDirectories =
         List.copyOf(
             Objects.requireNonNull(sourceDirectories, "sourceDirectories must not be null"));
@@ -77,6 +83,48 @@ public final class TemplateExplainRequest {
     this.outputFile = outputFile;
     this.failOnDynamicFallback = failOnDynamicFallback;
     this.strictReferences = strictReferences;
+    this.canonicalSchemas = canonicalSchemas != null ? Map.copyOf(canonicalSchemas) : Map.of();
+    this.schemaSources = schemaSources != null ? List.copyOf(schemaSources) : List.of();
+  }
+
+  TemplateExplainRequest(
+      List<Path> sourceDirectories,
+      List<String> includePatterns,
+      List<String> excludePatterns,
+      Charset encoding,
+      TypeCheckingMode typeCheckingMode,
+      VtlProfile profile,
+      String template,
+      Integer line,
+      Integer column,
+      String format,
+      Map<TemplateId, TemplateContract> contracts,
+      List<TemplateId> globalMacroLibraries,
+      TemplateId layoutId,
+      ClassLoader classLoader,
+      Path outputFile,
+      boolean failOnDynamicFallback,
+      boolean strictReferences) {
+    this(
+        sourceDirectories,
+        includePatterns,
+        excludePatterns,
+        encoding,
+        typeCheckingMode,
+        profile,
+        template,
+        line,
+        column,
+        format,
+        contracts,
+        globalMacroLibraries,
+        layoutId,
+        classLoader,
+        outputFile,
+        failOnDynamicFallback,
+        strictReferences,
+        Map.of(),
+        List.of());
   }
 
   public static Builder builder() {
@@ -151,6 +199,14 @@ public final class TemplateExplainRequest {
     return strictReferences;
   }
 
+  public Map<TemplateId, CanonicalSchema> canonicalSchemas() {
+    return canonicalSchemas;
+  }
+
+  public List<SchemaSource> schemaSources() {
+    return schemaSources;
+  }
+
   public Builder toBuilder() {
     Builder b = new Builder();
     b.sourceDirectories.addAll(this.sourceDirectories);
@@ -172,6 +228,8 @@ public final class TemplateExplainRequest {
     b.outputFile = this.outputFile;
     b.failOnDynamicFallback = this.failOnDynamicFallback;
     b.strictReferences = this.strictReferences;
+    b.canonicalSchemas.putAll(this.canonicalSchemas);
+    b.schemaSources.addAll(this.schemaSources);
     return b;
   }
 
@@ -199,7 +257,9 @@ public final class TemplateExplainRequest {
         && Objects.equals(globalMacroLibraries, that.globalMacroLibraries)
         && Objects.equals(layoutId, that.layoutId)
         && Objects.equals(classLoader, that.classLoader)
-        && Objects.equals(outputFile, that.outputFile);
+        && Objects.equals(outputFile, that.outputFile)
+        && Objects.equals(canonicalSchemas, that.canonicalSchemas)
+        && Objects.equals(schemaSources, that.schemaSources);
   }
 
   @Override
@@ -221,7 +281,9 @@ public final class TemplateExplainRequest {
         classLoader,
         outputFile,
         failOnDynamicFallback,
-        strictReferences);
+        strictReferences,
+        canonicalSchemas,
+        schemaSources);
   }
 
   @Override
@@ -262,6 +324,10 @@ public final class TemplateExplainRequest {
         + failOnDynamicFallback
         + ", strictReferences="
         + strictReferences
+        + ", canonicalSchemas="
+        + canonicalSchemas
+        + ", schemaSources="
+        + schemaSources
         + '}';
   }
 
@@ -278,6 +344,8 @@ public final class TemplateExplainRequest {
     private Integer column;
     private String format = "text";
     private final Map<TemplateId, TemplateContract> contracts = new LinkedHashMap<>();
+    private final Map<TemplateId, CanonicalSchema> canonicalSchemas = new LinkedHashMap<>();
+    private final List<SchemaSource> schemaSources = new ArrayList<>();
     private final List<TemplateId> globalMacroLibraries = new ArrayList<>();
     private TemplateId layoutId;
     private ClassLoader classLoader;
@@ -443,6 +511,34 @@ public final class TemplateExplainRequest {
       return this;
     }
 
+    public Builder canonicalSchema(TemplateId templateId, CanonicalSchema schema) {
+      if (templateId != null && schema != null) {
+        this.canonicalSchemas.put(templateId, schema);
+      }
+      return this;
+    }
+
+    public Builder canonicalSchemas(Map<TemplateId, CanonicalSchema> schemas) {
+      if (schemas != null) {
+        this.canonicalSchemas.putAll(schemas);
+      }
+      return this;
+    }
+
+    public Builder schemaSource(SchemaSource schemaSource) {
+      if (schemaSource != null) {
+        this.schemaSources.add(schemaSource);
+      }
+      return this;
+    }
+
+    public Builder schemaSources(List<SchemaSource> schemaSources) {
+      if (schemaSources != null) {
+        this.schemaSources.addAll(schemaSources);
+      }
+      return this;
+    }
+
     public Builder globalMacroLibrary(TemplateId libraryId) {
       if (libraryId != null) {
         this.globalMacroLibraries.add(libraryId);
@@ -522,7 +618,9 @@ public final class TemplateExplainRequest {
           classLoader,
           outputFile,
           failOnDynamicFallback,
-          strictReferences);
+          strictReferences,
+          canonicalSchemas,
+          schemaSources);
     }
   }
 }
