@@ -75,7 +75,7 @@ public final class JavaModelSchemaImporter implements SchemaImporter {
                 CODE_CLASS_NOT_FOUND,
                 "Class not found on classpath: " + className,
                 "Verify class name and ensure it is available on classpath"));
-      } catch (ReflectiveOperationException | SecurityException | RuntimeException e) {
+      } catch (LinkageError | RuntimeException e) {
         allDiagnostics.add(
             SchemaDiagnostic.error(
                 sourceStr,
