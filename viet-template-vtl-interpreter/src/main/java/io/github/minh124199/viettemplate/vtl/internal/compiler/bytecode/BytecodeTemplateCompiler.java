@@ -50,8 +50,6 @@ import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrStoreLocal;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteConst;
 import io.github.minh124199.viettemplate.language.vtl.ir.statement.IrWriteValue;
 import io.github.minh124199.viettemplate.language.vtl.ir.verifier.IrVerifier;
-import io.github.minh124199.viettemplate.language.vtl.semantics.type.PrimitiveKind;
-import io.github.minh124199.viettemplate.language.vtl.semantics.type.VType;
 import io.github.minh124199.viettemplate.runtime.linker.DynamicCallSite;
 import io.github.minh124199.viettemplate.runtime.linker.LinkerAccessPolicy;
 import io.github.minh124199.viettemplate.runtime.linker.MemberOperation;
@@ -773,213 +771,105 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
 
   private static void compileWriteValue(
       IrWriteValue wv, ClassFileWriter.MethodWriter mw, CompilerContext context) {
-    boolean isStrict =
-        context.options.strictReferences()
-            || wv.nullMode()
+    WriteDispatchDecision decision =
+        OutputSpecializationDecider.decide(wv.value(), wv.nullMode(), context);
+
+    switch (decision.kind()) {
+      case WRITE_STRING_SPECIALIZED -> {
+        compileExpression(wv.value(), mw, context);
+        mw.checkcast("java/lang/String");
+        mw.aload(2); // output
+        mw.iconst(wv.escapeMode().ordinal());
+        mw.iconst(wv.nullMode().ordinal());
+
+        String literal = null;
+        if (wv.nullMode()
                 == io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode
-                    .THROW_ERROR;
-    boolean isSafeProfile =
-        context.options.securityPolicy() != null
-            && context.options.securityPolicy().isSafeProfile();
+                    .LITERAL_EXPRESSION
+            && wv.span() != null
+            && wv.span().isKnown()) {
+          literal = "$" + extractRootName(wv.value());
+        }
 
-    if (!isStrict
-        && !isSafeProfile
-        && wv.nullMode()
-            != io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode.THROW_ERROR
-        && isStaticString(wv.value())) {
-      compileExpression(wv.value(), mw, context);
-      mw.checkcast("java/lang/String");
-      mw.aload(2); // output
-      mw.iconst(wv.escapeMode().ordinal());
-      mw.iconst(wv.nullMode().ordinal());
+        if (literal != null) {
+          mw.ldc(literal);
+        } else {
+          mw.aconst_null();
+        }
 
-      String literal = null;
-      if (wv.nullMode()
-              == io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode
-                  .LITERAL_EXPRESSION
-          && wv.span() != null
-          && wv.span().isKnown()) {
-        literal = "$" + extractRootName(wv.value());
+        mw.invokestatic(
+            "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+            "writeString",
+            "(Ljava/lang/String;Lio/github/minh124199/viettemplate/api/TemplateOutput;IILjava/lang/String;)V");
       }
+      case WRITE_INTEGER_SPECIALIZED -> {
+        compileExpression(wv.value(), mw, context);
+        mw.checkcast("java/lang/Integer");
+        mw.aload(2); // output
+        mw.iconst(wv.nullMode().ordinal());
 
-      if (literal != null) {
-        mw.ldc(literal);
-      } else {
-        mw.aconst_null();
+        String literal = null;
+        if (wv.nullMode()
+                == io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode
+                    .LITERAL_EXPRESSION
+            && wv.span() != null
+            && wv.span().isKnown()) {
+          literal = "$" + extractRootName(wv.value());
+        }
+
+        if (literal != null) {
+          mw.ldc(literal);
+        } else {
+          mw.aconst_null();
+        }
+
+        mw.invokestatic(
+            "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+            "writeInteger",
+            "(Ljava/lang/Integer;Lio/github/minh124199/viettemplate/api/TemplateOutput;ILjava/lang/String;)V");
       }
+      case GENERIC_WRITE_VALUE -> {
+        boolean isStrict =
+            context.isStrict()
+                || wv.nullMode()
+                    == io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode
+                        .THROW_ERROR;
 
-      mw.invokestatic(
-          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
-          "writeString",
-          "(Ljava/lang/String;Lio/github/minh124199/viettemplate/api/TemplateOutput;IILjava/lang/String;)V");
-      return;
-    }
+        compileExpression(wv.value(), mw, context);
+        mw.aload(2); // output
+        mw.iconst(wv.escapeMode().ordinal());
+        mw.iconst(wv.nullMode().ordinal());
 
-    if (!isStrict
-        && !isSafeProfile
-        && wv.nullMode()
-            != io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode.THROW_ERROR
-        && isStaticInt(wv.value(), context)) {
-      compileExpression(wv.value(), mw, context);
-      mw.checkcast("java/lang/Integer");
-      mw.aload(2); // output
-      mw.iconst(wv.nullMode().ordinal());
+        String literal = null;
+        if (wv.span() != null && wv.span().isKnown()) {
+          // In non-strict mode, unescaped literal representation
+          literal = "$" + extractRootName(wv.value());
+        }
 
-      String literal = null;
-      if (wv.nullMode()
-              == io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode
-                  .LITERAL_EXPRESSION
-          && wv.span() != null
-          && wv.span().isKnown()) {
-        literal = "$" + extractRootName(wv.value());
+        if (literal != null) {
+          mw.ldc(literal);
+        } else {
+          mw.aconst_null();
+        }
+
+        mw.iconst(isStrict ? 1 : 0);
+        mw.ldc(context.template.id().value());
+        SourceSpan span = wv.span();
+        mw.iconst(span != null ? span.startLine() : 1);
+        mw.iconst(span != null ? span.startColumn() : 1);
+        mw.iconst(span != null ? span.endLine() : 1);
+        mw.iconst(span != null ? span.endColumn() : 1);
+        mw.getstatic(
+            context.internalName,
+            "SECURITY_POLICY",
+            "Lio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;");
+
+        mw.invokestatic(
+            "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
+            "writeValue",
+            "(Ljava/lang/Object;Lio/github/minh124199/viettemplate/api/TemplateOutput;IILjava/lang/String;ZLjava/lang/String;IIIILio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;)V");
       }
-
-      if (literal != null) {
-        mw.ldc(literal);
-      } else {
-        mw.aconst_null();
-      }
-
-      mw.invokestatic(
-          "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
-          "writeInteger",
-          "(Ljava/lang/Integer;Lio/github/minh124199/viettemplate/api/TemplateOutput;ILjava/lang/String;)V");
-      return;
     }
-
-    compileExpression(wv.value(), mw, context);
-    mw.aload(2); // output
-    mw.iconst(wv.escapeMode().ordinal());
-    mw.iconst(wv.nullMode().ordinal());
-
-    String literal = null;
-    if (wv.span() != null && wv.span().isKnown()) {
-      // In non-strict mode, unescaped literal representation
-      literal = "$" + extractRootName(wv.value());
-    }
-
-    if (literal != null) {
-      mw.ldc(literal);
-    } else {
-      mw.aconst_null();
-    }
-
-    mw.iconst(isStrict ? 1 : 0);
-    mw.ldc(context.template.id().value());
-    SourceSpan span = wv.span();
-    mw.iconst(span != null ? span.startLine() : 1);
-    mw.iconst(span != null ? span.startColumn() : 1);
-    mw.iconst(span != null ? span.endLine() : 1);
-    mw.iconst(span != null ? span.endColumn() : 1);
-    mw.getstatic(
-        context.internalName,
-        "SECURITY_POLICY",
-        "Lio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;");
-
-    mw.invokestatic(
-        "io/github/minh124199/viettemplate/vtl/compiler/bytecode/BytecodeRuntimeBridge",
-        "writeValue",
-        "(Ljava/lang/Object;Lio/github/minh124199/viettemplate/api/TemplateOutput;IILjava/lang/String;ZLjava/lang/String;IIIILio/github/minh124199/viettemplate/runtime/linker/LinkerAccessPolicy;)V");
-  }
-
-  private static boolean isStaticString(IrExpression expr) {
-    if (expr == null) {
-      return false;
-    }
-    if (expr instanceof IrConst c) {
-      return c.value() instanceof String;
-    }
-    if (expr instanceof IrLoadParam param) {
-      return isStringType(param.type());
-    }
-    if (expr instanceof IrLoadLocal local) {
-      return isStringType(local.type());
-    }
-    if (expr instanceof IrGetProperty prop) {
-      AccessPlan plan = prop.accessPlan();
-      if (plan instanceof AccessPlan.DirectRecord rec) {
-        return rec.returnType() == String.class;
-      }
-      if (plan instanceof AccessPlan.DirectGetter getter) {
-        return getter.returnType() == String.class;
-      }
-      if (plan instanceof AccessPlan.DirectField field) {
-        return field.fieldType() == String.class;
-      }
-      return false;
-    }
-    if (expr instanceof IrConvert conv) {
-      return isStringType(conv.type());
-    }
-    return false;
-  }
-
-  private static boolean isStringType(VType type) {
-    if (type instanceof VType.ClassType ct) {
-      if (ct.javaClass().isPresent()) {
-        return ct.javaClass().get() == String.class;
-      }
-      return "java.lang.String".equals(ct.className());
-    }
-    return false;
-  }
-
-  private static boolean isStaticInt(IrExpression expr) {
-    return isStaticInt(expr, null);
-  }
-
-  private static boolean isStaticInt(IrExpression expr, CompilerContext context) {
-    if (expr == null) {
-      return false;
-    }
-    if (context != null && !context.isTyped()) {
-      return false;
-    }
-    if (expr instanceof IrConst c) {
-      return c.value() instanceof Integer;
-    }
-    if (expr instanceof IrLoadParam param) {
-      return isIntegerType(param.type());
-    }
-    if (expr instanceof IrLoadLocal local) {
-      if (context != null && context.isNonIntLocal(local.slot())) {
-        return false;
-      }
-      return isIntegerType(local.type());
-    }
-    if (expr instanceof IrGetProperty prop) {
-      AccessPlan plan = prop.accessPlan();
-      if (plan instanceof AccessPlan.DirectRecord rec) {
-        return rec.returnType() == int.class || rec.returnType() == Integer.class;
-      }
-      if (plan instanceof AccessPlan.DirectGetter getter) {
-        return getter.returnType() == int.class || getter.returnType() == Integer.class;
-      }
-      if (plan instanceof AccessPlan.DirectField field) {
-        return field.fieldType() == int.class || field.fieldType() == Integer.class;
-      }
-      return false;
-    }
-    if (expr instanceof IrConvert conv) {
-      return isIntegerType(conv.type());
-    }
-    return false;
-  }
-
-  private static boolean isIntegerType(VType type) {
-    if (type == null) {
-      return false;
-    }
-    if (type instanceof VType.PrimitiveType pt) {
-      return pt.kind() == PrimitiveKind.INT;
-    }
-    if (type instanceof VType.ClassType ct) {
-      if (ct.javaClass().isPresent()) {
-        return ct.javaClass().get() == Integer.class || ct.javaClass().get() == int.class;
-      }
-      return "java.lang.Integer".equals(ct.className()) || "int".equals(ct.className());
-    }
-    return false;
   }
 
   private static void compileIf(
@@ -1987,7 +1877,7 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
   private record DynamicSiteSpec(
       int siteId, String memberName, MemberOperation operation, int arity) {}
 
-  private static final class CompilerContext {
+  private static final class CompilerContext implements OutputSpecializationContext {
     final IrTemplate template;
     final String templateId;
     final BackendOptions options;
@@ -2056,42 +1946,29 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       this.scratchSlotBase = scratchSlot;
       this.totalLocals = totalLocals;
       if (this.isTyped) {
-        int prevSize;
-        do {
-          prevSize = nonIntLocalSlots.size();
-          scanNonIntLocals(template.root());
-          for (IrFunction fn : template.functions()) {
-            scanNonIntLocals(fn.body());
-          }
-        } while (nonIntLocalSlots.size() > prevSize);
+        nonIntLocalSlots.addAll(
+            OutputSpecializationDecider.computeNonIntLocalSlots(template, true));
       }
     }
 
-    boolean isTyped() {
+    @Override
+    public boolean isStrict() {
+      return options.strictReferences();
+    }
+
+    @Override
+    public boolean isSafeProfile() {
+      return options.securityPolicy() != null && options.securityPolicy().isSafeProfile();
+    }
+
+    @Override
+    public boolean isTyped() {
       return isTyped;
     }
 
-    boolean isNonIntLocal(int slot) {
+    @Override
+    public boolean isNonIntLocal(int slot) {
       return nonIntLocalSlots.contains(slot);
-    }
-
-    private void scanNonIntLocals(IrBlock block) {
-      if (block == null) {
-        return;
-      }
-      for (IrStatement stmt : block.statements()) {
-        if (stmt instanceof IrStoreLocal sl) {
-          if (!isStaticInt(sl.value(), this)) {
-            nonIntLocalSlots.add(sl.local().slot());
-          }
-        } else if (stmt instanceof IrIf ifStmt) {
-          scanNonIntLocals(ifStmt.thenBlock());
-          ifStmt.elseBlock().ifPresent(this::scanNonIntLocals);
-        } else if (stmt instanceof IrLoop loop) {
-          scanNonIntLocals(loop.body());
-          loop.elseBody().ifPresent(this::scanNonIntLocals);
-        }
-      }
     }
 
     int registerDynamicSite(String memberName, MemberOperation operation, int arity) {
