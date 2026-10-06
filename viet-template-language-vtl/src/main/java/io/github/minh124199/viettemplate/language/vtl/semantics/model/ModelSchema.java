@@ -30,12 +30,23 @@ import java.util.Set;
  */
 public final class ModelSchema {
 
-  private static final ModelSchema EMPTY = new ModelSchema(Map.of());
+  private static final ModelSchema EMPTY = new ModelSchema(Map.of(), Map.of());
 
   private final Map<String, ModelParameter> parameters;
+  private final Map<String, Map<String, VType>> types;
+
+  private ModelSchema(
+      Map<String, ModelParameter> parameters, Map<String, Map<String, VType>> types) {
+    this.parameters = Collections.unmodifiableMap(new LinkedHashMap<>(parameters));
+    Map<String, Map<String, VType>> copy = new LinkedHashMap<>();
+    for (Map.Entry<String, Map<String, VType>> entry : types.entrySet()) {
+      copy.put(entry.getKey(), Collections.unmodifiableMap(new LinkedHashMap<>(entry.getValue())));
+    }
+    this.types = Collections.unmodifiableMap(copy);
+  }
 
   private ModelSchema(Map<String, ModelParameter> parameters) {
-    this.parameters = Collections.unmodifiableMap(new LinkedHashMap<>(parameters));
+    this(parameters, Map.of());
   }
 
   public static ModelSchema empty() {
@@ -209,6 +220,28 @@ public final class ModelSchema {
     return parameters.size();
   }
 
+  public Optional<VType> findPropertyType(String typeName, String propertyName) {
+    Objects.requireNonNull(typeName, "typeName must not be null");
+    Objects.requireNonNull(propertyName, "propertyName must not be null");
+    Map<String, VType> props = types.get(typeName);
+    return props != null ? Optional.ofNullable(props.get(propertyName)) : Optional.empty();
+  }
+
+  public Set<String> propertyNames(String typeName) {
+    Objects.requireNonNull(typeName, "typeName must not be null");
+    Map<String, VType> props = types.get(typeName);
+    return props != null ? Collections.unmodifiableSet(props.keySet()) : Set.of();
+  }
+
+  public boolean hasType(String typeName) {
+    Objects.requireNonNull(typeName, "typeName must not be null");
+    return types.containsKey(typeName);
+  }
+
+  public Map<String, Map<String, VType>> types() {
+    return types;
+  }
+
   public String fingerprint() {
     try {
       MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -216,6 +249,18 @@ public final class ModelSchema {
         md.update(entry.getKey().getBytes(StandardCharsets.UTF_8));
         md.update((byte) ':');
         md.update(entry.getValue().type().toString().getBytes(StandardCharsets.UTF_8));
+        md.update((byte) '\n');
+      }
+      for (Map.Entry<String, Map<String, VType>> entry : types.entrySet()) {
+        md.update(entry.getKey().getBytes(StandardCharsets.UTF_8));
+        md.update((byte) '{');
+        for (Map.Entry<String, VType> prop : entry.getValue().entrySet()) {
+          md.update(prop.getKey().getBytes(StandardCharsets.UTF_8));
+          md.update((byte) ':');
+          md.update(prop.getValue().toString().getBytes(StandardCharsets.UTF_8));
+          md.update((byte) ';');
+        }
+        md.update((byte) '}');
         md.update((byte) '\n');
       }
       byte[] digest = md.digest();
@@ -234,20 +279,21 @@ public final class ModelSchema {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (!(o instanceof ModelSchema that)) return false;
-    return parameters.equals(that.parameters);
+    return parameters.equals(that.parameters) && types.equals(that.types);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(parameters);
+    return Objects.hash(parameters, types);
   }
 
-  static Builder builder() {
+  public static Builder builder() {
     return new Builder();
   }
 
-  static final class Builder {
+  public static final class Builder {
     private final Map<String, ModelParameter> params = new LinkedHashMap<>();
+    private final Map<String, Map<String, VType>> types = new LinkedHashMap<>();
 
     Builder() {}
 
@@ -262,14 +308,31 @@ public final class ModelSchema {
       return this;
     }
 
+    public Builder addType(String typeName, Map<String, VType> properties) {
+      Objects.requireNonNull(typeName, "typeName must not be null");
+      Objects.requireNonNull(properties, "properties must not be null");
+      this.types.put(typeName, new LinkedHashMap<>(properties));
+      return this;
+    }
+
+    public Builder addTypes(Map<String, Map<String, VType>> types) {
+      if (types != null) {
+        for (Map.Entry<String, Map<String, VType>> entry : types.entrySet()) {
+          addType(entry.getKey(), entry.getValue());
+        }
+      }
+      return this;
+    }
+
     public Builder addAll(ModelSchema schema) {
       Objects.requireNonNull(schema, "schema must not be null");
       params.putAll(schema.parameters());
+      addTypes(schema.types());
       return this;
     }
 
     public ModelSchema build() {
-      return new ModelSchema(params);
+      return new ModelSchema(params, types);
     }
   }
 }

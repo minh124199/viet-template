@@ -39,9 +39,12 @@ final class CanonicalSchemaResolver {
   private final Map<String, SchemaEnvelope> schemasById = new ConcurrentHashMap<>();
   private final Map<String, Path> schemaFilePaths = new ConcurrentHashMap<>();
   private volatile Path schemaDirectory = null;
+  private final io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver delegate =
+      new io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver();
 
   public void setSchemaDirectory(Path directory) {
     this.schemaDirectory = directory;
+    this.delegate.setSchemaDirectory(directory);
   }
 
   public void registerSchema(String templateIdOrUri, String schemaJson) {
@@ -60,15 +63,33 @@ final class CanonicalSchemaResolver {
     if (!Files.isRegularFile(schemaPath)) {
       return;
     }
-    String json = Files.readString(schemaPath, StandardCharsets.UTF_8);
-    SchemaEnvelope env = parseSchemaJson(json);
-    String key = TemplateDocumentStore.normalizeUri(schemaPath.toUri().toString());
-    schemasById.put(key, env);
-    schemaFilePaths.put(key, schemaPath);
-    if (!env.templateId().isBlank()) {
-      String normTemplateId = TemplateDocumentStore.normalizeUri(env.templateId());
-      schemasById.put(normTemplateId, env);
-      schemaFilePaths.put(normTemplateId, schemaPath);
+    String fileName = schemaPath.getFileName().toString();
+    if (fileName.endsWith(".vt-schema.json")) {
+      String json = Files.readString(schemaPath, StandardCharsets.UTF_8);
+      SchemaEnvelope env = parseSchemaJson(json);
+      String key = TemplateDocumentStore.normalizeUri(schemaPath.toUri().toString());
+      schemasById.put(key, env);
+      schemaFilePaths.put(key, schemaPath);
+      if (!env.templateId().isBlank()) {
+        String normTemplateId = TemplateDocumentStore.normalizeUri(env.templateId());
+        schemasById.put(normTemplateId, env);
+        schemaFilePaths.put(normTemplateId, schemaPath);
+      }
+    } else {
+      delegate.registerSchemaFile(schemaPath);
+      String uriKey = TemplateDocumentStore.normalizeUri(schemaPath.toUri().toString());
+      Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.CanonicalSchema> opt =
+          delegate.resolveSchema(schemaPath.toUri().toString());
+      if (opt.isPresent()) {
+        SchemaEnvelope env = convertFromSchemaModel(opt.get());
+        schemasById.put(uriKey, env);
+        schemaFilePaths.put(uriKey, schemaPath);
+        if (!env.templateId().isBlank()) {
+          String normTemplateId = TemplateDocumentStore.normalizeUri(env.templateId());
+          schemasById.put(normTemplateId, env);
+          schemaFilePaths.put(normTemplateId, schemaPath);
+        }
+      }
     }
   }
 
@@ -80,6 +101,16 @@ final class CanonicalSchemaResolver {
     SchemaEnvelope cached = schemasById.get(normKey);
     if (cached != null) {
       return Optional.of(cached);
+    }
+
+    // Try delegate for cross-format schemas (.schema.json, .d.ts, .contract)
+    Optional<io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.CanonicalSchema>
+        fromDelegate = delegate.resolveSchema(templateIdOrUri);
+    if (fromDelegate.isPresent()) {
+      SchemaEnvelope env = convertFromSchemaModel(fromDelegate.get());
+      schemasById.put(normKey, env);
+      delegate.getSchemaFilePath(templateIdOrUri).ifPresent(p -> schemaFilePaths.put(normKey, p));
+      return Optional.of(env);
     }
 
     // Try auto-discovery from document URI
@@ -248,9 +279,41 @@ final class CanonicalSchemaResolver {
       return 0;
     }
     String[] lines = jsonContent.split("\r?\n");
+
+    // TypeScript .d.ts search: TemplateParameters interface
+    int tpStart = -1;
+    for (int i = 0; i < lines.length; i++) {
+      if (lines[i].contains("TemplateParameters")) {
+        tpStart = i;
+        break;
+      }
+    }
+    if (tpStart >= 0) {
+      for (int i = tpStart; i < lines.length; i++) {
+        String line = lines[i];
+        if (line.contains("}") && i > tpStart) {
+          break;
+        }
+        if (line.contains(paramName + ":") || line.contains(paramName + "?:")) {
+          return i;
+        }
+      }
+    }
+
+    // Contract file search
+    for (int i = 0; i < lines.length; i++) {
+      String line = lines[i].trim();
+      if (line.startsWith(paramName + " ")
+          || line.startsWith(paramName + "=")
+          || line.startsWith(paramName + ":")
+          || line.contains(" " + paramName + " ")) {
+        return i;
+      }
+    }
+
     int paramStart = -1;
     for (int i = 0; i < lines.length; i++) {
-      if (lines[i].contains("\"parameters\"")) {
+      if (lines[i].contains("\"parameters\"") || lines[i].contains("\"properties\"")) {
         paramStart = i;
         break;
       }
@@ -275,9 +338,37 @@ final class CanonicalSchemaResolver {
       return 0;
     }
     String[] lines = jsonContent.split("\r?\n");
+
+    // TypeScript .d.ts search: interface <typeName> or type <typeName>
+    if (typeName != null && !typeName.isBlank()) {
+      String simpleType = CanonicalSchemaModel.simpleName(typeName);
+      int typeStart = -1;
+      for (int i = 0; i < lines.length; i++) {
+        String l = lines[i];
+        if ((l.contains("interface " + simpleType) || l.contains("type " + simpleType))
+            && !l.contains("TemplateParameters")) {
+          typeStart = i;
+          break;
+        }
+      }
+      if (typeStart >= 0) {
+        for (int i = typeStart; i < lines.length; i++) {
+          String l = lines[i];
+          if (l.contains("}") && i > typeStart) {
+            break;
+          }
+          if (l.contains(propName + ":") || l.contains(propName + "?:")) {
+            return i;
+          }
+        }
+      }
+    }
+
     int typesSectionStart = -1;
     for (int i = 0; i < lines.length; i++) {
-      if (lines[i].contains("\"types\"")) {
+      if (lines[i].contains("\"types\"")
+          || lines[i].contains("\"definitions\"")
+          || lines[i].contains("\"$defs\"")) {
         typesSectionStart = i;
         break;
       }
@@ -317,6 +408,93 @@ final class CanonicalSchemaResolver {
     }
 
     return findDefinitionLine(jsonContent, "name", propName);
+  }
+
+  private static SchemaEnvelope convertFromSchemaModel(
+      io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.CanonicalSchema schema) {
+    Map<String, ParameterDef> params = new TreeMap<>();
+    for (Map.Entry<
+            String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.ParameterDef>
+        entry : schema.parameters().entrySet()) {
+      io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.ParameterDef p =
+          entry.getValue();
+      params.put(
+          p.name(),
+          new ParameterDef(
+              p.name(), convertTypeRef(p.type()), p.nullable(), p.optional(), p.documentation()));
+    }
+
+    Map<String, TypeDef> types = new TreeMap<>();
+    for (Map.Entry<String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.TypeDef>
+        entry : schema.types().entrySet()) {
+      io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.TypeDef td = entry.getValue();
+      Map<String, PropertyDef> props = new TreeMap<>();
+      for (Map.Entry<
+              String, io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.PropertyDef>
+          propEntry : td.properties().entrySet()) {
+        io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.PropertyDef prop =
+            propEntry.getValue();
+        props.put(
+            prop.name(),
+            new PropertyDef(prop.name(), convertTypeRef(prop.type()), prop.nullable()));
+      }
+      types.put(td.name(), new TypeDef(td.kind(), props));
+    }
+
+    return new SchemaEnvelope(
+        "",
+        schema.format().name(),
+        1,
+        schema.templateId(),
+        schema.contractFingerprint(),
+        params,
+        types,
+        schema.rawSource());
+  }
+
+  private static TypeRef convertTypeRef(
+      io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.TypeRef t) {
+    if (t
+        instanceof
+        io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.PrimitiveTypeRef ptr) {
+      return new PrimitiveTypeRef(ptr.name());
+    }
+    if (t
+        instanceof io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.ClassTypeRef ctr) {
+      return new ClassTypeRef(ctr.name());
+    }
+    if (t
+        instanceof io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.NamedTypeRef ntr) {
+      List<TypeRef> args =
+          ntr.arguments().stream().map(CanonicalSchemaResolver::convertTypeRef).toList();
+      return new NamedTypeRef(ntr.name(), args);
+    }
+    if (t
+        instanceof io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.ArrayTypeRef atr) {
+      return new ArrayTypeRef(convertTypeRef(atr.componentType()));
+    }
+    if (t
+        instanceof
+        io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.ParameterizedTypeRef ptr) {
+      List<TypeRef> args =
+          ptr.arguments().stream().map(CanonicalSchemaResolver::convertTypeRef).toList();
+      return new ParameterizedTypeRef(ptr.rawType(), args);
+    }
+    if (t instanceof io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.MapTypeRef mtr) {
+      return new ParameterizedTypeRef(
+          "java.util.Map", List.of(convertTypeRef(mtr.keyType()), convertTypeRef(mtr.valueType())));
+    }
+    if (t
+        instanceof io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.EnumTypeRef etr) {
+      return new NamedTypeRef(etr.name(), List.of());
+    }
+    if (t
+        instanceof
+        io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.WildcardTypeRef wtr) {
+      return new WildcardTypeRef(
+          wtr.boundKind(), wtr.bound().map(CanonicalSchemaResolver::convertTypeRef));
+    }
+    return new PrimitiveTypeRef("unknown");
   }
 
   public static int findDefinitionLine(String jsonContent, String targetKey, String targetValue) {

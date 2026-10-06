@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Milestone M35: Cross-Language Schema Interoperability**:
+  - **Universal Canonical Schema Model (`io.github.minh124199.viettemplate.schema`)**:
+    - Introduced `CanonicalSchemaModel` in `viet-template-vtl-interpreter` with a sealed `TypeRef` hierarchy (`PrimitiveTypeRef`, `ClassTypeRef`, `NamedTypeRef`, `ArrayTypeRef`, `MapTypeRef`, `EnumTypeRef`, `UnionTypeRef`, `WildcardTypeRef`, `ParameterizedTypeRef`, `DynamicTypeRef`), `PropertyDef`, `TypeDef`, `ParameterDef`, and `CanonicalSchema`.
+    - Enforced the architectural invariant: external schema formats (Java, JSON Schema, TypeScript) normalize into one canonical representation before downstream analysis (M32 validation, M33 explanation, M34 migration, LSP, AOT). Downstream tools never parse external schemas directly.
+    - Accurately distinguished all 4 optionality and nullability combinations: required non-null, required nullable, optional non-null, and optional nullable.
+  - **Zero-Dependency JSON Schema Import (`JsonSchemaImporter`)**:
+    - Supported Draft 7 / 2020-12 compatible JSON Schemas with exact 1-based line/column position tracking without third-party dependencies.
+    - Handled keywords `type`, `properties`, `required`, `items`, `additionalProperties`, `enum`, `const`, `$defs`, `definitions`, `oneOf`, `allOf`, `nullable`, and `description`.
+    - Cycle-bounded local `$defs` resolution and strict offline rejection of remote HTTP/HTTPS `$ref` URIs (`JSON_SCHEMA_UNSUPPORTED_REMOTE_REF`).
+  - **Handcrafted TypeScript Declaration Import (`TypeScriptSchemaImporter`)**:
+    - Zero-dependency lexer and recursive descent parser supporting TypeScript `interface`, `type`, `enum`, string literal unions, arrays (`T[]`, `Array<T>`), maps (`Record<string, V>`), nested object literals, and recursive references.
+    - Emitted structured diagnostics for unsupported TypeScript constructs (`TS_SCHEMA_UNSUPPORTED_CONDITIONAL_TYPE`, `TS_SCHEMA_UNSUPPORTED_MAPPED_TYPE`, `TS_SCHEMA_UNSUPPORTED_FUNCTION_TYPE`, `TS_SCHEMA_UNSUPPORTED_NPM_IMPORT`).
+    - Zero Node.js, npm, or JavaScript runtime execution.
+  - **Java Domain Model Normalization (`JavaModelSchemaImporter`)**:
+    - Reflection-based extraction for Java records, JavaBeans, interfaces, enums, collections, maps, and companion contracts using member access policies safely without triggering static initializers.
+  - **Shape-Only Semantic Typing & AOT Safety**:
+    - Extended `ModelSchema` and `MemberResolver` in `viet-template-language-vtl` to resolve shape-only properties from imported external schemas with Levenshtein typo suggestions.
+    - Automatically marks templates using shape-only properties as requiring dynamic member resolution (`requiresDynamicMemberResolution`), safely preventing static bytecode direct-getter generation while preserving strict compile-time verification and explanation.
+  - **Deterministic TypeScript Projection (`TypeScriptDeclarationProjector`)**:
+    - Extended projection to convert `CanonicalSchema` into deterministic `.d.ts` declaration files with 100% round-trip fidelity and golden fixture compatibility.
+  - **Build Tool Parity (`viet-template-maven-plugin` & `viet-template-gradle-plugin`)**:
+    - Updated Maven `viet-template:generate-typescript` goal and Gradle `generateVietTemplateTypeScript` task to discover and project both `*.vt-schema.json` and `*.schema.json`.
+    - Auto-discovery of companion schemas in M32 validation and M33 explanation across Maven and Gradle.
 - **Milestone M34: Velocity Migration Report Tooling**:
   - **Shared Migration Analysis Core (`io.github.minh124199.viettemplate.migration`)**:
     - Introduced public `TemplateMigrationAnalyzer` interface, `TemplateMigrationRequest`, `MigrationReport`, `SingleTemplateMigration`, `MigrationFinding`, `MigrationSummary`, `MigrationSeverity`, `MigrationCategory`, `MigrationClassification`, `MigrationConfidence`, and `MigrationReadinessStatus`.

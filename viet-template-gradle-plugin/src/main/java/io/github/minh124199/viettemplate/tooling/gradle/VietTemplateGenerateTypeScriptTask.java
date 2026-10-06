@@ -64,7 +64,11 @@ public abstract class VietTemplateGenerateTypeScriptTask extends DefaultTask {
       schemaFiles =
           stream
               .filter(Files::isRegularFile)
-              .filter(p -> p.getFileName().toString().endsWith(".vt-schema.json"))
+              .filter(
+                  p -> {
+                    String name = p.getFileName().toString();
+                    return name.endsWith(".vt-schema.json") || name.endsWith(".schema.json");
+                  })
               .sorted(Comparator.comparing(Path::toString))
               .toList();
     } catch (IOException e) {
@@ -79,8 +83,31 @@ public abstract class VietTemplateGenerateTypeScriptTask extends DefaultTask {
     try {
       Files.createDirectories(outDirPath);
       java.util.Set<Path> generatedFiles = new java.util.HashSet<>();
+      io.github.minh124199.viettemplate.schema.JsonSchemaImporter jsonSchemaImporter =
+          new io.github.minh124199.viettemplate.schema.JsonSchemaImporter();
       for (Path schemaFile : schemaFiles) {
-        Path generatedFile = TypeScriptDeclarationProjector.projectToFile(schemaFile, outDirPath);
+        Path generatedFile;
+        if (schemaFile.getFileName().toString().endsWith(".schema.json")) {
+          io.github.minh124199.viettemplate.schema.SchemaImportResult importResult =
+              jsonSchemaImporter.importSchemas(
+                  new io.github.minh124199.viettemplate.schema.SchemaImportRequest(
+                      List.of(
+                          new io.github.minh124199.viettemplate.schema.SchemaSource(
+                              schemaFile,
+                              io.github.minh124199.viettemplate.schema.SchemaFormat.JSON_SCHEMA,
+                              java.util.Optional.empty())),
+                      false,
+                      false));
+          if (importResult.hasErrors() || importResult.schemas().isEmpty()) {
+            throw new GradleException(
+                "Failed to import JSON schema " + schemaFile + ": " + importResult.diagnostics());
+          }
+          generatedFile =
+              TypeScriptDeclarationProjector.projectToFile(
+                  importResult.schemas().values().iterator().next(), outDirPath);
+        } else {
+          generatedFile = TypeScriptDeclarationProjector.projectToFile(schemaFile, outDirPath);
+        }
         generatedFiles.add(generatedFile.toAbsolutePath().normalize());
         getLogger().debug("Generated TypeScript declaration: {}", generatedFile);
       }

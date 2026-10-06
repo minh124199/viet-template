@@ -560,10 +560,16 @@ public final class VtlSemanticAnalyzer {
         } else {
           MemberResolution res =
               MemberResolver.resolveProperty(
-                  currentType, prop.propertyName(), options.memberAccessPolicy());
+                  currentType,
+                  prop.propertyName(),
+                  options.memberAccessPolicy(),
+                  options.modelSchema());
           memberResolutions.put(prop, res);
           if (res.isFound()) {
             currentType = res.resultType();
+            if (res.targetMember().isEmpty()) {
+              capabilitiesBuilder.setRequiresDynamicMemberResolution(true);
+            }
           } else if (res.kind() == MemberResolution.Kind.DENIED) {
             diagnostics.add(
                 Diagnostic.error(
