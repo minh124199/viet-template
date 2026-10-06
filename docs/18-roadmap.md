@@ -1,6 +1,6 @@
 # 18 — Implementation Roadmap (Historical Milestone Record and Current Status)
 
-> **Status note (2026-10-03):** This document preserves the project's milestone history. Viet Template 1.1.0 is the latest published stable release, and active development is `1.1.1-SNAPSHOT` on `main`. Earlier release-phase plans are historical records; unfinished 1.0 RC soak/readiness wording below is closed by the subsequent 1.0.0 GA release, and must not be read as current work.
+> **Status note (2026-10-03):** This document preserves the project's milestone history. Viet Template 1.1.0 is the latest published stable release, and active development is `1.2.0-SNAPSHOT` on `main`. Earlier release-phase plans are historical records; unfinished 1.0 RC soak/readiness wording below is closed by the subsequent 1.0.0 GA release, and must not be read as current work.
 
 ## Overview
 
@@ -71,7 +71,7 @@ To adhere to the Java-first design policy and avoid premature complexity:
 
 Release `0.2.0` introduces the next major internal runtime evolution, transitioning variable resolution from string-based hash lookups to compiler-assigned flat array slots and indexing the compilation cache for scalable invalidation.
 
-**Release Status**: Version 1.1.0 was published on 2026-10-03 as the latest stable feature release, following 1.0.1 (2026-09-28) and 1.0.0 GA (2026-09-26). Version 0.2.2 (published 2026-09-20; 0.2.1 on 2026-09-17, 0.2.0 on 2026-09-12) represents the historical 0.2.x line. Version 0.2.3 was prepared across POMs but held without tagging or publication (`PREPARED_HELD`). Milestones M20–M31 are complete and published in 1.1.0. Active development is on `1.1.1-SNAPSHOT` on `main`.
+**Release Status**: Version 1.1.0 was published on 2026-10-03 as the latest stable feature release, following 1.0.1 (2026-09-28) and 1.0.0 GA (2026-09-26). Version 0.2.2 (published 2026-09-20; 0.2.1 on 2026-09-17, 0.2.0 on 2026-09-12) represents the historical 0.2.x line. Version 0.2.3 was prepared across POMs but held without tagging or publication (`PREPARED_HELD`). Milestones M20–M31 are complete and published in 1.1.0. Active development is on `1.2.0-SNAPSHOT` on `main`.
 
 **Post-release infrastructure status**: 0.2.x release infrastructure hardening is COMPLETE. Central
 submission, publication monitoring, public-coordinate verification, consumer smoke testing, and
@@ -394,9 +394,17 @@ Release Phase 1.1.x evolves Viet Template with optional compile-time typed templ
     - **M31.7 (LSP Extension Point Adapters)**: Connected language server diagnostics to `ExternalAnnotator`, autocompletion to `CompletionContributor`, hover documentation to `DocumentationProvider`, definition navigation to `GotoDeclarationHandler`, and added `Restart Viet Template Language Server` menu action.
     - **M31.8 (Automated Testing & Distribution Packaging)**: Implemented 29 automated tests (unit tests, platform tests, and real LSP integration tests driving `VietTemplateLanguageServer` over stdio), bundled `server/viet-template-lsp.jar`, and qualified plugin ZIP packaging.
     - **M31.9 (Governance & Path Safety)**: Implemented `scripts/verify-intellij-plugin.py` enforcing plugin descriptor integrity, build configuration correctness, distribution ZIP structure, and zero machine-specific path assumptions.
-- **Milestone M32 (Build-Time Template Validation — target 1.1.1) — COMPLETE / QUALIFIED**:
+- **Milestone M32 (Build-Time Template Validation — target 1.2.0) — COMPLETE / QUALIFIED**:
     - **M32.1 (Shared Core Validation Engine)**: Introduced `TemplateValidator`, `TemplateValidationRequest`, and `TemplateValidationResult` in `viet-template-vtl-interpreter` (`io.github.minh124199.viettemplate.validation`). Executes purely in-memory syntax parsing, contract semantic typing analysis, and static `#parse`/`#include` dependency validation without template execution or runtime rendering.
     - **M32.2 (Maven Plugin Validation Goal)**: Implemented `viet-template:validate` (`VietTemplateValidateMojo`) bound to the `validate` lifecycle phase, supporting `failOnWarning`, `validateDependencies`, contract schemas, profile selection, and configurable includes/excludes.
     - **M32.3 (Gradle Plugin Validation Task)**: Implemented `validateVietTemplates` (`VietTemplateValidateTask`) registered under the `verification` task group and wired into Gradle's standard lifecycle `check` task, providing identical configuration options and error semantics.
     - **M32.4 (Tooling Parity & Verification)**: Guaranteed 100% feature and diagnostic parity across Maven and Gradle validation tooling, verified via comprehensive parity tests (`VietTemplateMavenGradleParityTest`).
+
+---
+
+## Future Milestones (Post-M32 / 1.2 Development Line)
+
+- **Milestone M33**: Explain / compiler explanation tooling
+- **Milestone M34**: Velocity migration report
+- **Milestone M35**: Cross-language schema interoperability
 

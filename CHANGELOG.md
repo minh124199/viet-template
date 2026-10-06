@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Release Engineering
 - Open `1.1.1-SNAPSHOT` development baseline following the successful release of `1.1.0`.
+- Begin `1.2.0-SNAPSHOT` development line following the introduction of Milestone M32 build-time template validation.
 
 ### Fixed
 - **Robustness and Differential Fuzzing CI Gate**: Added clean-room reactor artifact bootstrapping (`./mvnw install -DskipTests ...`) before Gradle deep fuzzing execution in `.github/workflows/fuzz.yml`, resolving Quarkus deployment extension artifact resolution failures in scheduled CI runs.

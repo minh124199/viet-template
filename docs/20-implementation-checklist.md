@@ -1122,7 +1122,7 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **X9.** Comprehensive Test Suite: Implemented 29 automated tests covering unit tests (Java runtime discovery, server launcher, configuration), platform tests, and real LSP integration tests exercising `VietTemplateLanguageServer` over stdio with zero process leaks.
 - [x] **X10.** Governance & Path Safety: Implemented `scripts/verify-intellij-plugin.py` and unit tests in `scripts/tests/test_verify_intellij_plugin.py` validating descriptor metadata, build configuration, packaging, and zero hardcoded machine paths.
 
-### Deliverable Y: Build-Time Template Validation (Milestone M32 / 1.1.1)
+### Deliverable Y: Build-Time Template Validation (Milestone M32 / 1.2.0)
 
 - [x] **Y1.** Shared Validation Core Architecture: Introduced `TemplateValidator`, `TemplateValidationRequest`, and `TemplateValidationResult` in `io.github.minh124199.viettemplate.validation` (`viet-template-vtl-interpreter`).
 - [x] **Y2.** In-Memory Syntax & Contract Analysis: Executes syntax parsing, `#*contract ... *#` semantic typing analysis, and static `#parse`/`#include` dependency validation purely in-memory without runtime rendering or template execution.
