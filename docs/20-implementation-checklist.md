@@ -1131,3 +1131,13 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **Y5.** Maven & Gradle Parity: Verified 100% feature and diagnostic parity across Maven and Gradle validation tooling via `VietTemplateMavenGradleParityTest`.
 - [x] **Y6.** Governance & Public Surface Enforcement: Classified all validation public types as `STABLE_API` or `BUILD_TOOL_ENTRYPOINT` with zero non-stable signature leaks, passing all API baseline and framework entrypoint checks.
 
+### Deliverable Z: Compiler Explanation Tooling (Milestone M33 / 1.2.0)
+
+- [x] **Z1.** Shared Decision Logic Extraction: Extracted write output specialization decision logic (`OutputSpecializationDecider`, `WriteDispatchDecision`, `WriteDispatchKind`, `OutputSpecializationContext`) from `BytecodeTemplateCompiler` into shared immutable compiler models to guarantee `explained decision == compiled decision`.
+- [x] **Z2.** Shared Explanation Core Engine: Implemented `TemplateExplainer`, `TemplateExplainRequest`, `SingleTemplateExplanation`, `ExpressionExplanation`, and deterministic JSON/text formatters in `io.github.minh124199.viettemplate.explanation` (`viet-template-vtl-interpreter`).
+- [x] **Z3.** In-Memory Decision Inspection: Analyzes AST, semantic analysis results, IR lowering, member resolution, and bytecode specialization without running templates or creating a second analyzer.
+- [x] **Z4.** Maven Plugin Explain Goal: Implemented `viet-template:explain` (`VietTemplateExplainMojo`) with CLI human-readable logging, file output, JSON/text formats, template/line/column filtering, and `failOnDynamicFallback`.
+- [x] **Z5.** Gradle Plugin Explain Task: Implemented `explainVietTemplates` (`VietTemplateExplainTask`) registered under the `help` task group with configuration-cache compatibility and full parity with Maven options.
+- [x] **Z6.** Parity Verification & Governance: Verified bit-for-bit and structured decision parity via `VietTemplateMavenGradleParityTest`, classified public surface types (`STABLE_API`, `BUILD_TOOL_ENTRYPOINT`), and qualified all governance gates with 0 signature leaks.
+
+

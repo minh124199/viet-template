@@ -399,12 +399,17 @@ Release Phase 1.1.x evolves Viet Template with optional compile-time typed templ
     - **M32.2 (Maven Plugin Validation Goal)**: Implemented `viet-template:validate` (`VietTemplateValidateMojo`) bound to the `validate` lifecycle phase, supporting `failOnWarning`, `validateDependencies`, contract schemas, profile selection, and configurable includes/excludes.
     - **M32.3 (Gradle Plugin Validation Task)**: Implemented `validateVietTemplates` (`VietTemplateValidateTask`) registered under the `verification` task group and wired into Gradle's standard lifecycle `check` task, providing identical configuration options and error semantics.
     - **M32.4 (Tooling Parity & Verification)**: Guaranteed 100% feature and diagnostic parity across Maven and Gradle validation tooling, verified via comprehensive parity tests (`VietTemplateMavenGradleParityTest`).
+- **Milestone M33 (Compiler Explanation Tooling — target 1.2.0) — COMPLETE / QUALIFIED**:
+    - **M33.1 (Authoritative Decision Extraction)**: Extracted write output specialization decision logic (`OutputSpecializationDecider`, `WriteDispatchDecision`, `WriteDispatchKind`, `OutputSpecializationContext`) into shared compiler structures, ensuring identical decision paths across `BytecodeTemplateCompiler` and explanation tooling.
+    - **M33.2 (Shared Explanation Core Engine)**: Implemented `TemplateExplainer`, `TemplateExplainRequest`, `SingleTemplateExplanation`, `ExpressionExplanation`, and deterministic JSON/text formatters in `io.github.minh124199.viettemplate.explanation` (`viet-template-vtl-interpreter`). Exposes compiler truth for types, member access planning, AOT capability, and output dispatch without guessing or creating a secondary analyzer.
+    - **M33.3 (Maven Plugin Explain Goal)**: Implemented `viet-template:explain` (`VietTemplateExplainMojo`), supporting human-readable CLI logging, file output, JSON/text formats, template/line/column filtering, and `failOnDynamicFallback`.
+    - **M33.4 (Gradle Plugin Explain Task)**: Implemented `explainVietTemplates` (`VietTemplateExplainTask`) registered under the `help` task group with full configuration cache compatibility and identical CLI/format parameters.
+    - **M33.5 (Tooling Parity & Governance)**: Verified 100% structured explanation decision parity between Maven and Gradle plugins via `VietTemplateMavenGradleParityTest`. Enforced public surface classifications and verified zero signature leaks across all API baselines.
 
 ---
 
-## Future Milestones (Post-M32 / 1.2 Development Line)
+## Future Milestones (Post-M33 / 1.2 Development Line)
 
-- **Milestone M33**: Explain / compiler explanation tooling
 - **Milestone M34**: Velocity migration report
 - **Milestone M35**: Cross-language schema interoperability
 
