@@ -92,6 +92,18 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.validation.TemplateValidationResult",
     "io.github.minh124199.viettemplate.tooling.maven.VietTemplateValidateMojo",
     "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateValidateTask",
+    "io.github.minh124199.viettemplate.explanation.ExpressionExplanation",
+    "io.github.minh124199.viettemplate.explanation.SingleTemplateExplanation",
+    "io.github.minh124199.viettemplate.explanation.TemplateExplainRequest",
+    "io.github.minh124199.viettemplate.explanation.TemplateExplainRequest$Builder",
+    "io.github.minh124199.viettemplate.explanation.TemplateExplainer",
+    "io.github.minh124199.viettemplate.explanation.TemplateExplanation",
+    "io.github.minh124199.viettemplate.tooling.maven.VietTemplateExplainMojo",
+    "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExplainTask",
+    "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.OutputSpecializationContext",
+    "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.OutputSpecializationDecider",
+    "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.WriteDispatchDecision",
+    "io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.WriteDispatchKind",
 }
 
 ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {

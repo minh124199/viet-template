@@ -113,11 +113,11 @@ final class ExplanationJsonFormatter {
           .append(",\n");
       sb.append(inner)
           .append("  \"nullRenderMode\": \"")
-          .append(escapeJson(t.nullRenderMode().name()))
+          .append(escapeJson(t.nullRenderMode()))
           .append("\",\n");
       sb.append(inner)
           .append("  \"escapeMode\": \"")
-          .append(escapeJson(t.escapeMode().name()))
+          .append(escapeJson(t.escapeMode()))
           .append("\",\n");
       sb.append(inner).append("  \"typed\": ").append(t.typed()).append(",\n");
       sb.append(inner)

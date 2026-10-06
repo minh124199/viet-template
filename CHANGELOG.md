@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Milestone M33: Compiler Explanation Tooling**:
+  - **Shared Decision Logic & Specialization Decider (`viet-template-vtl-interpreter`)**:
+    - Extracted write output dispatch and specialization decision logic into shared immutable compiler models (`OutputSpecializationDecider`, `WriteDispatchDecision`, `WriteDispatchKind`, `OutputSpecializationContext`).
+    - Guarantees complete architectural alignment between compiled bytecode paths and explanation output without duplicate decision paths.
+  - **Shared Compiler Explanation Core (`io.github.minh124199.viettemplate.explanation`)**:
+    - Introduced public `TemplateExplainer` interface, `TemplateExplainRequest`, `TemplateExplanation`, `SingleTemplateExplanation`, and `ExpressionExplanation`.
+    - Exposes structured compiler truth: inferred types, symbol origins, member resolution strategies (direct record, getter, field, method vs dynamic fallback), AOT eligibility, output dispatch specialization, and optimization rejection reasons.
+    - Purely in-memory static inspection without template execution or runtime rendering.
+    - Deterministic text and JSON formatters (`formatVersion = 1`).
+  - **Maven Plugin Explain Goal (`viet-template-maven-plugin`)**:
+    - Added `viet-template:explain` goal (`VietTemplateExplainMojo`).
+    - Supports CLI output, file export, format selection (`text`, `json`), single template and line/column coordinate filtering, and `failOnDynamicFallback`.
+  - **Gradle Plugin Explain Task (`viet-template-gradle-plugin`)**:
+    - Added `explainVietTemplates` task (`VietTemplateExplainTask`) registered under the `help` task group.
+    - Full Configuration Cache compatibility and 100% structured parity with Maven explain output.
 - **Milestone M32: Build-Time Template Validation**:
   - **Shared Validation Core (`viet-template-vtl-interpreter`)**:
     - Introduced public `TemplateValidator` interface, `TemplateValidationRequest`, and `TemplateValidationResult` in `io.github.minh124199.viettemplate.validation`.

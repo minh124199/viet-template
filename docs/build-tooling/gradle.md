@@ -104,11 +104,12 @@ vietTemplate {
 
 ## 4. Gradle Plugin Tasks & Cacheability
 
-The plugin registers five tasks for build-time operations:
+The plugin registers six tasks for build-time operations:
 
 | Task Name | Task Class | Description |
 |---|---|---|
 | `validateVietTemplates` | `VietTemplateValidateTask` | Validates templates in-memory for syntax, contract conformity, and static `#parse`/`#include` dependencies during `check`. |
+| `explainVietTemplates` | `VietTemplateExplainTask` | Explains compiler decisions (types, access planning, output dispatch specialization, AOT eligibility) in structured text/JSON without rendering (`help` group). |
 | `compileVietTemplates` | `VietTemplateCompileTask` | Compiles VTL templates Ahead-Of-Time into JVM bytecode and generates `META-INF/viet-template/templates.idx`. |
 | `generateVietTemplateFacades` | `VietTemplateGenerateFacadesTask` | Generates strongly-typed Java facade classes from declared template contracts. |
 | `generateVietTemplateSchemas` | `VietTemplateGenerateSchemasTask` | Generates canonical contract schemas (`*.vt-schema.json`) for templates with contracts. |
@@ -130,6 +131,26 @@ Or build the complete project:
 
 ```bash
 ./gradlew build
+```
+
+### 4.2 Explaining Compiler Decisions (`explainVietTemplates`)
+The `explainVietTemplates` task exposes structured compiler truth regarding types, member resolution, output dispatch specialization, and AOT eligibility:
+
+```bash
+# Human-readable explanation of templates
+./gradlew explainVietTemplates
+
+# With contract type checking
+./gradlew explainVietTemplates -PvietTemplate.typeChecking=WARN
+
+# Filter single template and expression position
+./gradlew explainVietTemplates -PvietTemplate.template=order.vtl -PvietTemplate.line=10 -PvietTemplate.column=3
+
+# Output structured JSON report
+./gradlew explainVietTemplates -PvietTemplate.format=json -PvietTemplate.outputFile=build/reports/explain.json
+
+# Fail if dynamic fallback paths are required
+./gradlew explainVietTemplates -PvietTemplate.failOnDynamicFallback=true
 ```
 
 ---

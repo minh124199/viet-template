@@ -32,8 +32,8 @@ final class ExplanationTextFormatter {
       sb.append("Profile: ").append(tmpl.profile().name()).append("\n");
       sb.append("Type Checking: ").append(tmpl.typeCheckingMode().name()).append("\n");
       sb.append("Strict References: ").append(tmpl.strictReferences()).append("\n");
-      sb.append("Null Render Mode: ").append(tmpl.nullRenderMode().name()).append("\n");
-      sb.append("Escape Mode: ").append(tmpl.escapeMode().name()).append("\n");
+      sb.append("Null Render Mode: ").append(tmpl.nullRenderMode()).append("\n");
+      sb.append("Escape Mode: ").append(tmpl.escapeMode()).append("\n");
       sb.append("Typed: ").append(tmpl.typed());
       if (tmpl.contractClass().isPresent()) {
         sb.append(" (Contract: ").append(tmpl.contractClass().get()).append(")");

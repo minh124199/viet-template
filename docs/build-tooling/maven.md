@@ -114,18 +114,19 @@ Add the plugin to the `<build><plugins>` section of your `pom.xml`:
 
 ### 3.2 Plugin Goals
 
-The `viet-template-maven-plugin` provides five goals for build-time operations:
+The `viet-template-maven-plugin` provides six goals for build-time operations:
 
 | Goal | Default Phase | Description |
 |---|---|---|
 | `validate` | `validate` | Validates templates in-memory for syntax, contract conformity, and static `#parse`/`#include` dependencies without rendering. |
+| `explain` | None (CLI) | Explains compiler decisions (types, access planning, output dispatch specialization, AOT eligibility) in structured text/JSON without rendering. |
 | `compile` | `process-classes` | Compiles VTL templates Ahead-Of-Time into JVM bytecode and generates the registration index `META-INF/viet-template/templates.idx`. |
 | `generate-facades` | `generate-sources` | Generates strongly-typed Java facade classes from declared template contracts for compile-time safe model binding. |
 | `generate-schemas` | `process-classes` | Extracts canonical JSON contract schemas (`*.vt-schema.json`) for templates with declared `#*contract ... *#` blocks. |
 | `generate-typescript` | `process-classes` | Projects canonical contract schemas into TypeScript interface declarations (`*.d.ts`) for frontend/fullstack type safety. |
 
 > [!NOTE] Lifecycle Execution
-> In Maven, goals run automatically during lifecycle builds (e.g. `mvn compile`, `mvn verify`) when configured under `<executions>` in `pom.xml`. The `validate` goal binds by default to the `validate` phase. Direct CLI invocation is always supported via `mvn viet-template:validate`.
+> In Maven, goals run automatically during lifecycle builds (e.g. `mvn compile`, `mvn verify`) when configured under `<executions>` in `pom.xml`. The `validate` goal binds by default to the `validate` phase. Direct CLI invocation is always supported via `mvn viet-template:validate` and `mvn viet-template:explain`.
 
 ### 3.3 Compilation Phase & Execution
 The `compile` goal binds by default to `process-classes`. It runs after Java source compilation, ensuring compiled domain classes and DTOs are available on the compilation classpath for typed model inspection.
@@ -136,6 +137,26 @@ mvn compile
 
 ### 3.4 Incremental Build Support
 When `<incremental>true</incremental>` is enabled, the plugin tracks template modification timestamps and SHA-256 content hashes. Unmodified templates are skipped during subsequent builds, providing sub-second incremental build times.
+
+### 3.5 Explaining Compiler Decisions (`viet-template:explain`)
+The `explain` goal inspects templates using the exact same semantic analysis, IR lowering, and bytecode specialization decider used during actual compilation, exposing structured compiler truth to answer: *"Why did the compiler treat this template or expression this way?"*
+
+```bash
+# Human-readable explanation of all templates in src/main/viet-template
+mvn viet-template:explain
+
+# Explain with typed contract checking enabled
+mvn viet-template:explain -Dviet-template.typeChecking=WARN
+
+# Target a specific template and location
+mvn viet-template:explain -Dviet-template.template=order.vtl -Dviet-template.line=12 -Dviet-template.column=5
+
+# Emit machine-readable JSON to a file
+mvn viet-template:explain -Dviet-template.format=json -Dviet-template.outputFile=target/compiler-explanation.json
+
+# Fail build if dynamic fallback paths are required
+mvn viet-template:explain -Dviet-template.failOnDynamicFallback=true
+```
 
 ---
 

@@ -32,10 +32,6 @@ import io.github.minh124199.viettemplate.language.vtl.ast.VtlReferenceOutputNode
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlSetDirectiveNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlUnaryExpression;
-import io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MemberResolution;
-import io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MethodResolution;
-import io.github.minh124199.viettemplate.language.vtl.internal.semantics.scope.ScopeKind;
-import io.github.minh124199.viettemplate.language.vtl.internal.semantics.scope.Symbol;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrTemplate;
@@ -61,6 +57,8 @@ import io.github.minh124199.viettemplate.vtl.internal.compiler.bytecode.WriteDis
 import io.github.minh124199.viettemplate.vtl.internal.engine.dependency.StaticDependencyExtractor;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.reflect.Member;
+import java.lang.reflect.Method;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -146,8 +144,8 @@ class DefaultTemplateExplainer implements TemplateExplainer {
                 profile,
                 request.typeCheckingMode(),
                 request.strictReferences(),
-                nullRenderMode,
-                escapeMode,
+                nullRenderMode.name(),
+                escapeMode.name(),
                 contract != null,
                 deriveContractClassName(contract),
                 List.of(),
@@ -290,8 +288,8 @@ class DefaultTemplateExplainer implements TemplateExplainer {
               profile,
               request.typeCheckingMode(),
               request.strictReferences(),
-              nullRenderMode,
-              escapeMode,
+              nullRenderMode.name(),
+              escapeMode.name(),
               isTyped,
               deriveContractClassName(contract),
               sortedDeps,
@@ -381,7 +379,7 @@ class DefaultTemplateExplainer implements TemplateExplainer {
     }
 
     List<ExpressionExplanation> collected = new ArrayList<>();
-    Map<String, ScopeKind> localSymbols = new LinkedHashMap<>();
+    Map<String, String> localSymbols = new LinkedHashMap<>();
 
     walkNodes(
         astTemplate.children(),
@@ -456,7 +454,7 @@ class DefaultTemplateExplainer implements TemplateExplainer {
       boolean isTyped,
       TemplateContract contract,
       VtlProfile profile,
-      Map<String, ScopeKind> localSymbols,
+      Map<String, String> localSymbols,
       OptionalInt lineFilter,
       OptionalInt columnFilter,
       List<ExpressionExplanation> out) {
@@ -493,7 +491,7 @@ class DefaultTemplateExplainer implements TemplateExplainer {
       boolean isTyped,
       TemplateContract contract,
       VtlProfile profile,
-      Map<String, ScopeKind> localSymbols,
+      Map<String, String> localSymbols,
       OptionalInt lineFilter,
       OptionalInt columnFilter,
       List<ExpressionExplanation> out) {
@@ -539,7 +537,7 @@ class DefaultTemplateExplainer implements TemplateExplainer {
       }
     } else if (node instanceof VtlSetDirectiveNode setNode) {
       if (setNode.target() instanceof VtlAssignmentTarget.ReferenceTarget rt) {
-        localSymbols.put(rt.reference().rootName(), ScopeKind.LOCAL);
+        localSymbols.put(rt.reference().rootName(), "LOCAL");
       }
       walkExpression(
           setNode.value(),
@@ -656,7 +654,7 @@ class DefaultTemplateExplainer implements TemplateExplainer {
           lineFilter,
           columnFilter,
           out);
-      localSymbols.put(feNode.loopVariable().rootName(), ScopeKind.LOOP);
+      localSymbols.put(feNode.loopVariable().rootName(), "LOOP");
       walkNodes(
           feNode.body(),
           source,
@@ -759,7 +757,7 @@ class DefaultTemplateExplainer implements TemplateExplainer {
             out);
       }
     } else if (node instanceof VtlDefineDirectiveNode defNode) {
-      localSymbols.put(defNode.targetReference().rootName(), ScopeKind.LOCAL);
+      localSymbols.put(defNode.targetReference().rootName(), "LOCAL");
       walkNodes(
           defNode.body(),
           source,
@@ -789,7 +787,7 @@ class DefaultTemplateExplainer implements TemplateExplainer {
       boolean isTyped,
       TemplateContract contract,
       VtlProfile profile,
-      Map<String, ScopeKind> localSymbols,
+      Map<String, String> localSymbols,
       OptionalInt lineFilter,
       OptionalInt columnFilter,
       List<ExpressionExplanation> out) {
@@ -965,7 +963,7 @@ class DefaultTemplateExplainer implements TemplateExplainer {
       boolean isTyped,
       TemplateContract contract,
       VtlProfile profile,
-      Map<String, ScopeKind> localSymbols) {
+      Map<String, String> localSymbols) {
 
     SourceSpan span = ref.span();
     String sourceText =
@@ -978,15 +976,15 @@ class DefaultTemplateExplainer implements TemplateExplainer {
 
     String symbolOrigin;
     if (localSymbols.containsKey(rootName)) {
-      symbolOrigin = localSymbols.get(rootName).name();
+      symbolOrigin = localSymbols.get(rootName);
     } else {
-      Optional<Symbol> optSym = analysis.symbolTable().resolve(rootName);
+      Optional<?> optSym = analysis.symbolTable().resolve(rootName);
       if (optSym.isPresent()) {
-        symbolOrigin = optSym.get().scopeKind().name();
+        symbolOrigin = getSymbolScopeKind(optSym.get());
       } else if (modelSchema != null && modelSchema.contains(rootName)) {
-        symbolOrigin = ScopeKind.ROOT_MODEL.name();
+        symbolOrigin = "ROOT_MODEL";
       } else if ("foreach".equals(rootName)) {
-        symbolOrigin = ScopeKind.BUILTIN.name();
+        symbolOrigin = "BUILTIN";
       } else {
         symbolOrigin = "DYNAMIC";
       }
@@ -1015,15 +1013,12 @@ class DefaultTemplateExplainer implements TemplateExplainer {
       rootType =
           modelSchema
               .find(rootName)
-              .map(
-                  io.github.minh124199.viettemplate.language.vtl.internal.semantics.model
-                          .ModelParameter
-                      ::type)
+              .map(DefaultTemplateExplainer::readModelParameterType)
               .orElse(null);
     } else {
-      Optional<Symbol> optSym = analysis.symbolTable().resolve(rootName);
+      Optional<?> optSym = analysis.symbolTable().resolve(rootName);
       if (optSym.isPresent()) {
-        rootType = optSym.get().type();
+        rootType = getSymbolVType(optSym.get());
       }
     }
 
@@ -1039,15 +1034,13 @@ class DefaultTemplateExplainer implements TemplateExplainer {
       VtlAccessStep prev = steps.get(steps.size() - 2);
       if (prev instanceof VtlAccessStep.PropertyAccess prevProp) {
         receiverType =
-            analysis
-                .memberResolutionOf(prevProp)
-                .map(MemberResolution::resultType)
+            readMemberResolution(analysis.memberResolutionOf(prevProp))
+                .map(MemberResInfo::resultType)
                 .map(VType::typeName);
       } else if (prev instanceof VtlAccessStep.MethodCall prevCall) {
         receiverType =
-            analysis
-                .methodResolutionOf(prevCall)
-                .map(MethodResolution::returnType)
+            readMethodResolution(analysis.methodResolutionOf(prevCall))
+                .map(MethodResInfo::returnType)
                 .map(VType::typeName);
       } else {
         receiverType = Optional.empty();
@@ -1077,35 +1070,33 @@ class DefaultTemplateExplainer implements TemplateExplainer {
     } else {
       VtlAccessStep last = steps.get(steps.size() - 1);
       if (last instanceof VtlAccessStep.PropertyAccess prop) {
-        Optional<MemberResolution> optRes = analysis.memberResolutionOf(prop);
+        Optional<MemberResInfo> optRes = readMemberResolution(analysis.memberResolutionOf(prop));
         if (optRes.isPresent()) {
-          MemberResolution res = optRes.get();
+          MemberResInfo res = optRes.get();
           finalType = res.resultType();
-          if (res.targetMember().isPresent()) {
-            resolvedMember = Optional.of(res.targetMember().get().getName());
-          }
-          switch (res.kind()) {
-            case RECORD_COMPONENT -> {
+          resolvedMember = res.memberName();
+          switch (res.kindName()) {
+            case "RECORD_COMPONENT" -> {
               resolutionStrategy = "DIRECT_RECORD";
               directAccess = true;
             }
-            case GETTER, BOOLEAN_GETTER -> {
+            case "GETTER", "BOOLEAN_GETTER" -> {
               resolutionStrategy = "DIRECT_GETTER";
               directAccess = true;
             }
-            case FIELD -> {
+            case "FIELD" -> {
               resolutionStrategy = "DIRECT_FIELD";
               directAccess = true;
             }
-            case MAP_ENTRY -> {
+            case "MAP_ENTRY" -> {
               resolutionStrategy = "MAP_GET";
               directAccess = false;
             }
-            case NOT_FOUND -> {
+            case "NOT_FOUND" -> {
               resolutionStrategy = "NOT_FOUND";
               directAccess = false;
             }
-            case DENIED -> {
+            case "DENIED" -> {
               resolutionStrategy = "DENIED";
               directAccess = false;
             }
@@ -1116,31 +1107,29 @@ class DefaultTemplateExplainer implements TemplateExplainer {
           }
         }
       } else if (last instanceof VtlAccessStep.MethodCall call) {
-        Optional<MethodResolution> optRes = analysis.methodResolutionOf(call);
+        Optional<MethodResInfo> optRes = readMethodResolution(analysis.methodResolutionOf(call));
         if (optRes.isPresent()) {
-          MethodResolution res = optRes.get();
+          MethodResInfo res = optRes.get();
           finalType = res.returnType();
-          if (res.targetMethod().isPresent()) {
-            resolvedMember = Optional.of(res.targetMethod().get().getName());
-          }
-          switch (res.kind()) {
-            case RESOLVED -> {
+          resolvedMember = res.methodName();
+          switch (res.kindName()) {
+            case "RESOLVED" -> {
               resolutionStrategy = "DIRECT_METHOD";
-              directAccess = res.isSpecializationStable();
+              directAccess = res.specializationStable();
             }
-            case METHOD_NOT_FOUND -> {
+            case "METHOD_NOT_FOUND" -> {
               resolutionStrategy = "NOT_FOUND";
               directAccess = false;
             }
-            case ARITY_MISMATCH -> {
+            case "ARITY_MISMATCH" -> {
               resolutionStrategy = "ARITY_MISMATCH";
               directAccess = false;
             }
-            case INCOMPATIBLE_ARGUMENTS -> {
+            case "INCOMPATIBLE_ARGUMENTS" -> {
               resolutionStrategy = "INCOMPATIBLE_ARGUMENTS";
               directAccess = false;
             }
-            case DENIED_BY_POLICY -> {
+            case "DENIED_BY_POLICY" -> {
               resolutionStrategy = "DENIED";
               directAccess = false;
             }
@@ -1376,5 +1365,101 @@ class DefaultTemplateExplainer implements TemplateExplainer {
       }
     }
     return false;
+  }
+
+  private record MemberResInfo(String kindName, VType resultType, Optional<String> memberName) {}
+
+  private record MethodResInfo(
+      String kindName,
+      VType returnType,
+      Optional<String> methodName,
+      boolean specializationStable) {}
+
+  @SuppressWarnings("unchecked")
+  private static Optional<MemberResInfo> readMemberResolution(Optional<?> optRes) {
+    if (optRes == null || optRes.isEmpty()) {
+      return Optional.empty();
+    }
+    Object res = optRes.get();
+    try {
+      Method kindMethod = res.getClass().getMethod("kind");
+      Object kindObj = kindMethod.invoke(res);
+      String kindName = kindObj != null ? kindObj.toString() : "DYNAMIC";
+
+      Method resultTypeMethod = res.getClass().getMethod("resultType");
+      VType resultType = (VType) resultTypeMethod.invoke(res);
+
+      Method targetMemberMethod = res.getClass().getMethod("targetMember");
+      Optional<Member> targetMember = (Optional<Member>) targetMemberMethod.invoke(res);
+      Optional<String> memberName = targetMember.map(Member::getName);
+
+      return Optional.of(new MemberResInfo(kindName, resultType, memberName));
+    } catch (ReflectiveOperationException e) {
+      return Optional.empty();
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Optional<MethodResInfo> readMethodResolution(Optional<?> optRes) {
+    if (optRes == null || optRes.isEmpty()) {
+      return Optional.empty();
+    }
+    Object res = optRes.get();
+    try {
+      Method kindMethod = res.getClass().getMethod("kind");
+      Object kindObj = kindMethod.invoke(res);
+      String kindName = kindObj != null ? kindObj.toString() : "DYNAMIC";
+
+      Method returnTypeMethod = res.getClass().getMethod("returnType");
+      VType returnType = (VType) returnTypeMethod.invoke(res);
+
+      Method targetMethodMethod = res.getClass().getMethod("targetMethod");
+      Optional<Method> targetMethod = (Optional<Method>) targetMethodMethod.invoke(res);
+      Optional<String> methodName = targetMethod.map(Method::getName);
+
+      Method specStableMethod = res.getClass().getMethod("isSpecializationStable");
+      boolean specStable = (Boolean) specStableMethod.invoke(res);
+
+      return Optional.of(new MethodResInfo(kindName, returnType, methodName, specStable));
+    } catch (ReflectiveOperationException e) {
+      return Optional.empty();
+    }
+  }
+
+  private static String getSymbolScopeKind(Object symbol) {
+    if (symbol == null) {
+      return "DYNAMIC";
+    }
+    try {
+      Method m = symbol.getClass().getMethod("scopeKind");
+      Object kind = m.invoke(symbol);
+      return kind != null ? kind.toString() : "DYNAMIC";
+    } catch (ReflectiveOperationException e) {
+      return "DYNAMIC";
+    }
+  }
+
+  private static VType getSymbolVType(Object symbol) {
+    if (symbol == null) {
+      return null;
+    }
+    try {
+      Method m = symbol.getClass().getMethod("type");
+      return (VType) m.invoke(symbol);
+    } catch (ReflectiveOperationException e) {
+      return null;
+    }
+  }
+
+  private static VType readModelParameterType(Object modelParam) {
+    if (modelParam == null) {
+      return null;
+    }
+    try {
+      Method m = modelParam.getClass().getMethod("type");
+      return (VType) m.invoke(modelParam);
+    } catch (ReflectiveOperationException e) {
+      return null;
+    }
   }
 }

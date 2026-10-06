@@ -8,7 +8,6 @@ import io.github.minh124199.viettemplate.api.TemplateDependencyKind;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
-import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -346,7 +345,7 @@ class TemplateExplainerTest {
             .contract(templateId, contract)
             .build();
     TemplateExplanation defExpl = explainer.explain(defaultReq);
-    assertEquals(NullRenderMode.LITERAL_EXPRESSION, defExpl.templates().get(0).nullRenderMode());
+    assertEquals("LITERAL_EXPRESSION", defExpl.templates().get(0).nullRenderMode());
 
     // Strict mode
     TemplateExplainRequest strictReq =
@@ -356,7 +355,7 @@ class TemplateExplainerTest {
             .strictReferences(true)
             .build();
     TemplateExplanation strictExpl = explainer.explain(strictReq);
-    assertEquals(NullRenderMode.THROW_ERROR, strictExpl.templates().get(0).nullRenderMode());
+    assertEquals("THROW_ERROR", strictExpl.templates().get(0).nullRenderMode());
   }
 
   @Test

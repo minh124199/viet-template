@@ -4,8 +4,6 @@ import io.github.minh124199.viettemplate.api.TemplateDependency;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TypeCheckingMode;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
-import io.github.minh124199.viettemplate.language.vtl.ir.plan.IrEscapeMode;
-import io.github.minh124199.viettemplate.language.vtl.ir.plan.NullRenderMode;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
@@ -19,8 +17,8 @@ import java.util.Optional;
  * @param profile active VTL profile
  * @param typeCheckingMode type checking validation mode
  * @param strictReferences whether strict reference mode is enabled
- * @param nullRenderMode null rendering strategy
- * @param escapeMode default output escaping mode
+ * @param nullRenderMode null rendering strategy name (e.g. LITERAL_EXPRESSION, THROW_ERROR)
+ * @param escapeMode default output escaping mode name (e.g. RAW, HTML_TEXT)
  * @param typed whether this template has a bound typed contract or schema
  * @param contractClass contract class name if bound
  * @param dependencies static dependencies extracted from the template
@@ -35,8 +33,8 @@ public record SingleTemplateExplanation(
     VtlProfile profile,
     TypeCheckingMode typeCheckingMode,
     boolean strictReferences,
-    NullRenderMode nullRenderMode,
-    IrEscapeMode escapeMode,
+    String nullRenderMode,
+    String escapeMode,
     boolean typed,
     Optional<String> contractClass,
     List<TemplateDependency> dependencies,

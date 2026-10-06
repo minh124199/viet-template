@@ -259,8 +259,8 @@ Explore the complete documentation suite organized by topic:
 - **[GraalVM Native Image Guide](docs/native-image/graalvm-native-image.md)** — Ahead-of-Time compilation, runtime hints, and native binary packaging.
 
 ### Build Tooling
-- **[Apache Maven Plugin](docs/build-tooling/maven.md)** — Build-time AOT precompilation and verification via `viet-template-maven-plugin`.
-- **[Gradle Plugin](docs/build-tooling/gradle.md)** — Gradle Kotlin/Groovy DSL plugin configuration (`plugins { id("io.github.minh124199.viet-template") version "1.1.0" }`) and incremental build-cache.
+- **[Apache Maven Plugin](docs/build-tooling/maven.md)** — Build-time validation, compiler explanation (`mvn viet-template:explain`), and AOT precompilation via `viet-template-maven-plugin`.
+- **[Gradle Plugin](docs/build-tooling/gradle.md)** — Gradle Kotlin/Groovy DSL plugin configuration, compiler explanation (`./gradlew explainVietTemplates`), and incremental build-cache.
 
 ### Developer Tooling & Schemas
 - **[Canonical Tooling Schemas](docs/schema/contract-schema-v1.md)** — Language-neutral JSON schema format (`*.vt-schema.json`) for template parameters and types.
