@@ -124,6 +124,9 @@ The `viet-template-maven-plugin` provides five goals for build-time operations:
 | `generate-schemas` | `process-classes` | Extracts canonical JSON contract schemas (`*.vt-schema.json`) for templates with declared `#*contract ... *#` blocks. |
 | `generate-typescript` | `process-classes` | Projects canonical contract schemas into TypeScript interface declarations (`*.d.ts`) for frontend/fullstack type safety. |
 
+> [!NOTE] Lifecycle Execution
+> In Maven, goals run automatically during lifecycle builds (e.g. `mvn compile`, `mvn verify`) when configured under `<executions>` in `pom.xml`. The `validate` goal binds by default to the `validate` phase. Direct CLI invocation is always supported via `mvn viet-template:validate`.
+
 ### 3.3 Compilation Phase & Execution
 The `compile` goal binds by default to `process-classes`. It runs after Java source compilation, ensuring compiled domain classes and DTOs are available on the compilation classpath for typed model inspection.
 
