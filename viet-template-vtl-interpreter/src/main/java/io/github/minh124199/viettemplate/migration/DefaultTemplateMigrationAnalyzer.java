@@ -79,7 +79,7 @@ class DefaultTemplateMigrationAnalyzer implements TemplateMigrationAnalyzer {
   private static final String SOURCE_ENGINE = "Apache Velocity";
   private static final String SOURCE_VERSION = "2.4.1";
   private static final String TARGET_ENGINE = "Viet Template";
-  private static final String TARGET_VERSION = "1.2.1-SNAPSHOT";
+  private static final String TARGET_VERSION = "1.3.0-SNAPSHOT";
 
   record DiscoveredTemplate(TemplateId templateId, String relPath, Path file) {}
 
