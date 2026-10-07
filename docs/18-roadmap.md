@@ -432,3 +432,178 @@ Release Phase 1.1.x evolves Viet Template with optional compile-time typed templ
     - **M37.1 (Release Packaging & Metadata Verification)**: Transitioned all root, child module POMs, and Gradle build definitions from snapshot development to official 1.2.0 release. Verified exact publication topology of 14 public coordinates with zero SNAPSHOT leaks.
     - **M37.2 (Editor Extension & Integration Parity)**: Aligned VS Code extension manifest (`package.json`) and IntelliJ plugin configuration (`build.gradle.kts`, `plugin.xml`) to 1.2.0.
     - **M37.3 (Differential & Migration Oracle Convergence)**: Verified migration analyzer target version synchronization and differential compatibility qualification across all integration tests.
+
+---
+
+## Release Phase 1.2.x — Maintenance & Patch-Line Policy
+
+Following the General Availability release of Viet Template 1.2.0 (published 2026-10-07), the `1.2.x` release series transitions into a strict maintenance and patch-line status.
+
+### 1.2.x Patch-Line Scope & Invariants
+
+- **Maintenance Mandate**:
+  - The `1.2.x` line is strictly reserved for maintenance, security, and stability remediations.
+  - Allowed changes: critical bug fixes, security remediations (CVEs), external compatibility fixes (JVM, Spring, Quarkus, Maven, Gradle), documentation corrections, packaging/release engineering fixes, and fixes for unintended performance regressions.
+  - Prohibited changes: no new public Java API types or method signatures; no new compiler or template language features; no new external schema formats; no new LSP protocol features or editor capabilities; no changes to runtime evaluation, member resolution, or scoping semantics.
+- **Maintenance Engineering Workflow**:
+  - Patches (`1.2.1`, `1.2.2`, etc.) are maintained and released exclusively from branch `release/1.2`, created on demand from tag `v1.2.0`.
+  - Every patch applied to `release/1.2` is immediately reconciled (cherry-picked or merged) into `main` to prevent regressions in active development.
+  - All patch releases are validated against the canonical 1.0.0 and 1.2.0 compatibility baselines.
+  - Active feature development moves forward exclusively on `main` under the `1.3.0-SNAPSHOT` development line.
+
+---
+
+## Release Phase 1.3.x — Cross-Language Developer Navigation & Workspace Intelligence
+
+Release Phase 1.3.x builds on the foundation established by 1.1.0 (typed contracts, static specialization, schema foundation) and 1.2.0 (cross-language schema interoperability, schema-aware LSP, validation/explanation tooling) to deliver deep, bidirectional developer intelligence between templates and workspace Java source code.
+
+### Candidate Feature Families Evaluation & Strategic Selection
+
+To determine the architectural priorities for 1.3, five candidate feature families were evaluated against the standard project governance rubric:
+
+| Evaluation Dimension | Weight | Description |
+|---|---|---|
+| **Developer Ergonomics & Adoption Impact** | 30% | Direct productivity improvement, elimination of black-box barriers between templates and Java code. |
+| **Architectural Layering & Clean Separation** | 25% | Unidirectional dependency flow, zero contamination of compiler bytecode generation or runtime execution paths. |
+| **Zero-Dependency & Footprint Invariants** | 20% | Adherence to zero-dependency core engine, low memory overhead, virtual-thread safety, sub-millisecond editor response. |
+| **Implementation Risk & Refactoring Safety** | 15% | Isolation from compiler core paths, avoidance of brittle heuristics, preservation of fail-closed security. |
+| **1.3 Strategic Coherence** | 10% | Natural culmination of M35/M36 schema integration, completing the cross-language developer loop. |
+
+#### Evaluation of Candidate Families
+
+1. **Family A: Java Source Navigation & Refactoring (SELECTED — Primary Theme)**:
+   - *Scope*: Direct navigation from template member references to workspace Java source declarations (`.java`: record components, getters, fields), cross-language find-references, and safe cross-language rename.
+   - *Rubric Scoring*: High adoption impact (5/5); exceptional architectural layering via read-only LSP consumption of existing compiler binding facts (5/5); zero runtime dependency footprint (5/5); manageable implementation risk bounded by AST visitor pattern without altering compiler lowering (4/5); perfect strategic coherence with 1.2 schema navigation (5/5).
+   - *Verdict*: **SELECTED as the foundational core of Release Phase 1.3**.
+
+2. **Family B: Schema Composition & Registry (DEFERRED / LOCAL ONLY)**:
+   - *Scope*: Multi-schema composition (`allOf`, union schemas, remote schema catalog fetching, centralized registry integration).
+   - *Rubric Scoring*: Moderate impact (3/5); external network fetching introduces significant complexity and violates offline-first, hermetic build invariants (2/5); composition partially solved in M35 (3/5).
+   - *Verdict*: **DEFERRED**. Remote registries rejected. Local workspace schema indexing and cross-file search retained within M41.
+
+3. **Family C: Runtime Observability & Distributed Tracing (DEFERRED)**:
+   - *Scope*: OpenTelemetry distributed tracing spans per template/directive, detailed Micrometer render metrics, runtime profiling hooks.
+   - *Rubric Scoring*: Moderate developer impact (3/5); severe risk to steady-state rendering zero-allocation and performance guarantees established in M19.3b/M19.3c (1/5); introduces external API coupling or heavy SPI churn (2/5).
+   - *Verdict*: **DEFERRED**. Steady-state rendering is frozen; runtime performance invariants take precedence.
+
+4. **Family D: Further Typed AOT Specialization (DISQUALIFIED / DEFERRED)**:
+   - *Scope*: Polymorphic call-site inline specialization, primitive unboxing in AOT bytecode, speculative devirtualization.
+   - *Rubric Scoring*: Marginal performance gain as M24/M25 already specialized multi-argument methods and property accessors, and JMH profiling proved property dispatch represents <1.5% of CPU time (2/5); high risk of classfile verification issues, native image regressions, and generated ABI instability (2/5).
+   - *Verdict*: **DISQUALIFIED / DEFERRED**. Fails the M19.3 empirical threshold of $\ge 5\%$ steady-state hotspot evidence.
+
+5. **Family E: Editor Productization & Visual Tooling (INTEGRATED AT FOUNDATION)**:
+   - *Scope*: Embedded webview live previews, multi-theme customization, editor UI chrome.
+   - *Rubric Scoring*: Moderate impact (3/5); high ongoing maintenance burden across VS Code and IntelliJ APIs without improving language ergonomics (2/5).
+   - *Verdict*: Standalone UI chrome deferred; language intelligence enhancements are delivered via LSP protocol standards, empowering both existing VS Code and IntelliJ extensions uniformly.
+
+### 1.3 Core Theme: "Cross-Language Developer Navigation & Workspace Intelligence"
+
+The 1.3 release series establishes deep workspace intelligence across template and host language boundaries:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│               1.3 Cross-Language Developer Intelligence Stack               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  M41: Workspace Schema Intelligence & Symbol Search                         │
+│  ├── Workspace-wide symbol query across templates, schemas, and Java models │
+│  └── Multi-format schema relationship indexing                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  M40: Safe Cross-Language Rename & Refactoring                              │
+│  ├── Previewable rename from template reference to Java declaration         │
+│  └── Workspace-wide edit coordinate safety across .vtl, .vt-schema, .java   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  M39: Cross-Language Find References & Symbol Graph                         │
+│  ├── Find usages of Java record components/getters across all templates     │
+│  └── Bidirectional symbol dependency graph                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  M38: Java Source Navigation & Cross-Language References                    │
+│  ├── Template reference -> Workspace Java source declaration (.java)        │
+│  └── Read-only locator for records, getters, fields, and companion models   │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Milestone Roadmap Sequence
+
+- **Milestone M38 (Java Source Navigation & Cross-Language References — target 1.3.0)**:
+  - Direct LSP `textDocument/definition` navigation from template references to workspace Java source files (`.java`).
+- **Milestone M39 (Cross-Language Find References & Symbol Graph — target 1.3.0)**:
+  - Bidirectional symbol graph enabling "Find All References" from Java source members to template references and between template files.
+- **Milestone M40 (Safe Cross-Language Rename & Refactoring — target 1.3.0)**:
+  - Safe rename refactoring propagating member name changes across templates, companion schemas, and workspace Java source with preview and rollbacks.
+- **Milestone M41 (Workspace Schema Intelligence & Symbol Search — target 1.3.0)**:
+  - Workspace-wide symbol search (`workspace/symbol`), schema relationship graph, and project-wide diagnostics.
+
+---
+
+### Detailed Milestone Specification: Milestone M38
+
+**Milestone Name**: Java Source Navigation & Cross-Language References<br>
+**Target Development Line**: `1.3.0-SNAPSHOT`<br>
+**Status**: Planned / Active Roadmap
+
+#### 1. Goal
+Enable developers editing Viet Template files (`.vtl`, `.vm`, `.vt`) in VS Code and IntelliJ IDEA to use standard "Go to Definition" (`F12` / `Ctrl+Click`) on template references backed by JVM models and navigate directly to the exact source declaration line in the corresponding workspace Java source file (`.java`).
+
+#### 2. Scope
+- **Java Record Components**:
+  - Direct navigation to the record component in the record header (`record User(String name, int age)`).
+  - Navigation to explicit canonical accessor methods when explicitly declared.
+- **JavaBean Getter & Accessor Methods**:
+  - Navigation to `getXxx()` methods.
+  - Navigation to `isXxx()` boolean accessor methods.
+  - Navigation to fluent/builder accessors where recognized by member access policies.
+- **Public Fields**:
+  - Direct navigation to public field declarations on model types.
+- **Companion Contract & Interface Declarations**:
+  - Navigation to interface method declarations and companion contract definitions.
+- **Root Context Type Declarations**:
+  - Navigation from root context variables (e.g. `$user`) to the declaring Java class or interface file.
+
+#### 3. Architectural Layering & Invariants
+- **Unidirectional Data Flow**:
+  ```text
+  Compiler Binding Facts (MemberResolver / ModelSchema)
+                          │ (one-way read-only)
+                          ▼
+            Workspace Java Source Locator
+                          │ (one-way read-only)
+                          ▼
+               LSP Location Result (URI + Range)
+  ```
+- **Zero Compiler Contamination**:
+  - The compiler, bytecode generator, IR lowering pipeline, and runtime execution engine remain completely unaware of the Java source locator.
+  - The source locator operates as a read-only consumer of compiler semantic facts.
+  - Compiler decision logic, dynamic dispatch fallback, and runtime member resolution are 100% unaltered.
+- **Zero Decompilation / Offline-First**:
+  - Source location operates exclusively on source files present in the local workspace source directories (`src/main/java`, etc.).
+  - External JDK library classes (e.g. `java.lang.String`) or external JAR classes without local workspace source gracefully return `null` / `definition unavailable`, adhering to the M36 provenance invariant (never invent synthetic or false locations).
+
+#### 4. Explicit Non-Goals for M38
+- No cross-language rename refactoring (strictly deferred to Milestone M40).
+- No external JAR source downloading, Maven Central artifact fetching, or network operations.
+- No classfile decompilation, bytecode disassembly, or synthetic source stub reconstruction.
+- No fuzzy, phonetic, or speculative string matching; navigation requires a deterministically verified member binding from the semantic analyzer.
+- No runtime execution or bytecode generation changes.
+
+#### 5. Public API Forecast
+- **Exactly 0 new `STABLE_API` or `STABLE_SPI` types**.
+- All source locator and workspace indexing logic is encapsulated within internal LSP and tooling packages (e.g., `io.github.minh124199.viettemplate.lsp.source.*`), preserving the frozen 1.0.0 / 1.2.0 public API baseline.
+
+#### 6. Risk Register
+
+| Risk ID | Description | Severity | Likelihood | Mitigation Strategy |
+|---|---|---|---|---|
+| **RISK-M38-1** | **Workspace Layout Diversity**: Maven and Gradle projects may have multi-module directory trees, custom source sets, or symlinked sources. | Medium | High | Implement deterministic source root resolution probing workspace root, sibling modules, and standard conventions (`src/main/java`). |
+| **RISK-M38-2** | **Source-Class Drift**: Workspace `.java` file may have uncommitted edits differing from the compiled classfile on the classpath. | Low | Medium | Navigate to physical source declarations using robust Java AST parsing with line/column coordinates; never rely on bytecode line number tables for source navigation. |
+| **RISK-M38-3** | **Record Component vs Method Ambiguity**: A record may declare `componentName` and an explicit method `componentName()`. | Low | Low | Deterministically resolve to the explicit accessor method if present; otherwise resolve to the record header component declaration. |
+| **RISK-M38-4** | **Editor Performance & Latency**: Full Java source parsing could cause latency spikes during definition requests. | Medium | Medium | Perform lightweight, on-demand declaration parsing restricted to candidate model source files, caching resolved symbol offsets per file SHA. |
+
+#### 7. Test Strategy & Verification Forecast
+- **Deterministic Golden Fixtures**:
+  - Test suites verifying navigation coordinates across Record components, standard JavaBean getters, boolean `is` getters, public fields, and inherited interface methods.
+- **Dual-Build Multi-Module Fixtures**:
+  - Maven multi-module and Gradle multi-project integration fixtures validating source discovery across inter-module dependencies.
+- **Negative & Fallback Test Matrix**:
+  - Verifying graceful fallback (`definition unavailable`) for JDK platform classes, binary-only dependencies, and missing source files without throwing exceptions.
+- **Coordinate Boundary & Encoding Safety**:
+  - Verifying UTF-16 surrogate pairs, Vietnamese diacritics, and CRLF line termination handling in Java source coordinate translations.
