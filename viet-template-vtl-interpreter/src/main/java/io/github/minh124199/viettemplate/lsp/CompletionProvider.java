@@ -4,7 +4,8 @@ import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
 import io.github.minh124199.viettemplate.language.vtl.ast.*;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
-import io.github.minh124199.viettemplate.lsp.CanonicalSchemaModel.*;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.*;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,7 +18,7 @@ import java.util.TreeSet;
 /**
  * Deterministic code completion engine providing variable, property, and directive completions.
  *
- * <p>Enforces prefix filtering, member security filtering, and deterministic sorting.
+ * <p>Enforces exact prefix prioritization, member security filtering, and deterministic sorting.
  */
 final class CompletionProvider {
 
@@ -86,7 +87,8 @@ final class CompletionProvider {
     if (receiverType.isEmpty()) {
       receiverType = resolveLoopVariableReceiverType(doc, offset, ctx, schemaResolver);
     }
-    if (receiverType.isEmpty()) {
+    // Dynamic fallback: if receiver is unknown or dynamic, return empty (no invented properties)
+    if (receiverType.isEmpty() || receiverType.get() instanceof DynamicTypeRef) {
       return CompletionList.empty();
     }
 
@@ -97,11 +99,17 @@ final class CompletionProvider {
 
     for (PropertyDef prop : properties.values()) {
       if (prefix.isEmpty() || prop.name().startsWith(prefix)) {
-        String detail = prop.type().displayName() + (prop.nullable() ? " (nullable)" : "");
+        String detail =
+            prop.type().displayName()
+                + (prop.optional() ? "?" : "")
+                + (prop.nullable() ? " | null" : "");
         String docMsg = "Property of " + receiverType.get().displayName();
+        String sortText =
+            prefix.isEmpty()
+                ? prop.name()
+                : (prop.name().startsWith(prefix) ? ("0_" + prop.name()) : ("1_" + prop.name()));
         items.add(
-            new CompletionItem(
-                prop.name(), CompletionItemKind.PROPERTY, detail, docMsg, prop.name()));
+            new CompletionItem(prop.name(), CompletionItemKind.PROPERTY, detail, docMsg, sortText));
       }
     }
 
@@ -179,18 +187,27 @@ final class CompletionProvider {
     Set<CompletionItem> items = new TreeSet<>();
 
     // 1. Schema parameters
-    Optional<SchemaEnvelope> schema = schemaResolver.resolveSchema(doc.uri());
+    Optional<CanonicalSchema> schema = schemaResolver.resolveSchema(doc.uri());
     if (schema.isPresent()) {
       for (ParameterDef param : schema.get().parameters().values()) {
         if (prefix.isEmpty() || param.name().startsWith(prefix)) {
-          String detail = param.type().displayName() + (param.nullable() ? " (nullable)" : "");
+          String detail =
+              param.type().displayName()
+                  + (param.optional() ? "?" : "")
+                  + (param.nullable() ? " | null" : "");
+          String sortText =
+              prefix.isEmpty()
+                  ? param.name()
+                  : (param.name().startsWith(prefix)
+                      ? ("0_" + param.name())
+                      : ("1_" + param.name()));
           items.add(
               new CompletionItem(
                   param.name(),
                   CompletionItemKind.VARIABLE,
                   detail,
                   "Declared template parameter",
-                  param.name()));
+                  sortText));
         }
       }
     }
@@ -222,9 +239,15 @@ final class CompletionProvider {
             && setNode.target() instanceof VtlAssignmentTarget.ReferenceTarget refTarget) {
           String name = refTarget.reference().rootName();
           if (prefix.isEmpty() || name.startsWith(prefix)) {
+            String sortText =
+                prefix.isEmpty() ? name : (name.startsWith(prefix) ? ("0_" + name) : ("1_" + name));
             items.add(
                 new CompletionItem(
-                    name, CompletionItemKind.VARIABLE, "Object", "Template local variable", name));
+                    name,
+                    CompletionItemKind.VARIABLE,
+                    "Object",
+                    "Template local variable",
+                    sortText));
           }
         }
       } else if (node instanceof VtlForeachDirectiveNode feNode) {
@@ -234,18 +257,30 @@ final class CompletionProvider {
           String loopVar = feNode.loopVariable().rootName();
           if (prefix.isEmpty() || loopVar.startsWith(prefix)) {
             String typeName = HoverProvider.inferLoopVariableTypeName(feNode, doc, schemaResolver);
+            String sortText =
+                prefix.isEmpty()
+                    ? loopVar
+                    : (loopVar.startsWith(prefix) ? ("0_" + loopVar) : ("1_" + loopVar));
             items.add(
                 new CompletionItem(
-                    loopVar, CompletionItemKind.VARIABLE, typeName, "Loop item variable", loopVar));
+                    loopVar,
+                    CompletionItemKind.VARIABLE,
+                    typeName,
+                    "Loop item variable",
+                    sortText));
           }
           if (prefix.isEmpty() || "foreach".startsWith(prefix)) {
+            String sortText =
+                prefix.isEmpty()
+                    ? "foreach"
+                    : ("foreach".startsWith(prefix) ? "0_foreach" : "1_foreach");
             items.add(
                 new CompletionItem(
                     "foreach",
                     CompletionItemKind.VARIABLE,
                     "ForeachMetadata",
                     "Foreach loop metadata (index, count, first, last, hasNext)",
-                    "foreach"));
+                    sortText));
           }
         }
         collectLocalVariables(feNode.body(), doc, offset, prefix, schemaResolver, items);
@@ -257,13 +292,15 @@ final class CompletionProvider {
     List<CompletionItem> items = new ArrayList<>();
     for (String dir : DIRECTIVES) {
       if (prefix.isEmpty() || dir.startsWith(prefix)) {
+        String sortText =
+            prefix.isEmpty() ? dir : (dir.startsWith(prefix) ? ("0_" + dir) : ("1_" + dir));
         items.add(
             new CompletionItem(
                 dir,
                 CompletionItemKind.KEYWORD,
                 "directive",
                 "Viet Template #" + dir + " directive",
-                dir));
+                sortText));
       }
     }
     Collections.sort(items);

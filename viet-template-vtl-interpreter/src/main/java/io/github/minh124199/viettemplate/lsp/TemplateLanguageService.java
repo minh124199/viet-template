@@ -2,11 +2,15 @@ package io.github.minh124199.viettemplate.lsp;
 
 import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 /**
  * Reusable, protocol-independent Viet Template language service foundation.
@@ -18,7 +22,9 @@ class TemplateLanguageService {
 
   private final TemplateDocumentStore documentStore;
   private final CanonicalSchemaResolver schemaResolver;
+  private final WorkspaceSchemaIndex schemaIndex;
   private volatile MemberAccessPolicy memberAccessPolicy;
+  private final List<Consumer<String>> diagnosticListeners = new CopyOnWriteArrayList<>();
 
   TemplateLanguageService(
       CanonicalSchemaResolver schemaResolver, MemberAccessPolicy memberAccessPolicy) {
@@ -31,6 +37,7 @@ class TemplateLanguageService {
       MemberAccessPolicy memberAccessPolicy) {
     this.documentStore = Objects.requireNonNull(documentStore, "documentStore must not be null");
     this.schemaResolver = Objects.requireNonNull(schemaResolver, "schemaResolver must not be null");
+    this.schemaIndex = new WorkspaceSchemaIndex(this.schemaResolver);
     this.memberAccessPolicy =
         memberAccessPolicy != null ? memberAccessPolicy : MemberAccessPolicy.standard();
   }
@@ -43,6 +50,25 @@ class TemplateLanguageService {
   public static TemplateLanguageService create(MemberAccessPolicy accessPolicy) {
     return new TemplateLanguageService(
         new TemplateDocumentStore(), new CanonicalSchemaResolver(), accessPolicy);
+  }
+
+  public void addDiagnosticListener(Consumer<String> listener) {
+    if (listener != null) {
+      diagnosticListeners.add(listener);
+    }
+  }
+
+  public void setDiagnosticListener(Consumer<String> listener) {
+    diagnosticListeners.clear();
+    if (listener != null) {
+      diagnosticListeners.add(listener);
+    }
+  }
+
+  public void notifyDiagnosticListeners(String uri) {
+    for (Consumer<String> listener : diagnosticListeners) {
+      listener.accept(uri);
+    }
   }
 
   // --- Document Lifecycle ---
@@ -80,6 +106,39 @@ class TemplateLanguageService {
     return documentStore.get(uri);
   }
 
+  // --- File Watching & Incremental Invalidation ---
+
+  public void onWatchedFileChanged(String uriOrPath, int changeType) {
+    if (uriOrPath == null || uriOrPath.isBlank()) {
+      return;
+    }
+    Path path;
+    try {
+      if (uriOrPath.startsWith("file:/")) {
+        path = Path.of(URI.create(uriOrPath));
+      } else {
+        path = Path.of(uriOrPath);
+      }
+    } catch (IllegalArgumentException | SecurityException e) {
+      return;
+    }
+
+    List<String> affected;
+    if (changeType == 3) {
+      // 3 = Deleted
+      affected = schemaIndex.onSchemaDeleted(path);
+    } else {
+      // 1 = Created, 2 = Changed
+      affected = schemaIndex.onSchemaChanged(path);
+    }
+
+    for (String affectedUri : affected) {
+      if (documentStore.get(affectedUri).isPresent()) {
+        notifyDiagnosticListeners(affectedUri);
+      }
+    }
+  }
+
   // --- Language Features ---
 
   public List<Diagnostic> diagnostics(String uri) {
@@ -87,7 +146,10 @@ class TemplateLanguageService {
     if (doc.isEmpty()) {
       return List.of();
     }
-    return DiagnosticProvider.diagnostics(doc.get(), schemaResolver, memberAccessPolicy);
+    List<Diagnostic> diags =
+        DiagnosticProvider.diagnostics(doc.get(), schemaResolver, memberAccessPolicy);
+    schemaResolver.getSchemaFilePath(uri).ifPresent(p -> schemaIndex.recordDependency(uri, p));
+    return diags;
   }
 
   public CompletionList complete(String uri, Position position) {
@@ -107,7 +169,7 @@ class TemplateLanguageService {
     if (doc.isEmpty()) {
       return Optional.empty();
     }
-    return HoverProvider.hover(doc.get(), position, schemaResolver);
+    return HoverProvider.hover(doc.get(), position, schemaResolver, schemaIndex);
   }
 
   public List<LocationInfo> definition(String uri, Position position) {
@@ -115,17 +177,21 @@ class TemplateLanguageService {
     if (doc.isEmpty()) {
       return List.of();
     }
-    return DefinitionProvider.definition(doc.get(), position, schemaResolver);
+    return DefinitionProvider.definition(doc.get(), position, schemaResolver, schemaIndex);
   }
 
   // --- Configuration ---
 
   public void registerSchema(String templateIdOrUri, String schemaJson) {
     schemaResolver.registerSchema(templateIdOrUri, schemaJson);
+    schemaIndex.getOrComputeProvenance(templateIdOrUri);
   }
 
   public void registerSchemaFile(Path schemaPath) throws IOException {
     schemaResolver.registerSchemaFile(schemaPath);
+    if (schemaPath != null) {
+      schemaIndex.onSchemaChanged(schemaPath);
+    }
   }
 
   public void setSchemaDirectory(Path directory) {
@@ -142,6 +208,10 @@ class TemplateLanguageService {
 
   public CanonicalSchemaResolver schemaResolver() {
     return schemaResolver;
+  }
+
+  public WorkspaceSchemaIndex schemaIndex() {
+    return schemaIndex;
   }
 
   public TemplateDocumentStore documentStore() {

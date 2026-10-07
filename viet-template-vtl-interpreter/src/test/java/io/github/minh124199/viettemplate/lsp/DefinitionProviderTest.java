@@ -2,6 +2,7 @@ package io.github.minh124199.viettemplate.lsp;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

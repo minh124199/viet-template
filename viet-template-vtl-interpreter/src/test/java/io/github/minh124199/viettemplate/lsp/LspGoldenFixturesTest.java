@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
 import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;

@@ -32,6 +32,7 @@ final class LspProtocolAdapter {
   LspProtocolAdapter(TemplateLanguageService service, Consumer<String> notificationSender) {
     this.service = Objects.requireNonNull(service, "service must not be null");
     this.notificationSender = notificationSender != null ? notificationSender : msg -> {};
+    this.service.setDiagnosticListener(this::republishOpenDocumentDiagnostics);
   }
 
   public ServerState state() {
@@ -121,6 +122,10 @@ final class LspProtocolAdapter {
       case "textDocument/definition" -> {
         return handleDefinition(id, params);
       }
+      case "workspace/didChangeWatchedFiles" -> {
+        handleDidChangeWatchedFiles(params);
+        return null;
+      }
       case "$/cancelRequest" -> {
         return null;
       }
@@ -202,6 +207,29 @@ final class LspProtocolAdapter {
               "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/publishDiagnostics\",\"params\":{\"uri\":\"%s\",\"diagnostics\":[]}}",
               escapeJson(uri));
       notificationSender.accept(notification);
+    }
+  }
+
+  private void handleDidChangeWatchedFiles(Map<?, ?> params) {
+    Object changesObj = params.get("changes");
+    if (changesObj instanceof List<?> list) {
+      for (Object item : list) {
+        if (item instanceof Map<?, ?> c) {
+          String uri = getString(c, "uri");
+          Number typeNum = getNumber(c, "type");
+          int changeType = typeNum != null ? typeNum.intValue() : 2;
+          if (uri != null) {
+            service.onWatchedFileChanged(uri, changeType);
+          }
+        }
+      }
+    }
+  }
+
+  private void republishOpenDocumentDiagnostics(String uri) {
+    Optional<TemplateDocument> doc = service.getDocument(uri);
+    if (doc.isPresent()) {
+      publishDiagnostics(uri, doc.get().version());
     }
   }
 
