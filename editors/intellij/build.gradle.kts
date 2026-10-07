@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.github.minh124199"
-version = "1.1.0"
+version = "1.2.0"
 
 repositories {
     mavenCentral()
@@ -38,7 +38,7 @@ intellijPlatform {
     pluginConfiguration {
         id = "io.github.minh124199.viet-template-intellij"
         name = "Viet Template"
-        version = "1.1.0"
+        version = "1.2.0"
         vendor {
             name = "Viet Template"
             email = "minh124199@users.noreply.github.com"

@@ -436,7 +436,7 @@ Machine-readable JSON reports provide deterministic outputs suitable for automat
   "sourceEngine": "Apache Velocity",
   "sourceVersion": "2.4.1",
   "targetEngine": "Viet Template",
-  "targetVersion": "1.2.0-SNAPSHOT",
+  "targetVersion": "1.2.0",
   "readinessStatus": "BLOCKED",
   "summary": {
     "totalTemplates": 12,

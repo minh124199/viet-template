@@ -138,11 +138,11 @@ class DocumentationVerifierTests(unittest.TestCase):
         errors_rc1 = doc_verifier.check_consumer_snippets_in_text(rc1_maven, released_version="1.0.0-RC1")
         self.assertEqual([], errors_rc1)
 
-        current_maven = valid_maven.replace("0.2.2", "1.1.0")
+        current_maven = valid_maven.replace("0.2.2", "1.2.0")
         errors_default_stable = doc_verifier.check_consumer_snippets_in_text(current_maven)
         self.assertEqual([], errors_default_stable)
         errors_default_rc1 = doc_verifier.check_consumer_snippets_in_text(rc1_maven)
-        self.assertTrue(any("expected released version '1.1.0'" in err for err in errors_default_rc1))
+        self.assertTrue(any("expected released version '1.2.0'" in err for err in errors_default_rc1))
 
     def test_consumer_snippets_rejects_unreleased_or_stale_version(self):
         stale_maven = """

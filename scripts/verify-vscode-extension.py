@@ -65,8 +65,8 @@ def verify_package_json(package_json_path: Path) -> List[str]:
         errors.append(
             f"package.json 'displayName' must be 'Viet Template Language Support', got '{data.get('displayName')}'"
         )
-    if data.get("version") != "1.1.0":
-        errors.append(f"package.json 'version' must be '1.1.0', got '{data.get('version')}'")
+    if data.get("version") != "1.2.0":
+        errors.append(f"package.json 'version' must be '1.2.0', got '{data.get('version')}'")
     if data.get("publisher") != "minh124199":
         errors.append(f"package.json 'publisher' must be 'minh124199', got '{data.get('publisher')}'")
 

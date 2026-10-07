@@ -39,7 +39,7 @@ import re
 import sys
 from pathlib import Path
 
-DEFAULT_RELEASED_VERSION = "1.1.0"
+DEFAULT_RELEASED_VERSION = "1.2.0"
 STALE_RELEASE_DATES = ["2026-09-21"]
 EXPECTED_RELEASE_DATE = "2026-09-20"
 

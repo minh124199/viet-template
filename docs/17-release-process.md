@@ -418,3 +418,7 @@ The 1.1.0 release preparation PR was merged into `main` and tagged `v1.1.0`
 on 2026-10-03, followed by successful publication to Maven Central and creation of
 the GitHub Release. Following the completion of the 1.1.0 publication cycle,
 the project advanced to `1.1.1-SNAPSHOT` for active development.
+
+## Release 1.2.0
+
+Viet Template 1.2.0 completes the 1.2 feature line, encompassing build-time template validation (M32), compiler explanation tooling (M33), Velocity migration analysis and reporting (M34), cross-language schema interoperability (M35), schema-aware LSP and cross-language navigation (M36), and release qualification (M37). Release 1.2.0 is tagged `v1.2.0` on 2026-10-07 on branch `release/1.2.0` with full publication across all 14 public coordinates.
