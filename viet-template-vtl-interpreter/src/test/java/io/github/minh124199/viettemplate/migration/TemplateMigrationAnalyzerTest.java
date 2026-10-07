@@ -362,7 +362,7 @@ class TemplateMigrationAnalyzerTest {
     assertEquals(text1, text2);
     assertTrue(text1.contains("=== Viet Template Migration Analysis Report ==="));
     assertTrue(text1.contains("Apache Velocity 2.4.1"));
-    assertTrue(text1.contains("Viet Template 1.2.0"));
+    assertTrue(text1.contains("Viet Template 1.2.1-SNAPSHOT"));
     assertTrue(text1.contains("MIG-ARITH-DIV-ZERO"));
     assertTrue(text1.contains("MIG-SEC-CLASS-ACCESS"));
     assertTrue(text1.contains("MIG-EXT-ALT-VALUE"));
@@ -375,7 +375,7 @@ class TemplateMigrationAnalyzerTest {
     assertTrue(json1.contains("\"sourceEngine\": \"Apache Velocity\""));
     assertTrue(json1.contains("\"sourceVersion\": \"2.4.1\""));
     assertTrue(json1.contains("\"targetEngine\": \"Viet Template\""));
-    assertTrue(json1.contains("\"targetVersion\": \"1.2.0\""));
+    assertTrue(json1.contains("\"targetVersion\": \"1.2.1-SNAPSHOT\""));
     assertTrue(json1.contains("\"templateId\": \"sample.vtl\""));
     assertTrue(json1.contains("\"relativePath\": \"sample.vtl\""));
     assertFalse(
