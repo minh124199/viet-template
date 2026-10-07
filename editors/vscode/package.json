@@ -2,7 +2,7 @@
   "name": "viet-template",
   "displayName": "Viet Template Language Support",
   "description": "Language Server Protocol support, semantic diagnostics, autocompletion, hover, and syntax highlighting for Viet Template (*.vtl, *.vm, *.vt).",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "publisher": "minh124199",
   "engines": {
     "vscode": "^1.85.0"

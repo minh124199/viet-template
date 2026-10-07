@@ -22,7 +22,7 @@ dependencies {
     implementation("io.quarkus:quarkus-rest")
     implementation("io.quarkus:quarkus-security")
     implementation("io.quarkus:quarkus-rest-csrf")
-    implementation("io.github.minh124199:viet-template-quarkus:1.2.0-SNAPSHOT")
+    implementation("io.github.minh124199:viet-template-quarkus:1.2.0")
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
 }

@@ -125,7 +125,7 @@ The `viet-template-maven-plugin` provides unified schema discovery:
 <plugin>
   <groupId>io.github.minh124199</groupId>
   <artifactId>viet-template-maven-plugin</artifactId>
-  <version>1.2.0-SNAPSHOT</version>
+  <version>1.2.0</version>
   <executions>
     <execution>
       <goals>
@@ -145,7 +145,7 @@ The `viet-template-gradle-plugin` offers 100% parity with Maven:
 
 ```kotlin
 plugins {
-    id("io.github.minh124199.viet-template") version "1.2.0-SNAPSHOT"
+    id("io.github.minh124199.viet-template") version "1.2.0"
 }
 
 vietTemplate {

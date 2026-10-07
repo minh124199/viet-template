@@ -5,9 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0] - 2026-10-07
 
 ### Added
+- **Milestone M36: Schema-Aware LSP & Cross-Language Navigation**:
+  - **Canonical Schema Model Consumption in Language Server**:
+    - Unified `CompletionProvider`, `HoverProvider`, `DefinitionProvider`, and `DiagnosticProvider` to consume the universal canonical schema model (`CanonicalSchemaResolver` and `CanonicalSchemaModel`) directly.
+    - Deleted legacy duplicate LSP schema classes, establishing zero duplication between compiler schema models and editor language services.
+    - Delivered identical completion, hover, definition, and typo-tolerant diagnostics (`VTLS:2104` with Levenshtein suggestions) across Java models, TemplateContract, JSON Schema, and TypeScript `.d.ts`.
+  - **Cross-Language Navigation & Provenance**:
+    - Implemented exact 1-based line/column definition navigation from template references into source definitions across `.d.ts`, `.schema.json`, `.vt-schema.json`, and `.contract`.
+    - Graceful fallback for JVM reflection where source is absent (`definition unavailable`), never inventing false locations.
+  - **Incremental Workspace Schema Indexing & Lifecycle**:
+    - Added `WorkspaceSchemaIndex` with dependency tracking between templates and schemas.
+    - Supports fine-grained file watching (`workspace/didChangeWatchedFiles`) for `.schema.json`, `.d.ts`, and `.contract`: invalidates affected cache entries and republishes diagnostics automatically without requiring server restarts.
 - **Milestone M35: Cross-Language Schema Interoperability**:
   - **Universal Canonical Schema Model (`io.github.minh124199.viettemplate.schema`)**:
     - Introduced `CanonicalSchemaModel` in `viet-template-vtl-interpreter` with a sealed `TypeRef` hierarchy (`PrimitiveTypeRef`, `ClassTypeRef`, `NamedTypeRef`, `ArrayTypeRef`, `MapTypeRef`, `EnumTypeRef`, `UnionTypeRef`, `WildcardTypeRef`, `ParameterizedTypeRef`, `DynamicTypeRef`), `PropertyDef`, `TypeDef`, `ParameterDef`, and `CanonicalSchema`.
@@ -79,7 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Release Engineering
 - Open `1.1.1-SNAPSHOT` development baseline following the successful release of `1.1.0`.
-- Begin `1.2.0-SNAPSHOT` development line following the introduction of Milestone M32 build-time template validation.
+- Advance to `1.2.0` development line following the introduction of Milestone M32 build-time template validation.
 
 ### Fixed
 - **Robustness and Differential Fuzzing CI Gate**: Added clean-room reactor artifact bootstrapping (`./mvnw install -DskipTests ...`) before Gradle deep fuzzing execution in `.github/workflows/fuzz.yml`, resolving Quarkus deployment extension artifact resolution failures in scheduled CI runs.
@@ -830,7 +841,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 1 `VIET_EXTENSION` (`$foreach.stop()` programmatic loop termination)
   - 0 `UNSUPPORTED`, 0 `BUG` (100.00% accounted behavior coverage)
 
-[Unreleased]: https://github.com/minh124199/viet-template/compare/v1.0.0...HEAD
+[1.2.0]: https://github.com/minh124199/viet-template/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/minh124199/viet-template/compare/v1.0.1...v1.1.0
+[1.0.1]: https://github.com/minh124199/viet-template/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC3...v1.0.0
 [1.0.0-RC3]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC2...v1.0.0-RC3
 [1.0.0-RC2]: https://github.com/minh124199/viet-template/compare/v1.0.0-RC1...v1.0.0-RC2

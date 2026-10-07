@@ -5,7 +5,7 @@
   "publicationTaxonomy": {
     "groupId": "io.github.minh124199",
     "authoritativePublisher": "Apache Maven (central-publishing-maven-plugin)",
-    "currentSnapshot": "1.2.0-SNAPSHOT",
+    "currentSnapshot": "1.2.0",
     "currentSnapshotPublished": false,
     "historicalStatus_0_2_3": "PREPARED_HELD",
     "historicalStatus_0_2_3_commit": "b8b3a8f",
@@ -30,13 +30,13 @@
       "mavenCoordinates": "io.github.minh124199:viet-template-gradle-plugin",
       "rationale": "Gradle plugin artifacts are published exclusively to Maven Central; publication to the Gradle Plugin Portal is not currently configured."
     },
-    "latestPublishedStableVersion": "1.1.0",
+    "latestPublishedStableVersion": "1.2.0",
     "publicationEvidence": {
-      "githubRelease": "https://github.com/minh124199/viet-template/releases/tag/v1.1.0",
-      "mavenCentralCorePom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-api/1.1.0/viet-template-api-1.1.0.pom",
-      "mavenCentralQuarkusPom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-quarkus/1.1.0/viet-template-quarkus-1.1.0.pom",
-      "mavenCentralQuarkusDeploymentPom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-quarkus-deployment/1.1.0/viet-template-quarkus-deployment-1.1.0.pom",
-      "mavenCentralGradlePluginPom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-gradle-plugin/1.1.0/viet-template-gradle-plugin-1.1.0.pom"
+      "githubRelease": "https://github.com/minh124199/viet-template/releases/tag/v1.2.0",
+      "mavenCentralCorePom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-api/1.2.0/viet-template-api-1.2.0.pom",
+      "mavenCentralQuarkusPom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-quarkus/1.2.0/viet-template-quarkus-1.2.0.pom",
+      "mavenCentralQuarkusDeploymentPom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-quarkus-deployment/1.2.0/viet-template-quarkus-deployment-1.2.0.pom",
+      "mavenCentralGradlePluginPom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-gradle-plugin/1.2.0/viet-template-gradle-plugin-1.2.0.pom"
     }
   },
   "modules": [

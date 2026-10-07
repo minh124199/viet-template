@@ -35,7 +35,7 @@ DEFAULT_INTELLIJ_DIR = REPO_ROOT / "editors" / "intellij"
 
 EXPECTED_PLUGIN_ID = "io.github.minh124199.viet-template-intellij"
 EXPECTED_PLUGIN_NAME = "Viet Template"
-EXPECTED_PLUGIN_VERSION = "1.1.0"
+EXPECTED_PLUGIN_VERSION = "1.2.0"
 EXPECTED_VENDOR = "Viet Template"
 EXPECTED_EXTENSIONS = {"vtl", "vm", "vt"}
 EXPECTED_SINCE_BUILD = "242"

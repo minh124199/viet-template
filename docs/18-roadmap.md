@@ -1,6 +1,6 @@
 # 18 — Implementation Roadmap (Historical Milestone Record and Current Status)
 
-> **Status note (2026-10-03):** This document preserves the project's milestone history. Viet Template 1.1.0 is the latest published stable release, and active development is `1.2.0-SNAPSHOT` on `main`. Earlier release-phase plans are historical records; unfinished 1.0 RC soak/readiness wording below is closed by the subsequent 1.0.0 GA release, and must not be read as current work.
+> **Status note (2026-10-07):** This document preserves the project's milestone history. Viet Template 1.2.0 is the latest published stable release (published 2026-10-07; 1.1.0 published 2026-10-03). Earlier release-phase plans are historical records; unfinished 1.0 RC soak/readiness wording below is closed by the subsequent 1.0.0 GA release, and must not be read as current work.
 
 ## Overview
 
@@ -71,7 +71,7 @@ To adhere to the Java-first design policy and avoid premature complexity:
 
 Release `0.2.0` introduces the next major internal runtime evolution, transitioning variable resolution from string-based hash lookups to compiler-assigned flat array slots and indexing the compilation cache for scalable invalidation.
 
-**Release Status**: Version 1.1.0 was published on 2026-10-03 as the latest stable feature release, following 1.0.1 (2026-09-28) and 1.0.0 GA (2026-09-26). Version 0.2.2 (published 2026-09-20; 0.2.1 on 2026-09-17, 0.2.0 on 2026-09-12) represents the historical 0.2.x line. Version 0.2.3 was prepared across POMs but held without tagging or publication (`PREPARED_HELD`). Milestones M20–M31 are complete and published in 1.1.0. Active development is on `1.2.0-SNAPSHOT` on `main`.
+**Release Status**: Version 1.2.0 was published on 2026-10-07 as the latest stable feature release, following 1.1.0 (2026-10-03), 1.0.1 (2026-09-28), and 1.0.0 GA (2026-09-26). Version 0.2.2 (published 2026-09-20; 0.2.1 on 2026-09-17, 0.2.0 on 2026-09-12) represents the historical 0.2.x line. Version 0.2.3 was prepared across POMs but held without tagging or publication (`PREPARED_HELD`). Milestones M20–M37 are complete and published in 1.2.0.
 
 **Post-release infrastructure status**: 0.2.x release infrastructure hardening is COMPLETE. Central
 submission, publication monitoring, public-coordinate verification, consumer smoke testing, and
@@ -424,7 +424,11 @@ Release Phase 1.1.x evolves Viet Template with optional compile-time typed templ
     - **M35.6 (Shape-Only Semantic Typing & AOT Guard)**: Extended `ModelSchema` and `MemberResolver` to resolve shape-only properties from imported external schemas with Levenshtein typo suggestions. Guaranteed compiler safety: shape-only properties lacking JVM bytecode members automatically configure dynamic member resolution, preventing incorrect static bytecode getter generation while preserving strict compile-time verification.
     - **M35.7 (TypeScript Declaration Projection & Build Tooling Parity)**: Extended `TypeScriptDeclarationProjector` to project canonical schemas into deterministic `.d.ts` declaration files. Updated Maven (`VietTemplateGenerateTypeScriptMojo`) and Gradle (`VietTemplateGenerateTypeScriptTask`) plugins to discover and project both `*.vt-schema.json` and `*.schema.json`, verified with 100% build tool parity (`VietTemplateMavenGradleParityTest`).
 
----
-
-## Future Milestones (Post-M35 / 1.2 Development Line)
-
+- **Milestone M36 (Schema-Aware LSP & Cross-Language Navigation — target 1.2.0) — COMPLETE / QUALIFIED**:
+    - **M36.1 (Canonical Schema Model Consumption in Language Server)**: Unified `CompletionProvider`, `HoverProvider`, `DefinitionProvider`, and `DiagnosticProvider` to consume the universal canonical schema model (`CanonicalSchemaResolver` and `CanonicalSchemaModel`) directly. Deleted legacy duplicate LSP schema classes, establishing zero duplication between compiler schema models and editor language services. Delivered identical completion, hover, definition, and typo-tolerant diagnostics (`VTLS:2104` with Levenshtein suggestions) across Java models, TemplateContract, JSON Schema, and TypeScript `.d.ts`.
+    - **M36.2 (Cross-Language Navigation & Provenance)**: Implemented exact 1-based line/column definition navigation from template references into source definitions across `.d.ts`, `.schema.json`, `.vt-schema.json`, and `.contract`. Provided graceful fallback for JVM reflection where source is absent (`definition unavailable`), never inventing false locations.
+    - **M36.3 (Incremental Workspace Schema Indexing & Lifecycle)**: Added `WorkspaceSchemaIndex` with dependency tracking between templates and schemas. Supports fine-grained file watching (`workspace/didChangeWatchedFiles`) for `.schema.json`, `.d.ts`, and `.contract`: invalidates affected cache entries and republishes diagnostics automatically without requiring server restarts.
+- **Milestone M37 (1.2.0 Release Qualification & Packaging Alignment — target 1.2.0) — COMPLETE / QUALIFIED**:
+    - **M37.1 (Release Packaging & Metadata Verification)**: Transitioned all root, child module POMs, and Gradle build definitions from snapshot development to official 1.2.0 release. Verified exact publication topology of 14 public coordinates with zero SNAPSHOT leaks.
+    - **M37.2 (Editor Extension & Integration Parity)**: Aligned VS Code extension manifest (`package.json`) and IntelliJ plugin configuration (`build.gradle.kts`, `plugin.xml`) to 1.2.0.
+    - **M37.3 (Differential & Migration Oracle Convergence)**: Verified migration analyzer target version synchronization and differential compatibility qualification across all integration tests.
