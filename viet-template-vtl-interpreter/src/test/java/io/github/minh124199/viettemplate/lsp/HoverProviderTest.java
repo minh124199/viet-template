@@ -2,6 +2,7 @@ package io.github.minh124199.viettemplate.lsp;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

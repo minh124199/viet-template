@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import io.github.minh124199.viettemplate.api.Diagnostic;
 import io.github.minh124199.viettemplate.api.DiagnosticSeverity;
 import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -95,7 +96,7 @@ class DiagnosticProviderTest {
     Diagnostic d = diags.get(0);
     assertEquals("VTLS:2101", d.code().qualifiedCode());
     assertEquals(DiagnosticSeverity.ERROR, d.severity());
-    assertTrue(d.message().contains("Unresolved root variable: $unknownVar"));
+    assertTrue(d.message().contains("Root reference '$unknownVar' is not declared"));
   }
 
   @Test
@@ -109,7 +110,7 @@ class DiagnosticProviderTest {
     Diagnostic d = diags.get(0);
     assertEquals("VTLS:2104", d.code().qualifiedCode());
     assertEquals(DiagnosticSeverity.ERROR, d.severity());
-    assertTrue(d.message().contains("Property 'nonExistentProp' not found"));
+    assertTrue(d.message().contains("Property 'nonExistentProp' does not exist on type"));
   }
 
   @Test
@@ -224,6 +225,6 @@ class DiagnosticProviderTest {
                 d ->
                     d.code().qualifiedCode().equals("VTLS:2101")
                         && d.severity() == DiagnosticSeverity.ERROR
-                        && d.message().contains("Unresolved root variable: $item")));
+                        && d.message().contains("Root reference '$item' is not declared")));
   }
 }

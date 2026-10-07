@@ -3,23 +3,38 @@ package io.github.minh124199.viettemplate.lsp;
 import io.github.minh124199.viettemplate.language.vtl.ast.*;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
-import io.github.minh124199.viettemplate.lsp.CanonicalSchemaModel.*;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.*;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver;
+import io.github.minh124199.viettemplate.schema.SchemaFormat;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-/** Hover engine providing markdown type signatures, documentation, and source ranges. */
+/**
+ * Hover engine providing markdown type signatures, documentation, and schema provenance metadata.
+ */
 final class HoverProvider {
 
   private HoverProvider() {}
 
   public static Optional<HoverInfo> hover(
       TemplateDocument doc, Position position, CanonicalSchemaResolver schemaResolver) {
+    return hover(doc, position, schemaResolver, new WorkspaceSchemaIndex(schemaResolver));
+  }
+
+  public static Optional<HoverInfo> hover(
+      TemplateDocument doc,
+      Position position,
+      CanonicalSchemaResolver schemaResolver,
+      WorkspaceSchemaIndex schemaIndex) {
     Objects.requireNonNull(doc, "doc must not be null");
     Objects.requireNonNull(position, "position must not be null");
     Objects.requireNonNull(schemaResolver, "schemaResolver must not be null");
+    WorkspaceSchemaIndex index =
+        schemaIndex != null ? schemaIndex : new WorkspaceSchemaIndex(schemaResolver);
 
     int offset = doc.positionToOffset(position);
     VtlParseResult parsed;
@@ -30,7 +45,7 @@ final class HoverProvider {
     }
 
     List<VtlNode> rootNodes = parsed.template().children();
-    return findHover(rootNodes, rootNodes, offset, doc, schemaResolver);
+    return findHover(rootNodes, rootNodes, offset, doc, schemaResolver, index);
   }
 
   private static Optional<HoverInfo> findHover(
@@ -38,7 +53,8 @@ final class HoverProvider {
       List<VtlNode> rootNodes,
       int offset,
       TemplateDocument doc,
-      CanonicalSchemaResolver schemaResolver) {
+      CanonicalSchemaResolver schemaResolver,
+      WorkspaceSchemaIndex schemaIndex) {
     if (currentNodes == null) {
       return Optional.empty();
     }
@@ -51,7 +67,8 @@ final class HoverProvider {
       }
 
       if (node instanceof VtlReferenceOutputNode refOut) {
-        return hoverReference(refOut.reference(), offset, doc, rootNodes, schemaResolver);
+        return hoverReference(
+            refOut.reference(), offset, doc, rootNodes, schemaResolver, schemaIndex);
       } else if (node instanceof VtlSetDirectiveNode setNode) {
         if (setNode.target().span().isKnown()
             && setNode.target().span().startOffset() <= offset
@@ -69,7 +86,8 @@ final class HoverProvider {
                   range));
         }
         Optional<HoverInfo> valHover =
-            findExpressionHover(setNode.value(), offset, doc, rootNodes, schemaResolver);
+            findExpressionHover(
+                setNode.value(), offset, doc, rootNodes, schemaResolver, schemaIndex);
         if (valHover.isPresent()) return valHover;
       } else if (node instanceof VtlForeachDirectiveNode feNode) {
         if (feNode.loopVariable().span().isKnown()
@@ -90,31 +108,35 @@ final class HoverProvider {
                   range));
         }
         Optional<HoverInfo> iterHover =
-            findExpressionHover(feNode.iterable(), offset, doc, rootNodes, schemaResolver);
+            findExpressionHover(
+                feNode.iterable(), offset, doc, rootNodes, schemaResolver, schemaIndex);
         if (iterHover.isPresent()) return iterHover;
 
         Optional<HoverInfo> bodyHover =
-            findHover(feNode.body(), rootNodes, offset, doc, schemaResolver);
+            findHover(feNode.body(), rootNodes, offset, doc, schemaResolver, schemaIndex);
         if (bodyHover.isPresent()) return bodyHover;
 
         if (feNode.elseBody().isPresent()) {
           Optional<HoverInfo> elseHover =
-              findHover(feNode.elseBody().get(), rootNodes, offset, doc, schemaResolver);
+              findHover(
+                  feNode.elseBody().get(), rootNodes, offset, doc, schemaResolver, schemaIndex);
           if (elseHover.isPresent()) return elseHover;
         }
       } else if (node instanceof VtlIfDirectiveNode ifNode) {
         for (VtlIfBranch branch : ifNode.branches()) {
           Optional<HoverInfo> condHover =
-              findExpressionHover(branch.condition(), offset, doc, rootNodes, schemaResolver);
+              findExpressionHover(
+                  branch.condition(), offset, doc, rootNodes, schemaResolver, schemaIndex);
           if (condHover.isPresent()) return condHover;
 
           Optional<HoverInfo> bHover =
-              findHover(branch.body(), rootNodes, offset, doc, schemaResolver);
+              findHover(branch.body(), rootNodes, offset, doc, schemaResolver, schemaIndex);
           if (bHover.isPresent()) return bHover;
         }
         if (ifNode.elseBody().isPresent()) {
           Optional<HoverInfo> elseHover =
-              findHover(ifNode.elseBody().get(), rootNodes, offset, doc, schemaResolver);
+              findHover(
+                  ifNode.elseBody().get(), rootNodes, offset, doc, schemaResolver, schemaIndex);
           if (elseHover.isPresent()) return elseHover;
         }
       }
@@ -129,43 +151,47 @@ final class HoverProvider {
       int offset,
       TemplateDocument doc,
       List<VtlNode> rootNodes,
-      CanonicalSchemaResolver schemaResolver) {
+      CanonicalSchemaResolver schemaResolver,
+      WorkspaceSchemaIndex schemaIndex) {
     if (expr == null) return Optional.empty();
 
     if (expr instanceof VtlReferenceExpression refExpr) {
       if (refExpr.reference().span().isKnown()
           && refExpr.reference().span().startOffset() <= offset
           && offset <= refExpr.reference().span().endOffset()) {
-        return hoverReference(refExpr.reference(), offset, doc, rootNodes, schemaResolver);
+        return hoverReference(
+            refExpr.reference(), offset, doc, rootNodes, schemaResolver, schemaIndex);
       }
     } else if (expr instanceof VtlBinaryExpression bin) {
       Optional<HoverInfo> left =
-          findExpressionHover(bin.left(), offset, doc, rootNodes, schemaResolver);
+          findExpressionHover(bin.left(), offset, doc, rootNodes, schemaResolver, schemaIndex);
       if (left.isPresent()) return left;
-      return findExpressionHover(bin.right(), offset, doc, rootNodes, schemaResolver);
+      return findExpressionHover(bin.right(), offset, doc, rootNodes, schemaResolver, schemaIndex);
     } else if (expr instanceof VtlUnaryExpression un) {
-      return findExpressionHover(un.operand(), offset, doc, rootNodes, schemaResolver);
+      return findExpressionHover(un.operand(), offset, doc, rootNodes, schemaResolver, schemaIndex);
     } else if (expr instanceof VtlGroupedExpression grp) {
-      return findExpressionHover(grp.expression(), offset, doc, rootNodes, schemaResolver);
+      return findExpressionHover(
+          grp.expression(), offset, doc, rootNodes, schemaResolver, schemaIndex);
     } else if (expr instanceof VtlListLiteralExpression list) {
       for (VtlExpression e : list.elements()) {
-        Optional<HoverInfo> h = findExpressionHover(e, offset, doc, rootNodes, schemaResolver);
+        Optional<HoverInfo> h =
+            findExpressionHover(e, offset, doc, rootNodes, schemaResolver, schemaIndex);
         if (h.isPresent()) return h;
       }
     } else if (expr instanceof VtlMapLiteralExpression map) {
       for (VtlMapEntry entry : map.entries()) {
         Optional<HoverInfo> kh =
-            findExpressionHover(entry.key(), offset, doc, rootNodes, schemaResolver);
+            findExpressionHover(entry.key(), offset, doc, rootNodes, schemaResolver, schemaIndex);
         if (kh.isPresent()) return kh;
         Optional<HoverInfo> vh =
-            findExpressionHover(entry.value(), offset, doc, rootNodes, schemaResolver);
+            findExpressionHover(entry.value(), offset, doc, rootNodes, schemaResolver, schemaIndex);
         if (vh.isPresent()) return vh;
       }
     } else if (expr instanceof VtlRangeExpression range) {
       Optional<HoverInfo> sh =
-          findExpressionHover(range.start(), offset, doc, rootNodes, schemaResolver);
+          findExpressionHover(range.start(), offset, doc, rootNodes, schemaResolver, schemaIndex);
       if (sh.isPresent()) return sh;
-      return findExpressionHover(range.end(), offset, doc, rootNodes, schemaResolver);
+      return findExpressionHover(range.end(), offset, doc, rootNodes, schemaResolver, schemaIndex);
     } else if (expr instanceof VtlInterpolatedStringExpression interp) {
       for (VtlInterpolatedStringExpression.VtlInterpolatedStringPart part : interp.parts()) {
         if (part
@@ -173,7 +199,8 @@ final class HoverProvider {
           if (rp.reference().span().isKnown()
               && rp.reference().span().startOffset() <= offset
               && offset <= rp.reference().span().endOffset()) {
-            return hoverReference(rp.reference(), offset, doc, rootNodes, schemaResolver);
+            return hoverReference(
+                rp.reference(), offset, doc, rootNodes, schemaResolver, schemaIndex);
           }
         }
       }
@@ -186,8 +213,9 @@ final class HoverProvider {
       int offset,
       TemplateDocument doc,
       List<VtlNode> rootNodes,
-      CanonicalSchemaResolver schemaResolver) {
-    // 1. Check steps
+      CanonicalSchemaResolver schemaResolver,
+      WorkspaceSchemaIndex schemaIndex) {
+    // 1. Check steps (property access)
     List<VtlAccessStep> steps = ref.steps();
     for (int i = 0; i < steps.size(); i++) {
       VtlAccessStep step = steps.get(i);
@@ -207,11 +235,53 @@ final class HoverProvider {
             PropertyDef pDef = props.get(prop.propertyName());
             if (pDef != null) {
               String nullStr = pDef.nullable() ? " *(nullable)*" : "";
-              String md =
+              StringBuilder md = new StringBuilder();
+              md.append(
                   String.format(
                       "**%s**: `%s`%s\n\n*Property of %s*",
-                      pDef.name(), pDef.type().displayName(), nullStr, recType.get().displayName());
-              return Optional.of(HoverInfo.of(md, doc.spanToRange(step.span())));
+                      pDef.name(),
+                      pDef.type().displayName(),
+                      nullStr,
+                      recType.get().displayName()));
+              if (!pDef.documentation().isBlank()) {
+                md.append("\n\n").append(pDef.documentation());
+              }
+
+              md.append("\n\n---\n");
+              String recTypeName = recType.get().displayName();
+              Optional<SchemaProvenance> propProv =
+                  schemaIndex.getPropertyProvenance(doc.uri(), recTypeName, pDef.name());
+              Optional<CanonicalSchema> schema = schemaResolver.resolveSchema(doc.uri());
+              SchemaFormat fmt =
+                  schema
+                      .map(CanonicalSchema::format)
+                      .orElse(propProv.map(SchemaProvenance::format).orElse(SchemaFormat.CONTRACT));
+              md.append("* **Source**: ").append(formatSource(fmt, recTypeName)).append("\n");
+              md.append("* **Property of**: `").append(recTypeName).append("`\n");
+              if (propProv.flatMap(SchemaProvenance::location).isPresent()) {
+                md.append("* **Definition**: `")
+                    .append(propProv.flatMap(SchemaProvenance::location).get().format())
+                    .append("`\n");
+              } else if (schemaIndex.getAssociatedSchemaPath(doc.uri()).isPresent()) {
+                Path pPath = schemaIndex.getAssociatedSchemaPath(doc.uri()).get();
+                String fn =
+                    pPath.getFileName() != null ? pPath.getFileName().toString() : pPath.toString();
+                md.append("* **Definition**: `").append(fn).append("`\n");
+              }
+              md.append("* **Optional**: ").append(pDef.optional() ? "yes" : "no").append("\n");
+              md.append("* **Nullable**: ").append(pDef.nullable() ? "yes" : "no").append("\n");
+              boolean jvmBound =
+                  propProv.map(SchemaProvenance::jvmBound).orElse(fmt == SchemaFormat.JAVA);
+              Optional<String> memberName = propProv.flatMap(SchemaProvenance::jvmMemberName);
+              if (jvmBound) {
+                md.append("* **JVM Binding**: proven (")
+                    .append(memberName.orElse(pDef.name()))
+                    .append(")");
+              } else {
+                md.append("* **JVM Binding**: shape-only");
+              }
+
+              return Optional.of(HoverInfo.of(md.toString(), doc.spanToRange(step.span())));
             }
           }
         }
@@ -242,11 +312,43 @@ final class HoverProvider {
     if (param.isPresent()) {
       ParameterDef p = param.get();
       String reqStr = p.required() ? " *(required)*" : (p.nullable() ? " *(nullable)*" : "");
-      String docStr =
-          !p.documentation().isBlank() ? "\n\n" + p.documentation() : "\n\n*(parameter)*";
-      String md =
-          String.format("**$%s**: `%s`%s%s", p.name(), p.type().displayName(), reqStr, docStr);
-      return Optional.of(HoverInfo.of(md, range));
+      StringBuilder md = new StringBuilder();
+      md.append(String.format("**$%s**: `%s`%s", p.name(), p.type().displayName(), reqStr));
+      if (!p.documentation().isBlank()) {
+        md.append("\n\n").append(p.documentation());
+      } else {
+        md.append("\n\n*(parameter)*");
+      }
+
+      md.append("\n\n---\n");
+      Optional<CanonicalSchema> schema = schemaResolver.resolveSchema(doc.uri());
+      Optional<SchemaProvenance> prov = schemaIndex.getParameterProvenance(doc.uri(), p.name());
+      SchemaFormat fmt =
+          schema
+              .map(CanonicalSchema::format)
+              .orElse(prov.map(SchemaProvenance::format).orElse(SchemaFormat.CONTRACT));
+      md.append("* **Source**: ").append(formatSource(fmt, p.type().displayName())).append("\n");
+      md.append("* **Type**: `").append(p.type().displayName()).append("`\n");
+      if (prov.flatMap(SchemaProvenance::location).isPresent()) {
+        md.append("* **Definition**: `")
+            .append(prov.flatMap(SchemaProvenance::location).get().format())
+            .append("`\n");
+      } else if (schemaIndex.getAssociatedSchemaPath(doc.uri()).isPresent()) {
+        Path pPath = schemaIndex.getAssociatedSchemaPath(doc.uri()).get();
+        String fn = pPath.getFileName() != null ? pPath.getFileName().toString() : pPath.toString();
+        md.append("* **Definition**: `").append(fn).append("`\n");
+      }
+      md.append("* **Optional**: ").append(p.optional() ? "yes" : "no").append("\n");
+      md.append("* **Nullable**: ").append(p.nullable() ? "yes" : "no").append("\n");
+      boolean jvmBound = prov.map(SchemaProvenance::jvmBound).orElse(fmt == SchemaFormat.JAVA);
+      Optional<String> memberName = prov.flatMap(SchemaProvenance::jvmMemberName);
+      if (jvmBound) {
+        md.append("* **JVM Binding**: proven (").append(memberName.orElse(p.name())).append(")");
+      } else {
+        md.append("* **JVM Binding**: shape-only");
+      }
+
+      return Optional.of(HoverInfo.of(md.toString(), range));
     }
 
     // Check enclosing foreach loop variable
@@ -273,6 +375,16 @@ final class HoverProvider {
     }
 
     return Optional.empty();
+  }
+
+  private static String formatSource(SchemaFormat format, String typeName) {
+    if (format == null) return "Schema";
+    return switch (format) {
+      case TYPESCRIPT -> "TypeScript schema <" + typeName + ">";
+      case JSON_SCHEMA -> "JSON Schema";
+      case JAVA -> "Java model";
+      case CONTRACT -> "Contract";
+    };
   }
 
   private static VtlForeachDirectiveNode findEnclosingForeach(

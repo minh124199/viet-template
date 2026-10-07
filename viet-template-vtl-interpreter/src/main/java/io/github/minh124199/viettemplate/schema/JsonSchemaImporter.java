@@ -334,11 +334,18 @@ public final class JsonSchemaImporter implements SchemaImporter {
   }
 
   private TypeRef resolveRef(String ref, JsonLocation refLoc, ImportContext ctx) {
-    // Check remote reference
-    if (ref.startsWith("http://")
-        || ref.startsWith("https://")
-        || ref.startsWith("ftp://")
-        || ref.startsWith("//")) {
+    boolean isRemoteOrExternal =
+        ref.contains("://")
+            || ref.startsWith("//")
+            || ref.startsWith("file:")
+            || ref.startsWith("./")
+            || ref.startsWith("../")
+            || ref.contains("/../")
+            || ref.contains("/./")
+            || ref.contains("..")
+            || !ref.startsWith("#");
+
+    if (isRemoteOrExternal) {
       ctx.diagnostics.add(
           SchemaDiagnostic.error(
               ctx.sourcePath,
@@ -346,7 +353,7 @@ public final class JsonSchemaImporter implements SchemaImporter {
               refLoc.column(),
               SchemaFormat.JSON_SCHEMA,
               CODE_UNSUPPORTED_REMOTE_REF,
-              "Remote schema reference '" + ref + "' is unsupported in offline mode",
+              "External or remote schema reference '" + ref + "' is unsupported in offline mode",
               "Use local schema definitions ($defs) or import the referenced schema locally"));
       return new DynamicTypeRef();
     }
@@ -823,7 +830,7 @@ public final class JsonSchemaImporter implements SchemaImporter {
 
   record JsonNullNode(JsonLocation location) implements JsonNode {}
 
-  private static final class JsonParseException extends Exception {
+  static final class JsonParseException extends Exception {
     private static final long serialVersionUID = 1L;
     final JsonLocation location;
 
@@ -833,14 +840,19 @@ public final class JsonSchemaImporter implements SchemaImporter {
     }
   }
 
-  private static final class JsonParser {
+  static final class JsonParser {
+    private static final int MAX_NESTING_DEPTH = 256;
+
     private final String src;
     private final int[] lineOffsets;
+    private final boolean hasBom;
     private int pos = 0;
+    private int depth = 0;
 
     JsonParser(String src) {
       this.src = src != null ? src : "";
       this.lineOffsets = computeLineOffsets(this.src);
+      this.hasBom = this.src.startsWith("\uFEFF");
     }
 
     JsonNode parse() throws JsonParseException {
@@ -874,88 +886,106 @@ public final class JsonSchemaImporter implements SchemaImporter {
     }
 
     private JsonObjectNode parseObject() throws JsonParseException {
-      int startPos = pos;
-      consume('{');
-      Map<String, JsonNode> props = new LinkedHashMap<>();
-      Map<String, JsonLocation> propLocs = new LinkedHashMap<>();
-
-      skipWhitespace();
-      if (pos < src.length() && src.charAt(pos) == '}') {
-        pos++;
-        return new JsonObjectNode(props, propLocs, locationFor(startPos));
+      if (depth >= MAX_NESTING_DEPTH) {
+        throw new JsonParseException(
+            "Exceeded maximum nesting depth of " + MAX_NESTING_DEPTH, locationFor(pos));
       }
-
-      while (pos < src.length()) {
-        skipWhitespace();
-        if (pos >= src.length()) {
-          throw new JsonParseException("Unterminated JSON object", locationFor(startPos));
-        }
-        if (src.charAt(pos) != '"') {
-          throw new JsonParseException(
-              "Expected string property key, got '" + src.charAt(pos) + "'", locationFor(pos));
-        }
-        int keyStart = pos;
-        String key = parseRawString();
-        JsonLocation keyLoc = locationFor(keyStart);
+      depth++;
+      try {
+        int startPos = pos;
+        consume('{');
+        Map<String, JsonNode> props = new LinkedHashMap<>();
+        Map<String, JsonLocation> propLocs = new LinkedHashMap<>();
 
         skipWhitespace();
-        consume(':');
-        JsonNode val = parseNode();
-        props.put(key, val);
-        propLocs.put(key, keyLoc);
-
-        skipWhitespace();
-        if (pos < src.length() && src.charAt(pos) == ',') {
+        if (pos < src.length() && src.charAt(pos) == '}') {
           pos++;
+          return new JsonObjectNode(props, propLocs, locationFor(startPos));
+        }
+
+        while (pos < src.length()) {
           skipWhitespace();
-          if (pos < src.length() && src.charAt(pos) == '}') {
-            throw new JsonParseException(
-                "Trailing comma in object is not permitted", locationFor(pos - 1));
+          if (pos >= src.length()) {
+            throw new JsonParseException("Unterminated JSON object", locationFor(startPos));
           }
-        } else if (pos < src.length() && src.charAt(pos) == '}') {
-          pos++;
-          break;
-        } else {
-          char ch = pos < src.length() ? src.charAt(pos) : ' ';
-          throw new JsonParseException(
-              "Expected ',' or '}' in object, got '" + ch + "'", locationFor(pos));
+          if (src.charAt(pos) != '"') {
+            throw new JsonParseException(
+                "Expected string property key, got '" + src.charAt(pos) + "'", locationFor(pos));
+          }
+          int keyStart = pos;
+          String key = parseRawString();
+          JsonLocation keyLoc = locationFor(keyStart);
+
+          skipWhitespace();
+          consume(':');
+          JsonNode val = parseNode();
+          props.put(key, val);
+          propLocs.put(key, keyLoc);
+
+          skipWhitespace();
+          if (pos < src.length() && src.charAt(pos) == ',') {
+            pos++;
+            skipWhitespace();
+            if (pos < src.length() && src.charAt(pos) == '}') {
+              throw new JsonParseException(
+                  "Trailing comma in object is not permitted", locationFor(pos - 1));
+            }
+          } else if (pos < src.length() && src.charAt(pos) == '}') {
+            pos++;
+            break;
+          } else {
+            char ch = pos < src.length() ? src.charAt(pos) : ' ';
+            throw new JsonParseException(
+                "Expected ',' or '}' in object, got '" + ch + "'", locationFor(pos));
+          }
         }
+        return new JsonObjectNode(props, propLocs, locationFor(startPos));
+      } finally {
+        depth--;
       }
-      return new JsonObjectNode(props, propLocs, locationFor(startPos));
     }
 
     private JsonArrayNode parseArray() throws JsonParseException {
-      int startPos = pos;
-      consume('[');
-      List<JsonNode> elements = new ArrayList<>();
-
-      skipWhitespace();
-      if (pos < src.length() && src.charAt(pos) == ']') {
-        pos++;
-        return new JsonArrayNode(elements, locationFor(startPos));
+      if (depth >= MAX_NESTING_DEPTH) {
+        throw new JsonParseException(
+            "Exceeded maximum nesting depth of " + MAX_NESTING_DEPTH, locationFor(pos));
       }
+      depth++;
+      try {
+        int startPos = pos;
+        consume('[');
+        List<JsonNode> elements = new ArrayList<>();
 
-      while (pos < src.length()) {
-        JsonNode item = parseNode();
-        elements.add(item);
         skipWhitespace();
-        if (pos < src.length() && src.charAt(pos) == ',') {
+        if (pos < src.length() && src.charAt(pos) == ']') {
           pos++;
-          skipWhitespace();
-          if (pos < src.length() && src.charAt(pos) == ']') {
-            throw new JsonParseException(
-                "Trailing comma in array is not permitted", locationFor(pos - 1));
-          }
-        } else if (pos < src.length() && src.charAt(pos) == ']') {
-          pos++;
-          break;
-        } else {
-          char ch = pos < src.length() ? src.charAt(pos) : ' ';
-          throw new JsonParseException(
-              "Expected ',' or ']' in array, got '" + ch + "'", locationFor(pos));
+          return new JsonArrayNode(elements, locationFor(startPos));
         }
+
+        while (pos < src.length()) {
+          JsonNode item = parseNode();
+          elements.add(item);
+          skipWhitespace();
+          if (pos < src.length() && src.charAt(pos) == ',') {
+            pos++;
+            skipWhitespace();
+            if (pos < src.length() && src.charAt(pos) == ']') {
+              throw new JsonParseException(
+                  "Trailing comma in array is not permitted", locationFor(pos - 1));
+            }
+          } else if (pos < src.length() && src.charAt(pos) == ']') {
+            pos++;
+            break;
+          } else {
+            char ch = pos < src.length() ? src.charAt(pos) : ' ';
+            throw new JsonParseException(
+                "Expected ',' or ']' in array, got '" + ch + "'", locationFor(pos));
+          }
+        }
+        return new JsonArrayNode(elements, locationFor(startPos));
+      } finally {
+        depth--;
       }
-      return new JsonArrayNode(elements, locationFor(startPos));
     }
 
     private JsonStringNode parseStringNode() throws JsonParseException {
@@ -994,6 +1024,15 @@ public final class JsonSchemaImporter implements SchemaImporter {
               }
               String hex = src.substring(pos, pos + 4);
               pos += 4;
+              for (int i = 0; i < 4; i++) {
+                char hc = hex.charAt(i);
+                if (!((hc >= '0' && hc <= '9')
+                    || (hc >= 'a' && hc <= 'f')
+                    || (hc >= 'A' && hc <= 'F'))) {
+                  throw new JsonParseException(
+                      "Invalid hex in unicode escape: " + hex, locationFor(pos - 4));
+                }
+              }
               try {
                 sb.append((char) Integer.parseInt(hex, 16));
               } catch (NumberFormatException e) {
@@ -1043,6 +1082,13 @@ public final class JsonSchemaImporter implements SchemaImporter {
       if (pos >= src.length() || !Character.isDigit(src.charAt(pos))) {
         throw new JsonParseException("Invalid number format", locationFor(startPos));
       }
+      int firstDigitPos = pos;
+      if (src.charAt(firstDigitPos) == '0'
+          && firstDigitPos + 1 < src.length()
+          && Character.isDigit(src.charAt(firstDigitPos + 1))) {
+        throw new JsonParseException(
+            "Leading zeros are not allowed in numbers", locationFor(firstDigitPos));
+      }
       while (pos < src.length() && Character.isDigit(src.charAt(pos))) pos++;
       boolean isFloat = false;
       if (pos < src.length() && src.charAt(pos) == '.') {
@@ -1089,8 +1135,13 @@ public final class JsonSchemaImporter implements SchemaImporter {
     }
 
     private void skipWhitespace() {
-      while (pos < src.length() && Character.isWhitespace(src.charAt(pos))) {
-        pos++;
+      while (pos < src.length()) {
+        char c = src.charAt(pos);
+        if (Character.isWhitespace(c) || c == '\uFEFF') {
+          pos++;
+        } else {
+          break;
+        }
       }
     }
 
@@ -1099,7 +1150,9 @@ public final class JsonSchemaImporter implements SchemaImporter {
       int lineIndex = idx >= 0 ? idx : -idx - 2;
       if (lineIndex < 0) lineIndex = 0;
       int line = lineIndex + 1;
-      int col = p - lineOffsets[lineIndex] + 1;
+      int bomOffset = (hasBom && lineIndex == 0 && p > 0) ? 1 : 0;
+      int col = p - lineOffsets[lineIndex] + 1 - bomOffset;
+      if (col < 1) col = 1;
       return new JsonLocation(line, col, p);
     }
 
@@ -1108,7 +1161,12 @@ public final class JsonSchemaImporter implements SchemaImporter {
       offsets.add(0);
       for (int i = 0; i < text.length(); i++) {
         char c = text.charAt(i);
-        if (c == '\n') {
+        if (c == '\r') {
+          if (i + 1 < text.length() && text.charAt(i + 1) == '\n') {
+            i++;
+          }
+          offsets.add(i + 1);
+        } else if (c == '\n') {
           offsets.add(i + 1);
         }
       }

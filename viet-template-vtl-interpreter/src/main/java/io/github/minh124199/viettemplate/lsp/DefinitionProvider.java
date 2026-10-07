@@ -3,7 +3,9 @@ package io.github.minh124199.viettemplate.lsp;
 import io.github.minh124199.viettemplate.language.vtl.ast.*;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult;
 import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
-import io.github.minh124199.viettemplate.lsp.CanonicalSchemaModel.*;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.*;
+import io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver;
+import io.github.minh124199.viettemplate.schema.SchemaFormat;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,8 +16,9 @@ import java.util.Optional;
 /**
  * Definition lookup engine navigating between template usages and schema/in-template declarations.
  *
- * <p>Never invents or fabricates non-existent paths; uses stable schema URIs or on-disk schema
- * files.
+ * <p>Supports exact cross-language navigation to TypeScript (.d.ts), JSON Schema (.schema.json),
+ * Viet Template schema (.vt-schema.json), and companion contracts (.contract). Java models without
+ * source files gracefully return empty definitions without synthesizing fakes.
  */
 final class DefinitionProvider {
 
@@ -23,9 +26,19 @@ final class DefinitionProvider {
 
   public static List<LocationInfo> definition(
       TemplateDocument doc, Position position, CanonicalSchemaResolver schemaResolver) {
+    return definition(doc, position, schemaResolver, new WorkspaceSchemaIndex(schemaResolver));
+  }
+
+  public static List<LocationInfo> definition(
+      TemplateDocument doc,
+      Position position,
+      CanonicalSchemaResolver schemaResolver,
+      WorkspaceSchemaIndex schemaIndex) {
     Objects.requireNonNull(doc, "doc must not be null");
     Objects.requireNonNull(position, "position must not be null");
     Objects.requireNonNull(schemaResolver, "schemaResolver must not be null");
+    WorkspaceSchemaIndex index =
+        schemaIndex != null ? schemaIndex : new WorkspaceSchemaIndex(schemaResolver);
 
     int offset = doc.positionToOffset(position);
     VtlParseResult parsed;
@@ -37,7 +50,7 @@ final class DefinitionProvider {
 
     List<LocationInfo> locations = new ArrayList<>();
     List<VtlNode> rootNodes = parsed.template().children();
-    findDefinitions(rootNodes, rootNodes, offset, doc, schemaResolver, locations);
+    findDefinitions(rootNodes, rootNodes, offset, doc, schemaResolver, index, locations);
     Collections.sort(locations);
     return List.copyOf(locations);
   }
@@ -48,12 +61,14 @@ final class DefinitionProvider {
       int offset,
       TemplateDocument doc,
       CanonicalSchemaResolver schemaResolver,
+      WorkspaceSchemaIndex schemaIndex,
       List<LocationInfo> out) {
     if (currentNodes == null) return;
 
     for (VtlNode node : currentNodes) {
       if (node instanceof VtlReferenceOutputNode refOut) {
-        resolveReferenceDefinition(refOut.reference(), offset, doc, rootNodes, schemaResolver, out);
+        resolveReferenceDefinition(
+            refOut.reference(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
       } else if (node instanceof VtlSetDirectiveNode setNode) {
         if (setNode.target().span().isKnown()
             && setNode.target().span().startOffset() <= offset
@@ -61,7 +76,8 @@ final class DefinitionProvider {
           out.add(LocationInfo.of(doc.uri(), doc.spanToRange(setNode.target().span())));
           return;
         }
-        resolveExpressionDefinition(setNode.value(), offset, doc, rootNodes, schemaResolver, out);
+        resolveExpressionDefinition(
+            setNode.value(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
       } else if (node instanceof VtlForeachDirectiveNode feNode) {
         if (feNode.loopVariable().span().isKnown()
             && feNode.loopVariable().span().startOffset() <= offset
@@ -69,19 +85,22 @@ final class DefinitionProvider {
           out.add(LocationInfo.of(doc.uri(), doc.spanToRange(feNode.loopVariable().span())));
           return;
         }
-        resolveExpressionDefinition(feNode.iterable(), offset, doc, rootNodes, schemaResolver, out);
-        findDefinitions(feNode.body(), rootNodes, offset, doc, schemaResolver, out);
+        resolveExpressionDefinition(
+            feNode.iterable(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
+        findDefinitions(feNode.body(), rootNodes, offset, doc, schemaResolver, schemaIndex, out);
         if (feNode.elseBody().isPresent()) {
-          findDefinitions(feNode.elseBody().get(), rootNodes, offset, doc, schemaResolver, out);
+          findDefinitions(
+              feNode.elseBody().get(), rootNodes, offset, doc, schemaResolver, schemaIndex, out);
         }
       } else if (node instanceof VtlIfDirectiveNode ifNode) {
         for (VtlIfBranch branch : ifNode.branches()) {
           resolveExpressionDefinition(
-              branch.condition(), offset, doc, rootNodes, schemaResolver, out);
-          findDefinitions(branch.body(), rootNodes, offset, doc, schemaResolver, out);
+              branch.condition(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
+          findDefinitions(branch.body(), rootNodes, offset, doc, schemaResolver, schemaIndex, out);
         }
         if (ifNode.elseBody().isPresent()) {
-          findDefinitions(ifNode.elseBody().get(), rootNodes, offset, doc, schemaResolver, out);
+          findDefinitions(
+              ifNode.elseBody().get(), rootNodes, offset, doc, schemaResolver, schemaIndex, out);
         }
       }
     }
@@ -93,34 +112,45 @@ final class DefinitionProvider {
       TemplateDocument doc,
       List<VtlNode> rootNodes,
       CanonicalSchemaResolver schemaResolver,
+      WorkspaceSchemaIndex schemaIndex,
       List<LocationInfo> out) {
     if (expr == null || !out.isEmpty()) return;
     if (expr instanceof VtlReferenceExpression refExpr) {
-      resolveReferenceDefinition(refExpr.reference(), offset, doc, rootNodes, schemaResolver, out);
+      resolveReferenceDefinition(
+          refExpr.reference(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
     } else if (expr instanceof VtlBinaryExpression bin) {
-      resolveExpressionDefinition(bin.left(), offset, doc, rootNodes, schemaResolver, out);
-      resolveExpressionDefinition(bin.right(), offset, doc, rootNodes, schemaResolver, out);
+      resolveExpressionDefinition(
+          bin.left(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
+      resolveExpressionDefinition(
+          bin.right(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
     } else if (expr instanceof VtlUnaryExpression un) {
-      resolveExpressionDefinition(un.operand(), offset, doc, rootNodes, schemaResolver, out);
+      resolveExpressionDefinition(
+          un.operand(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
     } else if (expr instanceof VtlGroupedExpression grp) {
-      resolveExpressionDefinition(grp.expression(), offset, doc, rootNodes, schemaResolver, out);
+      resolveExpressionDefinition(
+          grp.expression(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
     } else if (expr instanceof VtlListLiteralExpression list) {
       for (VtlExpression e : list.elements()) {
-        resolveExpressionDefinition(e, offset, doc, rootNodes, schemaResolver, out);
+        resolveExpressionDefinition(e, offset, doc, rootNodes, schemaResolver, schemaIndex, out);
       }
     } else if (expr instanceof VtlMapLiteralExpression map) {
       for (VtlMapEntry entry : map.entries()) {
-        resolveExpressionDefinition(entry.key(), offset, doc, rootNodes, schemaResolver, out);
-        resolveExpressionDefinition(entry.value(), offset, doc, rootNodes, schemaResolver, out);
+        resolveExpressionDefinition(
+            entry.key(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
+        resolveExpressionDefinition(
+            entry.value(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
       }
     } else if (expr instanceof VtlRangeExpression range) {
-      resolveExpressionDefinition(range.start(), offset, doc, rootNodes, schemaResolver, out);
-      resolveExpressionDefinition(range.end(), offset, doc, rootNodes, schemaResolver, out);
+      resolveExpressionDefinition(
+          range.start(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
+      resolveExpressionDefinition(
+          range.end(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
     } else if (expr instanceof VtlInterpolatedStringExpression interp) {
       for (VtlInterpolatedStringExpression.VtlInterpolatedStringPart part : interp.parts()) {
         if (part
             instanceof VtlInterpolatedStringExpression.VtlInterpolatedStringPart.ReferencePart rp) {
-          resolveReferenceDefinition(rp.reference(), offset, doc, rootNodes, schemaResolver, out);
+          resolveReferenceDefinition(
+              rp.reference(), offset, doc, rootNodes, schemaResolver, schemaIndex, out);
         }
       }
     }
@@ -139,7 +169,7 @@ final class DefinitionProvider {
       return true;
     }
 
-    // 2. Check preceding #set directives (nearest preceding assignment before offset)
+    // 2. Check preceding #set directives
     VtlSetDirectiveNode nearestSet = findPrecedingSet(rootNodes, offset, rootName);
     if (nearestSet != null) {
       out.add(LocationInfo.of(doc.uri(), doc.spanToRange(nearestSet.target().span())));
@@ -226,6 +256,7 @@ final class DefinitionProvider {
       TemplateDocument doc,
       List<VtlNode> rootNodes,
       CanonicalSchemaResolver schemaResolver,
+      WorkspaceSchemaIndex schemaIndex,
       List<LocationInfo> out) {
     if (!ref.span().isKnown()
         || offset < ref.span().startOffset()
@@ -246,7 +277,13 @@ final class DefinitionProvider {
             }
           }
           resolvePropertyDefinition(
-              doc, ref.rootName(), precedingSteps, prop.propertyName(), schemaResolver, out);
+              doc,
+              ref.rootName(),
+              precedingSteps,
+              prop.propertyName(),
+              schemaResolver,
+              schemaIndex,
+              out);
           return;
         }
       }
@@ -261,19 +298,43 @@ final class DefinitionProvider {
     }
 
     // Check schema parameter definition
-    Optional<SchemaEnvelope> schema = schemaResolver.resolveSchema(doc.uri());
+    Optional<CanonicalSchema> schema = schemaResolver.resolveSchema(doc.uri());
     if (schema.isPresent() && schema.get().parameters().containsKey(rootName)) {
-      Optional<Path> schemaFile = schemaResolver.getSchemaFilePath(doc.uri());
+      if (schema.get().format() == SchemaFormat.JAVA) {
+        // Java reflection without source -> empty list (definition unavailable), never fake a
+        // location
+        return;
+      }
+
+      Optional<SchemaProvenance> prov = schemaIndex.getParameterProvenance(doc.uri(), rootName);
+      Optional<Path> schemaFile = schemaIndex.getAssociatedSchemaPath(doc.uri());
       if (schemaFile.isPresent()) {
-        int line =
-            CanonicalSchemaResolver.findParameterDefinitionLine(schema.get().rawJson(), rootName);
-        out.add(LocationInfo.of(schemaFile.get().toUri().toString(), Range.of(line, 0, line, 0)));
+        if (prov.isPresent() && prov.get().location().isPresent()) {
+          SchemaSourceLocation loc = prov.get().location().get();
+          Range range =
+              Range.of(
+                  Math.max(0, loc.startLine() - 1),
+                  Math.max(0, loc.startColumn() - 1),
+                  Math.max(0, loc.endLine() - 1),
+                  Math.max(0, loc.endColumn() - 1));
+          out.add(LocationInfo.of(loc.filePath().toUri().toString(), range));
+        } else {
+          out.add(LocationInfo.of(schemaFile.get().toUri().toString(), Range.of(0, 0, 0, 0)));
+        }
       } else {
         String templateId =
             schema.get().templateId().isEmpty() ? doc.uri() : schema.get().templateId();
-        out.add(
-            LocationInfo.of(
-                "schema://" + templateId + "#parameters/" + rootName, Range.of(0, 0, 0, 0)));
+        Range range = Range.of(0, 0, 0, 0);
+        if (prov.isPresent() && prov.get().location().isPresent()) {
+          SchemaSourceLocation loc = prov.get().location().get();
+          range =
+              Range.of(
+                  Math.max(0, loc.startLine() - 1),
+                  Math.max(0, loc.startColumn() - 1),
+                  Math.max(0, loc.endLine() - 1),
+                  Math.max(0, loc.endColumn() - 1));
+        }
+        out.add(LocationInfo.of("schema://" + templateId + "#parameters/" + rootName, range));
       }
     }
   }
@@ -284,14 +345,21 @@ final class DefinitionProvider {
       List<String> precedingSteps,
       String propertyName,
       CanonicalSchemaResolver schemaResolver,
+      WorkspaceSchemaIndex schemaIndex,
       List<LocationInfo> out) {
     Optional<TypeRef> recType =
         schemaResolver.resolveReceiverType(doc.uri(), rootName, precedingSteps);
     if (recType.isEmpty()) {
       return;
     }
-    Optional<SchemaEnvelope> schema = schemaResolver.resolveSchema(doc.uri());
+    Optional<CanonicalSchema> schema = schemaResolver.resolveSchema(doc.uri());
     if (schema.isEmpty()) {
+      return;
+    }
+
+    if (schema.get().format() == SchemaFormat.JAVA) {
+      // Java reflection without source -> empty list (definition unavailable), never fake a
+      // location
       return;
     }
 
@@ -301,20 +369,43 @@ final class DefinitionProvider {
             : (recType.get() instanceof NamedTypeRef ntr
                 ? ntr.name()
                 : (recType.get() instanceof ParameterizedTypeRef ptr ? ptr.rawType() : null));
+    if (typeName == null) {
+      return;
+    }
 
-    Optional<Path> schemaFile = schemaResolver.getSchemaFilePath(doc.uri());
+    Optional<SchemaProvenance> prov =
+        schemaIndex.getPropertyProvenance(doc.uri(), typeName, propertyName);
+    Optional<Path> schemaFile = schemaIndex.getAssociatedSchemaPath(doc.uri());
     if (schemaFile.isPresent()) {
-      int line =
-          CanonicalSchemaResolver.findPropertyDefinitionLine(
-              schema.get().rawJson(), typeName, propertyName);
-      out.add(LocationInfo.of(schemaFile.get().toUri().toString(), Range.of(line, 0, line, 0)));
+      if (prov.isPresent() && prov.get().location().isPresent()) {
+        SchemaSourceLocation loc = prov.get().location().get();
+        Range range =
+            Range.of(
+                Math.max(0, loc.startLine() - 1),
+                Math.max(0, loc.startColumn() - 1),
+                Math.max(0, loc.endLine() - 1),
+                Math.max(0, loc.endColumn() - 1));
+        out.add(LocationInfo.of(loc.filePath().toUri().toString(), range));
+      } else {
+        out.add(LocationInfo.of(schemaFile.get().toUri().toString(), Range.of(0, 0, 0, 0)));
+      }
     } else {
       String templateId =
           schema.get().templateId().isEmpty() ? doc.uri() : schema.get().templateId();
+      Range range = Range.of(0, 0, 0, 0);
+      if (prov.isPresent() && prov.get().location().isPresent()) {
+        SchemaSourceLocation loc = prov.get().location().get();
+        range =
+            Range.of(
+                Math.max(0, loc.startLine() - 1),
+                Math.max(0, loc.startColumn() - 1),
+                Math.max(0, loc.endLine() - 1),
+                Math.max(0, loc.endColumn() - 1));
+      }
       out.add(
           LocationInfo.of(
               "schema://" + templateId + "#types/" + typeName + "/properties/" + propertyName,
-              Range.of(0, 0, 0, 0)));
+              range));
     }
   }
 }

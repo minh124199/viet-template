@@ -427,6 +427,91 @@ class JsonSchemaImporterTest {
   }
 
   @Test
+  @DisplayName(
+      "Path traversal $ref is rejected offline with CODE_UNSUPPORTED_REMOTE_REF and no file access")
+  void testMaliciousPathTraversalRefRejection() {
+    String json =
+        """
+        {
+          "type": "object",
+          "properties": {
+            "secret": { "$ref": "../../../secret.json" }
+          }
+        }
+        """;
+
+    SchemaImportResult result = importer.importString(json, "traversal-ref-test");
+    assertThat(result.hasErrors()).isTrue();
+
+    SchemaDiagnostic diag =
+        result.diagnostics().stream()
+            .filter(d -> d.code().equals(JsonSchemaImporter.CODE_UNSUPPORTED_REMOTE_REF))
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(diag.severity()).isEqualTo(DiagnosticSeverity.ERROR);
+    assertThat(diag.message()).contains("../../../secret.json");
+    assertThat(diag.suggestedAction()).contains("local");
+  }
+
+  @Test
+  @DisplayName(
+      "File URL escape $ref is rejected offline with CODE_UNSUPPORTED_REMOTE_REF and no file"
+          + " access")
+  void testMaliciousFileEscapeRefRejection() {
+    String json =
+        """
+        {
+          "type": "object",
+          "properties": {
+            "passwd": { "$ref": "file:///etc/passwd" }
+          }
+        }
+        """;
+
+    SchemaImportResult result = importer.importString(json, "file-escape-test");
+    assertThat(result.hasErrors()).isTrue();
+
+    SchemaDiagnostic diag =
+        result.diagnostics().stream()
+            .filter(d -> d.code().equals(JsonSchemaImporter.CODE_UNSUPPORTED_REMOTE_REF))
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(diag.severity()).isEqualTo(DiagnosticSeverity.ERROR);
+    assertThat(diag.message()).contains("file:///etc/passwd");
+    assertThat(diag.suggestedAction()).contains("local");
+  }
+
+  @Test
+  @DisplayName(
+      "Remote URL reference is rejected offline with CODE_UNSUPPORTED_REMOTE_REF and zero network"
+          + " calls")
+  void testRemoteUrlRefRejection() {
+    String json =
+        """
+        {
+          "type": "object",
+          "properties": {
+            "remoteSchema": { "$ref": "https://example.com/schema.json" }
+          }
+        }
+        """;
+
+    SchemaImportResult result = importer.importString(json, "remote-url-test");
+    assertThat(result.hasErrors()).isTrue();
+
+    SchemaDiagnostic diag =
+        result.diagnostics().stream()
+            .filter(d -> d.code().equals(JsonSchemaImporter.CODE_UNSUPPORTED_REMOTE_REF))
+            .findFirst()
+            .orElseThrow();
+
+    assertThat(diag.severity()).isEqualTo(DiagnosticSeverity.ERROR);
+    assertThat(diag.message()).contains("https://example.com/schema.json");
+  }
+
+  @Test
   @DisplayName("Malformed JSON syntax emits JSON_SCHEMA_SYNTAX_ERROR with position")
   void testMalformedJsonSyntaxError() {
     String malformed =

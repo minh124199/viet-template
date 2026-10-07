@@ -53,6 +53,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       fileEvents: [
         vscode.workspace.createFileSystemWatcher('**/*.{vtl,vm,vt}'),
         vscode.workspace.createFileSystemWatcher('**/*.vt-schema.json'),
+        vscode.workspace.createFileSystemWatcher('**/*.schema.json'),
+        vscode.workspace.createFileSystemWatcher('**/*.d.ts'),
+        vscode.workspace.createFileSystemWatcher('**/*.contract'),
       ],
     },
   };

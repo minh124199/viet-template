@@ -60,7 +60,11 @@ public final class JavaModelSchemaImporter implements SchemaImporter {
       }
 
       try {
-        Class<?> clazz = Class.forName(className);
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        if (cl == null) {
+          cl = JavaModelSchemaImporter.class.getClassLoader();
+        }
+        Class<?> clazz = Class.forName(className, false, cl);
         String templateId = source.templateId().orElseGet(() -> clazz.getSimpleName() + ".vtl");
         SchemaImportResult res = importClass(clazz, templateId, MemberAccessPolicy.standard());
         schemas.putAll(res.schemas());
@@ -294,8 +298,7 @@ public final class JavaModelSchemaImporter implements SchemaImporter {
             ? enumClass.getSimpleName() + ".vtl"
             : templateId;
 
-    List<String> symbols =
-        Arrays.stream(enumClass.getEnumConstants()).map(Object::toString).toList();
+    List<String> symbols = extractEnumSymbols(enumClass);
 
     TypeDef enumDef =
         new TypeDef(enumClass.getSimpleName(), "enum", Map.of(), symbols, Optional.empty(), "");
@@ -380,7 +383,7 @@ public final class JavaModelSchemaImporter implements SchemaImporter {
         return new ClassTypeRef("java.lang.String");
       }
       if (raw.isEnum()) {
-        List<String> symbols = Arrays.stream(raw.getEnumConstants()).map(Object::toString).toList();
+        List<String> symbols = extractEnumSymbols(raw);
         return new EnumTypeRef(raw.getName(), symbols);
       }
       if (raw.isArray()) {
@@ -446,7 +449,7 @@ public final class JavaModelSchemaImporter implements SchemaImporter {
         return new ClassTypeRef("java.lang.String");
       }
       if (c.isEnum()) {
-        List<String> symbols = Arrays.stream(c.getEnumConstants()).map(Object::toString).toList();
+        List<String> symbols = extractEnumSymbols(c);
         return new EnumTypeRef(c.getName(), symbols);
       }
       if (c.isArray()) {
@@ -549,7 +552,7 @@ public final class JavaModelSchemaImporter implements SchemaImporter {
     }
 
     if (clazz.isEnum()) {
-      List<String> symbols = Arrays.stream(clazz.getEnumConstants()).map(Object::toString).toList();
+      List<String> symbols = extractEnumSymbols(clazz);
       TypeDef enumDef =
           new TypeDef(clazz.getSimpleName(), "enum", Map.of(), symbols, Optional.empty(), "");
       types.put(clazz.getName(), enumDef);
@@ -778,6 +781,25 @@ public final class JavaModelSchemaImporter implements SchemaImporter {
       return out.toString();
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("SHA-256 algorithm missing", e);
+    }
+  }
+
+  private static List<String> extractEnumSymbols(Class<?> enumClass) {
+    try {
+      java.lang.reflect.Field[] fields = enumClass.getDeclaredFields();
+      List<String> symbols = new ArrayList<>();
+      for (java.lang.reflect.Field field : fields) {
+        if (field.isEnumConstant()) {
+          symbols.add(field.getName());
+        }
+      }
+      return List.copyOf(symbols);
+    } catch (SecurityException | LinkageError ignored) {
+      Object[] constants = enumClass.getEnumConstants();
+      if (constants != null) {
+        return Arrays.stream(constants).map(Object::toString).toList();
+      }
+      return List.of();
     }
   }
 }

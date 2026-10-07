@@ -237,4 +237,54 @@ class JavaModelSchemaImporterTest {
     assertThat(s1.parameters().keySet()).containsExactly("active", "age", "name");
     assertThat(s1.contractFingerprint()).isEqualTo(s2.contractFingerprint());
   }
+
+  public static class UninitializedClass {
+    static {
+      if (true) {
+        throw new IllegalStateException(
+            "UninitializedClass <clinit> must not execute during schema import!");
+      }
+    }
+
+    private String title;
+
+    public String getTitle() {
+      return title;
+    }
+  }
+
+  public enum UninitializedEnum {
+    FOO,
+    BAR;
+
+    static {
+      if (true) {
+        throw new IllegalStateException(
+            "UninitializedEnum <clinit> must not execute during schema import!");
+      }
+    }
+  }
+
+  @Test
+  @DisplayName("Class and enum static initializers are not executed during schema import")
+  void testClinitNotTriggeredDuringImport() {
+    // 1. Class import via importSchemas uses Class.forName with initialize=false
+    SchemaImportRequest request =
+        new SchemaImportRequest(
+            new SchemaSource(
+                java.nio.file.Path.of(UninitializedClass.class.getName()),
+                SchemaFormat.JAVA,
+                "uninit-class.vtl"));
+    SchemaImportResult classResult = importer.importSchemas(request);
+    assertThat(classResult.hasErrors()).isFalse();
+    CanonicalSchema classSchema = classResult.schemas().get("uninit-class.vtl");
+    assertThat(classSchema.parameters()).containsKey("title");
+
+    // 2. Enum import uses metadata-only getDeclaredFields without getEnumConstants clinit trigger
+    SchemaImportResult enumResult = importer.importEnum(UninitializedEnum.class, "uninit-enum.vtl");
+    assertThat(enumResult.hasErrors()).isFalse();
+    CanonicalSchema enumSchema = enumResult.schemas().get("uninit-enum.vtl");
+    assertThat(enumSchema.types().get("UninitializedEnum").enumConstants())
+        .containsExactly("FOO", "BAR");
+  }
 }

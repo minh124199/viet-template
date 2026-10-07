@@ -71,6 +71,10 @@ public final class CanonicalSchemaResolver {
     return Optional.ofNullable(schemaDirectory);
   }
 
+  public Optional<ClassLoader> classLoader() {
+    return Optional.ofNullable(classLoader);
+  }
+
   public void registerSchema(String templateIdOrUri, CanonicalSchema schema) {
     Objects.requireNonNull(templateIdOrUri, "templateIdOrUri must not be null");
     Objects.requireNonNull(schema, "schema must not be null");
@@ -81,9 +85,55 @@ public final class CanonicalSchemaResolver {
     }
   }
 
+  public void registerSchema(String templateIdOrUri, String schemaJson) {
+    Objects.requireNonNull(templateIdOrUri, "templateIdOrUri must not be null");
+    Objects.requireNonNull(schemaJson, "schemaJson must not be null");
+    CanonicalSchema schema = parseVtSchemaJson(schemaJson, templateIdOrUri, null);
+    registerSchema(templateIdOrUri, schema);
+  }
+
   public void registerSchema(TemplateId templateId, CanonicalSchema schema) {
     Objects.requireNonNull(templateId, "templateId must not be null");
     registerSchema(templateId.value(), schema);
+  }
+
+  public void removeSchema(String templateIdOrUri) {
+    if (templateIdOrUri == null || templateIdOrUri.isBlank()) {
+      return;
+    }
+    String normKey = normalizeKey(templateIdOrUri);
+    Path path = schemaFilePaths.remove(normKey);
+    CanonicalSchema removed = schemasById.remove(normKey);
+    if (path != null) {
+      invalidateSchema(path);
+    } else if (removed != null && !removed.templateId().isBlank()) {
+      String tidKey = normalizeKey(removed.templateId());
+      schemasById.remove(tidKey);
+      schemaFilePaths.remove(tidKey);
+    }
+  }
+
+  public void removeSchema(TemplateId templateId) {
+    if (templateId != null) {
+      removeSchema(templateId.value());
+    }
+  }
+
+  public void invalidateSchema(Path schemaPath) {
+    if (schemaPath == null) {
+      return;
+    }
+    Path normPath = schemaPath.toAbsolutePath().normalize();
+    List<String> keysToRemove = new ArrayList<>();
+    for (Map.Entry<String, Path> entry : schemaFilePaths.entrySet()) {
+      if (entry.getValue().toAbsolutePath().normalize().equals(normPath)) {
+        keysToRemove.add(entry.getKey());
+      }
+    }
+    for (String key : keysToRemove) {
+      schemasById.remove(key);
+      schemaFilePaths.remove(key);
+    }
   }
 
   public void registerSchemaFile(Path schemaPath) throws IOException {
@@ -577,6 +627,15 @@ public final class CanonicalSchemaResolver {
     Object parsed = parser.parse();
     if (!(parsed instanceof Map<?, ?> root)) {
       throw new IllegalArgumentException("Schema root must be a JSON object");
+    }
+
+    String format = getString(root, "format");
+    if (format != null && !EXPECTED_VT_SCHEMA_FORMAT.equals(format)) {
+      throw new IllegalArgumentException("Unsupported schema format: " + format);
+    }
+    Object versionObj = root.get("schemaVersion");
+    if (versionObj instanceof Number n && n.intValue() != EXPECTED_VT_SCHEMA_VERSION) {
+      throw new IllegalArgumentException("Unsupported schema version: " + n);
     }
 
     String templateId = getString(root, "templateId");
