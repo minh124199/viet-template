@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Release Engineering
-- Open `1.2.1-SNAPSHOT` development baseline following the successful release of `1.2.0`.
+- Open `1.3.0-SNAPSHOT` active development baseline on `main`.
+- Codify the `1.2.x` maintenance and patch-line policy: strictly reserved for critical bug fixes, security remediations, environment compatibility, documentation, and packaging fixes without new public API types, compiler features, schema formats, LSP features, or runtime behavioral alterations.
+- Establish the `1.3.0` feature-line roadmap theme: "Cross-Language Developer Navigation & Workspace Intelligence" across milestones M38 (Java Source Navigation & Cross-Language References), M39 (Cross-Language Find References & Symbol Graph), M40 (Safe Cross-Language Rename & Refactoring), and M41 (Workspace Schema Intelligence & Symbol Search).
 
 ## [1.2.0] - 2026-10-07
 

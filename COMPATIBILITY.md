@@ -523,7 +523,7 @@ gitGraph
 ### 13.1 Branch Roles & Workflow
 
 1. **`main` Branch**:
-   - Tracks ongoing 1.1 development.
+   - Tracks ongoing active development (1.3 line, `1.3.0-SNAPSHOT`).
    - Receives additive, backward-compatible features and performance optimizations.
 2. **`release/1.0` Maintenance Branch**:
    - Created on demand directly from the `v1.0.0` release tag:
@@ -536,3 +536,39 @@ gitGraph
    - Every fix committed to `release/1.0` is immediately cherry-picked or merged back into `main` to guarantee that patch fixes are never regressed in subsequent minor releases.
 4. **CI Matrix Enforcement**:
    - Both `release/1.0` and `main` execute full baseline audits (`scripts/verify-compatibility-baseline.py`) to prevent contract drift.
+
+---
+
+## 14. 1.2.x Maintenance and Patch-Line Policy
+
+Following the General Availability release of Viet Template 1.2.0, the `1.2.x` release series transitions into a strict maintenance and patch-line status.
+
+### 14.1 Scope and Prohibitions for 1.2.x Patches
+
+- **Permitted in 1.2.x**:
+  - Critical bug and correctness fixes.
+  - Security vulnerability remediations (CVEs).
+  - Compatibility fixes for supported external environments (JVM, Spring, Quarkus, Maven, Gradle).
+  - Documentation corrections and clarifications.
+  - Packaging and release engineering corrections.
+  - Remediation of unintentional performance regressions.
+- **Strictly Prohibited in 1.2.x**:
+  - No new public Java API types, public methods, or signatures.
+  - No new template language or compiler features.
+  - No new external schema formats or schema importers.
+  - No new Language Server Protocol (LSP) capabilities or client editor features.
+  - No behavioral alterations or divergence in runtime execution, member resolution, or scoping semantics.
+
+### 14.2 Maintenance Workflow & Branch Roles
+
+- **Maintenance Branch (`release/1.2`)**:
+  - Created on demand directly from the `v1.2.0` release tag:
+    ```bash
+    git checkout -b release/1.2 v1.2.0
+    ```
+  - Patches (`1.2.1`, `1.2.2`, etc.) are tagged and published exclusively from this maintenance branch.
+  - Strictly verified against all 1.0.0 and 1.2.0 compatibility baselines and test suites.
+- **Bi-Directional Reconciliation**:
+  - Every patch fix applied to `release/1.2` is immediately cherry-picked or merged into `main` (`1.3.0-SNAPSHOT`) to prevent regressions in active development.
+- **Active Feature Development**:
+  - All new feature evolution, including cross-language navigation and refactoring, occurs exclusively on the `main` branch under the `1.3.0-SNAPSHOT` development line.
