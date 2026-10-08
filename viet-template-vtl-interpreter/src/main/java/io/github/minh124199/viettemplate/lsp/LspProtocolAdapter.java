@@ -135,6 +135,9 @@ final class LspProtocolAdapter {
         handleDidChangeWatchedFiles(params);
         return null;
       }
+      case "workspace/symbol" -> {
+        return handleWorkspaceSymbol(id, params);
+      }
       case "$/cancelRequest" -> {
         return null;
       }
@@ -194,7 +197,8 @@ final class LspProtocolAdapter {
             "referencesProvider": true,
             "renameProvider": {
               "prepareProvider": true
-            }
+            },
+            "workspaceSymbolProvider": true
           },
           "serverInfo": {
             "name": "viet-template-lsp",
@@ -552,6 +556,42 @@ final class LspProtocolAdapter {
     }
     sb.append("}}");
     return sb.toString();
+  }
+
+  private String handleWorkspaceSymbol(Object id, Map<?, ?> params) {
+    String query = getString(params, "query");
+    if (query == null) {
+      query = "";
+    }
+    List<SymbolInformation> symbols = service.workspaceSymbols(query);
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    for (int i = 0; i < symbols.size(); i++) {
+      if (i > 0) sb.append(",");
+      SymbolInformation s = symbols.get(i);
+      Range r = s.location().range();
+      sb.append("{");
+      sb.append("\"name\":\"").append(escapeJson(s.name())).append("\",");
+      sb.append("\"kind\":").append(s.kind().value()).append(",");
+      sb.append("\"location\":{");
+      sb.append("\"uri\":\"").append(escapeJson(s.location().uri())).append("\",");
+      sb.append("\"range\":{\"start\":{\"line\":")
+          .append(r.start().line())
+          .append(",\"character\":")
+          .append(r.start().character())
+          .append("},\"end\":{\"line\":")
+          .append(r.end().line())
+          .append(",\"character\":")
+          .append(r.end().character())
+          .append("}}");
+      sb.append("}");
+      if (s.containerName() != null && !s.containerName().isBlank()) {
+        sb.append(",\"containerName\":\"").append(escapeJson(s.containerName())).append("\"");
+      }
+      sb.append("}");
+    }
+    sb.append("]");
+    return jsonRpcSuccess(id, sb.toString());
   }
 
   // --- Helper Methods ---

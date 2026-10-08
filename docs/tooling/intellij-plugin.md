@@ -72,7 +72,14 @@ Safely renames template-local variables (`#set`, `#foreach`) and schema-backed p
 - **Deterministic Changes**: Computes exact `WorkspaceEdit` changes across affected template and schema documents.
 - **Safe JVM Boundary**: Safely rejects requests targeting Java-backed members with explanatory diagnostic messaging, delegating Java source refactorings to IntelliJ IDEA's native Java refactoring tools.
 
-### 3.9 Actions & Menus
+### 3.9 Workspace Symbol Search
+Enables IDE-wide symbol queries across template models and schemas via `workspace/symbol`:
+- **Semantic Projections**: Indexes canonical schema types, JavaBean and schema properties, JVM model symbols with exact Java declaration coordinates, template macros (`#macro`), and contract root parameters.
+- **Fast In-Memory Search**: Responds immediately from the server's in-memory index without query-time disk access.
+- **Deterministic Multi-Tier Ranking**: Ranks results deterministically across exact, prefix, substring, and camelCase tiers, capped at 500 entries.
+- **Clean Workspace Results**: Excludes noisy template-local variables (`#set`, `#foreach`) from workspace symbol search.
+
+### 3.10 Actions & Menus
 - **Restart Viet Template Language Server** (`VietTemplate.RestartLspServer`): Available under the IDE `Tools` menu to recycle the language server process and re-synchronize open buffers.
 
 ---

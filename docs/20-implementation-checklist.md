@@ -1199,4 +1199,17 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **EE8.** Editor Client Verification: Verified `textDocument/prepareRename` and `textDocument/rename` in VS Code smoke tests and IntelliJ IDEA real-server client integration tests.
 - [x] **EE9.** Zero Public API Leaks & Frozen Baseline: Added exactly 0 new `STABLE_API` or `STABLE_SPI` types; all rename types remain package-private in `io.github.minh124199.viettemplate.lsp`, passing all 12 governance verification scripts cleanly.
 
+### Deliverable FF: Workspace Schema Intelligence & Symbol Search (Milestone M41 / 1.3.0)
+
+- [x] **FF1.** Workspace Symbol Search Endpoint (`workspace/symbol`): Implemented LSP `workspace/symbol` handler advertising `workspaceSymbolProvider: true`, returning deterministic projections of workspace semantic symbols without query-time filesystem walking.
+- [x] **FF2.** Canonical Semantic Symbol Categories: Indexes canonical schema types (`Class`, `Interface`, `Enum`, `Struct`), schema and model properties (`Property`, `Field`, `Method`), JVM-backed model types/members with exact Java coordinates via `WorkspaceJavaSourceLocator`, template root parameters, and template macros (`#macro` / `Function`).
+- [x] **FF3.** Noise Suppression & Policy Enforcement: Template-local variables (`#set`, `#foreach`) are excluded from workspace symbol search by default; `MemberAccessPolicy` denies and untyped dynamic members are filtered out.
+- [x] **FF4.** In-Memory Thread-Safe Symbol Index (`WorkspaceSymbolIndex`): Thread-safe index protected by `ReentrantReadWriteLock` with reference-counted deduplication, atomic incremental replacement on document/schema lifecycle events, and zero query-time disk I/O.
+- [x] **FF5.** Multi-Tier Deterministic Matching: Implemented deterministic ranking across 9 tiers (exact case-sensitive, exact case-insensitive, qualified exact, simple prefix case-sensitive, simple prefix case-insensitive, qualified prefix, simple substring, qualified substring, camelCase) with stable tie-breaking and 500-result capping.
+- [x] **FF6.** Exact Declaration Coordinate Guarantee: Every symbol result includes an exact, verified `LocationInfo` pointing to source or schema declaration; zero synthetic locations.
+- [x] **FF7.** ClassLoader Leak Prevention: Long-lived symbol entries store string descriptors and binary class names; zero strong references to application `Class<?>` instances.
+- [x] **FF8.** Editor Client Verification: Verified `workspace/symbol` in VS Code smoke tests and IntelliJ IDEA real-server client integration tests.
+- [x] **FF9.** Zero Public API Leaks & Frozen Baseline: Added exactly 0 new `STABLE_API` or `STABLE_SPI` types; all symbol index, key, and protocol classes remain package-private in `io.github.minh124199.viettemplate.lsp`, passing all 12 governance verification scripts cleanly.
+
+
 

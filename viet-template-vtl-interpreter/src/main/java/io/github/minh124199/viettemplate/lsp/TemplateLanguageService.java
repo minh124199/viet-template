@@ -26,6 +26,7 @@ class TemplateLanguageService {
   private final CanonicalSchemaResolver schemaResolver;
   private final WorkspaceSchemaIndex schemaIndex;
   private final WorkspaceReferenceIndex referenceIndex;
+  private final WorkspaceSymbolIndex symbolIndex;
   private volatile MemberAccessPolicy memberAccessPolicy;
   private final List<Consumer<String>> diagnosticListeners = new CopyOnWriteArrayList<>();
 
@@ -44,6 +45,8 @@ class TemplateLanguageService {
     this.referenceIndex = new WorkspaceReferenceIndex();
     this.memberAccessPolicy =
         memberAccessPolicy != null ? memberAccessPolicy : MemberAccessPolicy.standard();
+    this.symbolIndex =
+        new WorkspaceSymbolIndex(this.schemaResolver, this.schemaIndex, this.memberAccessPolicy);
   }
 
   public static TemplateLanguageService create() {
@@ -83,6 +86,7 @@ class TemplateLanguageService {
     TemplateDocument doc = new TemplateDocument(uri, version, text);
     documentStore.put(doc);
     referenceIndex.indexTemplate(doc, schemaResolver, memberAccessPolicy);
+    symbolIndex.indexTemplateMacros(doc);
     return doc;
   }
 
@@ -93,6 +97,7 @@ class TemplateLanguageService {
     boolean updated = documentStore.updateIfNewer(doc);
     if (updated) {
       referenceIndex.indexTemplate(doc, schemaResolver, memberAccessPolicy);
+      symbolIndex.indexTemplateMacros(doc);
     }
     return updated;
   }
@@ -103,6 +108,7 @@ class TemplateLanguageService {
     TemplateDocument doc = new TemplateDocument(uri, version, text);
     documentStore.put(doc);
     referenceIndex.indexTemplate(doc, schemaResolver, memberAccessPolicy);
+    symbolIndex.indexTemplateMacros(doc);
     return doc;
   }
 
@@ -114,19 +120,23 @@ class TemplateLanguageService {
           Path p = Path.of(URI.create(uri));
           if (Files.isRegularFile(p)) {
             String content = Files.readString(p, java.nio.charset.StandardCharsets.UTF_8);
-            referenceIndex.indexTemplate(
-                new TemplateDocument(uri, 1, content), schemaResolver, memberAccessPolicy);
+            TemplateDocument diskDoc = new TemplateDocument(uri, 1, content);
+            referenceIndex.indexTemplate(diskDoc, schemaResolver, memberAccessPolicy);
+            symbolIndex.indexTemplateMacros(diskDoc);
           } else {
             referenceIndex.removeTemplate(uri);
+            symbolIndex.removeTemplate(uri);
           }
         } else {
           referenceIndex.removeTemplate(uri);
+          symbolIndex.removeTemplate(uri);
         }
       } catch (java.io.IOException
           | SecurityException
           | IllegalArgumentException
           | java.nio.file.FileSystemNotFoundException ignored) {
         referenceIndex.removeTemplate(uri);
+        symbolIndex.removeTemplate(uri);
       }
     }
   }
@@ -155,8 +165,10 @@ class TemplateLanguageService {
     if (path.toString().endsWith(".java")) {
       if (changeType == 3) {
         schemaIndex.onJavaFileDeleted(path);
+        symbolIndex.onJavaFileDeleted(path);
       } else {
         schemaIndex.onJavaFileChanged(path);
+        symbolIndex.onJavaFileChanged(path);
       }
       for (String openUri : documentStore.allUris()) {
         notifyDiagnosticListeners(openUri);
@@ -169,16 +181,19 @@ class TemplateLanguageService {
       String fileUri = path.toUri().toString();
       if (changeType == 3) {
         referenceIndex.removeTemplate(fileUri);
+        symbolIndex.removeTemplate(fileUri);
       } else {
         Optional<TemplateDocument> openDoc = documentStore.get(fileUri);
         if (openDoc.isPresent()) {
           referenceIndex.indexTemplate(openDoc.get(), schemaResolver, memberAccessPolicy);
+          symbolIndex.indexTemplateMacros(openDoc.get());
         } else {
           try {
             if (Files.isRegularFile(path)) {
               String content = Files.readString(path, java.nio.charset.StandardCharsets.UTF_8);
-              referenceIndex.indexTemplate(
-                  new TemplateDocument(fileUri, 1, content), schemaResolver, memberAccessPolicy);
+              TemplateDocument doc = new TemplateDocument(fileUri, 1, content);
+              referenceIndex.indexTemplate(doc, schemaResolver, memberAccessPolicy);
+              symbolIndex.indexTemplateMacros(doc);
             }
           } catch (java.io.IOException | SecurityException | IllegalArgumentException ignored) {
           }
@@ -190,9 +205,13 @@ class TemplateLanguageService {
     if (changeType == 3) {
       // 3 = Deleted
       affected = schemaIndex.onSchemaDeleted(path);
+      symbolIndex.removeSchema(path.toUri().toString());
     } else {
       // 1 = Created, 2 = Changed
       affected = schemaIndex.onSchemaChanged(path);
+      schemaResolver
+          .resolveSchema(path.toUri().toString())
+          .ifPresent(s -> symbolIndex.indexSchema(path.toUri().toString(), s, Optional.of(path)));
     }
 
     for (String affectedUri : affected) {
@@ -319,18 +338,43 @@ class TemplateLanguageService {
     return referenceIndex;
   }
 
+  public WorkspaceSymbolIndex symbolIndex() {
+    return symbolIndex;
+  }
+
+  public List<SymbolInformation> workspaceSymbols(String query) {
+    return symbolIndex.search(query);
+  }
+
   // --- Configuration ---
 
   public void registerSchema(String templateIdOrUri, String schemaJson) {
     schemaResolver.registerSchema(templateIdOrUri, schemaJson);
     schemaIndex.getOrComputeProvenance(templateIdOrUri);
+    schemaResolver
+        .resolveSchema(templateIdOrUri)
+        .ifPresent(
+            s ->
+                symbolIndex.indexSchema(
+                    templateIdOrUri, s, schemaResolver.getSchemaFilePath(templateIdOrUri)));
   }
 
   public void registerSchemaFile(Path schemaPath) throws IOException {
     schemaResolver.registerSchemaFile(schemaPath);
     if (schemaPath != null) {
       schemaIndex.onSchemaChanged(schemaPath);
+      schemaResolver
+          .resolveSchema(schemaPath.toUri().toString())
+          .ifPresent(
+              s ->
+                  symbolIndex.indexSchema(
+                      schemaPath.toUri().toString(), s, Optional.of(schemaPath)));
     }
+  }
+
+  public void removeSchema(String templateIdOrUri) {
+    schemaResolver.removeSchema(templateIdOrUri);
+    symbolIndex.removeSchema(templateIdOrUri);
   }
 
   public void setSchemaDirectory(Path directory) {
@@ -339,6 +383,7 @@ class TemplateLanguageService {
 
   public void setMemberAccessPolicy(MemberAccessPolicy policy) {
     this.memberAccessPolicy = policy != null ? policy : MemberAccessPolicy.standard();
+    symbolIndex.setMemberAccessPolicy(this.memberAccessPolicy);
   }
 
   public MemberAccessPolicy memberAccessPolicy() {
@@ -357,6 +402,7 @@ class TemplateLanguageService {
     if (workspaceRoot != null) {
       schemaIndex.javaSourceLocator().setWorkspaceRoot(workspaceRoot);
       referenceIndex.scanWorkspaceTemplates(workspaceRoot, schemaResolver, memberAccessPolicy);
+      symbolIndex.scanWorkspace(workspaceRoot);
     }
   }
 

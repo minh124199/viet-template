@@ -531,7 +531,7 @@ The 1.3 release series establishes deep workspace intelligence across template a
 - **Milestone M40 (Safe Cross-Language Rename & Refactoring — target 1.3.0)**:
   - Safe rename refactoring (`textDocument/prepareRename`, `textDocument/rename`) propagating member and local variable changes across templates and companion schemas with pre-flight validation, conflict detection, and atomic `WorkspaceEdit` generation.
 - **Milestone M41 (Workspace Schema Intelligence & Symbol Search — target 1.3.0)**:
-  - Workspace-wide symbol search (`workspace/symbol`), schema relationship graph, and project-wide diagnostics.
+  - Workspace-wide semantic symbol search (`workspace/symbol`) projecting canonical schema types, properties, contracts, JVM-backed model symbols, and template macros with multi-tier deterministic ranking and zero textual scanning. Completes the 1.3 developer navigation arc.
 
 ---
 
@@ -698,4 +698,55 @@ Provide safe, previewable, and atomic rename refactoring (`textDocument/prepareR
 - No Java compiler or Java source AST refactoring.
 - No file or directory moving/renaming.
 - No textual or fuzzy rename fallbacks.
+
+---
+
+### Detailed Milestone Specification: Milestone M41
+
+**Milestone Name**: Workspace Schema Intelligence & Symbol Search<br>
+**Target Development Line**: `1.3.0-SNAPSHOT`<br>
+**Status**: Completed (1.3.0-SNAPSHOT)
+
+#### 1. Goal
+Provide workspace-wide semantic symbol search (`workspace/symbol`) across Viet Template-relevant types, members, schema declarations, contracts, Java-backed model symbols, and template symbols in VS Code, IntelliJ IDEA, and any standard LSP client, projecting symbols from the canonical schema and binding graph rather than textual scanning or filesystem walking. Completes the 1.3 developer navigation arc.
+
+#### 2. Scope
+- **Canonical Symbol Categories**:
+  - Canonical schema types (`Class`, `Interface`, `Enum`, `Struct`) from registered Java models, TypeScript `.d.ts`, JSON Schema, and `.contract` files.
+  - Schema properties and model members (`Property`, `Field`, `Method`), respecting `MemberAccessPolicy` (security-denied and untyped dynamic members excluded).
+  - JVM-backed model types and member symbols with exact declaration locations via `WorkspaceJavaSourceLocator`.
+  - Template macros (`#macro(name ...)` / `Function`) with exact declaration ranges extracted from template ASTs.
+  - Template root parameters from registered schemas with exact declaration coordinates.
+  - Template-local variables (`#set`, `#foreach`) explicitly excluded from workspace symbol search to prevent noise.
+- **Deterministic Multi-Tier Matching**:
+  - Deterministic ranking: Exact case-sensitive match, exact case-insensitive match, qualified exact match, simple-name prefix case-sensitive, simple-name prefix case-insensitive, qualified-name prefix, simple-name substring, qualified-name substring, camelCase match.
+  - Deterministic tie-breaking: Symbol kind priority -> simple name length -> qualified name -> document URI -> start line -> start character.
+  - Empty query returns empty array `[]`.
+  - Deterministic search result cap (500 entries) preventing unbounded payload explosion.
+- **In-Memory Thread-Safe Index**:
+  - `WorkspaceSymbolIndex` protected by `ReentrantReadWriteLock`.
+  - Zero query-time filesystem walks or textual file parsing.
+  - Atomic incremental updates and reference-counted deduplication across schemas, Java source, and templates.
+- **Editor Integration**:
+  - Advertises `workspaceSymbolProvider: true` in LSP server capabilities.
+  - VS Code client (`Ctrl+T` / `Cmd+T` Go to Symbol in Workspace) and IntelliJ IDEA client (`Navigate | Symbol`) verified against live server.
+
+#### 3. Architectural Invariants
+- **Canonical Projection Principle**:
+  - Workspace symbol results are strictly projections of symbols Viet Template already understands semantically; zero textual grep or heuristic inference.
+- **Exact Coordinates Only**:
+  - Every returned symbol includes a valid, verified `LocationInfo` pointing to an exact declaration; zero fabricated positions.
+- **Zero ClassLoader Leaks**:
+  - Symbol entries store binary class names and string identifiers; zero long-lived strong references to application `Class<?>` instances.
+- **Zero Public API Leaks**:
+  - Exactly 0 new `STABLE_API` or `STABLE_SPI` types. All index, symbol information, kind, and key classes remain internal/package-private.
+
+#### 4. Explicit Non-Goals for M41
+- No fuzzy semantic inference or edit-distance matching.
+- No textual grep fallback or query-time file scanning.
+- No general Java AST workspace indexing independent of Viet Template models.
+- No template-local variable indexing.
+- No remote schema registries or dependency source downloads.
+- No automatic initiation of Milestone M42 (the 1.3 developer navigation arc is complete upon M41; subsequent work requires formal milestone planning).
+
 
