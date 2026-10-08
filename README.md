@@ -29,7 +29,7 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 | Dimension | Detail |
 |---|---|
 | **Latest Published Stable Release** | `1.3.0` (published 2026-10-09; 1.2.0 published 2026-10-07; 1.1.0 published 2026-10-03; 1.0.1 published 2026-09-28; 1.0.0 GA published 2026-09-26; available on Maven Central & GitHub Releases) |
-| **Active Development** | `1.3.0` (release candidate / GA on `main`) |
+| **Active Development** | `1.3.1-SNAPSHOT` (main branch) |
 | **Java Baseline** | Java 21 LTS (`--release 21`, major version 65) |
 | **Primary Target** | Java 25 (optimized memory & runtime qualification) |
 | **Maven Group ID** | `io.github.minh124199` |
