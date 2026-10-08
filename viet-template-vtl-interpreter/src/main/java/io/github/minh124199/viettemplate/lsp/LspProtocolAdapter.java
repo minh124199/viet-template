@@ -122,6 +122,9 @@ final class LspProtocolAdapter {
       case "textDocument/definition" -> {
         return handleDefinition(id, params);
       }
+      case "textDocument/references" -> {
+        return handleReferences(id, params);
+      }
       case "workspace/didChangeWatchedFiles" -> {
         handleDidChangeWatchedFiles(params);
         return null;
@@ -181,7 +184,8 @@ final class LspProtocolAdapter {
               "resolveProvider": false
             },
             "hoverProvider": true,
-            "definitionProvider": true
+            "definitionProvider": true,
+            "referencesProvider": true
           },
           "serverInfo": {
             "name": "viet-template-lsp",
@@ -383,6 +387,53 @@ final class LspProtocolAdapter {
     }
 
     List<LocationInfo> locs = service.definition(uri, pos);
+    StringBuilder sb = new StringBuilder();
+    sb.append("[");
+    for (int i = 0; i < locs.size(); i++) {
+      if (i > 0) sb.append(",");
+      LocationInfo loc = locs.get(i);
+      Range r = loc.range();
+      sb.append("{");
+      sb.append("\"uri\":\"").append(escapeJson(loc.uri())).append("\",");
+      sb.append("\"range\":{\"start\":{\"line\":")
+          .append(r.start().line())
+          .append(",\"character\":")
+          .append(r.start().character())
+          .append("},\"end\":{\"line\":")
+          .append(r.end().line())
+          .append(",\"character\":")
+          .append(r.end().character())
+          .append("}}");
+      sb.append("}");
+    }
+    sb.append("]");
+    return jsonRpcSuccess(id, sb.toString());
+  }
+
+  private String handleReferences(Object id, Map<?, ?> params) {
+    String uri = getDocUri(params);
+    Position pos = getPosition(params);
+    if (uri == null || pos == null) {
+      return jsonRpcSuccess(id, "[]");
+    }
+
+    boolean includeDeclaration = false;
+    Object contextObj = params.get("context");
+    if (contextObj instanceof Map<?, ?> context) {
+      Object incDecl = context.get("includeDeclaration");
+      if (Boolean.TRUE.equals(incDecl) || "true".equalsIgnoreCase(String.valueOf(incDecl))) {
+        includeDeclaration = true;
+      }
+    }
+
+    if (uri.startsWith("file:/")) {
+      try {
+        service.probeSourceRootsFor(java.nio.file.Path.of(java.net.URI.create(uri)));
+      } catch (IllegalArgumentException | java.nio.file.FileSystemNotFoundException ignored) {
+      }
+    }
+
+    List<LocationInfo> locs = service.references(uri, pos, includeDeclaration);
     StringBuilder sb = new StringBuilder();
     sb.append("[");
     for (int i = 0; i < locs.size(); i++) {

@@ -5,8 +5,10 @@ import io.github.minh124199.viettemplate.api.MemberAccessPolicy;
 import io.github.minh124199.viettemplate.schema.CanonicalSchemaResolver;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -23,6 +25,7 @@ class TemplateLanguageService {
   private final TemplateDocumentStore documentStore;
   private final CanonicalSchemaResolver schemaResolver;
   private final WorkspaceSchemaIndex schemaIndex;
+  private final WorkspaceReferenceIndex referenceIndex;
   private volatile MemberAccessPolicy memberAccessPolicy;
   private final List<Consumer<String>> diagnosticListeners = new CopyOnWriteArrayList<>();
 
@@ -38,6 +41,7 @@ class TemplateLanguageService {
     this.documentStore = Objects.requireNonNull(documentStore, "documentStore must not be null");
     this.schemaResolver = Objects.requireNonNull(schemaResolver, "schemaResolver must not be null");
     this.schemaIndex = new WorkspaceSchemaIndex(this.schemaResolver);
+    this.referenceIndex = new WorkspaceReferenceIndex();
     this.memberAccessPolicy =
         memberAccessPolicy != null ? memberAccessPolicy : MemberAccessPolicy.standard();
   }
@@ -78,6 +82,7 @@ class TemplateLanguageService {
     Objects.requireNonNull(text, "text must not be null");
     TemplateDocument doc = new TemplateDocument(uri, version, text);
     documentStore.put(doc);
+    referenceIndex.indexTemplate(doc, schemaResolver, memberAccessPolicy);
     return doc;
   }
 
@@ -85,7 +90,11 @@ class TemplateLanguageService {
     Objects.requireNonNull(uri, "uri must not be null");
     Objects.requireNonNull(text, "text must not be null");
     TemplateDocument doc = new TemplateDocument(uri, version, text);
-    return documentStore.updateIfNewer(doc);
+    boolean updated = documentStore.updateIfNewer(doc);
+    if (updated) {
+      referenceIndex.indexTemplate(doc, schemaResolver, memberAccessPolicy);
+    }
+    return updated;
   }
 
   public TemplateDocument updateDocument(String uri, int version, String text) {
@@ -93,12 +102,32 @@ class TemplateLanguageService {
     Objects.requireNonNull(text, "text must not be null");
     TemplateDocument doc = new TemplateDocument(uri, version, text);
     documentStore.put(doc);
+    referenceIndex.indexTemplate(doc, schemaResolver, memberAccessPolicy);
     return doc;
   }
 
   public void closeDocument(String uri) {
     if (uri != null) {
       documentStore.remove(uri);
+      try {
+        if (uri.startsWith("file:/")) {
+          Path p = Path.of(URI.create(uri));
+          if (Files.isRegularFile(p)) {
+            String content = Files.readString(p, java.nio.charset.StandardCharsets.UTF_8);
+            referenceIndex.indexTemplate(
+                new TemplateDocument(uri, 1, content), schemaResolver, memberAccessPolicy);
+          } else {
+            referenceIndex.removeTemplate(uri);
+          }
+        } else {
+          referenceIndex.removeTemplate(uri);
+        }
+      } catch (java.io.IOException
+          | SecurityException
+          | IllegalArgumentException
+          | java.nio.file.FileSystemNotFoundException ignored) {
+        referenceIndex.removeTemplate(uri);
+      }
     }
   }
 
@@ -135,6 +164,28 @@ class TemplateLanguageService {
       return;
     }
 
+    String pathStr = path.toString().toLowerCase(Locale.ROOT);
+    if (pathStr.endsWith(".vtl") || pathStr.endsWith(".vm") || pathStr.endsWith(".vt")) {
+      String fileUri = path.toUri().toString();
+      if (changeType == 3) {
+        referenceIndex.removeTemplate(fileUri);
+      } else {
+        Optional<TemplateDocument> openDoc = documentStore.get(fileUri);
+        if (openDoc.isPresent()) {
+          referenceIndex.indexTemplate(openDoc.get(), schemaResolver, memberAccessPolicy);
+        } else {
+          try {
+            if (Files.isRegularFile(path)) {
+              String content = Files.readString(path, java.nio.charset.StandardCharsets.UTF_8);
+              referenceIndex.indexTemplate(
+                  new TemplateDocument(fileUri, 1, content), schemaResolver, memberAccessPolicy);
+            }
+          } catch (java.io.IOException | SecurityException | IllegalArgumentException ignored) {
+          }
+        }
+      }
+    }
+
     List<String> affected;
     if (changeType == 3) {
       // 3 = Deleted
@@ -145,8 +196,27 @@ class TemplateLanguageService {
     }
 
     for (String affectedUri : affected) {
-      if (documentStore.get(affectedUri).isPresent()) {
+      Optional<TemplateDocument> openDoc = documentStore.get(affectedUri);
+      if (openDoc.isPresent()) {
+        referenceIndex.indexTemplate(openDoc.get(), schemaResolver, memberAccessPolicy);
         notifyDiagnosticListeners(affectedUri);
+      } else {
+        try {
+          if (affectedUri.startsWith("file:/")) {
+            Path p = Path.of(URI.create(affectedUri));
+            if (Files.isRegularFile(p)) {
+              String content = Files.readString(p, java.nio.charset.StandardCharsets.UTF_8);
+              referenceIndex.indexTemplate(
+                  new TemplateDocument(affectedUri, 1, content),
+                  schemaResolver,
+                  memberAccessPolicy);
+            }
+          }
+        } catch (java.io.IOException
+            | SecurityException
+            | IllegalArgumentException
+            | java.nio.file.FileSystemNotFoundException ignored) {
+        }
       }
     }
   }
@@ -193,6 +263,25 @@ class TemplateLanguageService {
         doc.get(), position, schemaResolver, schemaIndex, memberAccessPolicy);
   }
 
+  public List<LocationInfo> references(String uri, Position position, boolean includeDeclaration) {
+    Optional<TemplateDocument> doc = getDocument(uri);
+    if (doc.isEmpty()) {
+      return List.of();
+    }
+    return ReferenceProvider.references(
+        doc.get(),
+        position,
+        includeDeclaration,
+        schemaResolver,
+        schemaIndex,
+        referenceIndex,
+        memberAccessPolicy);
+  }
+
+  public WorkspaceReferenceIndex referenceIndex() {
+    return referenceIndex;
+  }
+
   // --- Configuration ---
 
   public void registerSchema(String templateIdOrUri, String schemaJson) {
@@ -230,6 +319,7 @@ class TemplateLanguageService {
   public void setWorkspaceRoot(Path workspaceRoot) {
     if (workspaceRoot != null) {
       schemaIndex.javaSourceLocator().setWorkspaceRoot(workspaceRoot);
+      referenceIndex.scanWorkspaceTemplates(workspaceRoot, schemaResolver, memberAccessPolicy);
     }
   }
 

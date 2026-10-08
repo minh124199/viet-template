@@ -527,7 +527,7 @@ The 1.3 release series establishes deep workspace intelligence across template a
 - **Milestone M38 (Java Source Navigation & Cross-Language References — target 1.3.0)**:
   - Direct LSP `textDocument/definition` navigation from template references to workspace Java source files (`.java`).
 - **Milestone M39 (Cross-Language Find References & Symbol Graph — target 1.3.0)**:
-  - Bidirectional symbol graph enabling "Find All References" from Java source members to template references and between template files.
+  - Semantic workspace symbol graph enabling "Find References" (`textDocument/references`) across templates for JVM members, schemas, contracts, and local variables with zero false-positive text collisions.
 - **Milestone M40 (Safe Cross-Language Rename & Refactoring — target 1.3.0)**:
   - Safe rename refactoring propagating member name changes across templates, companion schemas, and workspace Java source with preview and rollbacks.
 - **Milestone M41 (Workspace Schema Intelligence & Symbol Search — target 1.3.0)**:
@@ -607,3 +607,49 @@ Enable developers editing Viet Template files (`.vtl`, `.vm`, `.vt`) in VS Code 
   - Verifying graceful fallback (`definition unavailable`) for JDK platform classes, binary-only dependencies, and missing source files without throwing exceptions.
 - **Coordinate Boundary & Encoding Safety**:
   - Verifying UTF-16 surrogate pairs, Vietnamese diacritics, and CRLF line termination handling in Java source coordinate translations.
+
+---
+
+### Detailed Milestone Specification: Milestone M39
+
+**Milestone Name**: Cross-Language Find References & Workspace Symbol Graph<br>
+**Target Development Line**: `1.3.0-SNAPSHOT`<br>
+**Status**: Completed (1.3.0-SNAPSHOT)
+
+#### 1. Goal
+Provide semantic, workspace-wide "Find References" (`textDocument/references`) across Viet Template files (`.vtl`, `.vm`, `.vt`) in VS Code, IntelliJ IDEA, and any standard LSP client, indexing and locating references solely based on compiler-proven semantic binding truth with guaranteed zero false-positive text collisions.
+
+#### 2. Scope
+- **Canonical Workspace Symbol Identity**:
+  - `JvmMemberSymbolKey`: Declaring binary class name, member kind (`RECORD_COMPONENT`, `GETTER`, `BOOLEAN_GETTER`, `FIELD`, `METHOD`), member name, descriptor, parameter count.
+  - `SchemaMemberSymbolKey`: Schema source, canonical type name, property name.
+  - `TemplateLocalSymbolKey`: Template URI, variable name, definition AST offset span.
+  - `RootParameterSymbolKey`: Schema source or template URI, root parameter name.
+- **Inherited vs Overridden JVM Members**:
+  - Inherited members index under the declaring superclass (e.g. `BaseUser#getName()`), converging references across subclasses.
+  - Overridden members index to the overriding subclass, correctly isolating overrides.
+- **Record Components vs Explicit Accessors vs Fields**:
+  - Distinguishes record components, JavaBean getters, boolean getters, and public fields according to compiler binding semantics.
+- **Incremental Indexing & Lifecycle**:
+  - Thread-safe inverted index (`WorkspaceReferenceIndex`) protected by `ReentrantReadWriteLock`.
+  - Atomic per-template eviction and replacement on document open/change/close.
+  - Automatic re-indexing on companion schema changes via `workspace/didChangeWatchedFiles`.
+  - Resilient recovery from syntax errors without index corruption.
+- **Declaration Inclusion**:
+  - Honors `ReferenceContext.includeDeclaration`, querying `DefinitionProvider` to dynamically prepend declarations when requested.
+- **Exact Identifier Ranges**:
+  - Emits exact identifier ranges (e.g. `name` in `$customer.name`, omitting the leading `.`).
+
+#### 3. Architectural Invariants
+- **Semantic Truth Before Indexing**:
+  - References are recorded only after AST parsing and semantic analysis resolve the target symbol against compiler or schema bindings.
+  - Never uses textual grep, regex search, or string-based fallback.
+- **Zero Public API Leaks**:
+  - Exactly 0 new `STABLE_API` or `STABLE_SPI` types. All index, symbol key, and provider classes remain internal/package-private.
+- **Read-Only / No Mutation**:
+  - M39 does not implement rename, `prepareRename`, `WorkspaceEdit`, or file modification.
+
+#### 4. Explicit Non-Goals for M39
+- No rename refactoring (deferred to M40).
+- No textual search fallback for unresolved references.
+- No public workspace symbol API (deferred to M41).
