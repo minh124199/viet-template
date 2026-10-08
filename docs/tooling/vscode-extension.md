@@ -61,7 +61,7 @@ Context-aware code completion triggered on `.`, `$`, `{`, and `#`:
 Hovering over directives or variables presents formatted Markdown documentation, type signatures, and nullability information.
 
 ### 3.6 Go to Definition
-Navigates directly to the declaration of local variables (`#set`, `#foreach`) within the template, or jumps to the property definition in the associated `*.vt-schema.json` contract schema file.
+Navigates directly to the declaration of local variables (`#set`, `#foreach`) within the template, jumps to property definitions in associated schema files (`*.vt-schema.json`, `*.schema.json`, `*.d.ts`), or jumps directly to matching workspace Java source declarations (`.java`) for JVM-backed models (`F12` / `Ctrl+Click`). Note that `.java` files remain natively owned and highlighted by VS Code's Java extension or standard editor.
 
 ---
 

@@ -87,7 +87,7 @@ final class LspProtocolAdapter {
     switch (method) {
       case "initialize" -> {
         state = ServerState.INITIALIZED;
-        return handleInitialize(id);
+        return handleInitialize(id, params);
       }
       case "initialized" -> {
         // Client acknowledgment notification
@@ -138,7 +138,39 @@ final class LspProtocolAdapter {
     }
   }
 
-  private String handleInitialize(Object id) {
+  private String handleInitialize(Object id, Map<?, ?> params) {
+    if (params != null) {
+      Object wsFolders = params.get("workspaceFolders");
+      if (wsFolders instanceof List<?> list) {
+        for (Object f : list) {
+          if (f instanceof Map<?, ?> folderMap) {
+            String fUri = getString(folderMap, "uri");
+            if (fUri != null) {
+              try {
+                service.setWorkspaceRoot(java.nio.file.Path.of(java.net.URI.create(fUri)));
+              } catch (IllegalArgumentException
+                  | java.nio.file.FileSystemNotFoundException ignored) {
+              }
+            }
+          }
+        }
+      }
+      String rootUri = getString(params, "rootUri");
+      if (rootUri != null && !rootUri.isBlank() && !"null".equalsIgnoreCase(rootUri)) {
+        try {
+          service.setWorkspaceRoot(java.nio.file.Path.of(java.net.URI.create(rootUri)));
+        } catch (IllegalArgumentException | java.nio.file.FileSystemNotFoundException ignored) {
+        }
+      }
+      String rootPath = getString(params, "rootPath");
+      if (rootPath != null && !rootPath.isBlank() && !"null".equalsIgnoreCase(rootPath)) {
+        try {
+          service.setWorkspaceRoot(java.nio.file.Path.of(rootPath));
+        } catch (IllegalArgumentException ignored) {
+        }
+      }
+    }
+
     String result =
         """
         {
@@ -168,6 +200,12 @@ final class LspProtocolAdapter {
     int version = ver != null ? ver.intValue() : 1;
     String text = getString(td, "text");
     if (uri != null && text != null) {
+      if (uri.startsWith("file:/")) {
+        try {
+          service.probeSourceRootsFor(java.nio.file.Path.of(java.net.URI.create(uri)));
+        } catch (IllegalArgumentException | java.nio.file.FileSystemNotFoundException ignored) {
+        }
+      }
       service.openDocument(uri, version, text);
       publishDiagnostics(uri, version);
     }
@@ -335,6 +373,13 @@ final class LspProtocolAdapter {
     Position pos = getPosition(params);
     if (uri == null || pos == null) {
       return jsonRpcSuccess(id, "[]");
+    }
+
+    if (uri.startsWith("file:/")) {
+      try {
+        service.probeSourceRootsFor(java.nio.file.Path.of(java.net.URI.create(uri)));
+      } catch (IllegalArgumentException | java.nio.file.FileSystemNotFoundException ignored) {
+      }
     }
 
     List<LocationInfo> locs = service.definition(uri, pos);

@@ -22,22 +22,40 @@ final class WorkspaceSchemaIndex {
 
   private final CanonicalSchemaResolver resolver;
   private final ClassLoader classLoader;
+  private final WorkspaceJavaSourceLocator javaSourceLocator;
   private final Map<Path, Set<String>> schemaToTemplates = new ConcurrentHashMap<>();
   private final Map<String, Path> templateToSchema = new ConcurrentHashMap<>();
   private final Map<String, Map<String, SchemaProvenance>> provenanceCache =
       new ConcurrentHashMap<>();
 
   WorkspaceSchemaIndex(CanonicalSchemaResolver resolver) {
-    this(resolver, null);
+    this(resolver, null, new WorkspaceJavaSourceLocator());
   }
 
   WorkspaceSchemaIndex(CanonicalSchemaResolver resolver, ClassLoader classLoader) {
+    this(resolver, classLoader, new WorkspaceJavaSourceLocator());
+  }
+
+  WorkspaceSchemaIndex(
+      CanonicalSchemaResolver resolver,
+      ClassLoader classLoader,
+      WorkspaceJavaSourceLocator javaSourceLocator) {
     this.resolver = Objects.requireNonNull(resolver, "resolver must not be null");
     this.classLoader = classLoader;
+    this.javaSourceLocator =
+        javaSourceLocator != null ? javaSourceLocator : new WorkspaceJavaSourceLocator();
   }
 
   public CanonicalSchemaResolver resolver() {
     return resolver;
+  }
+
+  public ClassLoader classLoader() {
+    return classLoader;
+  }
+
+  public WorkspaceJavaSourceLocator javaSourceLocator() {
+    return javaSourceLocator;
   }
 
   public void recordDependency(String templateUri, Path schemaPath) {
@@ -164,6 +182,20 @@ final class WorkspaceSchemaIndex {
       resolver.removeSchema(dep);
     }
     return dependents;
+  }
+
+  public void onJavaFileChanged(Path path) {
+    if (path == null) {
+      return;
+    }
+    javaSourceLocator.onFileChanged(path);
+  }
+
+  public void onJavaFileDeleted(Path path) {
+    if (path == null) {
+      return;
+    }
+    javaSourceLocator.onFileDeleted(path);
   }
 
   private void clearProvenanceFor(Path normPath) {
