@@ -232,6 +232,11 @@ suite('E2E LSP Server Smoke & Protocol Lifecycle Tests', () => {
       true,
       'referencesProvider must be true'
     );
+    assert.deepStrictEqual(
+      initResult.capabilities.renameProvider,
+      { prepareProvider: true },
+      'renameProvider must be advertised'
+    );
 
     // Send initialized notification
     client.sendNotification('initialized', {});
@@ -413,7 +418,35 @@ suite('E2E LSP Server Smoke & Protocol Lifecycle Tests', () => {
     );
   });
 
-  test('Step 8: Clean shutdown and exit terminates process with code 0', async () => {
+  test('Step 8: Queries prepareRename and rename on definition.vtl', async () => {
+    const uri = fixtureUri('definition.vtl');
+
+    // Query prepareRename for $user on line 1, character 2
+    const prepResult = await client.sendRequest('textDocument/prepareRename', {
+      textDocument: { uri },
+      position: { line: 1, character: 2 },
+    });
+
+    assert.ok(prepResult, 'prepareRename result must not be null');
+    assert.strictEqual(prepResult.placeholder, 'user');
+    assert.strictEqual(prepResult.range.start.line, 1);
+
+    // Query rename for $user to 'admin'
+    const renameResult = await client.sendRequest('textDocument/rename', {
+      textDocument: { uri },
+      position: { line: 1, character: 2 },
+      newName: 'admin',
+    });
+
+    assert.ok(renameResult, 'rename result must not be null');
+    assert.ok(renameResult.changes, 'rename result must contain changes');
+    assert.ok(renameResult.changes[uri], 'rename changes must contain definition.vtl');
+    const edits = renameResult.changes[uri];
+    assert.ok(edits.length >= 2, 'Must contain declaration and reference edits');
+    assert.ok(edits.every((e: any) => e.newText === 'admin'));
+  });
+
+  test('Step 9: Clean shutdown and exit terminates process with code 0', async () => {
     const shutdownResult = await client.sendRequest('shutdown', null);
     assert.strictEqual(
       shutdownResult,

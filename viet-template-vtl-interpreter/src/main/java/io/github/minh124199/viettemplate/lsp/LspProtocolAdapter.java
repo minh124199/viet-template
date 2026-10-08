@@ -125,6 +125,12 @@ final class LspProtocolAdapter {
       case "textDocument/references" -> {
         return handleReferences(id, params);
       }
+      case "textDocument/prepareRename" -> {
+        return handlePrepareRename(id, params);
+      }
+      case "textDocument/rename" -> {
+        return handleRename(id, params);
+      }
       case "workspace/didChangeWatchedFiles" -> {
         handleDidChangeWatchedFiles(params);
         return null;
@@ -185,7 +191,10 @@ final class LspProtocolAdapter {
             },
             "hoverProvider": true,
             "definitionProvider": true,
-            "referencesProvider": true
+            "referencesProvider": true,
+            "renameProvider": {
+              "prepareProvider": true
+            }
           },
           "serverInfo": {
             "name": "viet-template-lsp",
@@ -455,6 +464,94 @@ final class LspProtocolAdapter {
     }
     sb.append("]");
     return jsonRpcSuccess(id, sb.toString());
+  }
+
+  private String handlePrepareRename(Object id, Map<?, ?> params) {
+    String uri = getDocUri(params);
+    Position pos = getPosition(params);
+    if (uri == null || pos == null) {
+      return jsonRpcSuccess(id, "null");
+    }
+
+    if (uri.startsWith("file:/")) {
+      try {
+        service.probeSourceRootsFor(java.nio.file.Path.of(java.net.URI.create(uri)));
+      } catch (IllegalArgumentException | java.nio.file.FileSystemNotFoundException ignored) {
+      }
+    }
+
+    Optional<PrepareRenameResult> result = service.prepareRename(uri, pos);
+    if (result.isEmpty()) {
+      return jsonRpcSuccess(id, "null");
+    }
+
+    PrepareRenameResult pr = result.get();
+    Range r = pr.range();
+    String resultJson =
+        String.format(
+            "{\"range\":{\"start\":{\"line\":%d,\"character\":%d},\"end\":{\"line\":%d,\"character\":%d}},\"placeholder\":\"%s\"}",
+            r.start().line(),
+            r.start().character(),
+            r.end().line(),
+            r.end().character(),
+            escapeJson(pr.placeholder()));
+    return jsonRpcSuccess(id, resultJson);
+  }
+
+  private String handleRename(Object id, Map<?, ?> params) {
+    String uri = getDocUri(params);
+    Position pos = getPosition(params);
+    String newName = getString(params, "newName");
+    if (uri == null || pos == null || newName == null) {
+      return jsonRpcError(id, -32602, "Invalid params for rename");
+    }
+
+    if (uri.startsWith("file:/")) {
+      try {
+        service.probeSourceRootsFor(java.nio.file.Path.of(java.net.URI.create(uri)));
+      } catch (IllegalArgumentException | java.nio.file.FileSystemNotFoundException ignored) {
+      }
+    }
+
+    try {
+      WorkspaceEdit edit = service.rename(uri, pos, newName);
+      return jsonRpcSuccess(id, serializeWorkspaceEdit(edit));
+    } catch (RenameConflictException e) {
+      return jsonRpcError(id, -32600, e.getMessage());
+    } catch (IllegalArgumentException e) {
+      return jsonRpcError(id, -32600, e.getMessage());
+    }
+  }
+
+  private String serializeWorkspaceEdit(WorkspaceEdit edit) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("{\"changes\":{");
+    int uriIdx = 0;
+    for (Map.Entry<String, List<TextEdit>> entry : edit.changes().entrySet()) {
+      if (uriIdx > 0) sb.append(",");
+      sb.append("\"").append(escapeJson(entry.getKey())).append("\":[");
+      List<TextEdit> edits = entry.getValue();
+      for (int i = 0; i < edits.size(); i++) {
+        if (i > 0) sb.append(",");
+        TextEdit te = edits.get(i);
+        Range r = te.range();
+        sb.append("{\"range\":{\"start\":{\"line\":")
+            .append(r.start().line())
+            .append(",\"character\":")
+            .append(r.start().character())
+            .append("},\"end\":{\"line\":")
+            .append(r.end().line())
+            .append(",\"character\":")
+            .append(r.end().character())
+            .append("}},\"newText\":\"")
+            .append(escapeJson(te.newText()))
+            .append("\"}");
+      }
+      sb.append("]");
+      uriIdx++;
+    }
+    sb.append("}}");
+    return sb.toString();
   }
 
   // --- Helper Methods ---

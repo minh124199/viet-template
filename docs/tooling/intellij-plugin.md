@@ -65,7 +65,14 @@ Navigates directly to the declaration of local variables (`#set`, `#foreach`), s
 ### 3.7 Find Usages / References
 Finds all semantic usages of a symbol across workspace templates via standard IDE Find Usages (`Alt+F7`). Locates references to JavaBean properties, record components, getters, fields, and template-local declarations across templates with complete semantic isolation from coincidental textual name collisions.
 
-### 3.8 Actions & Menus
+### 3.8 Rename Symbol / Refactoring
+Safely renames template-local variables (`#set`, `#foreach`) and schema-backed properties (`.d.ts`, `.contract`) across the workspace (`Shift+F6` / `Rename...`). Powered by `textDocument/prepareRename` and `textDocument/rename`:
+- **Pre-flight Validation (`prepareRename`)**: Confirms renameability and supplies exact identifier range and placeholder before opening refactoring dialog.
+- **Conflict Prevention**: Detects VTL syntax violations, keyword collisions, scope shadowing, and schema property collisions.
+- **Deterministic Changes**: Computes exact `WorkspaceEdit` changes across affected template and schema documents.
+- **Safe JVM Boundary**: Safely rejects requests targeting Java-backed members with explanatory diagnostic messaging, delegating Java source refactorings to IntelliJ IDEA's native Java refactoring tools.
+
+### 3.9 Actions & Menus
 - **Restart Viet Template Language Server** (`VietTemplate.RestartLspServer`): Available under the IDE `Tools` menu to recycle the language server process and re-synchronize open buffers.
 
 ---

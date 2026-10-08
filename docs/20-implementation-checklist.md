@@ -1187,3 +1187,16 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **DD8.** Editor Integration Verification: Updated VS Code smoke tests and IntelliJ IDEA real-server client integration tests to verify live `textDocument/references` execution against real server processes.
 - [x] **DD9.** Zero Public API Leaks & Frozen Baseline: Added exactly 0 new `STABLE_API` or `STABLE_SPI` types; all symbol key and indexing classes remain internal package-private in `io.github.minh124199.viettemplate.lsp`, passing all 12 governance verification scripts cleanly.
 
+### Deliverable EE: Safe Cross-Language Rename & Refactoring (Milestone M40 / 1.3.0)
+
+- [x] **EE1.** Semantic Pre-Flight Check (`textDocument/prepareRename`): Implemented `prepareRename` advertising `renameProvider: { "prepareProvider": true }`, determining symbol eligibility, extracting exact token ranges, and returning `null` for non-renameable targets.
+- [x] **EE2.** Semantic Symbol Resolution Alignment: Shared AST cursor resolution between `ReferenceProvider` and `RenameProvider` via package-private `WorkspaceSymbolResolver`, eliminating code duplication and guaranteeing identical symbol identity.
+- [x] **EE3.** Conservative JVM Member Rejection: Enforced the conservative boundary rejecting rename of JVM-backed getters, fields, and record components with explicit user-facing diagnostic guidance.
+- [x] **EE4.** Scope-Isolated Template-Local Variable Rename: Implemented rename for `#set` and `#foreach` loop variables, generating atomic edits for declarations and references with strict lexical scope isolation.
+- [x] **EE5.** Cross-Language Schema Property Rename: Implemented rename for TypeScript `.d.ts` and `.contract` properties, emitting synchronized edits across declaration files and all workspace template references.
+- [x] **EE6.** Deterministic Conflict & Collision Prevention: Implemented comprehensive conflict detection catching invalid VTL identifiers, reserved keywords, local variable collisions, loop shadowing, and schema property name duplicates before edit emission.
+- [x] **EE7.** Atomic & Non-Overlapping `WorkspaceEdit` Generation: Implemented package-private `WorkspaceEdit` and `TextEdit` records with deterministic URI and coordinate sorting, deduplication, and overlapping edit detection.
+- [x] **EE8.** Editor Client Verification: Verified `textDocument/prepareRename` and `textDocument/rename` in VS Code smoke tests and IntelliJ IDEA real-server client integration tests.
+- [x] **EE9.** Zero Public API Leaks & Frozen Baseline: Added exactly 0 new `STABLE_API` or `STABLE_SPI` types; all rename types remain package-private in `io.github.minh124199.viettemplate.lsp`, passing all 12 governance verification scripts cleanly.
+
+
