@@ -105,7 +105,21 @@ Enables safe, previewable, and atomic symbol renaming across template files (`*.
 - **Conservative Java Model Boundary**: Rename requests targeting JVM-backed model members (getters, boolean getters, fields, record components, methods) are cleanly rejected with informative user guidance (`Rename is not available for JVM-backed members because Java source refactoring is outside Viet Template's ownership`), avoiding out-of-sync edits across external Java projects.
 - **Atomic `WorkspaceEdit` Generation**: Collects exact declaration and reference coordinate ranges from `WorkspaceReferenceIndex`, checks for and rejects overlapping edits, and generates deterministically sorted `WorkspaceEdit` changes without direct disk mutation.
 
-### 4.6 Diagnostics (`textDocument/publishDiagnostics`)
+### 4.6 Workspace Symbol Search (`workspace/symbol`)
+
+Enables workspace-wide semantic symbol search across Viet Template files, schema declarations, and Java models:
+- **Canonical Projections Only**: Projects symbols solely from the compiler-proven semantic binding and schema graph (`WorkspaceSymbolIndex`). Never scans identifiers textually, grep-searches filenames, or traverses directories at query time.
+- **Indexed Symbol Categories**:
+  - **Schema Types**: `Class`, `Interface`, `Enum`, `Struct` declared in Java companion models, TypeScript `.d.ts`, JSON Schema, and `.contract` files.
+  - **Properties & Members**: `Property`, `Field`, `Method` exposed on declared models and schemas, strictly filtering out `MemberAccessPolicy`-denied and dynamic members.
+  - **JVM-Backed Models**: Fully qualified and simple type names and member symbols pointing directly to exact Java declaration coordinates via `WorkspaceJavaSourceLocator`.
+  - **Template Macros**: `#macro(name ...)` definitions extracted from parsed template ASTs, classified as `Function`.
+  - **Root Parameters**: Explicit root variables declared in companion schema contracts.
+  - **Noise Suppression**: Template-local variables (`#set`, `#foreach`) are omitted from workspace symbol search by default to maintain high signal-to-noise ratio.
+- **Deterministic Multi-Tier Ranking**: Matches queries across 9 deterministic tiers (exact case-sensitive, exact case-insensitive, qualified exact, simple prefix case-sensitive, simple prefix case-insensitive, qualified prefix, simple substring, qualified substring, camelCase) with stable tie-breaking and a 500-result cap.
+- **In-Memory Thread-Safe Index**: Thread-safe caching with `ReentrantReadWriteLock`, atomic incremental eviction/replacement during document open/change/close and schema watch events, and zero application `Class<?>` retention.
+
+### 4.7 Diagnostics (`textDocument/publishDiagnostics`)
 
 Emits deterministic diagnostics with stable diagnostic codes:
 - `SYNTAX:PARSE_ERROR`: VTL parser syntax errors and unclosed directives.
@@ -114,7 +128,7 @@ Emits deterministic diagnostics with stable diagnostic codes:
 - `VTLS:2107`: Nullable receiver dereferenced without quiet reference notation (`$!`) outside null guards.
 - `VTLSEC:2401`: Property or member access denied by `MemberAccessPolicy`.
 
-### 4.7 Cleared Diagnostics on Repair and Close
+### 4.8 Cleared Diagnostics on Repair and Close
 
 - When syntax errors or schema violations are resolved by subsequent edits (`didChange`), the server immediately publishes `diagnostics: []` to clear error markers in the client editor.
 - When a document is closed (`didClose`), the server publishes an empty diagnostics array `[]` to remove any lingering problems.

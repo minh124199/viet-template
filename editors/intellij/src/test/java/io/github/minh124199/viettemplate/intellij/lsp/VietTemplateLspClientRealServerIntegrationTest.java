@@ -198,6 +198,80 @@ class VietTemplateLspClientRealServerIntegrationTest {
   }
 
   @Test
+  void shouldProvideWorkspaceSymbolsForSchemasAndMacros() throws Exception {
+    Path vtlFile = tempDir.resolve("symbols.vtl");
+    Path schemaFile = tempDir.resolve("symbols.vt-schema.json");
+
+    String schemaContent =
+        """
+        {
+          "format": "viet-template-contract-schema/1",
+          "schemaVersion": 1,
+          "templateId": "symbols",
+          "parameters": {
+            "account": {
+              "name": "account",
+              "type": { "kind": "named", "name": "Account" }
+            }
+          },
+          "types": {
+            "Account": {
+              "name": "Account",
+              "properties": {
+                "email": {
+                  "name": "email",
+                  "type": { "kind": "class", "className": "java.lang.String" }
+                }
+              }
+            }
+          }
+        }
+        """;
+    String vtlContent =
+        """
+        #macro(renderHeader $title)
+          <h1>$title</h1>
+        #end
+        $account.email
+        """;
+
+    Files.writeString(vtlFile, vtlContent, StandardCharsets.UTF_8);
+    Files.writeString(schemaFile, schemaContent, StandardCharsets.UTF_8);
+
+    client.didChangeWatchedFiles(schemaFile.toUri().toString(), 1);
+
+    String uri = vtlFile.toUri().toString();
+    client.didOpen(uri, 1, vtlContent);
+
+    // Wait for indexing
+    Thread.sleep(500);
+
+    // 1. Search for macro "renderHeader"
+    List<LspSymbolInformation> macroSymbols =
+        client.workspaceSymbol("renderHeader").get(5, TimeUnit.SECONDS);
+    assertThat(macroSymbols).isNotEmpty();
+    assertThat(macroSymbols).extracting(LspSymbolInformation::name).contains("renderHeader");
+    assertThat(macroSymbols.get(0).kind()).isEqualTo(12); // Function
+
+    // 2. Search for schema type "Account"
+    List<LspSymbolInformation> typeSymbols =
+        client.workspaceSymbol("Account").get(5, TimeUnit.SECONDS);
+    assertThat(typeSymbols).isNotEmpty();
+    assertThat(typeSymbols).extracting(LspSymbolInformation::name).contains("Account");
+
+    // 3. Search for property "email"
+    List<LspSymbolInformation> propSymbols =
+        client.workspaceSymbol("email").get(5, TimeUnit.SECONDS);
+    assertThat(propSymbols).isNotEmpty();
+    assertThat(propSymbols).extracting(LspSymbolInformation::name).contains("email");
+
+    // 4. Empty query returns empty list
+    List<LspSymbolInformation> emptySymbols =
+        client.workspaceSymbol("").get(5, TimeUnit.SECONDS);
+    assertThat(emptySymbols).isEmpty();
+  }
+
+  @Test
   void shouldGracefullyShutdownWithZeroProcessLeaks() throws InterruptedException {
     assertThat(client.isRunning()).isTrue();
     assertThat(spawnedProcess.isAlive()).isTrue();

@@ -73,6 +73,13 @@ Safely renames template-local variables (`#set`, `#foreach`) and schema-backed p
 - **Atomic Workspace Edits**: Emits deterministic `WorkspaceEdit` changes without touching the filesystem directly.
 - **Fail-Safe Java Model Policy**: Rename requests on JVM-backed model members are cleanly rejected (`Rename is not available for JVM-backed members...`), preventing dangerous out-of-sync refactorings across external Java source trees.
 
+### 3.9 Go to Symbol in Workspace
+Quickly find and navigate to symbols across the workspace (`Ctrl+T` / `Cmd+T` or Quick Open `#` prefix). Powered by `workspace/symbol`:
+- **Semantic Symbol Coverage**: Searches canonical schema types, JavaBean and schema properties, JVM-backed model types/members with direct navigation to `.java` declarations, template macros (`#macro`), and schema root parameters.
+- **Fast In-Memory Search**: Results are served instantly from the server's in-memory index without query-time filesystem traversal.
+- **Deterministic Multi-Tier Ranking**: Sorts results deterministically based on exact, prefix, substring, and camelCase matching rules, capped at 500 entries to prevent editor sluggishness.
+- **Noise Elimination**: Template-local variables (`#set`, `#foreach`) are suppressed to keep workspace symbol search focused on shared models and macros.
+
 ---
 
 ## 4. Java Runtime Discovery

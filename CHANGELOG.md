@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Milestone M41: Workspace Schema Intelligence & Symbol Search**:
+  - **LSP `workspace/symbol` & Semantic Symbol Search**:
+    - Implemented LSP `workspace/symbol` advertising `workspaceSymbolProvider: true`.
+    - Exposes workspace-wide semantic symbol search across Viet Template-relevant Java models, canonical schemas, companion contracts, properties, and template macros.
+    - Zero textual grep, token guessing, or arbitrary text scanning; workspace symbol results are projections of symbols Viet Template already understands semantically.
+  - **Internal Workspace Symbol Engine (`WorkspaceSymbolIndex`)**:
+    - Thread-safe, memory-efficient index engine protected by `ReentrantReadWriteLock`.
+    - Reference-counted deduplication ensures identical semantic symbols (e.g. JVM members referenced across multiple templates or contracts) appear once without duplicates.
+    - Strict semantic identity preservation: distinct types with identical simple names (e.g. `com.foo.User` vs `com.bar.User`, or separate TypeScript schemas) and distinct properties on unrelated types (e.g. `Customer.name` vs `Product.name`) remain completely separate with disambiguating container metadata.
+    - Conservative boundary enforcement: security-denied members, untyped/dynamic properties, and template-local scoped variables are excluded from workspace symbol search.
+    - Exact navigation location reuse from M36/M38: maps to Java class and member declarations, `.d.ts`, `.schema.json`, `.vt-schema.json`, `.contract`, and template macro definitions without fabricating artificial locations.
+  - **Deterministic Multi-Tiered Matching & Ranking**:
+    - Predictable 9-tier ranking: exact simple name (case-sensitive) -> exact simple name (case-insensitive) -> qualified exact -> prefix simple (case-sensitive) -> prefix simple (case-insensitive) -> prefix qualified -> substring simple -> substring qualified -> camelCase word boundary matching.
+    - Deterministic tie-breaking sequence: match tier -> symbol kind priority -> simple name length -> qualified name -> location URI -> range coordinates.
+    - Empty or blank queries return empty arrays (`[]`); deterministic search result capping at 500 items.
+  - **Incremental File Watching & Atomic Invalidation**:
+    - Atomically updates and evicts symbols on schema changes, template macro edits, and Java source file additions or deletions.
+    - Zero query-time filesystem scans or disk I/O; searches operate entirely against in-memory snapshots.
+    - Gracefully recovers from malformed template and schema syntax by clearing stale symbols and restoring them when valid.
+  - **Editor & Protocol Integration**:
+    - VS Code extension (`Ctrl+T` / `Go to Symbol in Workspace`) and IntelliJ IDEA plugin validated with live real-server E2E integration tests.
+    - Exactly 0 new `STABLE_API` or `STABLE_SPI` types, maintaining the frozen 1.0.0/1.2.0 public baseline.
 - **Milestone M40: Safe Cross-Language Rename & Refactoring**:
   - **LSP `textDocument/prepareRename` & `textDocument/rename`**:
     - Implemented LSP `textDocument/prepareRename` and `textDocument/rename`, advertising `renameProvider: { "prepareProvider": true }`.

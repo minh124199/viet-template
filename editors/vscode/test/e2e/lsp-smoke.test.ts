@@ -237,6 +237,11 @@ suite('E2E LSP Server Smoke & Protocol Lifecycle Tests', () => {
       { prepareProvider: true },
       'renameProvider must be advertised'
     );
+    assert.strictEqual(
+      initResult.capabilities.workspaceSymbolProvider,
+      true,
+      'workspaceSymbolProvider must be true'
+    );
 
     // Send initialized notification
     client.sendNotification('initialized', {});
@@ -446,7 +451,27 @@ suite('E2E LSP Server Smoke & Protocol Lifecycle Tests', () => {
     assert.ok(edits.every((e: any) => e.newText === 'admin'));
   });
 
-  test('Step 9: Clean shutdown and exit terminates process with code 0', async () => {
+  test('Step 9: Queries workspace/symbol and receives indexed schema symbols', async () => {
+    // Query symbol "Account"
+    const symbolResult = await client.sendRequest('workspace/symbol', {
+      query: 'Account',
+    });
+
+    assert.ok(Array.isArray(symbolResult), 'workspace/symbol result must be an array');
+    assert.ok(symbolResult.length > 0, 'workspace/symbol should find Account symbol');
+    const accountSym = symbolResult.find((s: any) => s.name === 'Account');
+    assert.ok(accountSym, 'Should contain Account symbol');
+    assert.ok(accountSym.location, 'Account symbol must have location');
+    assert.ok(accountSym.location.uri.includes('definition.vt-schema.json'));
+
+    // Empty query returns empty array
+    const emptyResult = await client.sendRequest('workspace/symbol', {
+      query: '',
+    });
+    assert.deepStrictEqual(emptyResult, []);
+  });
+
+  test('Step 10: Clean shutdown and exit terminates process with code 0', async () => {
     const shutdownResult = await client.sendRequest('shutdown', null);
     assert.strictEqual(
       shutdownResult,

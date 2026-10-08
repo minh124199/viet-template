@@ -148,6 +148,14 @@ public class VietTemplateLspClient implements AutoCloseable {
     sendNotification("textDocument/didClose", params);
   }
 
+  public void didChangeWatchedFiles(String uri, int changeType) {
+    String params =
+        String.format(
+            "{\"changes\":[{\"uri\":\"%s\",\"type\":%d}]}",
+            LspJson.escapeJson(uri), changeType);
+    sendNotification("workspace/didChangeWatchedFiles", params);
+  }
+
   // =========================================================================
   // QUERIES
   // =========================================================================
@@ -333,6 +341,42 @@ public class VietTemplateLspClient implements AutoCloseable {
         }
       }
       return new LspWorkspaceEdit(changes);
+    });
+  }
+
+  public CompletableFuture<List<LspSymbolInformation>> workspaceSymbol(String query) {
+    int id = nextRequestId.getAndIncrement();
+    String params = String.format("{\"query\":\"%s\"}", LspJson.escapeJson(query != null ? query : ""));
+
+    return sendRequest(id, "workspace/symbol", params).thenApply(res -> {
+      Object resultObj = res.get("result");
+      List<Object> itemsRaw = List.of();
+      if (resultObj instanceof List<?> list) {
+        itemsRaw = (List<Object>) list;
+      }
+
+      List<LspSymbolInformation> symbols = new ArrayList<>();
+      for (Object raw : itemsRaw) {
+        if (raw instanceof Map<?, ?> m) {
+          String name = LspJson.getString(m, "name");
+          Integer kind = LspJson.getInt(m, "kind");
+          String containerName = LspJson.getString(m, "containerName");
+          Map<String, Object> locMap = LspJson.getMap(m, "location");
+          if (name != null && locMap != null) {
+            String uri = LspJson.getString(locMap, "uri");
+            LspRange range = parseRange(LspJson.getMap(locMap, "range"));
+            if (uri != null && range != null) {
+              symbols.add(new LspSymbolInformation(
+                  name,
+                  kind != null ? kind : 1,
+                  new LspLocation(uri, range),
+                  containerName != null ? containerName : ""
+              ));
+            }
+          }
+        }
+      }
+      return symbols;
     });
   }
 
