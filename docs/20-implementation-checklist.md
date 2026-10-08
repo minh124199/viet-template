@@ -1174,3 +1174,16 @@ See [`docs/40-m18-tck-performance-release-gates.md`](40-m18-tck-performance-rele
 - [x] **CC7.** Graceful Fallbacks & Provenance Invariant: When Java source is missing, gracefully returns an empty list (`definition unavailable`) for pure Java models or falls back to companion `.contract` files, never emitting synthetic or false locations.
 - [x] **CC8.** Preservation of Existing Definitions: 100% preserved in-template variable declarations (`#set`, `#foreach`) and non-JVM schemas (`.d.ts`, `.schema.json`, `.vt-schema.json`).
 - [x] **CC9.** Zero Public API Leaks & Frozen Baseline: Added exactly 0 new `STABLE_API` or `STABLE_SPI` types; all locator and parser classes are package-private in `io.github.minh124199.viettemplate.lsp`, passing all 12 governance verification scripts cleanly.
+
+### Deliverable DD: Cross-Language Find References & Workspace Symbol Graph (Milestone M39 / 1.3.0)
+
+- [x] **DD1.** Semantic Cross-Language Find References: Implemented `textDocument/references` in `viet-template-vtl-interpreter` advertising `referencesProvider: true` across all template files (`.vtl`, `.vm`, `.vt`) in the workspace, indexed strictly on compiler-proven semantic binding truth with zero false-positive string collisions.
+- [x] **DD2.** Canonical Internal Symbol Identity Model: Implemented package-private sealed `WorkspaceSymbolKey` hierarchy distinguishing `JvmMemberSymbolKey` (binary class name, member kind, name, descriptor, parameter count), `SchemaMemberSymbolKey` (schema source, type name, property name), `TemplateLocalSymbolKey` (URI, name, definition span), and `RootParameterSymbolKey` (source/URI, name).
+- [x] **DD3.** Inherited vs Overridden Member Convergence: Inherited JVM members index under the declaring superclass (`BaseUser#getName()`), converging references across subclasses; overridden members index to the subclass override, keeping overrides isolated.
+- [x] **DD4.** Member Kind Fidelity: Accurately distinguishes record components, explicit accessors, JavaBean getters, boolean getters, and public fields without merging symbols by superficial property name spelling.
+- [x] **DD5.** Thread-Safe Incremental Reference Index: Implemented `WorkspaceReferenceIndex` with `ReentrantReadWriteLock` supporting atomic per-template eviction and replacement on document open/change/close, and automatic dependent template reindexing on companion schema changes.
+- [x] **DD6.** Exact Identifier Ranges: Emits exact identifier ranges (e.g. `name` in `$customer.name`, omitting the leading `.`) for precise editor highlight coordinates.
+- [x] **DD7.** Declaration Inclusion Support: Fully honors `ReferenceContext.includeDeclaration`, querying `DefinitionProvider` to dynamically prepend declarations when requested.
+- [x] **DD8.** Editor Integration Verification: Updated VS Code smoke tests and IntelliJ IDEA real-server client integration tests to verify live `textDocument/references` execution against real server processes.
+- [x] **DD9.** Zero Public API Leaks & Frozen Baseline: Added exactly 0 new `STABLE_API` or `STABLE_SPI` types; all symbol key and indexing classes remain internal package-private in `io.github.minh124199.viettemplate.lsp`, passing all 12 governance verification scripts cleanly.
+

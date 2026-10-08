@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Milestone M39: Cross-Language Find References & Workspace Symbol Graph**:
+  - **Semantic Cross-Language "Find References" (`textDocument/references`)**:
+    - Implemented LSP `textDocument/references` advertising `referencesProvider: true` across all template files (`.vtl`, `.vm`, `.vt`) in the workspace.
+    - Operates strictly after semantic resolution (compiler/schema truth); never falls back to textual grep or loose identifier matching.
+    - Guarantees 100% false-positive isolation between coincidental name collisions across different JVM classes (e.g. `Customer#getName()` vs `Product#getName()`) and schemas (e.g. `User.name` vs `Address.name`).
+  - **Internal Semantic Workspace Symbol Identity (`WorkspaceSymbolKey`)**:
+    - Package-private sealed symbol key hierarchy distinguishing:
+      - `JvmMemberSymbolKey`: Declaring binary class name, member kind (`RECORD_COMPONENT`, `GETTER`, `BOOLEAN_GETTER`, `FIELD`, `METHOD`), member name, descriptor, and parameter count.
+      - `SchemaMemberSymbolKey`: Schema source, canonical type name, and property name.
+      - `TemplateLocalSymbolKey`: Template URI, variable name, and exact definition AST offset span.
+      - `RootParameterSymbolKey`: Schema source or template URI and parameter name.
+    - Correctly indexes inherited JVM members to their declaring superclass (e.g. `BaseUser#getName()`) so references across subclasses converge; cleanly isolates overridden members on subclasses.
+    - Accurately differentiates fields vs getters and record components vs getters according to compiler binding truth.
+  - **Thread-Safe Incremental Workspace Reference Index (`WorkspaceReferenceIndex`)**:
+    - Memory-efficient inverted index mapping `symbolToRefs` and `templateToRefs` protected by `ReentrantReadWriteLock`.
+    - Supports atomic per-template eviction and re-indexing on document open, change, and close without full workspace re-scans.
+    - Integrated with schema file watching (`workspace/didChangeWatchedFiles`): invalidates and reindexes dependent templates when backing schemas change.
+    - Resiliently recovers from malformed template syntax by atomically clearing invalidated references without process disruption.
+  - **Exact Identifier Range & Declaration Differentiation**:
+    - Emits exact identifier ranges (e.g., `name` in `$customer.name`, excluding the leading `.`) for precise editor highlighting and refactoring foundations.
+    - Respects LSP `ReferenceContext.includeDeclaration`: dynamically includes the definition location (Java source, companion schema, or template local declaration via `DefinitionProvider`) when requested.
+  - **Editor & Protocol Integration**:
+    - VS Code extension and IntelliJ IDEA plugin validated with live real-server E2E integration tests.
+    - Exactly 0 new `STABLE_API` or `STABLE_SPI` types, maintaining the frozen 1.0.0/1.2.0 public baseline.
 - **Milestone M38: Java Source Navigation & Cross-Language Definition**:
   - **Direct Go to Definition into Workspace Java Source**:
     - Implemented cross-language `textDocument/definition` navigation from template references (`$user`, `$user.name`) directly into workspace Java source files (`.java`).

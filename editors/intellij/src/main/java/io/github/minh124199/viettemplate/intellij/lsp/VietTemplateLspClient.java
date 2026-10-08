@@ -241,6 +241,39 @@ public class VietTemplateLspClient implements AutoCloseable {
     });
   }
 
+  public CompletableFuture<List<LspLocation>> references(
+      String uri, int line, int character, boolean includeDeclaration) {
+    int id = nextRequestId.getAndIncrement();
+    String params =
+        String.format(
+            "{\"textDocument\":{\"uri\":\"%s\"},\"position\":{\"line\":%d,\"character\":%d},\"context\":{\"includeDeclaration\":%b}}",
+            LspJson.escapeJson(uri), line, character, includeDeclaration);
+
+    return sendRequest(id, "textDocument/references", params)
+        .thenApply(
+            res -> {
+              Object resultObj = res.get("result");
+              List<Object> locsRaw = List.of();
+              if (resultObj instanceof List<?> l) {
+                locsRaw = (List<Object>) l;
+              } else if (resultObj instanceof Map<?, ?> m) {
+                locsRaw = List.of(m);
+              }
+
+              List<LspLocation> locations = new ArrayList<>();
+              for (Object raw : locsRaw) {
+                if (raw instanceof Map<?, ?> m) {
+                  String targetUri = LspJson.getString(m, "uri");
+                  LspRange range = parseRange(LspJson.getMap(m, "range"));
+                  if (targetUri != null && range != null) {
+                    locations.add(new LspLocation(targetUri, range));
+                  }
+                }
+              }
+              return locations;
+            });
+  }
+
   private LspRange parseRange(Map<String, Object> rangeMap) {
     if (rangeMap == null) return null;
     Map<String, Object> startMap = LspJson.getMap(rangeMap, "start");

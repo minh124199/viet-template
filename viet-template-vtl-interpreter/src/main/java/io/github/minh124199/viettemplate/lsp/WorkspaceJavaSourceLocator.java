@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 final class WorkspaceJavaSourceLocator {
 
-  private static final Set<String> IGNORED_DIRS =
+  static final Set<String> IGNORED_DIRS =
       Set.of(
           ".git",
           ".svn",

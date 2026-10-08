@@ -62,7 +62,10 @@ Hovering over directives or template variables presents formatted documentation 
 ### 3.6 Go to Definition / Declaration
 Navigates directly to the declaration of local variables (`#set`, `#foreach`), schema properties, or matching workspace Java source declarations (`.java`) for JVM-backed models via `VietTemplateGotoDeclarationHandler`. `.java` files remain natively opened by IntelliJ IDEA's native Java language support.
 
-### 3.7 Actions & Menus
+### 3.7 Find Usages / References
+Finds all semantic usages of a symbol across workspace templates via standard IDE Find Usages (`Alt+F7`). Locates references to JavaBean properties, record components, getters, fields, and template-local declarations across templates with complete semantic isolation from coincidental textual name collisions.
+
+### 3.8 Actions & Menus
 - **Restart Viet Template Language Server** (`VietTemplate.RestartLspServer`): Available under the IDE `Tools` menu to recycle the language server process and re-synchronize open buffers.
 
 ---

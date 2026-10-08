@@ -154,6 +154,24 @@ class VietTemplateLspClientRealServerIntegrationTest {
   }
 
   @Test
+  void shouldProvideReferencesForLocalVariables() throws Exception {
+    String uri = tempDir.resolve("in-template-refs.vtl").toUri().toString();
+    String text = "#set($local = 42)\nValue: $local\nAgain: $local\n";
+    client.didOpen(uri, 1, text);
+
+    // Wait for file indexing
+    Thread.sleep(150);
+
+    List<LspLocation> locations = client.references(uri, 1, 8, true).get(5, TimeUnit.SECONDS);
+    assertThat(locations).isNotEmpty();
+    assertThat(locations).hasSize(3); // line 0 (#set declaration), line 1 (usage), line 2 (usage)
+    for (LspLocation loc : locations) {
+      assertThat(loc.uri()).isEqualTo(uri);
+      assertThat(loc.range()).isNotNull();
+    }
+  }
+
+  @Test
   void shouldGracefullyShutdownWithZeroProcessLeaks() throws InterruptedException {
     assertThat(client.isRunning()).isTrue();
     assertThat(spawnedProcess.isAlive()).isTrue();

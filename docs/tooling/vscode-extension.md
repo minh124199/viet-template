@@ -63,6 +63,9 @@ Hovering over directives or variables presents formatted Markdown documentation,
 ### 3.6 Go to Definition
 Navigates directly to the declaration of local variables (`#set`, `#foreach`) within the template, jumps to property definitions in associated schema files (`*.vt-schema.json`, `*.schema.json`, `*.d.ts`), or jumps directly to matching workspace Java source declarations (`.java`) for JVM-backed models (`F12` / `Ctrl+Click`). Note that `.java` files remain natively owned and highlighted by VS Code's Java extension or standard editor.
 
+### 3.7 Find All References
+Finds all semantic usages of a symbol across workspace templates (`Shift+F12` / `Alt+Shift+F12` / context menu `Find All References`). Works for JavaBean properties, getters, boolean accessors, public fields, record components, companion schemas, root parameters, and template-local variables. Backed strictly by compiler/schema truth with zero false-positive collisions against unrelated symbols with identical property names.
+
 ---
 
 ## 4. Java Runtime Discovery

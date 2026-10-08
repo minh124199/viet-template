@@ -88,7 +88,16 @@ Enables jump-to-definition:
 - **Schema Parameters & Properties**: Navigates to the corresponding line in the sibling or configured `*.vt-schema.json`, `.schema.json`, or `.d.ts` schema file.
 - **Workspace Java Source Declarations**: When template references are backed by proven JVM model bindings, navigates directly to matching workspace Java source declarations (`.java`), including record components in headers, explicit record accessors, JavaBean getters (`getXxx()`), boolean getters (`isXxx()`), public fields, and inherited members on declaring superclasses. Gracefully returns empty definitions when source is unavailable (external dependencies or JDK classes) without synthetic locations.
 
-### 4.4 Diagnostics (`textDocument/publishDiagnostics`)
+### 4.4 Find References (`textDocument/references`)
+
+Enables workspace-wide "Find References" across all template documents (`*.vtl`, `*.vm`, `*.vt`) based strictly on compiler-proven semantic identities (`WorkspaceSymbolKey`):
+- **Semantic Precision**: Resolves references after AST parsing and semantic binding. Never performs superficial textual matching; two models exposing the same property name (e.g. `Customer#getName()` vs `Product#getName()`) remain 100% isolated.
+- **Inherited Members**: Inherited members index under their declaring superclass (e.g. `BaseUser#getName()`), converging references across subclasses while isolating overridden members.
+- **Exact Identifier Ranges**: Emits exact coordinates for referenced identifiers (e.g. `name` in `$customer.name`, omitting the leading `.`).
+- **Declaration Inclusion**: Respects LSP `ReferenceContext.includeDeclaration`, querying `DefinitionProvider` to dynamically prepend declarations when requested.
+- **Incremental Indexing**: Uses a thread-safe inverted index (`WorkspaceReferenceIndex`) with atomic template replacement on file open, change, and close, as well as automatic re-indexing when companion schemas change.
+
+### 4.5 Diagnostics (`textDocument/publishDiagnostics`)
 
 Emits deterministic diagnostics with stable diagnostic codes:
 - `SYNTAX:PARSE_ERROR`: VTL parser syntax errors and unclosed directives.
@@ -97,7 +106,7 @@ Emits deterministic diagnostics with stable diagnostic codes:
 - `VTLS:2107`: Nullable receiver dereferenced without quiet reference notation (`$!`) outside null guards.
 - `VTLSEC:2401`: Property or member access denied by `MemberAccessPolicy`.
 
-### 4.5 Cleared Diagnostics on Repair and Close
+### 4.6 Cleared Diagnostics on Repair and Close
 
 - When syntax errors or schema violations are resolved by subsequent edits (`didChange`), the server immediately publishes `diagnostics: []` to clear error markers in the client editor.
 - When a document is closed (`didClose`), the server publishes an empty diagnostics array `[]` to remove any lingering problems.

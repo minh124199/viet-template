@@ -227,6 +227,11 @@ suite('E2E LSP Server Smoke & Protocol Lifecycle Tests', () => {
       true,
       'definitionProvider must be true'
     );
+    assert.strictEqual(
+      initResult.capabilities.referencesProvider,
+      true,
+      'referencesProvider must be true'
+    );
 
     // Send initialized notification
     client.sendNotification('initialized', {});
@@ -387,7 +392,28 @@ suite('E2E LSP Server Smoke & Protocol Lifecycle Tests', () => {
     );
   });
 
-  test('Step 7: Clean shutdown and exit terminates process with code 0', async () => {
+  test('Step 7: Queries references on definition.vtl and receives template usages', async () => {
+    const uri = fixtureUri('definition.vtl');
+
+    // Query references for $user on line 1, character 2 with includeDeclaration = true
+    const refResult = await client.sendRequest('textDocument/references', {
+      textDocument: { uri },
+      position: { line: 1, character: 2 },
+      context: { includeDeclaration: true },
+    });
+
+    assert.ok(Array.isArray(refResult), 'references result must be an array');
+    assert.ok(
+      refResult.length >= 1,
+      `At least 1 reference for $user expected, got ${refResult.length}`
+    );
+    assert.ok(
+      refResult.some((r: any) => r.uri === uri),
+      'references must contain definition.vtl uri'
+    );
+  });
+
+  test('Step 8: Clean shutdown and exit terminates process with code 0', async () => {
     const shutdownResult = await client.sendRequest('shutdown', null);
     assert.strictEqual(
       shutdownResult,
