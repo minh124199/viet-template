@@ -274,6 +274,68 @@ public class VietTemplateLspClient implements AutoCloseable {
             });
   }
 
+  public CompletableFuture<LspPrepareRenameResult> prepareRename(String uri, int line, int character) {
+    int id = nextRequestId.getAndIncrement();
+    String params = String.format(
+        "{\"textDocument\":{\"uri\":\"%s\"},\"position\":{\"line\":%d,\"character\":%d}}",
+        LspJson.escapeJson(uri), line, character
+    );
+
+    return sendRequest(id, "textDocument/prepareRename", params).thenApply(res -> {
+      Object resultObj = res.get("result");
+      if (!(resultObj instanceof Map<?, ?> rMap)) {
+        return null;
+      }
+      LspRange range = parseRange(LspJson.getMap(rMap, "range"));
+      String placeholder = LspJson.getString(rMap, "placeholder");
+      if (range == null || placeholder == null) {
+        return null;
+      }
+      return new LspPrepareRenameResult(range, placeholder);
+    });
+  }
+
+  public CompletableFuture<LspWorkspaceEdit> rename(String uri, int line, int character, String newName) {
+    int id = nextRequestId.getAndIncrement();
+    String params = String.format(
+        "{\"textDocument\":{\"uri\":\"%s\"},\"position\":{\"line\":%d,\"character\":%d},\"newName\":\"%s\"}",
+        LspJson.escapeJson(uri), line, character, LspJson.escapeJson(newName)
+    );
+
+    return sendRequest(id, "textDocument/rename", params).thenApply(res -> {
+      Object errorObj = res.get("error");
+      if (errorObj instanceof Map<?, ?> errMap) {
+        String msg = LspJson.getString(errMap, "message");
+        throw new RuntimeException("LSP rename error: " + (msg != null ? msg : "unknown"));
+      }
+      Object resultObj = res.get("result");
+      if (!(resultObj instanceof Map<?, ?> rMap)) {
+        return LspWorkspaceEdit.empty();
+      }
+      Map<String, Object> changesMap = LspJson.getMap(rMap, "changes");
+      if (changesMap == null) {
+        return LspWorkspaceEdit.empty();
+      }
+      Map<String, List<LspTextEdit>> changes = new java.util.LinkedHashMap<>();
+      for (Map.Entry<String, Object> entry : changesMap.entrySet()) {
+        if (entry.getValue() instanceof List<?> list) {
+          List<LspTextEdit> edits = new ArrayList<>();
+          for (Object item : list) {
+            if (item instanceof Map<?, ?> eMap) {
+              LspRange range = parseRange(LspJson.getMap(eMap, "range"));
+              String text = LspJson.getString(eMap, "newText");
+              if (range != null && text != null) {
+                edits.add(new LspTextEdit(range, text));
+              }
+            }
+          }
+          changes.put(entry.getKey(), edits);
+        }
+      }
+      return new LspWorkspaceEdit(changes);
+    });
+  }
+
   private LspRange parseRange(Map<String, Object> rangeMap) {
     if (rangeMap == null) return null;
     Map<String, Object> startMap = LspJson.getMap(rangeMap, "start");

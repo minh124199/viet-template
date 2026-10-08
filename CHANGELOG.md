@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Milestone M40: Safe Cross-Language Rename & Refactoring**:
+  - **LSP `textDocument/prepareRename` & `textDocument/rename`**:
+    - Implemented LSP `textDocument/prepareRename` and `textDocument/rename`, advertising `renameProvider: { "prepareProvider": true }`.
+    - Enables safe, previewable, and atomic symbol renaming across template files (`.vtl`, `.vm`, `.vt`) and companion schema declarations.
+  - **Semantic Symbol Graph Transformation**:
+    - Operates strictly after semantic resolution, transforming the canonical `WorkspaceSymbolKey` graph and leveraging `WorkspaceReferenceIndex` to collect exact declaration and reference coordinate ranges.
+    - Zero textual search, regex matching, or grep fallbacks; references are guaranteed semantically bound.
+  - **Conservative First Principle for JVM Models**:
+    - Safely rejects rename attempts on JVM-backed model members (getters, boolean getters, public fields, record components, methods) with informative diagnostic errors (`Rename is not available for JVM-backed members because Java source refactoring is outside Viet Template's ownership`), preventing partial or out-of-sync edits across external Java projects.
+  - **Comprehensive Scope & Schema Rename Coverage**:
+    - Supports renaming template-local variables declared via `#set` and `#foreach` loop variables with strict lexical scope isolation.
+    - Supports renaming TypeScript `.d.ts` declaration properties and `.contract` declarations, emitting synchronized `TextEdit` changes across both the declaration file and all referencing templates.
+    - Safely rejects dynamic symbols, security-denied members, and JSON Schema properties (`UNSUPPORTED_SCHEMA_FORMAT`).
+  - **Deterministic Conflict & Collision Prevention**:
+    - Validates target identifiers against VTL syntax requirements (`[a-zA-Z_][a-zA-Z0-9_]*`) and VTL reserved keywords (`if`, `foreach`, `null`, `true`, `false`, etc.).
+    - Detects local scope collisions, loop variable shadowing collisions, and schema property name duplicates before generating edits, throwing `RenameConflictException` mapped to JSON-RPC error `-32600`.
+  - **Atomic & Overlap-Free `WorkspaceEdit` Generation**:
+    - Generates sorted, deduplicated `WorkspaceEdit` objects containing exact identifier ranges (excluding sigils like `$` or member access dots `.`).
+    - Detects and rejects overlapping edits to guarantee safe text replacement.
+  - **Editor & Protocol Integration**:
+    - VS Code extension and IntelliJ IDEA plugin validated with live real-server E2E integration tests.
+    - Exactly 0 new `STABLE_API` or `STABLE_SPI` types, maintaining the frozen 1.0.0/1.2.0 public baseline.
 - **Milestone M39: Cross-Language Find References & Workspace Symbol Graph**:
   - **Semantic Cross-Language "Find References" (`textDocument/references`)**:
     - Implemented LSP `textDocument/references` advertising `referencesProvider: true` across all template files (`.vtl`, `.vm`, `.vt`) in the workspace.

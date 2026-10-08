@@ -66,6 +66,13 @@ Navigates directly to the declaration of local variables (`#set`, `#foreach`) wi
 ### 3.7 Find All References
 Finds all semantic usages of a symbol across workspace templates (`Shift+F12` / `Alt+Shift+F12` / context menu `Find All References`). Works for JavaBean properties, getters, boolean accessors, public fields, record components, companion schemas, root parameters, and template-local variables. Backed strictly by compiler/schema truth with zero false-positive collisions against unrelated symbols with identical property names.
 
+### 3.8 Rename Symbol
+Safely renames template-local variables (`#set`, `#foreach`) and schema-backed properties (`.d.ts`, `.contract`) across the workspace (`F2` / context menu `Rename Symbol`). Powered by `textDocument/prepareRename` and `textDocument/rename`:
+- **Pre-flight Validation (`prepareRename`)**: Verifies the symbol under the cursor is eligible for renaming and provides the initial placeholder text.
+- **Strict Conflict Detection**: Validates new identifiers against VTL syntax and keywords, and detects scope collisions or duplicate property names prior to emitting edits.
+- **Atomic Workspace Edits**: Emits deterministic `WorkspaceEdit` changes without touching the filesystem directly.
+- **Fail-Safe Java Model Policy**: Rename requests on JVM-backed model members are cleanly rejected (`Rename is not available for JVM-backed members...`), preventing dangerous out-of-sync refactorings across external Java source trees.
+
 ---
 
 ## 4. Java Runtime Discovery

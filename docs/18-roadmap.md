@@ -529,7 +529,7 @@ The 1.3 release series establishes deep workspace intelligence across template a
 - **Milestone M39 (Cross-Language Find References & Symbol Graph — target 1.3.0)**:
   - Semantic workspace symbol graph enabling "Find References" (`textDocument/references`) across templates for JVM members, schemas, contracts, and local variables with zero false-positive text collisions.
 - **Milestone M40 (Safe Cross-Language Rename & Refactoring — target 1.3.0)**:
-  - Safe rename refactoring propagating member name changes across templates, companion schemas, and workspace Java source with preview and rollbacks.
+  - Safe rename refactoring (`textDocument/prepareRename`, `textDocument/rename`) propagating member and local variable changes across templates and companion schemas with pre-flight validation, conflict detection, and atomic `WorkspaceEdit` generation.
 - **Milestone M41 (Workspace Schema Intelligence & Symbol Search — target 1.3.0)**:
   - Workspace-wide symbol search (`workspace/symbol`), schema relationship graph, and project-wide diagnostics.
 
@@ -653,3 +653,49 @@ Provide semantic, workspace-wide "Find References" (`textDocument/references`) a
 - No rename refactoring (deferred to M40).
 - No textual search fallback for unresolved references.
 - No public workspace symbol API (deferred to M41).
+
+---
+
+### Detailed Milestone Specification: Milestone M40
+
+**Milestone Name**: Safe Cross-Language Rename & Refactoring<br>
+**Target Development Line**: `1.3.0-SNAPSHOT`<br>
+**Status**: Completed (1.3.0-SNAPSHOT)
+
+#### 1. Goal
+Provide safe, previewable, and atomic rename refactoring (`textDocument/prepareRename` and `textDocument/rename`) across Viet Template files (`.vtl`, `.vm`, `.vt`) and companion schema declarations (`.d.ts`, `.contract`), ensuring zero textual grep fallback, strict conflict detection, and conservative protection of Java source boundaries.
+
+#### 2. Scope
+- **Pre-Flight Validation (`textDocument/prepareRename`)**:
+  - Validates eligibility of symbol under cursor and provides exact target identifier range and placeholder name.
+  - Returns `null` for unnameable symbols (JVM-backed members, dynamic receivers, security-denied members, method invocations).
+- **Semantic Rename Execution (`textDocument/rename`)**:
+  - Resolves cursor target to canonical `WorkspaceSymbolKey` (`TemplateLocalSymbolKey`, `SchemaMemberSymbolKey`).
+  - Validates target identifier against VTL grammar syntax and reserved keywords.
+  - Enforces conflict analysis: detects local variable scope collisions, loop variable shadowing, and schema property name collisions.
+  - Reuses M39 `WorkspaceReferenceIndex` to locate all exact reference ranges across all workspace templates.
+  - Generates atomic `WorkspaceEdit` with deterministic URI and coordinate sorting and overlapping edit prevention.
+- **Conservative JVM Member Boundary**:
+  - Explicitly rejects rename of JVM-backed members (`JvmMemberSymbolKey`) because Java project refactoring across external source trees is outside Viet Template's ownership.
+- **Schema Format Support**:
+  - Supports renaming declarations and usages for TypeScript (`.d.ts`) and Contract (`.contract`) files.
+  - Rejects JSON Schema (`.schema.json`) properties with clear unsupported format explanation.
+- **Editor Integration**:
+  - VS Code client (`F2` / `Rename Symbol`) and IntelliJ IDEA client (`Shift+F6` / `Rename...`) verified against live server.
+
+#### 3. Architectural Invariants
+- **Semantic Resolution Before Refactoring**:
+  - Rename never discovers targets or references through textual regex or string search; only compiler/schema-proven references are modified.
+- **Exact Token Coordinates**:
+  - Edits isolate the identifier token without modifying sigils (`$`) or member operators (`.`).
+- **Zero Direct Mutation**:
+  - Emits standard `WorkspaceEdit` structures for client application; never mutates files on disk directly.
+- **Zero Public API Leaks**:
+  - Exactly 0 new `STABLE_API` or `STABLE_SPI` types. All rename provider, edit, and exception types remain internal/package-private.
+
+#### 4. Explicit Non-Goals for M40
+- No workspace-wide symbol search (strictly deferred to Milestone M41).
+- No Java compiler or Java source AST refactoring.
+- No file or directory moving/renaming.
+- No textual or fuzzy rename fallbacks.
+

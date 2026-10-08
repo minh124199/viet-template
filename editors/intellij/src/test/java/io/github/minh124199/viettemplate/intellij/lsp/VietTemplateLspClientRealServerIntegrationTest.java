@@ -172,6 +172,32 @@ class VietTemplateLspClientRealServerIntegrationTest {
   }
 
   @Test
+  void shouldPerformPrepareRenameAndRenameForLocalVariables() throws Exception {
+    String uri = tempDir.resolve("rename-local.vtl").toUri().toString();
+    String text = "#set($local = 42)\nValue: $local\nAgain: $local\n";
+    client.didOpen(uri, 1, text);
+
+    // Wait for file indexing
+    Thread.sleep(150);
+
+    // prepareRename on $local (line 1, col 9)
+    LspPrepareRenameResult prep = client.prepareRename(uri, 1, 9).get(5, TimeUnit.SECONDS);
+    assertThat(prep).isNotNull();
+    assertThat(prep.placeholder()).isEqualTo("local");
+    assertThat(prep.range().start().line()).isEqualTo(1);
+
+    // rename to "renamedLocal"
+    LspWorkspaceEdit edit = client.rename(uri, 1, 9, "renamedLocal").get(5, TimeUnit.SECONDS);
+    assertThat(edit).isNotNull();
+    assertThat(edit.changes()).containsKey(uri);
+    List<LspTextEdit> edits = edit.changes().get(uri);
+    assertThat(edits).hasSize(3); // line 0 (#set), line 1, line 2
+    for (LspTextEdit te : edits) {
+      assertThat(te.newText()).isEqualTo("renamedLocal");
+    }
+  }
+
+  @Test
   void shouldGracefullyShutdownWithZeroProcessLeaks() throws InterruptedException {
     assertThat(client.isRunning()).isTrue();
     assertThat(spawnedProcess.isAlive()).isTrue();

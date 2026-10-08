@@ -97,7 +97,15 @@ Enables workspace-wide "Find References" across all template documents (`*.vtl`,
 - **Declaration Inclusion**: Respects LSP `ReferenceContext.includeDeclaration`, querying `DefinitionProvider` to dynamically prepend declarations when requested.
 - **Incremental Indexing**: Uses a thread-safe inverted index (`WorkspaceReferenceIndex`) with atomic template replacement on file open, change, and close, as well as automatic re-indexing when companion schemas change.
 
-### 4.5 Diagnostics (`textDocument/publishDiagnostics`)
+### 4.5 Safe Rename Refactoring (`textDocument/prepareRename` & `textDocument/rename`)
+
+Enables safe, previewable, and atomic symbol renaming across template files (`*.vtl`, `*.vm`, `*.vt`) and companion schema declarations (`.d.ts`, `.contract`):
+- **Pre-Flight Validation (`prepareRename`)**: Verifies whether the symbol under cursor is eligible for renaming, extracting the exact token range and placeholder string. Returns `null` for unnameable symbols (JVM-backed members, methods, dynamic symbols, denied members).
+- **Semantic Conflict Detection**: Validates target identifiers against VTL syntax rules and reserved keywords (`if`, `foreach`, `null`, `true`, `false`, etc.), and detects local variable scope collisions, loop variable shadowing, and schema property name collisions prior to generating edits.
+- **Conservative Java Model Boundary**: Rename requests targeting JVM-backed model members (getters, boolean getters, fields, record components, methods) are cleanly rejected with informative user guidance (`Rename is not available for JVM-backed members because Java source refactoring is outside Viet Template's ownership`), avoiding out-of-sync edits across external Java projects.
+- **Atomic `WorkspaceEdit` Generation**: Collects exact declaration and reference coordinate ranges from `WorkspaceReferenceIndex`, checks for and rejects overlapping edits, and generates deterministically sorted `WorkspaceEdit` changes without direct disk mutation.
+
+### 4.6 Diagnostics (`textDocument/publishDiagnostics`)
 
 Emits deterministic diagnostics with stable diagnostic codes:
 - `SYNTAX:PARSE_ERROR`: VTL parser syntax errors and unclosed directives.
@@ -106,7 +114,7 @@ Emits deterministic diagnostics with stable diagnostic codes:
 - `VTLS:2107`: Nullable receiver dereferenced without quiet reference notation (`$!`) outside null guards.
 - `VTLSEC:2401`: Property or member access denied by `MemberAccessPolicy`.
 
-### 4.6 Cleared Diagnostics on Repair and Close
+### 4.7 Cleared Diagnostics on Repair and Close
 
 - When syntax errors or schema violations are resolved by subsequent edits (`didChange`), the server immediately publishes `diagnostics: []` to clear error markers in the client editor.
 - When a document is closed (`didClose`), the server publishes an empty diagnostics array `[]` to remove any lingering problems.

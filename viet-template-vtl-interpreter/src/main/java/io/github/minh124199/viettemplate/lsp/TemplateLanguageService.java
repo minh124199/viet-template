@@ -278,6 +278,43 @@ class TemplateLanguageService {
         memberAccessPolicy);
   }
 
+  public Optional<PrepareRenameResult> prepareRename(String uri, Position position) {
+    Optional<TemplateDocument> doc = getDocument(uri);
+    if (doc.isEmpty()) {
+      return Optional.empty();
+    }
+    if (uri.startsWith("file:/")) {
+      try {
+        schemaIndex.javaSourceLocator().probeSourceRootsFor(Path.of(URI.create(uri)));
+      } catch (IllegalArgumentException | java.nio.file.FileSystemNotFoundException ignored) {
+      }
+    }
+    return RenameProvider.prepareRename(
+        doc.get(), position, schemaResolver, schemaIndex, referenceIndex, memberAccessPolicy);
+  }
+
+  public WorkspaceEdit rename(String uri, Position position, String newName) {
+    Optional<TemplateDocument> doc = getDocument(uri);
+    if (doc.isEmpty()) {
+      throw new RenameConflictException(
+          RenameConflictException.Reason.STALE_OR_MALFORMED_DOCUMENT, "Document not found: " + uri);
+    }
+    if (uri.startsWith("file:/")) {
+      try {
+        schemaIndex.javaSourceLocator().probeSourceRootsFor(Path.of(URI.create(uri)));
+      } catch (IllegalArgumentException | java.nio.file.FileSystemNotFoundException ignored) {
+      }
+    }
+    return RenameProvider.rename(
+        doc.get(),
+        position,
+        newName,
+        schemaResolver,
+        schemaIndex,
+        referenceIndex,
+        memberAccessPolicy);
+  }
+
   public WorkspaceReferenceIndex referenceIndex() {
     return referenceIndex;
   }
