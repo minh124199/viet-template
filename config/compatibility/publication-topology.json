@@ -5,7 +5,7 @@
   "publicationTaxonomy": {
     "groupId": "io.github.minh124199",
     "authoritativePublisher": "Apache Maven (central-publishing-maven-plugin)",
-    "currentSnapshot": "1.3.0-SNAPSHOT",
+    "currentSnapshot": "1.3.0",
     "currentSnapshotPublished": false,
     "historicalStatus_0_2_3": "PREPARED_HELD",
     "historicalStatus_0_2_3_commit": "b8b3a8f",
@@ -30,13 +30,13 @@
       "mavenCoordinates": "io.github.minh124199:viet-template-gradle-plugin",
       "rationale": "Gradle plugin artifacts are published exclusively to Maven Central; publication to the Gradle Plugin Portal is not currently configured."
     },
-    "latestPublishedStableVersion": "1.2.0",
+    "latestPublishedStableVersion": "1.3.0",
     "publicationEvidence": {
-      "githubRelease": "https://github.com/minh124199/viet-template/releases/tag/v1.2.0",
-      "mavenCentralCorePom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-api/1.2.0/viet-template-api-1.2.0.pom",
-      "mavenCentralQuarkusPom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-quarkus/1.2.0/viet-template-quarkus-1.2.0.pom",
-      "mavenCentralQuarkusDeploymentPom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-quarkus-deployment/1.2.0/viet-template-quarkus-deployment-1.2.0.pom",
-      "mavenCentralGradlePluginPom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-gradle-plugin/1.2.0/viet-template-gradle-plugin-1.2.0.pom"
+      "githubRelease": "https://github.com/minh124199/viet-template/releases/tag/v1.3.0",
+      "mavenCentralCorePom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-api/1.3.0/viet-template-api-1.3.0.pom",
+      "mavenCentralQuarkusPom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-quarkus/1.3.0/viet-template-quarkus-1.3.0.pom",
+      "mavenCentralQuarkusDeploymentPom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-quarkus-deployment/1.3.0/viet-template-quarkus-deployment-1.3.0.pom",
+      "mavenCentralGradlePluginPom": "https://repo1.maven.org/maven2/io/github/minh124199/viet-template-gradle-plugin/1.3.0/viet-template-gradle-plugin-1.3.0.pom"
     }
   },
   "modules": [
@@ -54,7 +54,9 @@
         "0.2.2",
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus_0_2_3": "PREPARED_HELD",
       "intendedFor1_0": true,
@@ -79,7 +81,9 @@
         "0.2.2",
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus_0_2_3": "PREPARED_HELD",
       "intendedFor1_0": true,
@@ -104,7 +108,9 @@
         "0.2.2",
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus_0_2_3": "PREPARED_HELD",
       "intendedFor1_0": true,
@@ -129,7 +135,9 @@
         "0.2.2",
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus_0_2_3": "PREPARED_HELD",
       "intendedFor1_0": true,
@@ -154,7 +162,9 @@
         "0.2.2",
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus_0_2_3": "PREPARED_HELD",
       "intendedFor1_0": true,
@@ -177,7 +187,9 @@
         "0.2.2",
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus_0_2_3": "PREPARED_HELD",
       "intendedFor1_0": true,
@@ -200,7 +212,9 @@
         "0.2.2",
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus_0_2_3": "PREPARED_HELD",
       "intendedFor1_0": true,
@@ -223,7 +237,9 @@
         "0.2.2",
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus_0_2_3": "PREPARED_HELD",
       "intendedFor1_0": true,
@@ -246,7 +262,9 @@
         "0.2.2",
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus_0_2_3": "PREPARED_HELD",
       "intendedFor1_0": true,
@@ -269,7 +287,9 @@
         "0.2.2",
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus_0_2_3": "PREPARED_HELD",
       "intendedFor1_0": true,
@@ -292,7 +312,9 @@
         "0.2.2",
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus_0_2_3": "PREPARED_HELD",
       "intendedFor1_0": true,
@@ -318,7 +340,9 @@
       "historicallyPublishedReleases": [
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus": "First published with the 1.0.0 release; 1.0.0, 1.0.1, and 1.1.0 POMs are available from Maven Central.",
       "intendedFor1_0": true,
@@ -339,7 +363,9 @@
       "historicallyPublishedReleases": [
         "1.0.0",
         "1.0.1",
-        "1.1.0"
+        "1.1.0",
+        "1.2.0",
+        "1.3.0"
       ],
       "historicalStatus": "First published with the 1.0.0 release; 1.0.0, 1.0.1, and 1.1.0 POMs are available from Maven Central.",
       "intendedFor1_0": true,

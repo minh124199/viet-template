@@ -28,8 +28,8 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 
 | Dimension | Detail |
 |---|---|
-| **Latest Published Stable Release** | `1.2.0` (published 2026-10-07; 1.1.0 published 2026-10-03; 1.0.1 published 2026-09-28; 1.0.0 GA published 2026-09-26; available on Maven Central & GitHub Releases) |
-| **Active Development** | `1.3.0-SNAPSHOT` (post-1.2.0 development on `main`) |
+| **Latest Published Stable Release** | `1.3.0` (published 2026-10-09; 1.2.0 published 2026-10-07; 1.1.0 published 2026-10-03; 1.0.1 published 2026-09-28; 1.0.0 GA published 2026-09-26; available on Maven Central & GitHub Releases) |
+| **Active Development** | `1.3.0` (release candidate / GA on `main`) |
 | **Java Baseline** | Java 21 LTS (`--release 21`, major version 65) |
 | **Primary Target** | Java 25 (optimized memory & runtime qualification) |
 | **Maven Group ID** | `io.github.minh124199` |
@@ -66,22 +66,22 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 Add `viet-template-api`, `viet-template-runtime`, and `viet-template-vtl-interpreter` to your `pom.xml`:
 
 ```xml
-<!-- Latest Published Stable: 1.2.0 -->
+<!-- Latest Published Stable: 1.3.0 -->
 <dependencies>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-api</artifactId>
-        <version>1.2.0</version>
+        <version>1.3.0</version>
     </dependency>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-runtime</artifactId>
-        <version>1.2.0</version>
+        <version>1.3.0</version>
     </dependency>
     <dependency>
         <groupId>io.github.minh124199</groupId>
         <artifactId>viet-template-vtl-interpreter</artifactId>
-        <version>1.2.0</version>
+        <version>1.3.0</version>
     </dependency>
 </dependencies>
 ```
@@ -118,11 +118,11 @@ public class Main {
 Add the starter dependency:
 
 ```xml
-<!-- Latest Published Stable: 1.2.0 -->
+<!-- Latest Published Stable: 1.3.0 -->
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-spring-boot-starter</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
@@ -159,11 +159,11 @@ public class WebController {
 Add the extension dependency:
 
 ```xml
-<!-- Latest Published Stable: 1.2.0 -->
+<!-- Latest Published Stable: 1.3.0 -->
 <dependency>
     <groupId>io.github.minh124199</groupId>
     <artifactId>viet-template-quarkus</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 </dependency>
 ```
 
