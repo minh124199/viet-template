@@ -539,7 +539,7 @@ The 1.3 release series establishes deep workspace intelligence across template a
 
 **Milestone Name**: Java Source Navigation & Cross-Language References<br>
 **Target Development Line**: `1.3.0-SNAPSHOT`<br>
-**Status**: Planned / Active Roadmap
+**Status**: Completed (1.3.0-SNAPSHOT)
 
 #### 1. Goal
 Enable developers editing Viet Template files (`.vtl`, `.vm`, `.vt`) in VS Code and IntelliJ IDEA to use standard "Go to Definition" (`F12` / `Ctrl+Click`) on template references backed by JVM models and navigate directly to the exact source declaration line in the corresponding workspace Java source file (`.java`).

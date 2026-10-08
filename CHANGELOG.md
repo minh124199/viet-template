@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Milestone M38: Java Source Navigation & Cross-Language Definition**:
+  - **Direct Go to Definition into Workspace Java Source**:
+    - Implemented cross-language `textDocument/definition` navigation from template references (`$user`, `$user.name`) directly into workspace Java source files (`.java`).
+    - Resolves root models to class/record declarations, record components in headers, explicit accessor methods, JavaBean getters (`getName()`), boolean getters (`isActive()`), public fields, and inherited members on declaring superclasses.
+    - Accurately tracks member declarations across nested/inner classes (`Outer$Inner`).
+  - **JDK Compiler Tree AST Parsing (`JavaSourceDeclarationParser`)**:
+    - Uses JDK Compiler Tree API (`com.sun.source.*` and `com.sun.source.util.*`) for robust, zero-regex Java declaration parsing with UTF-16 LSP coordinate precision across CRLF and LF.
+    - Gracefully handles syntax errors and unsupported language features without executing external processes or compiler tasks.
+  - **Deterministic Multi-Module Workspace Java Source Locator (`WorkspaceJavaSourceLocator`)**:
+    - Discovers and caches Java source roots across Maven multi-modules, Gradle subprojects, and directory layouts with upward probing.
+    - Defense-in-depth against path traversal and malicious type names (`isSafeJavaTypeName`).
+    - Timestamp/size-based declaration caching with automatic invalidation on file modification and deletion.
+  - **Graceful Fallbacks and Invariants**:
+    - Pure JVM models without local source return empty list (`definition unavailable`), never emitting synthetic or false locations.
+    - Preserves fallback to companion `.contract` file lines when Java source is missing.
+    - 100% preserves existing in-template (`#set`, `#foreach`) and non-JVM schema (`.d.ts`, `.schema.json`, `.vt-schema.json`) definition navigation.
+    - Exactly 0 new public API/SPI types, preserving frozen 1.0.0 baseline.
+
 ### Release Engineering
 - Open `1.3.0-SNAPSHOT` active development baseline on `main`.
 - Codify the `1.2.x` maintenance and patch-line policy: strictly reserved for critical bug fixes, security remediations, environment compatibility, documentation, and packaging fixes without new public API types, compiler features, schema formats, LSP features, or runtime behavioral alterations.

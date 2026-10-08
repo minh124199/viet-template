@@ -60,7 +60,7 @@ Context-aware code completion via `VietTemplateCompletionContributor` triggered 
 Hovering over directives or template variables presents formatted documentation and type signatures via `VietTemplateDocumentationProvider`.
 
 ### 3.6 Go to Definition / Declaration
-Navigates directly to the declaration of local variables (`#set`, `#foreach`) or schema properties via `VietTemplateGotoDeclarationHandler`.
+Navigates directly to the declaration of local variables (`#set`, `#foreach`), schema properties, or matching workspace Java source declarations (`.java`) for JVM-backed models via `VietTemplateGotoDeclarationHandler`. `.java` files remain natively opened by IntelliJ IDEA's native Java language support.
 
 ### 3.7 Actions & Menus
 - **Restart Viet Template Language Server** (`VietTemplate.RestartLspServer`): Available under the IDE `Tools` menu to recycle the language server process and re-synchronize open buffers.

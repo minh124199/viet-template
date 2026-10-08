@@ -85,7 +85,8 @@ Returns Markdown-formatted documentation when hovering over:
 
 Enables jump-to-definition:
 - **Local Variables**: Navigates to the originating `#set` assignment or `#foreach` loop declaration within the template.
-- **Schema Parameters & Properties**: Navigates to the corresponding line in the sibling or configured `*.vt-schema.json` file.
+- **Schema Parameters & Properties**: Navigates to the corresponding line in the sibling or configured `*.vt-schema.json`, `.schema.json`, or `.d.ts` schema file.
+- **Workspace Java Source Declarations**: When template references are backed by proven JVM model bindings, navigates directly to matching workspace Java source declarations (`.java`), including record components in headers, explicit record accessors, JavaBean getters (`getXxx()`), boolean getters (`isXxx()`), public fields, and inherited members on declaring superclasses. Gracefully returns empty definitions when source is unavailable (external dependencies or JDK classes) without synthetic locations.
 
 ### 4.4 Diagnostics (`textDocument/publishDiagnostics`)
 

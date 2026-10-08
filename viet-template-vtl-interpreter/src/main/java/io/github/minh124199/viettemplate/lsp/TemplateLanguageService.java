@@ -123,6 +123,18 @@ class TemplateLanguageService {
       return;
     }
 
+    if (path.toString().endsWith(".java")) {
+      if (changeType == 3) {
+        schemaIndex.onJavaFileDeleted(path);
+      } else {
+        schemaIndex.onJavaFileChanged(path);
+      }
+      for (String openUri : documentStore.allUris()) {
+        notifyDiagnosticListeners(openUri);
+      }
+      return;
+    }
+
     List<String> affected;
     if (changeType == 3) {
       // 3 = Deleted
@@ -177,7 +189,8 @@ class TemplateLanguageService {
     if (doc.isEmpty()) {
       return List.of();
     }
-    return DefinitionProvider.definition(doc.get(), position, schemaResolver, schemaIndex);
+    return DefinitionProvider.definition(
+        doc.get(), position, schemaResolver, schemaIndex, memberAccessPolicy);
   }
 
   // --- Configuration ---
@@ -212,6 +225,28 @@ class TemplateLanguageService {
 
   public WorkspaceSchemaIndex schemaIndex() {
     return schemaIndex;
+  }
+
+  public void setWorkspaceRoot(Path workspaceRoot) {
+    if (workspaceRoot != null) {
+      schemaIndex.javaSourceLocator().setWorkspaceRoot(workspaceRoot);
+    }
+  }
+
+  public void addSourceRoot(Path sourceRoot) {
+    if (sourceRoot != null) {
+      schemaIndex.javaSourceLocator().addSourceRoot(sourceRoot);
+    }
+  }
+
+  public void probeSourceRootsFor(Path documentPath) {
+    if (documentPath != null) {
+      schemaIndex.javaSourceLocator().probeSourceRootsFor(documentPath);
+    }
+  }
+
+  public WorkspaceJavaSourceLocator javaSourceLocator() {
+    return schemaIndex.javaSourceLocator();
   }
 
   public TemplateDocumentStore documentStore() {
