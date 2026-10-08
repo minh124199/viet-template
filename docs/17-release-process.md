@@ -422,3 +422,7 @@ the project advanced to `1.1.1-SNAPSHOT` for active development.
 ## Release 1.2.0
 
 Viet Template 1.2.0 completes the 1.2 feature line, encompassing build-time template validation (M32), compiler explanation tooling (M33), Velocity migration analysis and reporting (M34), cross-language schema interoperability (M35), schema-aware LSP and cross-language navigation (M36), and release qualification (M37). Release 1.2.0 is tagged `v1.2.0` on 2026-10-07 on branch `release/1.2.0` with full publication across all 14 public coordinates.
+
+## Release 1.3.0
+
+Viet Template 1.3.0 completes the 1.3 feature line, delivering deep cross-language developer navigation and workspace intelligence between templates and Java code: Java source navigation (M38), cross-language find references and symbol graph (M39), safe cross-language rename and refactoring (M40), workspace schema intelligence and symbol search (M41), and release qualification (M42). Release 1.3.0 is tagged `v1.3.0` on 2026-10-09 on branch `release/1.3.0` with full publication across all 14 public coordinates.

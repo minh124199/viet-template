@@ -51,7 +51,7 @@ class VerifyIntelliJPluginTests(unittest.TestCase):
                 """<idea-plugin>
                     <id>io.github.minh124199.viet-template-intellij</id>
                     <name>Viet Template</name>
-                    <version>1.2.0</version>
+                    <version>1.3.0</version>
                     <vendor>Viet Template</vendor>
                     <depends>com.intellij.modules.platform</depends>
                     <extensions defaultExtensionNs="com.intellij"/>
@@ -76,7 +76,7 @@ class VerifyIntelliJPluginTests(unittest.TestCase):
                     pluginConfiguration {
                         id = "io.github.minh124199.viet-template-intellij"
                         name = "Viet Template"
-                        version = "1.2.0"
+                        version = "1.3.0"
                         ideaVersion {
                             sinceBuild = "241"
                             untilBuild = "251.*"

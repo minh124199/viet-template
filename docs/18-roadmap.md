@@ -1,6 +1,6 @@
 # 18 — Implementation Roadmap (Historical Milestone Record and Current Status)
 
-> **Status note (2026-10-07):** This document preserves the project's milestone history. Viet Template 1.2.0 is the latest published stable release (published 2026-10-07; 1.1.0 published 2026-10-03). Earlier release-phase plans are historical records; unfinished 1.0 RC soak/readiness wording below is closed by the subsequent 1.0.0 GA release, and must not be read as current work.
+> **Status note (2026-10-09):** This document preserves the project's milestone history. Viet Template 1.3.0 is the latest published stable release (published 2026-10-09; 1.2.0 published 2026-10-07). Earlier release-phase plans are historical records; unfinished 1.0 RC soak/readiness wording below is closed by the subsequent 1.0.0 GA release, and must not be read as current work.
 
 ## Overview
 
@@ -71,7 +71,7 @@ To adhere to the Java-first design policy and avoid premature complexity:
 
 Release `0.2.0` introduces the next major internal runtime evolution, transitioning variable resolution from string-based hash lookups to compiler-assigned flat array slots and indexing the compilation cache for scalable invalidation.
 
-**Release Status**: Version 1.2.0 was published on 2026-10-07 as the latest stable feature release, following 1.1.0 (2026-10-03), 1.0.1 (2026-09-28), and 1.0.0 GA (2026-09-26). Version 0.2.2 (published 2026-09-20; 0.2.1 on 2026-09-17, 0.2.0 on 2026-09-12) represents the historical 0.2.x line. Version 0.2.3 was prepared across POMs but held without tagging or publication (`PREPARED_HELD`). Milestones M20–M37 are complete and published in 1.2.0.
+**Release Status**: Version 1.3.0 was published on 2026-10-09 as the latest stable feature release, following 1.2.0 (2026-10-07), 1.1.0 (2026-10-03), 1.0.1 (2026-09-28), and 1.0.0 GA (2026-09-26). Version 0.2.2 (published 2026-09-20; 0.2.1 on 2026-09-17, 0.2.0 on 2026-09-12) represents the historical 0.2.x line. Version 0.2.3 was prepared across POMs but held without tagging or publication (`PREPARED_HELD`). Milestones M20–M42 are complete and published in 1.3.0.
 
 **Post-release infrastructure status**: 0.2.x release infrastructure hardening is COMPLETE. Central
 submission, publication monitoring, public-coordinate verification, consumer smoke testing, and
@@ -449,7 +449,7 @@ Following the General Availability release of Viet Template 1.2.0 (published 202
   - Patches (`1.2.1`, `1.2.2`, etc.) are maintained and released exclusively from branch `release/1.2`, created on demand from tag `v1.2.0`.
   - Every patch applied to `release/1.2` is immediately reconciled (cherry-picked or merged) into `main` to prevent regressions in active development.
   - All patch releases are validated against the canonical 1.0.0 and 1.2.0 compatibility baselines.
-  - Active feature development moves forward exclusively on `main` under the `1.3.0-SNAPSHOT` development line.
+  - Active feature development moves forward exclusively on `main` under the `1.3.0` development line.
 
 ---
 
@@ -532,14 +532,16 @@ The 1.3 release series establishes deep workspace intelligence across template a
   - Safe rename refactoring (`textDocument/prepareRename`, `textDocument/rename`) propagating member and local variable changes across templates and companion schemas with pre-flight validation, conflict detection, and atomic `WorkspaceEdit` generation.
 - **Milestone M41 (Workspace Schema Intelligence & Symbol Search — target 1.3.0)**:
   - Workspace-wide semantic symbol search (`workspace/symbol`) projecting canonical schema types, properties, contracts, JVM-backed model symbols, and template macros with multi-tier deterministic ranking and zero textual scanning. Completes the 1.3 developer navigation arc.
+- **Milestone M42 (1.3.0 GA Qualification & Release — target 1.3.0) — COMPLETE / QUALIFIED**:
+  - Full qualification across 5-source semantic consistency matrix, large-workspace lifecycle and concurrency stress, dual-build parity, framework integrations, editor extension packages, publication topology, and release simulation.
 
 ---
 
 ### Detailed Milestone Specification: Milestone M38
 
 **Milestone Name**: Java Source Navigation & Cross-Language References<br>
-**Target Development Line**: `1.3.0-SNAPSHOT`<br>
-**Status**: Completed (1.3.0-SNAPSHOT)
+**Target Development Line**: `1.3.0`<br>
+**Status**: Completed (1.3.0)
 
 #### 1. Goal
 Enable developers editing Viet Template files (`.vtl`, `.vm`, `.vt`) in VS Code and IntelliJ IDEA to use standard "Go to Definition" (`F12` / `Ctrl+Click`) on template references backed by JVM models and navigate directly to the exact source declaration line in the corresponding workspace Java source file (`.java`).
@@ -613,8 +615,8 @@ Enable developers editing Viet Template files (`.vtl`, `.vm`, `.vt`) in VS Code 
 ### Detailed Milestone Specification: Milestone M39
 
 **Milestone Name**: Cross-Language Find References & Workspace Symbol Graph<br>
-**Target Development Line**: `1.3.0-SNAPSHOT`<br>
-**Status**: Completed (1.3.0-SNAPSHOT)
+**Target Development Line**: `1.3.0`<br>
+**Status**: Completed (1.3.0)
 
 #### 1. Goal
 Provide semantic, workspace-wide "Find References" (`textDocument/references`) across Viet Template files (`.vtl`, `.vm`, `.vt`) in VS Code, IntelliJ IDEA, and any standard LSP client, indexing and locating references solely based on compiler-proven semantic binding truth with guaranteed zero false-positive text collisions.
@@ -659,8 +661,8 @@ Provide semantic, workspace-wide "Find References" (`textDocument/references`) a
 ### Detailed Milestone Specification: Milestone M40
 
 **Milestone Name**: Safe Cross-Language Rename & Refactoring<br>
-**Target Development Line**: `1.3.0-SNAPSHOT`<br>
-**Status**: Completed (1.3.0-SNAPSHOT)
+**Target Development Line**: `1.3.0`<br>
+**Status**: Completed (1.3.0)
 
 #### 1. Goal
 Provide safe, previewable, and atomic rename refactoring (`textDocument/prepareRename` and `textDocument/rename`) across Viet Template files (`.vtl`, `.vm`, `.vt`) and companion schema declarations (`.d.ts`, `.contract`), ensuring zero textual grep fallback, strict conflict detection, and conservative protection of Java source boundaries.
@@ -704,8 +706,8 @@ Provide safe, previewable, and atomic rename refactoring (`textDocument/prepareR
 ### Detailed Milestone Specification: Milestone M41
 
 **Milestone Name**: Workspace Schema Intelligence & Symbol Search<br>
-**Target Development Line**: `1.3.0-SNAPSHOT`<br>
-**Status**: Completed (1.3.0-SNAPSHOT)
+**Target Development Line**: `1.3.0`<br>
+**Status**: Completed (1.3.0)
 
 #### 1. Goal
 Provide workspace-wide semantic symbol search (`workspace/symbol`) across Viet Template-relevant types, members, schema declarations, contracts, Java-backed model symbols, and template symbols in VS Code, IntelliJ IDEA, and any standard LSP client, projecting symbols from the canonical schema and binding graph rather than textual scanning or filesystem walking. Completes the 1.3 developer navigation arc.
@@ -748,5 +750,37 @@ Provide workspace-wide semantic symbol search (`workspace/symbol`) across Viet T
 - No template-local variable indexing.
 - No remote schema registries or dependency source downloads.
 - No automatic initiation of Milestone M42 (the 1.3 developer navigation arc is complete upon M41; subsequent work requires formal milestone planning).
+
+---
+
+### Detailed Milestone Specification: Milestone M42
+
+**Milestone Name**: 1.3.0 GA Qualification & Release<br>
+**Target Development Line**: `1.3.0`<br>
+**Status**: Completed (1.3.0)
+
+#### 1. Goal
+Execute comprehensive release qualification, packaging reconciliation, and publication verification for Viet Template 1.3.0 GA across all 14 public coordinates, verifying complete semantic consistency across 5 schema sources, large-workspace lifecycle resilience, build parity, and documentation alignment.
+
+#### 2. Scope & Qualification Results
+- **Semantic Consistency Matrix Qualification**:
+  - Full cross-feature matrix validation covering the 5 canonical schema sources (Java models, companion contracts, JSON Schema, TypeScript `.d.ts`, and internal VTL AST symbols).
+  - Verified uniform behavior across completion, hover, definition, diagnostics, find references, safe rename, and workspace symbol search with zero cross-source divergence.
+- **Large-Workspace Lifecycle & Concurrency Stress**:
+  - Validated memory safety, cache eviction, and lock fairness under heavy simulated editor workloads with rapid concurrent document mutations, watched file updates, and workspace symbol queries.
+- **Dual Build Parity & Spotless Cleanliness**:
+  - 100% build parity between Apache Maven (3.9.9) and Gradle (9.7.1) with identical bytecode targets, Java 21 compilation flags, and zero Spotless formatting discrepancies.
+- **Framework Integrations & Native Image Verification**:
+  - Validated Spring Boot (3.3.5 / 4.1.1) and Quarkus (3.39.4) integrations across JVM and GraalVM/Mandrel native compilation.
+- **Editor Packages Parity**:
+  - Aligned VS Code extension (`editors/vscode`) and IntelliJ IDEA plugin (`editors/intellij`) manifests and metadata to 1.3.0 with complete end-to-end integration test verification.
+- **Publication Topology & Release Simulation**:
+  - Reconciled publication topology for exactly 14 public coordinates with zero snapshot leaks and clean release simulation (`scripts/simulate-release.sh`).
+
+---
+
+## Future Milestones (Post-1.3.0 Development Line)
+
+Following the completion and qualification of Milestone M42 and the release of Viet Template 1.3.0 GA, the next feature milestone family is undecided / pending planning. Active maintenance for the 1.3.x series is governed by the maintenance policy.
 
 
