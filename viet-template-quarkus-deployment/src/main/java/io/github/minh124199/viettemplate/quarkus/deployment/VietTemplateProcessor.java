@@ -88,6 +88,22 @@ public class VietTemplateProcessor {
   }
 
   @BuildStep
+  public void registerAssetResources(
+      BuildProducer<NativeImageResourceBuildItem> nativeImageResources) {
+    Config cfg = ConfigProvider.getConfig();
+    boolean assetsEnabled =
+        cfg.getOptionalValue("quarkus.viet-template.assets.enabled", Boolean.class).orElse(false);
+    if (assetsEnabled) {
+      String manifestLoc =
+          cfg.getOptionalValue("quarkus.viet-template.assets.manifest-location", String.class)
+              .orElse("static/.vite/manifest.json")
+              .trim();
+      String resPath = manifestLoc.startsWith("/") ? manifestLoc.substring(1) : manifestLoc;
+      nativeImageResources.produce(new NativeImageResourceBuildItem(resPath));
+    }
+  }
+
+  @BuildStep
   public void registerSecurityIntegration(
       Capabilities capabilities,
       BuildProducer<AdditionalBeanBuildItem> additionalBeans,

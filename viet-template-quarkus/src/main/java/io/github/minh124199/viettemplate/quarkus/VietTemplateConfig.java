@@ -66,4 +66,65 @@ public interface VietTemplateConfig {
   default List<String> effectiveAdditionalSuffixes() {
     return additionalSuffixes().orElseGet(List::of);
   }
+
+  /** Whether frontend asset integration is enabled. Defaults to false. */
+  @io.smallrye.config.WithName("assets.enabled")
+  @WithDefault("false")
+  default boolean assetsEnabled() {
+    return false;
+  }
+
+  /** Frontend asset provider type. Defaults to "vite". */
+  @io.smallrye.config.WithName("assets.provider")
+  @WithDefault("vite")
+  default String assetsProvider() {
+    return "vite";
+  }
+
+  /** Asset resolution mode: "production" or "development". Defaults to "production". */
+  @io.smallrye.config.WithName("assets.mode")
+  @WithDefault("production")
+  default String assetsMode() {
+    return "production";
+  }
+
+  /** Public base URL or CDN path prefix for asset tags. Defaults to "/". */
+  @io.smallrye.config.WithName("assets.public-base")
+  @WithDefault("/")
+  default String assetsPublicBase() {
+    return "/";
+  }
+
+  /** Whether module preload tags are emitted in the HTML head. Defaults to true. */
+  @io.smallrye.config.WithName("assets.module-preload")
+  @WithDefault("true")
+  default boolean assetsModulePreload() {
+    return true;
+  }
+
+  /**
+   * Whether to fail startup if the production manifest is missing or malformed. Defaults to true.
+   */
+  @io.smallrye.config.WithName("assets.fail-fast")
+  @WithDefault("true")
+  default boolean assetsFailFast() {
+    return true;
+  }
+
+  /**
+   * Resource location of the Vite production manifest file on classpath. Defaults to
+   * "static/.vite/manifest.json".
+   */
+  @io.smallrye.config.WithName("assets.manifest-location")
+  @WithDefault("static/.vite/manifest.json")
+  default String assetsManifestLocation() {
+    return "static/.vite/manifest.json";
+  }
+
+  /** Vite dev server URL when in development mode. Defaults to "http://localhost:5173". */
+  @io.smallrye.config.WithName("assets.dev-server")
+  @WithDefault("http://localhost:5173")
+  default String assetsDevServer() {
+    return "http://localhost:5173";
+  }
 }
