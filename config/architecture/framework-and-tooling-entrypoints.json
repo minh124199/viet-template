@@ -314,6 +314,18 @@
       "userJavaApi": false,
       "stableApiClassification": "STABLE_API",
       "description": "ServiceLoader provider registering the VTL template engine implementation."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetAutoConfiguration",
+      "module": "viet-template-spring-boot-autoconfigure",
+      "entrypointKind": "SPRING_BOOT_AUTOCONFIGURATION",
+      "metadataSource": "META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": false,
+      "stableApiClassification": "FRAMEWORK_ENTRYPOINT",
+      "description": "Spring Boot AutoConfiguration registering frontend asset and client-data beans."
     }
   ]
 }

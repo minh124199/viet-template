@@ -1,5 +1,6 @@
 package io.github.minh124199.viettemplate.spring.boot.autoconfigure.aot;
 
+import io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties;
 import io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -54,6 +55,18 @@ public class VietTemplateRuntimeHints implements RuntimeHintsRegistrar {
         .reflection()
         .registerType(
             VietTemplateProperties.Security.class,
+            MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+            MemberCategory.INVOKE_PUBLIC_METHODS);
+    hints
+        .reflection()
+        .registerType(
+            VietTemplateAssetProperties.class,
+            MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+            MemberCategory.INVOKE_PUBLIC_METHODS);
+    hints
+        .reflection()
+        .registerType(
+            VietTemplateAssetProperties.Vite.class,
             MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
             MemberCategory.INVOKE_PUBLIC_METHODS);
 

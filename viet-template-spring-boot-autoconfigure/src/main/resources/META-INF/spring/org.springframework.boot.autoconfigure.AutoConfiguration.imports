@@ -1,2 +1,3 @@
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateSecurityAutoConfiguration
+io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetAutoConfiguration

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Svelte Island Counter</title>
+  $assets.head("src/pages/counter/index.ts")
+</head>
+<body>
+  <main>
+    <h1>Viet Template + Svelte Island Example</h1>
+
+    <!-- Semantic SSR fallback rendered for all users -->
+    <div id="counter-island">
+      <div class="counter-card">
+        <p class="count-display">Current count: <strong>$!model.initialCount</strong></p>
+        <p class="fallback-note">Interactive controls loading...</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Script-safe JSON client data containing initial state -->
+  $clientData.script("counter-state", $model)
+
+  <!-- Entry module script -->
+  $assets.body("src/pages/counter/index.ts")
+</body>
+</html>

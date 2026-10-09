@@ -221,6 +221,22 @@ verify_endpoints() {
     fi
     rm -f "${cookie_jar}"
 
+    # 13. Client-data serialization with SimpleJsonSerializer via GET /hello/client-data
+    code=$(curl -s -o /tmp/quarkus-endpoint-response.json -w "%{http_code}" "http://localhost:${port}/hello/client-data")
+    if [ "${code}" != "200" ]; then
+        echo "[FAIL] Expected HTTP 200 from /hello/client-data on port ${port}, got ${code}!"
+        cat "${log_file}"
+        return 1
+    fi
+    if ! grep -q '"username":"native-user"' /tmp/quarkus-endpoint-response.json || \
+       ! grep -q '"roleLevel":99' /tmp/quarkus-endpoint-response.json || \
+       ! grep -q '"team":"core"' /tmp/quarkus-endpoint-response.json || \
+       ! grep -q '"lead":true' /tmp/quarkus-endpoint-response.json; then
+        echo "[FAIL] /hello/client-data response body missing expected content:"
+        cat /tmp/quarkus-endpoint-response.json
+        return 1
+    fi
+
     return 0
 }
 

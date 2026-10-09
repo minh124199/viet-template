@@ -24,6 +24,9 @@ out/
 # VS Code
 .vscode/
 
+# Antigravity
+.antigravity/
+
 # macOS
 .DS_Store
 

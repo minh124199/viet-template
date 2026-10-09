@@ -388,6 +388,23 @@ def get_known_spring_properties(repo_root: Path) -> set[str]:
             kebab = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", camel).lower()
             known.add(f"{prefix}.{kebab}")
 
+    # 1b. Parse VietTemplateAssetProperties.java
+    asset_props_java = (
+        repo_root
+        / "viet-template-spring-boot-autoconfigure"
+        / "src/main/java/io/github/minh124199/viettemplate/spring/boot/autoconfigure/VietTemplateAssetProperties.java"
+    )
+    if asset_props_java.is_file():
+        content = asset_props_java.read_text(encoding="utf-8")
+        prefix = "viet-template.assets"
+        field_re = re.compile(r"private\s+(?:boolean|int|long|String|Charset|List(?:<String>)?)\s+([a-zA-Z0-9_]+)\b")
+        for m in field_re.finditer(content):
+            camel = m.group(1)
+            kebab = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", camel).lower()
+            known.add(f"{prefix}.{kebab}")
+        known.add(f"{prefix}.vite.manifest")
+        known.add(f"{prefix}.vite.dev-server")
+
     # 2. Parse @ConditionalOnProperty definitions in autoconfigure module
     auto_dir = (
         repo_root

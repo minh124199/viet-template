@@ -170,4 +170,18 @@ public class HelloResourceTest {
         .then()
         .statusCode(400);
   }
+
+  @Test
+  @DisplayName("Native client-data serialization with SimpleJsonSerializer for POJO and record")
+  public void testClientDataSerialization() {
+    given()
+        .when()
+        .get("/hello/client-data")
+        .then()
+        .statusCode(200)
+        .body(containsString("\"username\":\"native-user\""))
+        .body(containsString("\"roleLevel\":99"))
+        .body(containsString("\"team\":\"core\""))
+        .body(containsString("\"lead\":true"));
+  }
 }

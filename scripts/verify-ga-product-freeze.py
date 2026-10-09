@@ -140,7 +140,7 @@ def classify_file(path_str: str) -> str:
         return CAT_VERSION_METADATA
 
     # 4. Documentation & Repository Meta
-    if p.startswith("docs/") or p.endswith(".md") or p.endswith(".txt") and not p.startswith("config/"):
+    if p.startswith("docs/") or p.startswith("examples/") or p.endswith(".md") or p.endswith(".txt") and not p.startswith("config/"):
         return CAT_DOCUMENTATION
     if p in ("LICENSE", "NOTICE", ".gitignore", ".gitattributes", "gradlew", "gradlew.bat", "mvnw", "mvnw.cmd"):
         return CAT_DOCUMENTATION

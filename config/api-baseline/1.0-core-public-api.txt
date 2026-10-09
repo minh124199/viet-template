@@ -1105,3 +1105,144 @@ TYPE public interface io.github.minh124199.viettemplate.vtl.interpreter.VtlSecur
   MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy of(io.github.minh124199.viettemplate.api.MemberAccessPolicy)
   MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy safe()
   MEMBER public static io.github.minh124199.viettemplate.vtl.interpreter.VtlSecurityPolicy standard()
+
+TYPE public final class io.github.minh124199.viettemplate.assets.AssetDiagnosticCode
+  MEMBER public static final java.lang.String VT_ASSET_001
+  MEMBER public static final java.lang.String VT_ASSET_002
+  MEMBER public static final java.lang.String VT_ASSET_003
+  MEMBER public static final java.lang.String VT_ASSET_004
+  MEMBER public static final java.lang.String VT_ASSET_005
+  MEMBER public static final java.lang.String VT_ASSET_006
+  MEMBER public static final java.lang.String VT_ASSET_007
+  MEMBER public static final java.lang.String VT_ASSET_008
+  MEMBER public static final java.lang.String VT_ASSET_009
+  MEMBER public static final java.lang.String VT_CLIENT_001
+  MEMBER public static final java.lang.String VT_CLIENT_002
+  MEMBER public static final java.lang.String VT_CLIENT_003
+  MEMBER public static final java.lang.String VT_CLIENT_004
+
+TYPE public class io.github.minh124199.viettemplate.assets.AssetException extends java.lang.RuntimeException
+  MEMBER public io.github.minh124199.viettemplate.assets.AssetException(java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.assets.AssetException(java.lang.String, java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.assets.AssetException(java.lang.String, java.lang.String, java.lang.String, java.lang.Throwable)
+  MEMBER public io.github.minh124199.viettemplate.assets.AssetException(java.lang.String, java.lang.String, java.lang.String, java.util.List<java.lang.String>, java.lang.Throwable)
+  MEMBER public java.lang.String code()
+  MEMBER public java.lang.String logicalTarget()
+  MEMBER public java.util.List<java.lang.String> suggestions()
+
+TYPE public final class io.github.minh124199.viettemplate.assets.AssetModulePreload extends java.lang.Record
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.assets.AssetModulePreload(java.lang.String)
+  MEMBER public java.lang.String url()
+
+TYPE public interface io.github.minh124199.viettemplate.assets.AssetResolver
+  MEMBER public abstract io.github.minh124199.viettemplate.assets.ResolvedAsset resolveAsset(java.lang.String)
+  MEMBER public abstract io.github.minh124199.viettemplate.assets.ResolvedFrontendEntry resolveEntry(java.lang.String)
+
+TYPE public final class io.github.minh124199.viettemplate.assets.AssetScript extends java.lang.Record
+  MEMBER public boolean module()
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.assets.AssetScript(java.lang.String, boolean)
+  MEMBER public java.lang.String url()
+
+TYPE public final class io.github.minh124199.viettemplate.assets.AssetStylesheet extends java.lang.Record
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.assets.AssetStylesheet(java.lang.String)
+  MEMBER public java.lang.String url()
+
+TYPE public final class io.github.minh124199.viettemplate.assets.ClientData
+  MEMBER public io.github.minh124199.viettemplate.assets.ClientData()
+  MEMBER public io.github.minh124199.viettemplate.assets.ClientData(io.github.minh124199.viettemplate.assets.ClientDataSerializer)
+  MEMBER public static io.github.minh124199.viettemplate.assets.ClientDataSerializer defaultSerializer()
+  MEMBER public io.github.minh124199.viettemplate.runtime.SafeHtml script(java.lang.String, java.lang.Object)
+  MEMBER public void writeScript(java.lang.String, java.lang.Object, java.lang.Appendable) throws java.io.IOException
+
+TYPE public class io.github.minh124199.viettemplate.assets.ClientDataSerializationException extends java.lang.RuntimeException
+  MEMBER public io.github.minh124199.viettemplate.assets.ClientDataSerializationException(java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.assets.ClientDataSerializationException(java.lang.String, java.lang.String, java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.assets.ClientDataSerializationException(java.lang.String, java.lang.String, java.lang.String, java.lang.Throwable)
+  MEMBER public java.lang.String code()
+  MEMBER public java.lang.String dataId()
+
+TYPE public interface io.github.minh124199.viettemplate.assets.ClientDataSerializer
+  MEMBER public abstract void serialize(java.lang.Object, java.lang.Appendable) throws io.github.minh124199.viettemplate.assets.ClientDataSerializationException
+
+TYPE public final class io.github.minh124199.viettemplate.assets.FrontendAssets
+  MEMBER public io.github.minh124199.viettemplate.assets.FrontendAssets(io.github.minh124199.viettemplate.assets.AssetResolver)
+  MEMBER public io.github.minh124199.viettemplate.runtime.SafeHtml body(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.runtime.SafeHtml body(java.lang.String...)
+  MEMBER public io.github.minh124199.viettemplate.runtime.SafeHtml body(java.util.List<?>)
+  MEMBER public io.github.minh124199.viettemplate.runtime.SafeHtml head(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.runtime.SafeHtml head(java.lang.String...)
+  MEMBER public io.github.minh124199.viettemplate.runtime.SafeHtml head(java.util.List<?>)
+  MEMBER public io.github.minh124199.viettemplate.runtime.SafeUrl url(java.lang.String)
+
+TYPE public final class io.github.minh124199.viettemplate.assets.FrontendAssetsRenderContextContributor implements io.github.minh124199.viettemplate.api.RenderContextContributor
+  MEMBER public io.github.minh124199.viettemplate.assets.ClientData clientData()
+  MEMBER public io.github.minh124199.viettemplate.assets.FrontendAssets assets()
+  MEMBER public io.github.minh124199.viettemplate.assets.FrontendAssetsRenderContextContributor(io.github.minh124199.viettemplate.assets.FrontendAssets, io.github.minh124199.viettemplate.assets.ClientData)
+  MEMBER public io.github.minh124199.viettemplate.assets.FrontendAssetsRenderContextContributor(io.github.minh124199.viettemplate.assets.FrontendAssets, io.github.minh124199.viettemplate.assets.ClientData, java.lang.String, java.lang.String)
+  MEMBER public static final java.lang.String DEFAULT_ASSETS_VARIABLE_NAME
+  MEMBER public static final java.lang.String DEFAULT_CLIENT_DATA_VARIABLE_NAME
+  MEMBER public void contribute(io.github.minh124199.viettemplate.api.ContributorContext, io.github.minh124199.viettemplate.api.RenderRequest)
+
+TYPE public class io.github.minh124199.viettemplate.assets.JacksonClientDataSerializer implements io.github.minh124199.viettemplate.assets.ClientDataSerializer
+  MEMBER public io.github.minh124199.viettemplate.assets.JacksonClientDataSerializer(java.lang.Object)
+  MEMBER public void serialize(java.lang.Object, java.lang.Appendable) throws io.github.minh124199.viettemplate.assets.ClientDataSerializationException
+
+TYPE public final class io.github.minh124199.viettemplate.assets.ResolvedAsset extends java.lang.Record
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.assets.ResolvedAsset(java.lang.String, java.lang.String)
+  MEMBER public java.lang.String logicalName()
+  MEMBER public java.lang.String url()
+
+TYPE public final class io.github.minh124199.viettemplate.assets.ResolvedFrontendEntry extends java.lang.Record
+  MEMBER public final boolean equals(java.lang.Object)
+  MEMBER public final int hashCode()
+  MEMBER public final java.lang.String toString()
+  MEMBER public io.github.minh124199.viettemplate.assets.AssetScript devClientScript()
+  MEMBER public io.github.minh124199.viettemplate.assets.AssetScript script()
+  MEMBER public io.github.minh124199.viettemplate.assets.ResolvedFrontendEntry(java.lang.String, java.util.List<io.github.minh124199.viettemplate.assets.AssetStylesheet>, java.util.List<io.github.minh124199.viettemplate.assets.AssetModulePreload>, io.github.minh124199.viettemplate.assets.AssetScript)
+  MEMBER public io.github.minh124199.viettemplate.assets.ResolvedFrontendEntry(java.lang.String, java.util.List<io.github.minh124199.viettemplate.assets.AssetStylesheet>, java.util.List<io.github.minh124199.viettemplate.assets.AssetModulePreload>, io.github.minh124199.viettemplate.assets.AssetScript, io.github.minh124199.viettemplate.assets.AssetScript)
+  MEMBER public java.lang.String logicalEntry()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.assets.AssetModulePreload> modulePreloads()
+  MEMBER public java.util.List<io.github.minh124199.viettemplate.assets.AssetStylesheet> stylesheets()
+
+TYPE public final class io.github.minh124199.viettemplate.assets.vite.ViteAssetMode extends java.lang.Enum<io.github.minh124199.viettemplate.assets.vite.ViteAssetMode>
+  MEMBER public static final io.github.minh124199.viettemplate.assets.vite.ViteAssetMode DEVELOPMENT
+  MEMBER public static final io.github.minh124199.viettemplate.assets.vite.ViteAssetMode PRODUCTION
+  MEMBER public static io.github.minh124199.viettemplate.assets.vite.ViteAssetMode valueOf(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.assets.vite.ViteAssetMode[] values()
+
+TYPE public final class io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver implements io.github.minh124199.viettemplate.assets.AssetResolver
+  MEMBER public io.github.minh124199.viettemplate.assets.ResolvedAsset resolveAsset(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.assets.ResolvedFrontendEntry resolveEntry(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.assets.vite.ViteAssetMode mode()
+  MEMBER public java.lang.String devServerOrigin()
+  MEMBER public java.lang.String publicBase()
+  MEMBER public java.util.Set<java.lang.String> registeredAssets()
+  MEMBER public java.util.Set<java.lang.String> registeredEntries()
+  MEMBER public static io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver development(java.lang.String)
+  MEMBER public static io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder builder()
+  MEMBER public static io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder productionBuilder()
+
+TYPE public final class io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder
+  MEMBER public io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver build()
+  MEMBER public io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder devServer(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder failFast(boolean)
+  MEMBER public io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder manifest(java.io.InputStream)
+  MEMBER public io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder manifest(java.lang.String)
+  MEMBER public io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder manifest(java.nio.file.Path)
+  MEMBER public io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder manifestSupplier(java.util.function.Supplier<java.io.InputStream>)
+  MEMBER public io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder mode(io.github.minh124199.viettemplate.assets.vite.ViteAssetMode)
+  MEMBER public io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder modulePreload(boolean)
+  MEMBER public io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder publicBase(java.lang.String)
+
