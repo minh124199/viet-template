@@ -1159,6 +1159,7 @@ TYPE public final class io.github.minh124199.viettemplate.assets.AssetStylesheet
 TYPE public final class io.github.minh124199.viettemplate.assets.ClientData
   MEMBER public io.github.minh124199.viettemplate.assets.ClientData()
   MEMBER public io.github.minh124199.viettemplate.assets.ClientData(io.github.minh124199.viettemplate.assets.ClientDataSerializer)
+  MEMBER public static io.github.minh124199.viettemplate.assets.ClientDataSerializer defaultSerializer()
   MEMBER public io.github.minh124199.viettemplate.runtime.SafeHtml script(java.lang.String, java.lang.Object)
   MEMBER public void writeScript(java.lang.String, java.lang.Object, java.lang.Appendable) throws java.io.IOException
 
@@ -1214,23 +1215,6 @@ TYPE public final class io.github.minh124199.viettemplate.assets.ResolvedFronten
   MEMBER public java.lang.String logicalEntry()
   MEMBER public java.util.List<io.github.minh124199.viettemplate.assets.AssetModulePreload> modulePreloads()
   MEMBER public java.util.List<io.github.minh124199.viettemplate.assets.AssetStylesheet> stylesheets()
-
-TYPE public final class io.github.minh124199.viettemplate.assets.ScriptSafeAppendable implements java.lang.Appendable
-  MEMBER public io.github.minh124199.viettemplate.assets.ScriptSafeAppendable(java.lang.Appendable)
-  MEMBER public java.lang.Appendable append(char) throws java.io.IOException
-  MEMBER public java.lang.Appendable append(java.lang.CharSequence) throws java.io.IOException
-  MEMBER public java.lang.Appendable append(java.lang.CharSequence, int, int) throws java.io.IOException
-
-TYPE public final class io.github.minh124199.viettemplate.assets.SimpleJsonSerializer implements io.github.minh124199.viettemplate.assets.ClientDataSerializer
-  MEMBER public io.github.minh124199.viettemplate.assets.SimpleJsonSerializer()
-  MEMBER public static final io.github.minh124199.viettemplate.assets.SimpleJsonSerializer INSTANCE
-  MEMBER public void serialize(java.lang.Object, java.lang.Appendable) throws io.github.minh124199.viettemplate.assets.ClientDataSerializationException
-
-TYPE public final class io.github.minh124199.viettemplate.assets.vite.AssetPathValidator
-  MEMBER public static java.lang.String resolveAssetUrl(java.lang.String, java.lang.String)
-  MEMBER public static java.lang.String validateAndNormalizePublicBase(java.lang.String)
-  MEMBER public static java.lang.String validateDevServerOrigin(java.lang.String)
-  MEMBER public static void validateRelativePath(java.lang.String)
 
 TYPE public final class io.github.minh124199.viettemplate.assets.vite.ViteAssetMode extends java.lang.Enum<io.github.minh124199.viettemplate.assets.vite.ViteAssetMode>
   MEMBER public static final io.github.minh124199.viettemplate.assets.vite.ViteAssetMode DEVELOPMENT

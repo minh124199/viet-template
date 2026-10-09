@@ -136,7 +136,7 @@ class SimpleJsonSerializerTest {
     sb.setLength(0);
     java.util.Date date = new java.util.Date(1700000000000L);
     serializer.serialize(date, sb);
-    assertThat(sb.toString()).isNotEmpty();
+    assertThat(sb.toString()).isEqualTo("\"2023-11-14T22:13:20Z\"");
   }
 
   @Test
@@ -183,5 +183,112 @@ class SimpleJsonSerializerTest {
 
     serializer.serialize(new MultiPropertyBean(), sb);
     assertThat(sb.toString()).isEqualTo("{\"a\":\"1\",\"m\":\"2\",\"z\":\"3\"}");
+  }
+
+  static class BrokenGetterBean {
+    public String getGood() {
+      return "ok";
+    }
+
+    public String getExploding() {
+      throw new IllegalStateException("Getter exploded!");
+    }
+  }
+
+  @Test
+  void throwsOnFailingGetter() {
+    SimpleJsonSerializer serializer = SimpleJsonSerializer.INSTANCE;
+    StringBuilder sb = new StringBuilder();
+
+    org.assertj.core.api.Assertions.assertThatThrownBy(
+            () -> serializer.serialize(new BrokenGetterBean(), sb))
+        .isInstanceOf(ClientDataSerializationException.class)
+        .satisfies(
+            e -> {
+              ClientDataSerializationException ex = (ClientDataSerializationException) e;
+              assertThat(ex.code()).isEqualTo(AssetDiagnosticCode.VT_CLIENT_002);
+              assertThat(ex.getMessage()).contains("Failed reading property 'exploding'");
+              assertThat(ex.getCause()).isInstanceOf(IllegalStateException.class);
+            });
+  }
+
+  @Test
+  void defaultSerializerIsSimpleJsonSerializer() {
+    assertThat(ClientData.defaultSerializer()).isSameAs(SimpleJsonSerializer.INSTANCE);
+  }
+
+  @Test
+  void serializesMapWithNonStringKeys() {
+    SimpleJsonSerializer serializer = SimpleJsonSerializer.INSTANCE;
+    StringBuilder sb = new StringBuilder();
+
+    serializer.serialize(Map.of(42, "number", true, "bool"), sb);
+    assertThat(sb.toString()).contains("\"42\":\"number\"").contains("\"true\":\"bool\"");
+  }
+
+  @Test
+  void serializesSqlDateWithoutToInstantException() {
+    SimpleJsonSerializer serializer = SimpleJsonSerializer.INSTANCE;
+    StringBuilder sb = new StringBuilder();
+
+    java.sql.Date sqlDate = new java.sql.Date(1700000000000L);
+    serializer.serialize(sqlDate, sb);
+    assertThat(sb.toString()).isEqualTo("\"2023-11-14T22:13:20Z\"");
+  }
+
+  static class EdgeCaseBean {
+    public static String getStaticProperty() {
+      return "static-value";
+    }
+
+    public void getVoidProperty() {}
+
+    public String getValidProperty() {
+      return "valid";
+    }
+
+    public boolean isFlag() {
+      return true;
+    }
+
+    public void isVoidFlag() {}
+
+    public String isNotBoolean() {
+      return "ignored";
+    }
+  }
+
+  @Test
+  void filtersOutStaticVoidAndNonBooleanIsMethods() {
+    SimpleJsonSerializer serializer = SimpleJsonSerializer.INSTANCE;
+    StringBuilder sb = new StringBuilder();
+
+    serializer.serialize(new EdgeCaseBean(), sb);
+    assertThat(sb.toString()).isEqualTo("{\"flag\":true,\"validProperty\":\"valid\"}");
+  }
+
+  @Test
+  void rejectsUnsupportedSystemTypes() {
+    SimpleJsonSerializer serializer = SimpleJsonSerializer.INSTANCE;
+    StringBuilder sb = new StringBuilder();
+
+    org.assertj.core.api.Assertions.assertThatThrownBy(() -> serializer.serialize(String.class, sb))
+        .isInstanceOf(ClientDataSerializationException.class)
+        .satisfies(
+            e -> {
+              ClientDataSerializationException ex = (ClientDataSerializationException) e;
+              assertThat(ex.code()).isEqualTo(AssetDiagnosticCode.VT_CLIENT_002);
+              assertThat(ex.getMessage()).contains("Unsupported system type");
+            });
+
+    org.assertj.core.api.Assertions.assertThatThrownBy(
+            () -> serializer.serialize(Thread.currentThread(), sb))
+        .isInstanceOf(ClientDataSerializationException.class)
+        .satisfies(
+            e -> {
+              ClientDataSerializationException ex = (ClientDataSerializationException) e;
+              assertThat(ex.code()).isEqualTo(AssetDiagnosticCode.VT_CLIENT_002);
+              assertThat(ex.getMessage()).contains("Unsupported system type");
+            });
   }
 }

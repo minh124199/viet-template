@@ -9,7 +9,7 @@ import java.util.Locale;
  * Validates and normalizes asset paths and URLs against directory traversal, hostile schemes, and
  * injection attacks.
  */
-public final class AssetPathValidator {
+final class AssetPathValidator {
 
   private AssetPathValidator() {}
 

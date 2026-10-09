@@ -62,6 +62,6 @@ When `viet-template.assets.enabled=true` is set, `VietTemplateAssetAutoConfigura
 
 1. **`AssetResolver`**: A `ViteAssetResolver` configured for development or production based on properties.
 2. **`FrontendAssets`**: The facade providing `$assets.head()`, `$assets.body()`, and `$assets.url()`.
-3. **`ClientDataSerializer`**: A `SpringJacksonClientDataSerializer` wrapping Spring's primary `ObjectMapper` (compatible with both Jackson 2.x and Jackson 3.x).
+3. **`ClientDataSerializer`**: A `JacksonClientDataSerializer` wrapping Spring's primary `ObjectMapper` (compatible with both Jackson 2.x and Jackson 3.x).
 4. **`ClientData`**: The facade providing `$clientData.script()`.
 5. **`VietTemplateEngineCustomizer`**: Automatically registers `FrontendAssetsRenderContextContributor` on the template engine so `$assets` and `$clientData` are available in all templates.

@@ -55,13 +55,18 @@ Use Quarkus profile prefixes (`%dev`, `%prod`) to configure environments:
 When building a native executable (`./mvnw package -Dnative` or `./gradlew build -Dquarkus.package.type=native`), the deployment processor (`VietTemplateProcessor`) registers a `NativeImageResourceBuildItem` for the configured `manifest-location`.
 
 This guarantees:
-- The `manifest.json` file is baked directly into the native image binary.
-- At runtime, native image reflection or file system access is never needed.
+- The `manifest.json` file is baked directly into the native image binary as a classpath resource.
+- At runtime, file system access is never needed to load the Vite manifest.
 - Asset URLs and CSS preloads resolve instantly from memory inside the native binary.
+
+### Reflection Considerations for Client Data
+When serializing domain objects with `clientData.script()` in Native Image:
+- If Quarkus Jackson is used, Quarkus automatically registers Jackson reflection metadata for serialized types.
+- If the default fallback serializer (`ClientData.defaultSerializer()`) is used, domain records and POJOs must be registered for reflection using Quarkus's `@RegisterForReflection` annotation so their getters and record components remain accessible at runtime.
 
 ## Arc Container Integration
 
 The Quarkus producer (`VietTemplateProducer`) automatically inspects Quarkus's Arc CDI container:
 - If a custom `ClientDataSerializer` bean is available, it is injected.
 - If Quarkus Jackson is installed, the container's `ObjectMapper` is automatically adapted via `JacksonClientDataSerializer`.
-- If no Jackson bean is available, it cleanly falls back to `SimpleJsonSerializer.INSTANCE`.
+- If no Jackson bean is available, it cleanly falls back to `ClientData.defaultSerializer()`.

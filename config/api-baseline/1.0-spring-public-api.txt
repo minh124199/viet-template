@@ -109,15 +109,6 @@ TYPE public class io.github.minh124199.viettemplate.spring.web.servlet.VietTempl
   MEMBER public void setSuffix(java.lang.String)
   MEMBER public void setSuffixes(java.util.List<java.lang.String>)
 
-TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetAutoConfiguration
-  MEMBER public io.github.minh124199.viettemplate.assets.AssetResolver vietTemplateAssetResolver(io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties, org.springframework.core.io.ResourceLoader)
-  MEMBER public io.github.minh124199.viettemplate.assets.ClientData vietTemplateClientData(io.github.minh124199.viettemplate.assets.ClientDataSerializer)
-  MEMBER public io.github.minh124199.viettemplate.assets.ClientDataSerializer vietTemplateClientDataSerializer(org.springframework.context.ApplicationContext)
-  MEMBER public io.github.minh124199.viettemplate.assets.FrontendAssets vietTemplateFrontendAssets(io.github.minh124199.viettemplate.assets.AssetResolver)
-  MEMBER public io.github.minh124199.viettemplate.assets.FrontendAssetsRenderContextContributor vietTemplateAssetsRenderContextContributor(io.github.minh124199.viettemplate.assets.FrontendAssets, io.github.minh124199.viettemplate.assets.ClientData)
-  MEMBER public io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetAutoConfiguration()
-  MEMBER public io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer vietTemplateAssetsEngineCustomizer(io.github.minh124199.viettemplate.assets.FrontendAssetsRenderContextContributor)
-
 TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties
   MEMBER public boolean isEnabled()
   MEMBER public boolean isFailFast()
@@ -151,7 +142,4 @@ TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.Vi
   MEMBER public java.lang.String getManifest()
   MEMBER public void setDevServer(java.lang.String)
   MEMBER public void setManifest(java.lang.String)
-
-TYPE public class io.github.minh124199.viettemplate.spring.client.SpringJacksonClientDataSerializer extends io.github.minh124199.viettemplate.assets.JacksonClientDataSerializer
-  MEMBER public io.github.minh124199.viettemplate.spring.client.SpringJacksonClientDataSerializer(java.lang.Object)
 

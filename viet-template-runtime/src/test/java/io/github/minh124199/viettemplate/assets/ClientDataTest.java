@@ -76,6 +76,21 @@ class ClientDataTest {
                     .isEqualTo(AssetDiagnosticCode.VT_CLIENT_003));
   }
 
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "counter",
+        "counter-island",
+        "feature:counter",
+        "app:island.counter_v2",
+        "scope:sub.module-1_beta:counter"
+      })
+  void acceptsValidClientDataIdWithColonsAndDelimiters(String validId) {
+    ClientData clientData = new ClientData();
+    SafeHtml html = clientData.script(validId, Map.of("ready", true));
+    assertThat(html.toString()).contains("data-vt-client-data=\"" + validId + "\"");
+  }
+
   @Test
   void failsWhenSerializerIsUnavailable() {
     ClientData clientData = new ClientData(null);

@@ -163,16 +163,12 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.assets.JacksonClientDataSerializer",
     "io.github.minh124199.viettemplate.assets.ResolvedAsset",
     "io.github.minh124199.viettemplate.assets.ResolvedFrontendEntry",
-    "io.github.minh124199.viettemplate.assets.ScriptSafeAppendable",
-    "io.github.minh124199.viettemplate.assets.SimpleJsonSerializer",
-    "io.github.minh124199.viettemplate.assets.vite.AssetPathValidator",
     "io.github.minh124199.viettemplate.assets.vite.ViteAssetMode",
     "io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver",
     "io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder",
     "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetAutoConfiguration",
     "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties",
     "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties$Vite",
-    "io.github.minh124199.viettemplate.spring.client.SpringJacksonClientDataSerializer",
 }
 
 ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {

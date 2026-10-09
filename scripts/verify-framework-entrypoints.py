@@ -213,6 +213,10 @@ def main():
             "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration",
         ),
         (
+            "viet-template-spring-boot-autoconfigure/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports",
+            "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetAutoConfiguration",
+        ),
+        (
             "viet-template-gradle-plugin/src/main/resources/META-INF/gradle-plugins/io.github.minh124199.viet-template.properties",
             "io.github.minh124199.viettemplate.tooling.gradle.VietTemplatePlugin",
         ),

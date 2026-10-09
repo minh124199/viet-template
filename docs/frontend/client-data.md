@@ -35,6 +35,8 @@ $clientData.script("payroll-data", $payrollModel)
 $assets.body("src/pages/payroll/index.ts")
 ```
 
+Client data identifiers must conform to the regex `^[a-zA-Z0-9_.:-]+$` (alphanumeric characters, underscores, hyphens, dots, and colons). Empty or invalid identifiers trigger a `ClientDataSerializationException` with code `VT-CLIENT-003`.
+
 ## TypeScript Client Helper
 
 In your TypeScript frontend codebase, extract client data with a type-safe helper:
@@ -72,6 +74,22 @@ console.log(`Loaded budget for ${data.department}: ${data.totalBudget}`);
 
 ## Serializer Providers
 
-- **Spring Boot**: Automatically configures `SpringJacksonClientDataSerializer` wrapping Spring's configured `ObjectMapper` (supporting both Jackson 2.x and Jackson 3.x).
+- **Spring Boot**: Automatically configures `JacksonClientDataSerializer` wrapping Spring's configured `ObjectMapper` (supporting both Jackson 2.x and Jackson 3.x).
 - **Quarkus**: Automatically detects and configures Jackson's `ObjectMapper` from Quarkus's Arc container.
-- **Standalone Java**: Uses `SimpleJsonSerializer` by default, or you can register a custom `ClientDataSerializer` via `FrontendAssetsRenderContextContributor`.
+- **Standalone Java**: Uses `ClientData.defaultSerializer()` by default, or you can register a custom `ClientDataSerializer` via `FrontendAssetsRenderContextContributor`.
+
+## Default Serializer Semantics & Native Image Reflection
+
+The built-in serializer accessible via `ClientData.defaultSerializer()` is zero-dependency and provides:
+- Standard primitives, strings, numbers, booleans, enums, characters, and UUIDs.
+- `java.time.Instant`, `TemporalAccessor`, and `java.util.Date` formatted as ISO-8601 UTC strings.
+- Collections, arrays, and Maps (keys serialized using `toString()`).
+- `NaN` and `Infinity` numbers serialized as `null` per RFC 8259.
+- Circular reference detection (throwing `ClientDataSerializationException` with code `VT-CLIENT-002`).
+- Reflective record component and JavaBean getter extraction, sorted deterministically by property name.
+
+### GraalVM Native Image Reflection Requirements
+When running in GraalVM SubstrateVM (native image) without Jackson:
+- The default serializer relies on reflection (`Class.getMethods()` and record component accessors) to discover properties on user domain classes and records.
+- In SubstrateVM, user domain classes passed to `clientData.script()` must be registered for reflection (e.g. using `@RegisterForReflection` in Quarkus or `@RegisterReflectionForBinding` in Spring AOT).
+- In applications using Quarkus Jackson or Spring Jackson, `JacksonClientDataSerializer` is used automatically, leveraging Jackson's existing native reflection registrations.

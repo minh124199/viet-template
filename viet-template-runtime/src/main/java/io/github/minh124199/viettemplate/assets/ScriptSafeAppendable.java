@@ -21,11 +21,11 @@ import java.util.Objects;
  * terminate the script element or trigger HTML parser tag/comment transitions, while remaining
  * fully valid JSON parseable by browser {@code JSON.parse()}.
  */
-public final class ScriptSafeAppendable implements Appendable {
+final class ScriptSafeAppendable implements Appendable {
 
   private final Appendable delegate;
 
-  public ScriptSafeAppendable(Appendable delegate) {
+  ScriptSafeAppendable(Appendable delegate) {
     this.delegate = Objects.requireNonNull(delegate, "delegate must not be null");
   }
 

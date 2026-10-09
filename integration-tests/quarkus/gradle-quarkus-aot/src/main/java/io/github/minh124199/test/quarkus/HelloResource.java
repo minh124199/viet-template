@@ -86,4 +86,40 @@ public class HelloResource {
   public String csrfSubmit(@FormParam("message") String message) {
     return "Received: " + message;
   }
+
+  @io.quarkus.runtime.annotations.RegisterForReflection
+  public static class NativeUserPojo {
+    private final String username;
+    private final int roleLevel;
+
+    public NativeUserPojo(String username, int roleLevel) {
+      this.username = username;
+      this.roleLevel = roleLevel;
+    }
+
+    public String getUsername() {
+      return username;
+    }
+
+    public int getRoleLevel() {
+      return roleLevel;
+    }
+  }
+
+  @io.quarkus.runtime.annotations.RegisterForReflection
+  public record NativeUserRecord(String team, boolean lead) {}
+
+  @GET
+  @Path("/client-data")
+  @Produces(MediaType.APPLICATION_JSON)
+  public String clientData() {
+    StringBuilder sb = new StringBuilder();
+    io.github.minh124199.viettemplate.assets.ClientData.defaultSerializer()
+        .serialize(
+            Map.of(
+                "user", new NativeUserPojo("native-user", 99),
+                "team", new NativeUserRecord("core", true)),
+            sb);
+    return sb.toString();
+  }
 }

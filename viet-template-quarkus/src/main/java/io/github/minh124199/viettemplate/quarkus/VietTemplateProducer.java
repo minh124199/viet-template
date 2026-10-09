@@ -12,7 +12,6 @@ import io.github.minh124199.viettemplate.assets.ClientDataSerializer;
 import io.github.minh124199.viettemplate.assets.FrontendAssets;
 import io.github.minh124199.viettemplate.assets.FrontendAssetsRenderContextContributor;
 import io.github.minh124199.viettemplate.assets.JacksonClientDataSerializer;
-import io.github.minh124199.viettemplate.assets.SimpleJsonSerializer;
 import io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver;
 import io.github.minh124199.viettemplate.language.vtl.VtlProfile;
 import io.github.minh124199.viettemplate.quarkus.security.QuarkusSecurityRenderContextContributor;
@@ -189,7 +188,7 @@ public class VietTemplateProducer {
       } catch (ClassNotFoundException | LinkageError ignored) {
       }
     }
-    return SimpleJsonSerializer.INSTANCE;
+    return ClientData.defaultSerializer();
   }
 
   @Produces

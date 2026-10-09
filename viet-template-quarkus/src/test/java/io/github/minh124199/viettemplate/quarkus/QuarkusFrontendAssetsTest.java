@@ -167,8 +167,28 @@ public class QuarkusFrontendAssetsTest {
 
     ClientData clientData = producer.produceClientData(serializer);
     assertThat(clientData).isNotNull();
-    assertThat(clientData.script("test", Map.of("key", "value")))
+    assertThat(clientData.script("test", Map.of("key", "value")).toString())
         .contains("data-vt-client-data=\"test\"");
+
+    assertThat(clientData.script("rec", new TestUserRecord(42, "Alice")).toString())
+        .contains("\"id\":42")
+        .contains("\"name\":\"Alice\"");
+    assertThat(clientData.script("pojo", new TestUserPojo("Engineer")).toString())
+        .contains("\"role\":\"Engineer\"");
+  }
+
+  public record TestUserRecord(int id, String name) {}
+
+  public static class TestUserPojo {
+    private final String role;
+
+    public TestUserPojo(String role) {
+      this.role = role;
+    }
+
+    public String getRole() {
+      return role;
+    }
   }
 
   private static class TestVietTemplateConfig implements VietTemplateConfig {

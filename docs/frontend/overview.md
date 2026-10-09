@@ -20,6 +20,7 @@ Java Backend -> Viet Template SSR -> Semantic HTML -> Progressive Enhancement / 
 - **No Frontend Compilers in the JVM**: Viet Template does not parse TypeScript, compile Svelte/Vue/React, bundle assets, or run Node.js in the JVM hot path. Build-time frontend compilation is owned entirely by Vite (or other asset bundlers).
 - **Zero Runtime Dependencies on Node/npm**: Production deployments require zero Node runtime or network access. The production asset resolver reads an immutable `manifest.json` emitted at frontend build time.
 - **Pure Java Builds Remain Standalone**: Standard Maven (`./mvnw test`) and Gradle (`./gradlew test`) builds do not require Node.js or npm to build or run tests.
+- **Dependency-Free Runtime Placement**: Vite asset resolution and the client-data bridge are integrated directly into `viet-template-runtime` without third-party dependencies or dedicated micro-artifacts, preserving the 12-module repository topology.
 - **No New Template Grammar**: Asset integration requires no new VTL syntax (such as `#assetScript` directives). Instead, standard VTL context helpers (`$assets` and `$clientData`) are provided by framework integrations.
 
 ## Template Helpers

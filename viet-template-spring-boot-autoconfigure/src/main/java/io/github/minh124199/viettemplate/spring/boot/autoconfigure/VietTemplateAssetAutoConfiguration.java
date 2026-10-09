@@ -8,10 +8,9 @@ import io.github.minh124199.viettemplate.assets.ClientData;
 import io.github.minh124199.viettemplate.assets.ClientDataSerializer;
 import io.github.minh124199.viettemplate.assets.FrontendAssets;
 import io.github.minh124199.viettemplate.assets.FrontendAssetsRenderContextContributor;
-import io.github.minh124199.viettemplate.assets.SimpleJsonSerializer;
+import io.github.minh124199.viettemplate.assets.JacksonClientDataSerializer;
 import io.github.minh124199.viettemplate.assets.vite.ViteAssetMode;
 import io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver;
-import io.github.minh124199.viettemplate.spring.client.SpringJacksonClientDataSerializer;
 import io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer;
 import java.io.IOException;
 import java.io.InputStream;
@@ -110,7 +109,7 @@ public class VietTemplateAssetAutoConfiguration {
       ObjectProvider<?> j3Provider = context.getBeanProvider(j3Class);
       Object j3Mapper = j3Provider.getIfAvailable();
       if (j3Mapper != null) {
-        return new SpringJacksonClientDataSerializer(j3Mapper);
+        return new JacksonClientDataSerializer(j3Mapper);
       }
     } catch (ClassNotFoundException ignored) {
     }
@@ -120,7 +119,7 @@ public class VietTemplateAssetAutoConfiguration {
       ObjectProvider<?> j2Provider = context.getBeanProvider(j2Class);
       Object j2Mapper = j2Provider.getIfAvailable();
       if (j2Mapper != null) {
-        return new SpringJacksonClientDataSerializer(j2Mapper);
+        return new JacksonClientDataSerializer(j2Mapper);
       }
     } catch (ClassNotFoundException ignored) {
     }
@@ -130,12 +129,12 @@ public class VietTemplateAssetAutoConfiguration {
       ObjectProvider<?> jmProvider = context.getBeanProvider(jmClass);
       Object jm = jmProvider.getIfAvailable();
       if (jm != null) {
-        return new SpringJacksonClientDataSerializer(jm);
+        return new JacksonClientDataSerializer(jm);
       }
     } catch (ClassNotFoundException ignored) {
     }
 
-    return SimpleJsonSerializer.INSTANCE;
+    return ClientData.defaultSerializer();
   }
 
   @Bean

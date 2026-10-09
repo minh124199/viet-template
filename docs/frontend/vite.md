@@ -82,3 +82,7 @@ If multiple components or layouts request overlapping entries or shared dependen
 - Each CSS stylesheet is emitted at most once.
 - Each modulepreload link is emitted at most once.
 - Each body script is emitted at most once.
+
+## Module Placement & Zero Dependencies
+
+The Vite asset provider (`ViteAssetResolver`) is located in `io.github.minh124199.viettemplate.assets.vite` inside `viet-template-runtime`. Because the manifest parsing and URL construction logic is lightweight (under 20 KB) and uses standard JDK JSON parsing facilities with zero external dependencies, it does not require a separate published artifact, avoiding module proliferation while keeping runtime dependencies at zero.

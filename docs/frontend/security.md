@@ -6,10 +6,10 @@ Frontend asset integration touches sensitive browser security boundaries. Viet T
 
 All entry and asset paths passed to `$assets.head()`, `$assets.body()`, and `$assets.url()` are validated by `AssetPathValidator`:
 
-- **Traversal Sequences**: Any path containing `..` or `./` sequences is rejected immediately with diagnostic code `VT-ASSET-002`.
+- **Traversal Sequences**: Any path containing `..` or `./` sequences is rejected immediately with diagnostic code `VT-ASSET-006`.
 - **Absolute Paths**: Paths starting with `/` or Windows drive letters (`C:`) are prohibited.
 - **Control Characters**: Null bytes (`\0`), backslashes (`\`), newlines, and unprintable characters trigger immediate validation errors.
-- **Manifest Confinement**: In production mode, an asset or entry is only served if it was explicitly compiled and registered in the immutable `manifest.json`. Unmanifested paths throw `AssetException` (`VT-ASSET-001`).
+- **Manifest Confinement**: In production mode, an asset or entry is only served if it was explicitly compiled and registered in the immutable `manifest.json`. Unmanifested paths throw `AssetException` (`VT-ASSET-003`).
 
 ## 2. Script Breakout & XSS Defenses
 
@@ -17,7 +17,7 @@ When embedding server-side data into HTML pages, raw string interpolation or sta
 
 - **`ScriptSafeAppendable`**: As documented in [Client Data](client-data.md), all JSON serialized via `$clientData.script()` encodes `<`, `>`, `&`, `U+2028`, and `U+2029` as Unicode escape sequences (`\u003c`, `\u003e`, etc.).
 - **Non-Executable MIME Type**: `$clientData.script()` always emits `<script type="application/json">`. Browsers treat this as data rather than JavaScript, completely preventing script execution during HTML parsing.
-- **Attribute Escaping**: The `data-vt-client-data="..."` attribute identifier is strictly HTML-attribute-escaped to prevent attribute injection attacks.
+- **Attribute Escaping and Identifier Validation**: The identifier token in `data-vt-client-data="..."` is validated against the strict regex `^[a-zA-Z0-9_.:-]+$` (throwing `VT-CLIENT-003` if invalid or empty) and is additionally HTML-attribute-escaped to prevent attribute injection attacks.
 
 ## 3. Development Server Origin Validation
 

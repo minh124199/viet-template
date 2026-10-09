@@ -12,19 +12,19 @@
 #   STABLE_API: Supported application API under strict 1.0 backward compatibility guarantee
 #   STABLE_SPI: Supported extension/contributor interfaces for third-party implementors under strict 1.0 guarantee
 # BENCHMARK_SUPPORT_INTERNAL: 3
-# BUILD_TOOL_ENTRYPOINT: 16
+# BUILD_TOOL_ENTRYPOINT: 18
 # Categories:
 # EXPERIMENTAL: 5
-# FRAMEWORK_ENTRYPOINT: 4
+# FRAMEWORK_ENTRYPOINT: 5
 # Format: <FULLY_QUALIFIED_CLASS_NAME> <CATEGORY>
 # GENERATED_RUNTIME_ABI: 1
 # INTERNAL_CROSS_MODULE: 60
 # INTERNAL_CROSS_PACKAGE: 62
 # PUBLIC_BUT_INTERNAL_ACCIDENT: 85
 # SERVICE_ENTRYPOINT: 0
-# STABLE_API: 179
-# STABLE_SPI: 31
-# Total Types: 448
+# STABLE_API: 175
+# STABLE_SPI: 30
+# Total Types: 444
 # Viet Template Public Surface Classification Baseline
 io.github.minh124199.viettemplate.aot.TemplateAotArtifact STABLE_API
 io.github.minh124199.viettemplate.aot.TemplateAotCompiler STABLE_API
@@ -110,13 +110,10 @@ io.github.minh124199.viettemplate.assets.ClientData STABLE_API
 io.github.minh124199.viettemplate.assets.ClientDataSerializationException STABLE_API
 io.github.minh124199.viettemplate.assets.ClientDataSerializer STABLE_SPI
 io.github.minh124199.viettemplate.assets.FrontendAssets STABLE_API
-io.github.minh124199.viettemplate.assets.FrontendAssetsRenderContextContributor STABLE_SPI
+io.github.minh124199.viettemplate.assets.FrontendAssetsRenderContextContributor STABLE_API
 io.github.minh124199.viettemplate.assets.JacksonClientDataSerializer STABLE_API
 io.github.minh124199.viettemplate.assets.ResolvedAsset STABLE_API
 io.github.minh124199.viettemplate.assets.ResolvedFrontendEntry STABLE_API
-io.github.minh124199.viettemplate.assets.ScriptSafeAppendable STABLE_API
-io.github.minh124199.viettemplate.assets.SimpleJsonSerializer STABLE_API
-io.github.minh124199.viettemplate.assets.vite.AssetPathValidator STABLE_API
 io.github.minh124199.viettemplate.assets.vite.ViteAssetMode STABLE_API
 io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver STABLE_API
 io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder STABLE_API
@@ -372,7 +369,7 @@ io.github.minh124199.viettemplate.schema.SchemaImporter STABLE_API
 io.github.minh124199.viettemplate.schema.SchemaSource STABLE_API
 io.github.minh124199.viettemplate.schema.TypeScriptSchemaImporter STABLE_API
 io.github.minh124199.viettemplate.schema.internal.CanonicalModelSchemaConverter INTERNAL_CROSS_PACKAGE
-io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetAutoConfiguration STABLE_API
+io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetAutoConfiguration FRAMEWORK_ENTRYPOINT
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties STABLE_API
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties$Vite STABLE_API
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration STABLE_API
@@ -380,7 +377,6 @@ io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperti
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties$Security STABLE_API
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateSecurityAutoConfiguration STABLE_API
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.aot.VietTemplateRuntimeHints FRAMEWORK_ENTRYPOINT
-io.github.minh124199.viettemplate.spring.client.SpringJacksonClientDataSerializer STABLE_API
 io.github.minh124199.viettemplate.spring.security.CsrfView STABLE_API
 io.github.minh124199.viettemplate.spring.security.CsrfViewFactory STABLE_SPI
 io.github.minh124199.viettemplate.spring.security.SecurityView STABLE_API

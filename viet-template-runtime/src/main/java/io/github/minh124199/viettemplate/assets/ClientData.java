@@ -18,8 +18,21 @@ public final class ClientData {
 
   private final ClientDataSerializer serializer;
 
+  /**
+   * Returns the built-in, zero-dependency default client data serializer.
+   *
+   * <p>The default serializer supports standard primitives, strings, numbers, booleans,
+   * dates/temporals, maps, collections, arrays, and reflective POJO / record serialization without
+   * requiring external JSON libraries.
+   *
+   * @return the default serializer instance
+   */
+  public static ClientDataSerializer defaultSerializer() {
+    return SimpleJsonSerializer.INSTANCE;
+  }
+
   public ClientData() {
-    this(SimpleJsonSerializer.INSTANCE);
+    this(defaultSerializer());
   }
 
   public ClientData(ClientDataSerializer serializer) {

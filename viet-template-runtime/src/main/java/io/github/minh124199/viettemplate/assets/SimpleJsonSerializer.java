@@ -14,18 +14,46 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 /**
- * Built-in, lightweight JSON serializer for standalone usage and tests without third-party JSON
- * libraries.
+ * Built-in, lightweight JSON serializer used as the default engine behind {@link
+ * ClientData#defaultSerializer()} without third-party JSON dependencies.
  *
- * <p>Supports {@code null}, {@link Boolean}, {@link Number}, {@link CharSequence}, {@link Enum},
- * {@link Character}, {@link UUID}, {@link TemporalAccessor}, {@link Date}, {@link Map}, {@link
- * Iterable}, Java arrays, records, and basic JavaBeans with public getters.
+ * <p>Supports:
+ *
+ * <ul>
+ *   <li>{@code null}
+ *   <li>{@link Boolean}
+ *   <li>{@link Number} (floating-point {@code NaN} and infinities emit JSON {@code null} per RFC
+ *       8259)
+ *   <li>{@link CharSequence}, {@link Character}
+ *   <li>{@link Enum} (serialized by name)
+ *   <li>{@link UUID}, {@link TemporalAccessor}
+ *   <li>{@link Date} (formatted as ISO-8601 UTC timestamp string via epoch milliseconds)
+ *   <li>{@link Map} (keys converted to string via {@code toString()})
+ *   <li>{@link Iterable}, Java arrays
+ *   <li>Java {@link Record} components (in declaration order) and JavaBeans with public zero-arg,
+ *       non-void getters (properties emitted in deterministic alphabetical order, static/synthetic
+ *       methods excluded)
+ * </ul>
+ *
+ * <p><strong>Failure Semantics:</strong> Property and record accessor errors (e.g. getter
+ * exceptions) throw {@link ClientDataSerializationException} with diagnostic code {@link
+ * AssetDiagnosticCode#VT_CLIENT_002}. Circular object graphs throw on detection. Non-data system
+ * types (e.g. {@link Class}, {@link ClassLoader}, {@link Thread}) throw on serialization.
+ * Serialization depth is bounded by {@code 128}.
+ *
+ * <p><strong>Native Image Scope:</strong> Primitives, strings, numbers, booleans, enums, dates,
+ * UUIDs, collections, arrays, and maps serialize in GraalVM Native Image without reflection
+ * metadata. Reflective serialization of custom records and JavaBeans requires GraalVM reflection
+ * registration (e.g. Quarkus {@code @RegisterForReflection} or Spring AOT
+ * {@code @RegisterReflectionForBinding}).
  */
-public final class SimpleJsonSerializer implements ClientDataSerializer {
+final class SimpleJsonSerializer implements ClientDataSerializer {
 
-  public static final SimpleJsonSerializer INSTANCE = new SimpleJsonSerializer();
+  static final SimpleJsonSerializer INSTANCE = new SimpleJsonSerializer();
 
   private static final int MAX_DEPTH = 128;
+
+  SimpleJsonSerializer() {}
 
   @Override
   public void serialize(Object value, Appendable target) throws ClientDataSerializationException {
@@ -83,7 +111,11 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
       writeJsonString(e.name(), out);
       return;
     }
-    if (value instanceof UUID || value instanceof TemporalAccessor || value instanceof Date) {
+    if (value instanceof Date d) {
+      writeJsonString(java.time.Instant.ofEpochMilli(d.getTime()).toString(), out);
+      return;
+    }
+    if (value instanceof UUID || value instanceof TemporalAccessor) {
       writeJsonString(value.toString(), out);
       return;
     }
@@ -197,7 +229,9 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
     boolean first = true;
     for (RecordComponent comp : components) {
       try {
-        Object val = comp.getAccessor().invoke(record);
+        Method accessor = comp.getAccessor();
+        accessor.trySetAccessible();
+        Object val = accessor.invoke(record);
         if (!first) {
           out.append(',');
         }
@@ -206,7 +240,22 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
         out.append(':');
         writeValue(val, out, active, depth + 1);
       } catch (ReflectiveOperationException e) {
-        throw new IOException("Failed reading record component " + comp.getName(), e);
+        Throwable cause =
+            (e instanceof java.lang.reflect.InvocationTargetException ite && ite.getCause() != null)
+                ? ite.getCause()
+                : e;
+        String causeMsg =
+            cause.getMessage() != null ? cause.getMessage() : cause.getClass().getSimpleName();
+        throw new ClientDataSerializationException(
+            AssetDiagnosticCode.VT_CLIENT_002,
+            null,
+            "Failed reading record component '"
+                + comp.getName()
+                + "' on "
+                + record.getClass().getName()
+                + ": "
+                + causeMsg,
+            cause);
       }
     }
     out.append('}');
@@ -214,17 +263,37 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
 
   private void writeBean(Object bean, Appendable out, Set<Object> active, int depth)
       throws IOException {
+    if (bean instanceof Class<?>) {
+      throw new ClientDataSerializationException(
+          AssetDiagnosticCode.VT_CLIENT_002,
+          null,
+          "Unsupported system type for client data serialization: java.lang.Class");
+    }
+    if (bean instanceof ClassLoader || bean instanceof Thread) {
+      throw new ClientDataSerializationException(
+          AssetDiagnosticCode.VT_CLIENT_002,
+          null,
+          "Unsupported system type for client data serialization: " + bean.getClass().getName());
+    }
+
     out.append('{');
     Map<String, Method> properties = new TreeMap<>();
     for (Method method : bean.getClass().getMethods()) {
-      if (method.getParameterCount() != 0 || method.getDeclaringClass() == Object.class) {
+      if (java.lang.reflect.Modifier.isStatic(method.getModifiers())
+          || method.isSynthetic()
+          || method.isBridge()
+          || method.getParameterCount() != 0
+          || method.getDeclaringClass() == Object.class
+          || method.getReturnType() == void.class) {
         continue;
       }
       String name = method.getName();
       String propName = null;
       if (name.startsWith("get") && name.length() > 3) {
         propName = Character.toLowerCase(name.charAt(3)) + name.substring(4);
-      } else if (name.startsWith("is") && name.length() > 2) {
+      } else if (name.startsWith("is")
+          && name.length() > 2
+          && (method.getReturnType() == boolean.class || method.getReturnType() == Boolean.class)) {
         propName = Character.toLowerCase(name.charAt(2)) + name.substring(3);
       }
       if (propName != null) {
@@ -234,7 +303,9 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
     boolean first = true;
     for (Map.Entry<String, Method> entry : properties.entrySet()) {
       try {
-        Object val = entry.getValue().invoke(bean);
+        Method method = entry.getValue();
+        method.trySetAccessible();
+        Object val = method.invoke(bean);
         if (!first) {
           out.append(',');
         }
@@ -242,8 +313,23 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
         writeJsonString(entry.getKey(), out);
         out.append(':');
         writeValue(val, out, active, depth + 1);
-      } catch (ReflectiveOperationException ignored) {
-        // Skip unreadable property
+      } catch (ReflectiveOperationException e) {
+        Throwable cause =
+            (e instanceof java.lang.reflect.InvocationTargetException ite && ite.getCause() != null)
+                ? ite.getCause()
+                : e;
+        String causeMsg =
+            cause.getMessage() != null ? cause.getMessage() : cause.getClass().getSimpleName();
+        throw new ClientDataSerializationException(
+            AssetDiagnosticCode.VT_CLIENT_002,
+            null,
+            "Failed reading property '"
+                + entry.getKey()
+                + "' on "
+                + bean.getClass().getName()
+                + ": "
+                + causeMsg,
+            cause);
       }
     }
     out.append('}');
