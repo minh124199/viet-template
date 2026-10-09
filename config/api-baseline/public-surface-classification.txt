@@ -18,13 +18,13 @@
 # FRAMEWORK_ENTRYPOINT: 4
 # Format: <FULLY_QUALIFIED_CLASS_NAME> <CATEGORY>
 # GENERATED_RUNTIME_ABI: 1
-# INTERNAL_CROSS_MODULE: 59
-# INTERNAL_CROSS_PACKAGE: 61
+# INTERNAL_CROSS_MODULE: 60
+# INTERNAL_CROSS_PACKAGE: 62
 # PUBLIC_BUT_INTERNAL_ACCIDENT: 85
 # SERVICE_ENTRYPOINT: 0
-# STABLE_API: 117
-# STABLE_SPI: 28
-# Total Types: 379
+# STABLE_API: 179
+# STABLE_SPI: 31
+# Total Types: 448
 # Viet Template Public Surface Classification Baseline
 io.github.minh124199.viettemplate.aot.TemplateAotArtifact STABLE_API
 io.github.minh124199.viettemplate.aot.TemplateAotCompiler STABLE_API
@@ -100,6 +100,26 @@ io.github.minh124199.viettemplate.api.TemplateType$WildcardType STABLE_API
 io.github.minh124199.viettemplate.api.TypeCheckingMode STABLE_API
 io.github.minh124199.viettemplate.api.UndefinedReferencePolicy STABLE_API
 io.github.minh124199.viettemplate.api.ValueOrigin STABLE_API
+io.github.minh124199.viettemplate.assets.AssetDiagnosticCode STABLE_API
+io.github.minh124199.viettemplate.assets.AssetException STABLE_API
+io.github.minh124199.viettemplate.assets.AssetModulePreload STABLE_API
+io.github.minh124199.viettemplate.assets.AssetResolver STABLE_SPI
+io.github.minh124199.viettemplate.assets.AssetScript STABLE_API
+io.github.minh124199.viettemplate.assets.AssetStylesheet STABLE_API
+io.github.minh124199.viettemplate.assets.ClientData STABLE_API
+io.github.minh124199.viettemplate.assets.ClientDataSerializationException STABLE_API
+io.github.minh124199.viettemplate.assets.ClientDataSerializer STABLE_SPI
+io.github.minh124199.viettemplate.assets.FrontendAssets STABLE_API
+io.github.minh124199.viettemplate.assets.FrontendAssetsRenderContextContributor STABLE_SPI
+io.github.minh124199.viettemplate.assets.JacksonClientDataSerializer STABLE_API
+io.github.minh124199.viettemplate.assets.ResolvedAsset STABLE_API
+io.github.minh124199.viettemplate.assets.ResolvedFrontendEntry STABLE_API
+io.github.minh124199.viettemplate.assets.ScriptSafeAppendable STABLE_API
+io.github.minh124199.viettemplate.assets.SimpleJsonSerializer STABLE_API
+io.github.minh124199.viettemplate.assets.vite.AssetPathValidator STABLE_API
+io.github.minh124199.viettemplate.assets.vite.ViteAssetMode STABLE_API
+io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver STABLE_API
+io.github.minh124199.viettemplate.assets.vite.ViteAssetResolver$Builder STABLE_API
 io.github.minh124199.viettemplate.explanation.ExpressionExplanation STABLE_API
 io.github.minh124199.viettemplate.explanation.SingleTemplateExplanation STABLE_API
 io.github.minh124199.viettemplate.explanation.TemplateExplainRequest STABLE_API
@@ -352,11 +372,15 @@ io.github.minh124199.viettemplate.schema.SchemaImporter STABLE_API
 io.github.minh124199.viettemplate.schema.SchemaSource STABLE_API
 io.github.minh124199.viettemplate.schema.TypeScriptSchemaImporter STABLE_API
 io.github.minh124199.viettemplate.schema.internal.CanonicalModelSchemaConverter INTERNAL_CROSS_PACKAGE
+io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetAutoConfiguration STABLE_API
+io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties STABLE_API
+io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties$Vite STABLE_API
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAutoConfiguration STABLE_API
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties STABLE_API
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateProperties$Security STABLE_API
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateSecurityAutoConfiguration STABLE_API
 io.github.minh124199.viettemplate.spring.boot.autoconfigure.aot.VietTemplateRuntimeHints FRAMEWORK_ENTRYPOINT
+io.github.minh124199.viettemplate.spring.client.SpringJacksonClientDataSerializer STABLE_API
 io.github.minh124199.viettemplate.spring.security.CsrfView STABLE_API
 io.github.minh124199.viettemplate.spring.security.CsrfViewFactory STABLE_SPI
 io.github.minh124199.viettemplate.spring.security.SecurityView STABLE_API

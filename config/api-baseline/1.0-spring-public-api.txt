@@ -108,3 +108,50 @@ TYPE public class io.github.minh124199.viettemplate.spring.web.servlet.VietTempl
   MEMBER public void setPrefix(java.lang.String)
   MEMBER public void setSuffix(java.lang.String)
   MEMBER public void setSuffixes(java.util.List<java.lang.String>)
+
+TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetAutoConfiguration
+  MEMBER public io.github.minh124199.viettemplate.assets.AssetResolver vietTemplateAssetResolver(io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties, org.springframework.core.io.ResourceLoader)
+  MEMBER public io.github.minh124199.viettemplate.assets.ClientData vietTemplateClientData(io.github.minh124199.viettemplate.assets.ClientDataSerializer)
+  MEMBER public io.github.minh124199.viettemplate.assets.ClientDataSerializer vietTemplateClientDataSerializer(org.springframework.context.ApplicationContext)
+  MEMBER public io.github.minh124199.viettemplate.assets.FrontendAssets vietTemplateFrontendAssets(io.github.minh124199.viettemplate.assets.AssetResolver)
+  MEMBER public io.github.minh124199.viettemplate.assets.FrontendAssetsRenderContextContributor vietTemplateAssetsRenderContextContributor(io.github.minh124199.viettemplate.assets.FrontendAssets, io.github.minh124199.viettemplate.assets.ClientData)
+  MEMBER public io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetAutoConfiguration()
+  MEMBER public io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateEngineCustomizer vietTemplateAssetsEngineCustomizer(io.github.minh124199.viettemplate.assets.FrontendAssetsRenderContextContributor)
+
+TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties
+  MEMBER public boolean isEnabled()
+  MEMBER public boolean isFailFast()
+  MEMBER public boolean isModulePreload()
+  MEMBER public io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties$Vite getVite()
+  MEMBER public io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties()
+  MEMBER public java.lang.String getDevServer()
+  MEMBER public java.lang.String getEffectiveDevServer()
+  MEMBER public java.lang.String getEffectiveManifestLocation()
+  MEMBER public java.lang.String getManifestLocation()
+  MEMBER public java.lang.String getMode()
+  MEMBER public java.lang.String getProvider()
+  MEMBER public java.lang.String getPublicBase()
+  MEMBER public static final java.lang.String DEFAULT_DEV_SERVER
+  MEMBER public static final java.lang.String DEFAULT_MANIFEST_LOCATION
+  MEMBER public static final java.lang.String DEFAULT_MODE
+  MEMBER public static final java.lang.String DEFAULT_PROVIDER
+  MEMBER public static final java.lang.String DEFAULT_PUBLIC_BASE
+  MEMBER public void setDevServer(java.lang.String)
+  MEMBER public void setEnabled(boolean)
+  MEMBER public void setFailFast(boolean)
+  MEMBER public void setManifestLocation(java.lang.String)
+  MEMBER public void setMode(java.lang.String)
+  MEMBER public void setModulePreload(boolean)
+  MEMBER public void setProvider(java.lang.String)
+  MEMBER public void setPublicBase(java.lang.String)
+
+TYPE public class io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties$Vite
+  MEMBER public io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties$Vite()
+  MEMBER public java.lang.String getDevServer()
+  MEMBER public java.lang.String getManifest()
+  MEMBER public void setDevServer(java.lang.String)
+  MEMBER public void setManifest(java.lang.String)
+
+TYPE public class io.github.minh124199.viettemplate.spring.client.SpringJacksonClientDataSerializer extends io.github.minh124199.viettemplate.assets.JacksonClientDataSerializer
+  MEMBER public io.github.minh124199.viettemplate.spring.client.SpringJacksonClientDataSerializer(java.lang.Object)
+
