@@ -185,7 +185,9 @@ def run_java_qualification(
             "test",
             "-pl",
             "viet-template-runtime",
+            "-am",
             f"-Dtest=RealFrontendViteSvelteCompatibilityTest",
+            "-DfailIfNoTests=false",
             f"-Dviet-template.frontend.manifest={manifest_path.resolve()}",
             "-B",
         ]
