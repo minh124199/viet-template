@@ -20,6 +20,7 @@ Many enterprise JVM applications still rely on legacy template engines that depe
 - **Compiled Bytecode**: Compiles templates to standard Java 21 bytecode (`.class` files), with compiler-assigned variable slots and pre-encoded UTF-8 literals. Dynamic property and method access remains governed by the runtime access policy.
 - **GraalVM Native Image Ready**: Seamlessly compiles to native executables via out-of-the-box `VietTemplateRuntimeHints`, Spring AOT, and Quarkus deployment build steps (empirically qualified on Linux x86_64 Mandrel 25.0.4.1-Final and Oracle GraalVM 25.0.4+7.1).
 - **Spring & Quarkus Integrations**: Spring Boot / MVC integration defaults HTML auto-escaping on for views; optional Spring Security integration supplies presentation facades. Quarkus provides a CDI extension with build-time template compilation and dev-mode reload; its optional security integration supplies `$security` and CSRF presentation facades when Quarkus Security is present.
+- **Frontend Asset Integration**: Zero-Node runtime asset pipeline for modern frontend tooling (Vite) and component islands (Svelte, Vue, React). Provides contextual helpers for head/body script and style tags (`$assets`) and script-safe JSON bootstrap state (`$clientData`) across Spring Boot and Quarkus.
 - **Defense-in-Depth Security**: Blocks universal reflection and class-loading pivots by default. Distinguishes the developer-oriented denylist (`MemberAccessPolicy.standard()`) from the strict allowlist (`MemberAccessPolicy.safe()`), with monotonic render budgets and a separate macro invocation limit.
 
 ---
@@ -275,6 +276,15 @@ Explore the complete documentation suite organized by topic:
 - **[Spring Boot Integration Guide](docs/spring/spring-boot-integration.md)** — Spring Boot starter, current property catalog, and Spring MVC view resolution.
 - **[Spring Security Integration](docs/36-spring-security-integration.md)** — `$security` and `$csrf` template facades with contextual escaping.
 - **[Quarkus Extension Guide](docs/extensions/quarkus.md)** — Quarkus 3 CDI extension, AOT template compilation, live reload, and Qute coexistence.
+
+### Frontend & Asset Integration
+- **[Frontend Asset Integration Overview](docs/frontend/overview.md)** — Architecture, `$assets` and `$clientData` helpers, and progressive enhancement principles.
+- **[Vite Integration Guide](docs/frontend/vite.md)** — Manifest parsing, development dev server proxy, and production asset optimization.
+- **[Client Data & State Serialization](docs/frontend/client-data.md)** — Safe JSON embedding into `<script type="application/json">` without XSS vulnerabilities.
+- **[Frontend Framework Islands](docs/frontend/framework-islands.md)** — Pattern for mounting Svelte, Vue, React, or vanilla JS components on SSR markup.
+- **[Spring Boot Asset Guide](docs/frontend/spring-boot.md)** — `viet-template.assets.*` auto-configuration and multi-entry rendering.
+- **[Quarkus Asset Guide](docs/frontend/quarkus.md)** — CDI producer, build-time manifest indexing, and GraalVM native image readiness.
+- **[Frontend Security Architecture](docs/frontend/security.md)** — HTML entity escaping, path sandboxing, and script safety.
 
 ### Diagnostics & Extensions
 - **[Diagnostics & Error Catalog](docs/diagnostics/error-catalog.md)** — Complete catalog of parse-time, compile-time, and runtime error codes with remedies.
