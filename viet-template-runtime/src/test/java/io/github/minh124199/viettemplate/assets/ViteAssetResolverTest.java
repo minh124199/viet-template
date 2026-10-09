@@ -394,11 +394,45 @@ class ViteAssetResolverTest {
           .containsExactly(
               "/assets/disclose-version-Co18oFQL.js", "/assets/client-data-DFP0J2HC.js");
 
+      ResolvedFrontendEntry counter = resolver.resolveEntry("src/pages/counter/index.ts");
+      assertThat(counter.script().url()).isEqualTo("/assets/counter-An0mg_oC.js");
+      assertThat(counter.stylesheets())
+          .extracting(AssetStylesheet::url)
+          .containsExactly("/assets/counter-BVqK1nK9.css");
+      assertThat(counter.modulePreloads())
+          .extracting(AssetModulePreload::url)
+          .containsExactly(
+              "/assets/disclose-version-Co18oFQL.js", "/assets/client-data-DFP0J2HC.js");
+
       ResolvedFrontendEntry payroll = resolver.resolveEntry("src/pages/payroll/Payroll.svelte");
       assertThat(payroll.script().url()).isEqualTo("/assets/payroll-CE8ed3Mp.js");
       assertThat(payroll.stylesheets())
           .extracting(AssetStylesheet::url)
           .containsExactly("/assets/payroll-DY3Px75B.css");
+
+      // Verify static chunk asset resolution on Rolldown-emitted chunks
+      ResolvedAsset discloseChunk = resolver.resolveAsset("assets/disclose-version-Co18oFQL.js");
+      assertThat(discloseChunk.url()).isEqualTo("/assets/disclose-version-Co18oFQL.js");
+
+      // Verify application-relative public base
+      ViteAssetResolver appBaseResolver =
+          ViteAssetResolver.builder()
+              .mode(ViteAssetMode.PRODUCTION)
+              .publicBase("/sub-context/")
+              .manifest(json)
+              .build();
+      assertThat(appBaseResolver.resolveEntry("src/pages/employees/index.ts").script().url())
+          .isEqualTo("/sub-context/assets/employees-emSWLR2G.js");
+
+      // Verify CDN base
+      ViteAssetResolver cdnResolver =
+          ViteAssetResolver.builder()
+              .mode(ViteAssetMode.PRODUCTION)
+              .publicBase("https://cdn.example.com/")
+              .manifest(json)
+              .build();
+      assertThat(cdnResolver.resolveEntry("src/pages/employees/index.ts").script().url())
+          .isEqualTo("https://cdn.example.com/assets/employees-emSWLR2G.js");
     }
   }
 }

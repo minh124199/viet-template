@@ -41,6 +41,8 @@ resolve_profiles = verify_frontend.resolve_profiles
 run_java_qualification = verify_frontend.run_java_qualification
 validate_manifest_structure = verify_frontend.validate_manifest_structure
 validate_profile_versions = verify_frontend.validate_profile_versions
+discover_manifest = verify_frontend.discover_manifest
+
 
 
 
@@ -499,6 +501,65 @@ class VerifyFrontendViteSvelteTests(unittest.TestCase):
         )
         v = extract_toolchain_versions(self.test_root)
         self.assertEqual("8.3.4", v["vite"])
+
+    def test_discover_manifest_prefers_vite_dir(self):
+        vite_dir = self.dist_dir / ".vite"
+        vite_dir.mkdir(parents=True, exist_ok=True)
+        manifest_a = vite_dir / "manifest.json"
+        manifest_a.write_text("{}", encoding="utf-8")
+
+        manifest_b = self.dist_dir / "manifest.json"
+        manifest_b.write_text("{}", encoding="utf-8")
+
+        found = discover_manifest(self.test_root)
+        self.assertEqual(manifest_a, found)
+
+    def test_discover_manifest_fallback_to_dist_manifest(self):
+        manifest_b = self.dist_dir / "manifest.json"
+        manifest_b.write_text("{}", encoding="utf-8")
+
+        found = discover_manifest(self.test_root)
+        self.assertEqual(manifest_b, found)
+
+    def test_profile_metadata_coverage(self):
+        for prof_id, prof in PROFILES.items():
+            self.assertIn("id", prof)
+            self.assertIn("name", prof)
+            self.assertIn("project_dir", prof)
+            self.assertIn("bundler_generation", prof)
+            self.assertIn("logical_entry", prof)
+            self.assertIn("expected_framework_generation", prof)
+            self.assertIn("expected_vite_major", prof)
+            self.assertIn("expected_svelte_major", prof)
+            self.assertIn("manifest_discovery_strategy", prof)
+            self.assertIn("pinned_versions", prof)
+            self.assertIn("required_entries", prof)
+            self.assertEqual("src/pages/employees/index.ts", prof["logical_entry"])
+
+    def test_framework_generation_mismatch_detected(self):
+        legacy_prof = PROFILES["vite5-svelte4"]
+        mismatched = {
+            "vite": "5.4.2",
+            "svelte": "5.0.0",
+            "vitePluginSvelte": "3.1.2",
+            "typescript": "5.5.4",
+        }
+        errors = validate_profile_versions(legacy_prof, mismatched)
+        self.assertTrue(any("Framework generation mismatch" in e for e in errors))
+
+    def test_generate_compatibility_report_requested_profile(self):
+        report_file = self.test_root / "req-profile-report.json"
+        rep = generate_compatibility_report(
+            node_version="v22.23.3",
+            npm_version="10.9.9",
+            toolchain={"vite": "8.3.4", "svelte": "5.57.2", "vitePluginSvelte": "7.3.1", "typescript": "5.8.3"},
+            manifest_path=self.dist_dir / "manifest.json",
+            manifest_data=None,
+            report_path=report_file,
+            status="PASS",
+            requested_profile="vite8-svelte5",
+        )
+        self.assertEqual("vite8-svelte5", rep["requestedProfile"])
 
 
 if __name__ == "__main__":

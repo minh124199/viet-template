@@ -302,6 +302,42 @@ public class RealFrontendViteSvelteCompatibilityTest {
   }
 
   @Test
+  @DisplayName("13.8 Public URL resolution with application-relative base")
+  void testApplicationRelativePublicBase() {
+    assumeRealBuildAvailable();
+
+    ViteAssetResolver resolver =
+        ViteAssetResolver.builder()
+            .mode(ViteAssetMode.PRODUCTION)
+            .publicBase("/app-context/")
+            .manifest(manifestPath)
+            .build();
+
+    FrontendAssets assets = new FrontendAssets(resolver);
+
+    ResolvedFrontendEntry entry = resolver.resolveEntry("src/pages/employees/index.ts");
+    assertThat(entry.script().url()).matches("^/app-context/assets/employees-[A-Za-z0-9_-]+\\.js$");
+    assertThat(entry.stylesheets()).isNotEmpty();
+    for (AssetStylesheet sheet : entry.stylesheets()) {
+      assertThat(sheet.url()).startsWith("/app-context/assets/");
+    }
+    assertThat(entry.modulePreloads()).isNotEmpty();
+    for (AssetModulePreload preload : entry.modulePreloads()) {
+      assertThat(preload.url()).startsWith("/app-context/assets/");
+    }
+
+    // Verify static asset resolution with application-relative base
+    ResolvedAsset staticAsset = resolver.resolveAsset("src/pages/employees/index.ts");
+    assertThat(staticAsset.url()).matches("^/app-context/assets/employees-[A-Za-z0-9_-]+\\.js$");
+
+    SafeHtml headHtml = assets.head("src/pages/employees/index.ts");
+    assertThat(headHtml.toString()).contains("href=\"/app-context/assets/");
+
+    SafeHtml bodyHtml = assets.body("src/pages/employees/index.ts");
+    assertThat(bodyHtml.toString()).contains("src=\"/app-context/assets/");
+  }
+
+  @Test
   @DisplayName("13.8 Public URL safety and custom CDN base")
   void testPublicUrlSafetyWithCdnBase() {
     assumeRealBuildAvailable();
@@ -313,6 +349,8 @@ public class RealFrontendViteSvelteCompatibilityTest {
             .manifest(manifestPath)
             .build();
 
+    FrontendAssets assets = new FrontendAssets(resolver);
+
     ResolvedFrontendEntry entry = resolver.resolveEntry("src/pages/employees/index.ts");
     assertThat(entry.script().url())
         .matches("^https://cdn\\.example\\.com/assets-app/assets/employees-[A-Za-z0-9_-]+\\.js$");
@@ -323,6 +361,53 @@ public class RealFrontendViteSvelteCompatibilityTest {
     assertThat(entry.modulePreloads()).isNotEmpty();
     for (AssetModulePreload preload : entry.modulePreloads()) {
       assertThat(preload.url()).startsWith("https://cdn.example.com/assets-app/assets/");
+    }
+
+    // Verify static asset resolution and assets.url with CDN base per Requirement 20
+    ResolvedAsset staticAsset = resolver.resolveAsset("src/pages/employees/index.ts");
+    assertThat(staticAsset.url())
+        .matches("^https://cdn\\.example\\.com/assets-app/assets/employees-[A-Za-z0-9_-]+\\.js$");
+    assertThat(assets.url("src/pages/employees/index.ts").toString())
+        .startsWith("https://cdn.example.com/assets-app/assets/");
+
+    SafeHtml headHtml = assets.head("src/pages/employees/index.ts");
+    assertThat(headHtml.toString()).contains("href=\"https://cdn.example.com/assets-app/assets/");
+    SafeHtml bodyHtml = assets.body("src/pages/employees/index.ts");
+    assertThat(bodyHtml.toString()).contains("src=\"https://cdn.example.com/assets-app/assets/");
+  }
+
+  @Test
+  @DisplayName("20 Security: Real emitted asset paths satisfy strict path security validation")
+  void testRealOutputSecurityValidation() {
+    assumeRealBuildAvailable();
+
+    ViteAssetResolver resolver =
+        ViteAssetResolver.builder()
+            .mode(ViteAssetMode.PRODUCTION)
+            .publicBase("/")
+            .manifest(manifestPath)
+            .build();
+
+    List<String> testEntries =
+        List.of(
+            "src/pages/employees/index.ts",
+            "src/pages/counter/index.ts",
+            "src/pages/payroll/Payroll.svelte");
+
+    for (String logicalEntry : testEntries) {
+      ResolvedFrontendEntry entry = resolver.resolveEntry(logicalEntry);
+      if (entry.script() != null) {
+        assertThat(entry.script().url()).doesNotContain("..").doesNotContain("\\");
+        assertThat(entry.script().url()).startsWith("/assets/");
+      }
+      for (AssetStylesheet sheet : entry.stylesheets()) {
+        assertThat(sheet.url()).doesNotContain("..").doesNotContain("\\");
+        assertThat(sheet.url()).startsWith("/assets/");
+      }
+      for (AssetModulePreload preload : entry.modulePreloads()) {
+        assertThat(preload.url()).doesNotContain("..").doesNotContain("\\");
+        assertThat(preload.url()).startsWith("/assets/");
+      }
     }
   }
 
@@ -371,7 +456,9 @@ public class RealFrontendViteSvelteCompatibilityTest {
     runner.testDirectSvelteEntryResolution();
     runner.testDeduplicationAndHtmlMarkupGeneration();
     runner.testStableOrderingAcrossRepeatedResolution();
+    runner.testApplicationRelativePublicBase();
     runner.testPublicUrlSafetyWithCdnBase();
+    runner.testRealOutputSecurityValidation();
     runner.testUnknownEntryProvidesHelpfulSuggestions();
 
     System.out.println("[PASS] Real Vite + Svelte frontend manifest qualification successful.");

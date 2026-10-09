@@ -42,8 +42,11 @@ PROFILES: Dict[str, Dict[str, Any]] = {
         "name": "Vite 5 + Svelte 4 (Legacy)",
         "project_dir": REPO_ROOT / "integration-tests" / "frontend" / "vite5-svelte4",
         "bundler_generation": "rollup",
+        "logical_entry": "src/pages/employees/index.ts",
+        "expected_framework_generation": "svelte4",
         "expected_vite_major": 5,
         "expected_svelte_major": 4,
+        "manifest_discovery_strategy": "standard_vite_dist",
         "pinned_versions": {
             "vite": "5.4.2",
             "svelte": "4.2.19",
@@ -58,8 +61,11 @@ PROFILES: Dict[str, Dict[str, Any]] = {
         "name": "Vite 8 + Svelte 5 (Current)",
         "project_dir": REPO_ROOT / "examples" / "frontend-svelte-islands",
         "bundler_generation": "rolldown",
+        "logical_entry": "src/pages/employees/index.ts",
+        "expected_framework_generation": "svelte5",
         "expected_vite_major": 8,
         "expected_svelte_major": 5,
+        "manifest_discovery_strategy": "standard_vite_dist",
         "pinned_versions": {
             "vite": "8.3.4",
             "svelte": "5.57.2",
@@ -69,6 +75,21 @@ PROFILES: Dict[str, Dict[str, Any]] = {
         "required_entries": REQUIRED_ENTRIES,
     },
 }
+
+
+def discover_manifest(project_dir: Path, strategy: str = "standard_vite_dist") -> Path:
+    """Discovers the Vite production manifest based on the configured strategy."""
+    if strategy == "standard_vite_dist":
+        candidates = [
+            project_dir / "dist" / ".vite" / "manifest.json",
+            project_dir / "dist" / "manifest.json",
+        ]
+        for c in candidates:
+            if c.is_file():
+                return c
+        return candidates[0]
+    return project_dir / "dist" / ".vite" / "manifest.json"
+
 
 
 def resolve_profiles(profile_name: Optional[str]) -> List[Dict[str, Any]]:
@@ -160,6 +181,19 @@ def validate_profile_versions(profile: Dict[str, Any], toolchain: Dict[str, str]
                 f"Svelte major version mismatch for profile '{profile['id']}': "
                 f"expected major {expected_svelte_major}, found {actual_svelte}"
             )
+
+    expected_fw_gen = profile.get("expected_framework_generation")
+    if expected_fw_gen == "svelte4" and actual_svelte and not actual_svelte.startswith("4."):
+        errors.append(
+            f"Framework generation mismatch for profile '{profile['id']}': "
+            f"expected 'svelte4', found Svelte {actual_svelte}"
+        )
+    elif expected_fw_gen == "svelte5" and actual_svelte and not actual_svelte.startswith("5."):
+        errors.append(
+            f"Framework generation mismatch for profile '{profile['id']}': "
+            f"expected 'svelte5', found Svelte {actual_svelte}"
+        )
+
 
     for dep_key, expected_ver in pinned.items():
         actual_ver = toolchain.get(dep_key, "")
@@ -340,6 +374,7 @@ def generate_compatibility_report(
     status: str = "PASS",
     errors: Optional[List[str]] = None,
     profiles: Optional[List[Dict[str, Any]]] = None,
+    requested_profile: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Creates machine-readable qualification report and writes it to report_path."""
     data = manifest_data if isinstance(manifest_data, dict) else {}
@@ -347,11 +382,15 @@ def generate_compatibility_report(
     css_count = sum(len(e.get("css", [])) for e in data.values() if isinstance(e, dict))
     preload_count = sum(len(e.get("imports", [])) for e in data.values() if isinstance(e, dict))
 
+    resolved_req_prof = requested_profile or ("all" if profiles and len(profiles) > 1 else (profiles[0]["id"] if profiles else "single"))
+
     report: Dict[str, Any] = {
         "status": status,
+        "requestedProfile": resolved_req_prof,
         "nodeVersion": node_version,
         "npmVersion": npm_version,
     }
+
 
     if profiles:
         report["profiles"] = profiles
@@ -504,7 +543,9 @@ def qualify_single_profile(
     # 4. Locate manifest
     manifest_path = manifest_override
     if manifest_path is None:
-        manifest_path = project_dir / "dist" / ".vite" / "manifest.json"
+        strategy = profile.get("manifest_discovery_strategy", "standard_vite_dist")
+        manifest_path = discover_manifest(project_dir, strategy)
+
 
     if not manifest_path.is_file():
         err_msg = f"Vite manifest not found at expected location: {manifest_path}"
@@ -602,14 +643,18 @@ def qualify_single_profile(
     profile_report = {
         "id": prof_id,
         "name": prof_name,
+        "requestedProfile": prof_id,
         "bundlerGeneration": bundler_gen,
+        "frameworkGeneration": profile.get("expected_framework_generation", "svelte4" if "vite5" in prof_id else "svelte5"),
+        "logicalEntry": profile.get("logical_entry", required_entries[0] if required_entries else ""),
+        "manifestDiscoveryStrategy": profile.get("manifest_discovery_strategy", "standard_vite_dist"),
         "nodeVersion": node_version,
         "npmVersion": npm_version,
         "viteVersion": toolchain.get("vite", ""),
         "svelteVersion": toolchain.get("svelte", ""),
         "vitePluginSvelteVersion": toolchain.get("vitePluginSvelte", ""),
         "typescriptVersion": toolchain.get("typescript", ""),
-        "entry": required_entries[0] if required_entries else "",
+        "entry": profile.get("logical_entry", required_entries[0] if required_entries else ""),
         "entries": [k for k, v in manifest_data.items() if isinstance(v, dict) and v.get("isEntry")],
         "manifest": str(manifest_path),
         "resolvedScriptCount": script_count,
@@ -618,6 +663,7 @@ def qualify_single_profile(
         "status": "PASS",
     }
     return "PASS", profile_report, []
+
 
 
 def check_upstream_freshness() -> None:
@@ -697,6 +743,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 report_path=args.report_path.resolve(),
                 status="FAIL",
                 errors=[str(e)],
+                requested_profile=profile_req,
             )
             return 1
 
@@ -733,7 +780,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         status=overall_status,
         errors=all_errors if all_errors else None,
         profiles=profile_reports,
+        requested_profile=profile_req or "all",
     )
+
     print(f"\n[INFO] Qualification report written to: {args.report_path}")
 
     print("=================================================================")
