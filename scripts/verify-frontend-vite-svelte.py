@@ -219,28 +219,34 @@ def generate_compatibility_report(
     npm_version: str,
     toolchain: Dict[str, str],
     manifest_path: Path,
-    manifest_data: Dict[str, Any],
+    manifest_data: Optional[Dict[str, Any]],
     report_path: Path,
+    status: str = "PASS",
+    errors: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Creates machine-readable qualification report and writes it to report_path."""
-    script_count = sum(1 for e in manifest_data.values() if isinstance(e, dict) and e.get("file", "").endswith(".js"))
-    css_count = sum(len(e.get("css", [])) for e in manifest_data.values() if isinstance(e, dict))
-    preload_count = sum(len(e.get("imports", [])) for e in manifest_data.values() if isinstance(e, dict))
+    data = manifest_data if isinstance(manifest_data, dict) else {}
+    script_count = sum(1 for e in data.values() if isinstance(e, dict) and e.get("file", "").endswith(".js"))
+    css_count = sum(len(e.get("css", [])) for e in data.values() if isinstance(e, dict))
+    preload_count = sum(len(e.get("imports", [])) for e in data.values() if isinstance(e, dict))
 
     report = {
-        "status": "PASS",
+        "status": status,
         "nodeVersion": node_version,
         "npmVersion": npm_version,
         "viteVersion": toolchain.get("vite", ""),
         "svelteVersion": toolchain.get("svelte", ""),
         "vitePluginSvelteVersion": toolchain.get("vitePluginSvelte", ""),
         "typescriptVersion": toolchain.get("typescript", ""),
+        "entry": REQUIRED_ENTRIES[0] if REQUIRED_ENTRIES else "",
+        "entries": [k for k, v in data.items() if isinstance(v, dict) and v.get("isEntry")],
         "manifest": str(manifest_path),
-        "entries": [k for k, v in manifest_data.items() if isinstance(v, dict) and v.get("isEntry")],
         "resolvedScriptCount": script_count,
         "resolvedStylesheetCount": css_count,
         "resolvedPreloadCount": preload_count,
     }
+    if errors:
+        report["errors"] = errors
 
     report_path.parent.mkdir(parents=True, exist_ok=True)
     with open(report_path, "w", encoding="utf-8") as f:
@@ -281,6 +287,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"[INFO] Toolchain: Vite {toolchain['vite']} | Svelte {toolchain['svelte']} | Plugin {toolchain['vitePluginSvelte']} | TS {toolchain['typescript']}")
     except Exception as e:
         print(f"[FAIL] Failed inspecting toolchain versions: {e}", file=sys.stderr)
+        generate_compatibility_report(
+            node_version=node_version,
+            npm_version=npm_version,
+            toolchain={},
+            manifest_path=args.manifest_path or (example_dir / "dist" / ".vite" / "manifest.json"),
+            manifest_data=None,
+            report_path=args.report_path.resolve(),
+            status="FAIL",
+            errors=[f"Failed inspecting toolchain versions: {e}"],
+        )
         return 1
 
     # 3. Build frontend
@@ -289,6 +305,16 @@ def main(argv: Optional[List[str]] = None) -> int:
             run_frontend_build(example_dir, skip_install=args.skip_install)
         except Exception as e:
             print(f"[FAIL] Frontend compilation failed: {e}", file=sys.stderr)
+            generate_compatibility_report(
+                node_version=node_version,
+                npm_version=npm_version,
+                toolchain=toolchain,
+                manifest_path=args.manifest_path or (example_dir / "dist" / ".vite" / "manifest.json"),
+                manifest_data=None,
+                report_path=args.report_path.resolve(),
+                status="FAIL",
+                errors=[f"Frontend compilation failed: {e}"],
+            )
             return 1
     else:
         print("[INFO] Skipping frontend build as requested.")
@@ -300,6 +326,16 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     if not manifest_path.is_file():
         print(f"[FAIL] Vite manifest not found at expected location: {manifest_path}", file=sys.stderr)
+        generate_compatibility_report(
+            node_version=node_version,
+            npm_version=npm_version,
+            toolchain=toolchain,
+            manifest_path=manifest_path,
+            manifest_data=None,
+            report_path=args.report_path.resolve(),
+            status="FAIL",
+            errors=[f"Vite manifest not found at expected location: {manifest_path}"],
+        )
         return 1
 
     dist_dir = manifest_path.parent.parent if manifest_path.parent.name == ".vite" else manifest_path.parent
@@ -310,6 +346,16 @@ def main(argv: Optional[List[str]] = None) -> int:
             manifest_data = json.load(f)
     except Exception as e:
         print(f"[FAIL] Failed parsing manifest JSON at {manifest_path}: {e}", file=sys.stderr)
+        generate_compatibility_report(
+            node_version=node_version,
+            npm_version=npm_version,
+            toolchain=toolchain,
+            manifest_path=manifest_path,
+            manifest_data=None,
+            report_path=args.report_path.resolve(),
+            status="FAIL",
+            errors=[f"Failed parsing manifest JSON: {e}"],
+        )
         return 1
 
     errors = validate_manifest_structure(manifest_data, dist_dir, REQUIRED_ENTRIES)
@@ -317,6 +363,16 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"[FAIL] Manifest structural validation failed with {len(errors)} error(s):", file=sys.stderr)
         for err in errors:
             print(f"  - {err}", file=sys.stderr)
+        generate_compatibility_report(
+            node_version=node_version,
+            npm_version=npm_version,
+            toolchain=toolchain,
+            manifest_path=manifest_path,
+            manifest_data=manifest_data,
+            report_path=args.report_path.resolve(),
+            status="FAIL",
+            errors=errors,
+        )
         return 1
     print(f"[PASS] Real manifest structural invariants verified ({len(manifest_data)} records, all required entries present).")
 
@@ -326,6 +382,16 @@ def main(argv: Optional[List[str]] = None) -> int:
             run_java_qualification(REPO_ROOT, manifest_path, build_tool=args.build_tool)
         except Exception as e:
             print(f"[FAIL] Java compatibility qualification failed: {e}", file=sys.stderr)
+            generate_compatibility_report(
+                node_version=node_version,
+                npm_version=npm_version,
+                toolchain=toolchain,
+                manifest_path=manifest_path,
+                manifest_data=manifest_data,
+                report_path=args.report_path.resolve(),
+                status="FAIL",
+                errors=[f"Java compatibility qualification failed: {e}"],
+            )
             return 1
     else:
         print("[INFO] Skipping Java qualification as requested.")
@@ -338,6 +404,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         manifest_path=manifest_path,
         manifest_data=manifest_data,
         report_path=args.report_path.resolve(),
+        status="PASS",
     )
     print(f"[PASS] Report written to: {args.report_path}")
 

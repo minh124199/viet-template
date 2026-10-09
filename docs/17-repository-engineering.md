@@ -94,6 +94,7 @@ Testing/benchmarks may use richer dependencies.
 - **Update Discovery**: GitHub Actions dependency updates are proposed by Dependabot (`.github/dependabot.yml`) on a weekly cadence.
 - **Immutable Pinning**: External actions must remain pinned to immutable 40-character commit SHAs with same-line version comments (`# vX.Y.Z`).
 - **Enforcement**: Automated tests in `scripts/tests/test_action_pins.py` enforce full-SHA pinning and reject mutable tags, short SHAs, or missing comments.
+- **Dependabot Ecosystem Scope**: Dependabot is intentionally and strictly limited to the `github-actions` package ecosystem (enforced by `scripts/tests/test_dependabot_config.py`). Build-tool (Maven/Gradle) and frontend example dependencies (`examples/frontend-svelte-islands`) are strictly pinned with committed lockfiles and qualified via explicit repository scripts (`scripts/verify-frontend-vite-svelte.sh`) to prevent unvetted supply chain drift.
 
 ## 7. Logging
 
