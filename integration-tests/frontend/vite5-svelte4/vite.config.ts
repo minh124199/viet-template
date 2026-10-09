@@ -11,7 +11,6 @@ export default defineConfig({
     manifest: true,
     outDir: 'dist',
     rollupOptions: {
-      preserveEntrySignatures: 'allow-extension',
       input: {
         employees: 'src/pages/employees/index.ts',
         counter: 'src/pages/counter/index.ts',

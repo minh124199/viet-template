@@ -1,13 +1,8 @@
 <script lang="ts">
   import { formatNumber } from '../shared/format';
 
-  interface Props {
-    initialCount?: number;
-  }
-
-  let { initialCount = 0 }: Props = $props();
-  // svelte-ignore state_referenced_locally
-  let count = $state(initialCount);
+  export let initialCount = 0;
+  let count = initialCount;
 
   function increment() {
     count += 1;
@@ -16,7 +11,7 @@
 
 <div class="counter-card">
   <p class="count-display">Current count: <strong>{formatNumber(count)}</strong></p>
-  <button onclick={increment} type="button" class="btn">
+  <button on:click={increment} type="button" class="btn">
     Increment Count
   </button>
 </div>

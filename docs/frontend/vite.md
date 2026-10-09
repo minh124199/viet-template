@@ -89,7 +89,17 @@ The Vite asset provider (`ViteAssetResolver`) is located in `io.github.minh12419
 
 ## CI Compatibility Qualification
 
-To safeguard against drift between Vite manifest releases and Viet Template's parser/resolver, the repository tests against both checked-in test fixtures and live Vite builds in CI:
-- **Offline fast tests**: Run during `./mvnw test` / `./gradlew test` with zero Node dependency.
-- **Dedicated CI workflow**: `.github/workflows/frontend-compatibility.yml` builds real Svelte + TypeScript bundles with pinned Vite and validates resolution end-to-end.
-- **Local verification command**: `./scripts/verify-frontend-vite-svelte.sh`.
+To safeguard against drift between Vite manifest releases and Viet Template's parser/resolver, the repository tests against checked-in test fixtures and live multi-generation Vite builds in CI:
+- **Offline fast tests**: Run during `./mvnw test` / `./gradlew test` with zero Node dependency, testing checked-in Vite 5 and Vite 8 manifest fixtures.
+- **Dedicated CI workflow**: `.github/workflows/frontend-compatibility.yml` builds real Svelte + TypeScript bundles with both pinned Vite 5 (Rollup) and Vite 8 (Rolldown) and validates resolution end-to-end.
+- **Local verification commands**:
+  ```bash
+  # Current stack (Vite 8 + Svelte 5)
+  ./scripts/verify-frontend-vite-svelte.sh --profile vite8-svelte5
+
+  # Legacy stack (Vite 5 + Svelte 4)
+  ./scripts/verify-frontend-vite-svelte.sh --profile vite5-svelte4
+
+  # All profiles
+  ./scripts/verify-frontend-vite-svelte.sh all
+  ```

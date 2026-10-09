@@ -1,0 +1,48 @@
+{
+  "_client-data-DFP0J2HC.js": {
+    "file": "assets/client-data-DFP0J2HC.js",
+    "name": "client-data"
+  },
+  "_disclose-version-Co18oFQL.js": {
+    "file": "assets/disclose-version-Co18oFQL.js",
+    "name": "disclose-version"
+  },
+  "src/pages/counter/index.ts": {
+    "file": "assets/counter-An0mg_oC.js",
+    "name": "counter",
+    "src": "src/pages/counter/index.ts",
+    "isEntry": true,
+    "imports": [
+      "_disclose-version-Co18oFQL.js",
+      "_client-data-DFP0J2HC.js"
+    ],
+    "css": [
+      "assets/counter-BVqK1nK9.css"
+    ]
+  },
+  "src/pages/employees/index.ts": {
+    "file": "assets/employees-emSWLR2G.js",
+    "name": "employees",
+    "src": "src/pages/employees/index.ts",
+    "isEntry": true,
+    "imports": [
+      "_disclose-version-Co18oFQL.js",
+      "_client-data-DFP0J2HC.js"
+    ],
+    "css": [
+      "assets/employees-DhptBPMj.css"
+    ]
+  },
+  "src/pages/payroll/Payroll.svelte": {
+    "file": "assets/payroll-CE8ed3Mp.js",
+    "name": "payroll",
+    "src": "src/pages/payroll/Payroll.svelte",
+    "isEntry": true,
+    "imports": [
+      "_disclose-version-Co18oFQL.js"
+    ],
+    "css": [
+      "assets/payroll-DY3Px75B.css"
+    ]
+  }
+}

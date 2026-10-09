@@ -2,20 +2,14 @@
   import type { Employee } from './types';
   import { formatCurrency, formatDate } from '../../shared/format';
 
-  interface Props {
-    departmentName?: string;
-    employees?: Employee[];
-  }
+  export let departmentName: string = 'Engineering';
+  export let employees: Employee[] = [];
 
-  let { departmentName = 'Engineering', employees = [] }: Props = $props();
+  let filter = '';
 
-  let filter = $state('');
-
-  let filteredEmployees = $derived(
-    employees.filter((emp) =>
-      emp.name.toLowerCase().includes(filter.toLowerCase()) ||
-      emp.role.toLowerCase().includes(filter.toLowerCase())
-    )
+  $: filteredEmployees = employees.filter((emp) =>
+    emp.name.toLowerCase().includes(filter.toLowerCase()) ||
+    emp.role.toLowerCase().includes(filter.toLowerCase())
   );
 </script>
 

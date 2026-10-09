@@ -1,10 +1,6 @@
 <script lang="ts">
-  interface Props {
-    period?: string;
-    status?: string;
-  }
-
-  let { period = '2026-Q1', status = 'PROCESSED' }: Props = $props();
+  export let period = '2026-Q1';
+  export let status = 'PROCESSED';
 </script>
 
 <div class="payroll-summary">

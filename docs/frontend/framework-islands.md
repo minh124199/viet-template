@@ -23,8 +23,13 @@ src/pages/counter/
 
 ```svelte
 <script lang="ts">
-  export let initialCount = 0;
-  let count = initialCount;
+  interface Props {
+    initialCount?: number;
+  }
+
+  let { initialCount = 0 }: Props = $props();
+  // svelte-ignore state_referenced_locally
+  let count = $state(initialCount);
 
   function increment() {
     count += 1;
@@ -32,7 +37,7 @@ src/pages/counter/
 </script>
 
 <div class="counter-box">
-  <button on:click={increment} type="button">
+  <button onclick={increment} type="button">
     Clicked {count} times
   </button>
 </div>
@@ -52,6 +57,7 @@ src/pages/counter/
 ### 2. The Bootstrap Script (`index.ts`)
 
 ```typescript
+import { mount } from 'svelte';
 import Counter from './Counter.svelte';
 import { readClientData } from '../../client-data';
 
@@ -63,7 +69,7 @@ const target = document.getElementById('counter-island');
 
 if (target) {
   const state = readClientData<CounterState>('counter-state');
-  new Counter({
+  mount(Counter, {
     target,
     props: {
       initialCount: state.initialCount,

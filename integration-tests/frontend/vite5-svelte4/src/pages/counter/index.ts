@@ -1,4 +1,3 @@
-import { mount } from 'svelte';
 import Counter from '../../islands/Counter.svelte';
 import { readClientData } from '../../client-data';
 
@@ -13,7 +12,7 @@ if (target) {
   target.innerHTML = '';
 
   const model = readClientData<CounterModel>('counter-state');
-  mount(Counter, {
+  new Counter({
     target,
     props: {
       initialCount: model.initialCount,

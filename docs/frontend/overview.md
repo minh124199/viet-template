@@ -44,9 +44,11 @@ Viet Template employs a multi-tiered testing strategy to guarantee stability, sp
 1. **Layer 1: Fast Java Unit Tests (No Node Required)**:
    - Tests in `viet-template-runtime` evaluate `ViteAssetResolver` against checked-in, deterministic JSON manifest fixtures.
    - These tests execute offline during normal development and CI without requiring Node.js or npm.
-2. **Layer 2: Real Vite & Svelte Compatibility Qualification**:
-   - Pinned CI workflow (`.github/workflows/frontend-compatibility.yml`) verifies end-to-end integration against an authentic, pinned toolchain (`vite` 5.4.2, `svelte` 4.2.19, `@sveltejs/vite-plugin-svelte` 3.1.2, `typescript` 5.5.4) running on Node 22 LTS.
-   - Runs `npm ci`, compiles TypeScript and Svelte components into production bundles, and validates that `ViteAssetResolver` correctly resolves real generated hashes, extracted CSS, shared chunks, and direct `.svelte` entries.
+2. **Layer 2: Real Vite & Svelte Compatibility Qualification Matrix**:
+   - Pinned CI workflow (`.github/workflows/frontend-compatibility.yml`) verifies end-to-end integration against a dual-generation matrix:
+     - **Current Canonical Stack**: `vite` 8.3.4 (Rolldown bundler architecture), `svelte` 5.57.2, `@sveltejs/vite-plugin-svelte` 7.3.1, `typescript` 5.8.3 running on Node 24 LTS.
+     - **Legacy Qualified Stack**: `vite` 5.4.2 (Rollup bundler architecture), `svelte` 4.2.19, `@sveltejs/vite-plugin-svelte` 3.1.2, `typescript` 5.5.4 running on Node 22 LTS (`integration-tests/frontend/vite5-svelte4`).
+   - Runs `npm ci`, compiles TypeScript and Svelte components into production bundles, and validates that `ViteAssetResolver` correctly resolves real generated hashes, extracted CSS, shared chunks, and direct `.svelte` entries across both bundler generations.
    - Artifacts generated during this process (`node_modules/`, `dist/`) are strictly build-time artifacts and ignored by version control.
 3. **Layer 3: Framework & Native Image Verification**:
    - Spring Boot auto-configuration, Quarkus CDI extension, and GraalVM/Mandrel native image execution tests ensure seamless enterprise deployment.
@@ -56,17 +58,26 @@ Viet Template employs a multi-tiered testing strategy to guarantee stability, sp
 To run the complete real Vite + Svelte qualification locally:
 
 ```bash
-./scripts/verify-frontend-vite-svelte.sh
+# Qualify current canonical stack (Vite 8 + Svelte 5)
+./scripts/verify-frontend-vite-svelte.sh --profile vite8-svelte5
+
+# Qualify legacy stack (Vite 5 + Svelte 4)
+./scripts/verify-frontend-vite-svelte.sh --profile vite5-svelte4
+
+# Qualify both lanes sequentially
+./scripts/verify-frontend-vite-svelte.sh all
 ```
 
-## Dependency Pinning & Dependabot Scope
+## Support Statement & Dependency Pinning
 
-- **Exact Version Pinning**: All frontend dependencies in `examples/frontend-svelte-islands/package.json` (`vite` 5.4.2, `svelte` 4.2.19, `@sveltejs/vite-plugin-svelte` 3.1.2, `typescript` 5.5.4) are pinned to exact versions with a committed, immutable `package-lock.json`.
+Viet Template Frontend Asset Integration is continuously qualified against representative Vite 5 / Svelte 4 and Vite 8 / Svelte 5 stacks. The canonical Svelte island example targets the current Vite 8 / Svelte 5 toolchain, while CI retains the Vite 5 / Svelte 4 qualification lane to ensure the asset resolver remains compatible with Rollup-era manifest generations.
+
+- **Exact Version Pinning**: All frontend dependencies are pinned to exact versions with committed, immutable `package-lock.json` files for each lane.
 - **Dependabot Policy**: Under repository engineering policy (enforced by `scripts/tests/test_dependabot_config.py`), Dependabot is strictly limited to GitHub Actions to prevent automated supply-chain drift and unvetted dependency updates.
 - **Alternative Maintenance Strategy**: Frontend dependencies are updated through intentional, manual review passes:
-  1. Inspect available updates via `npm outdated` and security advisories via `npm audit`.
-  2. Bump exact versions and regenerate `package-lock.json` via `npm install --package-lock-only`.
-  3. Validate full toolchain compatibility and resolver semantics using `./scripts/verify-frontend-vite-svelte.sh`.
+  1. Inspect available updates via `npm outdated` or `./scripts/verify-frontend-vite-svelte.sh --check-freshness`.
+  2. Bump exact versions and regenerate `package-lock.json` via `npm install`.
+  3. Validate full toolchain compatibility and resolver semantics across all profiles using `./scripts/verify-frontend-vite-svelte.sh all`.
 
 ## Next Steps
 
