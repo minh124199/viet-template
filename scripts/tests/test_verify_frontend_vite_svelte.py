@@ -32,11 +32,15 @@ def load_script(name: str):
 
 verify_frontend = load_script("verify-frontend-vite-svelte.py")
 REQUIRED_ENTRIES = verify_frontend.REQUIRED_ENTRIES
+PROFILES = verify_frontend.PROFILES
 extract_toolchain_versions = verify_frontend.extract_toolchain_versions
 generate_compatibility_report = verify_frontend.generate_compatibility_report
 main = verify_frontend.main
+qualify_single_profile = verify_frontend.qualify_single_profile
+resolve_profiles = verify_frontend.resolve_profiles
 run_java_qualification = verify_frontend.run_java_qualification
 validate_manifest_structure = verify_frontend.validate_manifest_structure
+validate_profile_versions = verify_frontend.validate_profile_versions
 
 
 
@@ -261,6 +265,240 @@ class VerifyFrontendViteSvelteTests(unittest.TestCase):
             data = json.load(f)
         self.assertEqual("FAIL", data["status"])
         self.assertTrue(any("src/pages/employees/index.ts" in err for err in data.get("errors", [])))
+
+    def test_resolve_valid_legacy_profile(self):
+        profs = resolve_profiles("vite5-svelte4")
+        self.assertEqual(1, len(profs))
+        p = profs[0]
+        self.assertEqual("vite5-svelte4", p["id"])
+        self.assertEqual(5, p["expected_vite_major"])
+        self.assertEqual(4, p["expected_svelte_major"])
+        self.assertEqual("rollup", p["bundler_generation"])
+
+        # Test alias 'legacy'
+        profs_alias = resolve_profiles("legacy")
+        self.assertEqual("vite5-svelte4", profs_alias[0]["id"])
+
+    def test_resolve_valid_current_profile(self):
+        profs = resolve_profiles("vite8-svelte5")
+        self.assertEqual(1, len(profs))
+        p = profs[0]
+        self.assertEqual("vite8-svelte5", p["id"])
+        self.assertEqual(8, p["expected_vite_major"])
+        self.assertEqual(5, p["expected_svelte_major"])
+        self.assertEqual("rolldown", p["bundler_generation"])
+
+        # Test alias 'current'
+        profs_alias = resolve_profiles("current")
+        self.assertEqual("vite8-svelte5", profs_alias[0]["id"])
+
+    def test_resolve_all_profiles(self):
+        profs = resolve_profiles("all")
+        self.assertEqual(2, len(profs))
+        ids = [p["id"] for p in profs]
+        self.assertIn("vite5-svelte4", ids)
+        self.assertIn("vite8-svelte5", ids)
+
+    def test_resolve_unknown_profile_raises(self):
+        with self.assertRaises(ValueError) as ctx:
+            resolve_profiles("unknown-matrix-lane")
+        self.assertIn("Unknown qualification profile 'unknown-matrix-lane'", str(ctx.exception))
+
+    def test_main_unknown_profile_returns_failure(self):
+        report_file = self.test_root / "unknown-report.json"
+        code = main([
+            "--profile", "unknown-profile-name",
+            "--report-path", str(report_file),
+            "--skip-install",
+            "--skip-build",
+            "--skip-java",
+        ])
+        self.assertNotEqual(0, code)
+        self.assertTrue(report_file.is_file())
+        with open(report_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        self.assertEqual("FAIL", data["status"])
+
+    def test_wrong_pinned_major_detected(self):
+        legacy_prof = PROFILES["vite5-svelte4"]
+        mismatched_toolchain = {
+            "vite": "6.0.0",
+            "svelte": "4.2.19",
+            "vitePluginSvelte": "3.1.2",
+            "typescript": "5.5.4",
+        }
+        errors = validate_profile_versions(legacy_prof, mismatched_toolchain)
+        self.assertTrue(any("Vite major version mismatch" in e for e in errors))
+
+        current_prof = PROFILES["vite8-svelte5"]
+        mismatched_svelte = {
+            "vite": "8.3.4",
+            "svelte": "4.2.19",
+            "vitePluginSvelte": "7.3.1",
+            "typescript": "5.8.3",
+        }
+        errors_svelte = validate_profile_versions(current_prof, mismatched_svelte)
+        self.assertTrue(any("Svelte major version mismatch" in e for e in errors_svelte))
+
+    def test_version_metadata_mismatch_detected(self):
+        current_prof = PROFILES["vite8-svelte5"]
+        mismatched_version = {
+            "vite": "8.1.0",
+            "svelte": "5.57.2",
+            "vitePluginSvelte": "7.3.1",
+            "typescript": "5.8.3",
+        }
+        errors = validate_profile_versions(current_prof, mismatched_version)
+        self.assertTrue(any("Toolchain version mismatch for 'vite'" in e for e in errors))
+
+    @patch("subprocess.run")
+    def test_package_install_failure_handled(self, mock_run):
+        mock_res = MagicMock()
+        mock_res.returncode = 1
+        mock_res.stderr = "npm ERR! 404 Not Found"
+        mock_run.return_value = mock_res
+
+        status, rep, errors = qualify_single_profile(
+            profile=PROFILES["vite5-svelte4"],
+            node_version="v22.23.3",
+            npm_version="10.9.9",
+            repo_root=self.test_root,
+            skip_install=False,
+            skip_build=False,
+            skip_java=True,
+        )
+        self.assertEqual("FAIL", status)
+        self.assertTrue(any("npm ci" in e for e in errors))
+
+    @patch("subprocess.run")
+    def test_package_build_failure_handled(self, mock_run):
+        # Allow npm ci, fail npm run check
+        def side_effect(cmd, **kwargs):
+            m = MagicMock()
+            if "ci" in cmd:
+                m.returncode = 0
+            elif "check" in cmd:
+                m.returncode = 2
+                m.stderr = "Type error: TS2304"
+            else:
+                m.returncode = 0
+            return m
+
+        mock_run.side_effect = side_effect
+
+        status, rep, errors = qualify_single_profile(
+            profile=PROFILES["vite8-svelte5"],
+            node_version="v22.23.3",
+            npm_version="10.9.9",
+            repo_root=self.test_root,
+            skip_install=False,
+            skip_build=False,
+            skip_java=True,
+        )
+        self.assertEqual("FAIL", status)
+        self.assertTrue(any("npm run check" in e for e in errors))
+
+    def test_java_qualification_failure_handled(self):
+        with patch.object(verify_frontend, "run_java_qualification", side_effect=RuntimeError("Java qualification test failed with code 1")):
+            manifest = self.create_valid_manifest_and_files()
+            manifest_file = self.dist_dir / ".vite" / "manifest.json"
+            manifest_file.parent.mkdir(parents=True, exist_ok=True)
+            manifest_file.write_text(json.dumps(manifest), encoding="utf-8")
+
+            prof = {
+                "id": "mock-prof",
+                "name": "Mock Profile",
+                "project_dir": self.test_root,
+                "bundler_generation": "rolldown",
+                "pinned_versions": {},
+                "required_entries": REQUIRED_ENTRIES,
+            }
+            pkg_json = self.test_root / "package.json"
+            pkg_json.write_text("{}", encoding="utf-8")
+
+            status, rep, errors = qualify_single_profile(
+                profile=prof,
+                node_version="v22.23.3",
+                npm_version="10.9.9",
+                repo_root=self.test_root,
+                manifest_override=manifest_file,
+                skip_install=True,
+                skip_build=True,
+                skip_java=False,
+            )
+            self.assertEqual("FAIL", status)
+            self.assertTrue(any("Java compatibility qualification failed" in e for e in errors))
+
+
+    def test_report_generation_multi_profile(self):
+        report_file = self.test_root / "multi-report.json"
+        profiles = [
+            {
+                "id": "vite5-svelte4",
+                "name": "Legacy",
+                "bundlerGeneration": "rollup",
+                "status": "PASS",
+                "nodeVersion": "v22.0.0",
+                "viteVersion": "5.4.2",
+            },
+            {
+                "id": "vite8-svelte5",
+                "name": "Current",
+                "bundlerGeneration": "rolldown",
+                "status": "PASS",
+                "nodeVersion": "v24.0.0",
+                "viteVersion": "8.3.4",
+            },
+        ]
+        rep = generate_compatibility_report(
+            node_version="v22.23.3",
+            npm_version="10.9.9",
+            toolchain={},
+            manifest_path=self.dist_dir / "manifest.json",
+            manifest_data=None,
+            report_path=report_file,
+            status="PASS",
+            profiles=profiles,
+        )
+        self.assertEqual("PASS", rep["status"])
+        self.assertEqual(2, len(rep["profiles"]))
+        self.assertEqual("vite5-svelte4", rep["profiles"][0]["id"])
+        self.assertEqual("vite8-svelte5", rep["profiles"][1]["id"])
+
+    def test_partial_profile_failure_marks_overall_failure(self):
+        report_file = self.test_root / "partial-fail.json"
+        profiles = [
+            {"id": "vite5-svelte4", "status": "PASS"},
+            {"id": "vite8-svelte5", "status": "FAIL", "errors": ["Build failed"]},
+        ]
+        rep = generate_compatibility_report(
+            node_version="v22.23.3",
+            npm_version="10.9.9",
+            toolchain={},
+            manifest_path=self.dist_dir / "manifest.json",
+            manifest_data=None,
+            report_path=report_file,
+            status="FAIL",
+            errors=["Build failed"],
+            profiles=profiles,
+        )
+        self.assertEqual("FAIL", rep["status"])
+        self.assertEqual(2, len(rep["profiles"]))
+        self.assertEqual("FAIL", rep["profiles"][1]["status"])
+
+    def test_node_modules_installed_version_extraction(self):
+        nm = self.test_root / "node_modules"
+        vite_nm = nm / "vite"
+        vite_nm.mkdir(parents=True, exist_ok=True)
+        (vite_nm / "package.json").write_text(json.dumps({"version": "8.3.4"}), encoding="utf-8")
+
+        pkg_json = self.test_root / "package.json"
+        pkg_json.write_text(
+            json.dumps({"devDependencies": {"vite": "8.3.4"}}),
+            encoding="utf-8",
+        )
+        v = extract_toolchain_versions(self.test_root)
+        self.assertEqual("8.3.4", v["vite"])
 
 
 if __name__ == "__main__":

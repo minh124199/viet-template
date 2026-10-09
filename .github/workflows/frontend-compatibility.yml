@@ -7,6 +7,7 @@ on:
       - 'viet-template-runtime/src/main/**/assets/**'
       - 'viet-template-runtime/src/test/**/assets/**'
       - 'examples/frontend-svelte-islands/**'
+      - 'integration-tests/frontend/**'
       - 'scripts/verify-frontend-vite-svelte*'
       - 'scripts/tests/test_verify_frontend_vite_svelte.py'
       - '.github/workflows/frontend-compatibility.yml'
@@ -17,6 +18,7 @@ on:
       - 'viet-template-runtime/src/main/**/assets/**'
       - 'viet-template-runtime/src/test/**/assets/**'
       - 'examples/frontend-svelte-islands/**'
+      - 'integration-tests/frontend/**'
       - 'scripts/verify-frontend-vite-svelte*'
       - 'scripts/tests/test_verify_frontend_vite_svelte.py'
       - '.github/workflows/frontend-compatibility.yml'
@@ -31,10 +33,24 @@ defaults:
     shell: bash
 
 jobs:
-  vite-svelte:
-    name: Vite + Svelte Qualification
+  matrix:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: vite5-svelte4
+            name: Vite 5 + Svelte 4
+            node: '22'
+            lockfile: 'integration-tests/frontend/vite5-svelte4/package-lock.json'
+            manifest: 'integration-tests/frontend/vite5-svelte4/dist/.vite/manifest.json'
+          - profile: vite8-svelte5
+            name: Vite 8 + Svelte 5
+            node: '24'
+            lockfile: 'examples/frontend-svelte-islands/package-lock.json'
+            manifest: 'examples/frontend-svelte-islands/dist/.vite/manifest.json'
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,25 +62,25 @@ jobs:
           java-version: '25'
           cache: 'maven'
 
-      - name: Set up Node.js 22 LTS
+      - name: Set up Node.js ${{ matrix.node }}
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '22'
+          node-version: ${{ matrix.node }}
           cache: 'npm'
-          cache-dependency-path: 'examples/frontend-svelte-islands/package-lock.json'
+          cache-dependency-path: ${{ matrix.lockfile }}
 
       - name: Compile Viet Template runtime test classes
         run: ./mvnw test-compile -pl viet-template-runtime -am -B
 
-      - name: Run Vite + Svelte Qualification Script
-        run: ./scripts/verify-frontend-vite-svelte.sh
+      - name: Run Frontend Qualification Script (${{ matrix.profile }})
+        run: ./scripts/verify-frontend-vite-svelte.sh --profile ${{ matrix.profile }}
 
       - name: Upload Qualification Report & Manifest
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: frontend-compatibility-report
+          name: frontend-compatibility-${{ matrix.profile }}
           path: |
             build/reports/frontend-compatibility.json
-            examples/frontend-svelte-islands/dist/.vite/manifest.json
+            ${{ matrix.manifest }}
           if-no-files-found: ignore

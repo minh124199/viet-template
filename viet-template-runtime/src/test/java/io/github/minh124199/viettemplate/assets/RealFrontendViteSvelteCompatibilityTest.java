@@ -66,11 +66,34 @@ public class RealFrontendViteSvelteCompatibilityTest {
       }
     }
 
-    List<Path> candidates =
-        List.of(
-            Path.of("examples/frontend-svelte-islands/dist/.vite/manifest.json"),
-            Path.of("../examples/frontend-svelte-islands/dist/.vite/manifest.json"),
-            Path.of("../../examples/frontend-svelte-islands/dist/.vite/manifest.json"));
+    String profile = System.getProperty("viet-template.frontend.profile");
+    if (profile == null || profile.isBlank()) {
+      profile = System.getenv("VIET_TEMPLATE_FRONTEND_PROFILE");
+    }
+
+    List<Path> candidates;
+    if (profile != null
+        && (profile.equalsIgnoreCase("vite5-svelte4")
+            || profile.equalsIgnoreCase("legacy")
+            || profile.equalsIgnoreCase("vite5"))) {
+      candidates =
+          List.of(
+              Path.of("integration-tests/frontend/vite5-svelte4/dist/.vite/manifest.json"),
+              Path.of("../integration-tests/frontend/vite5-svelte4/dist/.vite/manifest.json"),
+              Path.of("../../integration-tests/frontend/vite5-svelte4/dist/.vite/manifest.json"),
+              Path.of("examples/frontend-svelte-islands/dist/.vite/manifest.json"),
+              Path.of("../examples/frontend-svelte-islands/dist/.vite/manifest.json"),
+              Path.of("../../examples/frontend-svelte-islands/dist/.vite/manifest.json"));
+    } else {
+      candidates =
+          List.of(
+              Path.of("examples/frontend-svelte-islands/dist/.vite/manifest.json"),
+              Path.of("../examples/frontend-svelte-islands/dist/.vite/manifest.json"),
+              Path.of("../../examples/frontend-svelte-islands/dist/.vite/manifest.json"),
+              Path.of("integration-tests/frontend/vite5-svelte4/dist/.vite/manifest.json"),
+              Path.of("../integration-tests/frontend/vite5-svelte4/dist/.vite/manifest.json"),
+              Path.of("../../integration-tests/frontend/vite5-svelte4/dist/.vite/manifest.json"));
+    }
 
     for (Path candidate : candidates) {
       if (Files.isRegularFile(candidate)) {
