@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Strengthened `examples/frontend-svelte-islands` with multi-entry builds, CSS extraction, shared chunk splitting (`src/shared/format.ts`), and direct `.svelte` entry point verification (`src/pages/payroll/Payroll.svelte`).
   - Added `RealFrontendViteSvelteCompatibilityTest` to `viet-template-runtime` to verify live manifest parsing, stylesheet resolution, module preload deduplication, and framework neutrality.
   - Verified build isolation: standard Maven and Gradle builds remain strictly independent of Node and npm.
+- **Current + Legacy Frontend Compatibility Matrix**:
+  - Upgraded canonical frontend example `examples/frontend-svelte-islands` to current Vite 8.3.4 (Rolldown bundler architecture), Svelte 5.57.2 (runes and `mount()` API), `@sveltejs/vite-plugin-svelte` 7.3.1, and TypeScript 5.8.3 on Node 24 LTS.
+  - Preserved proven legacy qualification lane under `integration-tests/frontend/vite5-svelte4` pinned to Vite 5.4.2 (Rollup bundler architecture), Svelte 4.2.19, `@sveltejs/vite-plugin-svelte` 3.1.2, and TypeScript 5.5.4 on Node 22 LTS with an independent lockfile.
+  - Generalized `scripts/verify-frontend-vite-svelte.py` and `scripts/verify-frontend-vite-svelte.sh` to support named qualification profiles (`--profile vite5-svelte4`, `--profile vite8-svelte5`, `--profile all`, `--check-freshness`), version metadata validation, and multi-profile reporting to `build/reports/frontend-compatibility.json`.
+  - Refactored `.github/workflows/frontend-compatibility.yml` into a matrix running both legacy (`Vite 5 + Svelte 4` on Node 22) and current (`Vite 8 + Svelte 5` on Node 24) lanes with lane-specific npm caches.
+  - Added checked-in static manifest fixtures for both Vite 5 (`assets/vite/vite5/manifest.json`) and Vite 8 (`assets/vite/vite8/manifest.json`) and verified offline resolution in `ViteAssetResolverTest`.
+  - Proved that `ViteAssetResolver` successfully resolves assets from both Rollup-era and Rolldown-era builds with zero production Java runtime changes.
 
 ### Changed
 
