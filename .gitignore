@@ -85,3 +85,9 @@ dependency-reduced-pom.xml
 # Exploratory M18 runs are disposable. RELEASE_QUALIFICATION packages are committed or attached to
 # a permanent GitHub Release together with their manifest and checksums.
 benchmark-evidence/m18/exploratory-*.json
+
+# Node & Frontend build output
+node_modules/
+**/node_modules/
+dist/
+**/dist/

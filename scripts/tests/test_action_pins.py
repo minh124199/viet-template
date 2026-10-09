@@ -127,6 +127,7 @@ class ActionPinsWorkflowTests(unittest.TestCase):
             "actions/checkout": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1",
             "actions/setup-java": "actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1",
             "actions/setup-python": "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0",
+            "actions/setup-node": "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0",
             "actions/upload-artifact": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1",
             "gradle/actions/setup-gradle": "gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0",
         }

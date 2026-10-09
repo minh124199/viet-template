@@ -6,12 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check": "tsc --noEmit",
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^3.1.2",
-    "svelte": "^4.2.19",
-    "typescript": "^5.5.4",
-    "vite": "^5.4.2"
+    "@sveltejs/vite-plugin-svelte": "3.1.2",
+    "svelte": "4.2.19",
+    "typescript": "5.5.4",
+    "vite": "5.4.2"
   }
 }

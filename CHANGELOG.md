@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Quarkus Extension (`viet-template-quarkus` & `viet-template-quarkus-deployment`): Seamless CDI wiring in `VietTemplateProducer` and GraalVM native image manifest resource embedding via `NativeImageResourceBuildItem` in `VietTemplateProcessor`.
   - Canonical Svelte Island Example: Example fixture demonstrating SSR fallback HTML, script-safe JSON state, and Svelte island mounting.
   - Comprehensive documentation under `docs/frontend/` covering architecture, Vite configuration, client data, framework islands, Spring Boot, Quarkus, and security best practices.
+- **Vite & Svelte CI Compatibility Qualification**:
+  - Added real pinned Vite + Svelte CI compatibility qualification for Frontend Asset Integration (`.github/workflows/frontend-compatibility.yml`), verifying against Node 22 LTS, Vite 5.4.2, Svelte 4.2.19, @sveltejs/vite-plugin-svelte 3.1.2, and TypeScript 5.5.4.
+  - Implemented repository qualification scripts `scripts/verify-frontend-vite-svelte.sh` and `scripts/verify-frontend-vite-svelte.py` validating toolchain reproducibility, build artifacts, manifest structure, and automated JSON report emission.
+  - Strengthened `examples/frontend-svelte-islands` with multi-entry builds, CSS extraction, shared chunk splitting (`src/shared/format.ts`), and direct `.svelte` entry point verification (`src/pages/payroll/Payroll.svelte`).
+  - Added `RealFrontendViteSvelteCompatibilityTest` to `viet-template-runtime` to verify live manifest parsing, stylesheet resolution, module preload deduplication, and framework neutrality.
+  - Verified build isolation: standard Maven and Gradle builds remain strictly independent of Node and npm.
 
 ### Changed
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { formatNumber } from '../shared/format';
+
   export let initialCount = 0;
   let count = initialCount;
 
@@ -8,7 +10,7 @@
 </script>
 
 <div class="counter-card">
-  <p class="count-display">Current count: <strong>{count}</strong></p>
+  <p class="count-display">Current count: <strong>{formatNumber(count)}</strong></p>
   <button on:click={increment} type="button" class="btn">
     Increment Count
   </button>

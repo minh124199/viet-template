@@ -1,14 +1,20 @@
 import { defineConfig } from 'vite';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 export default defineConfig({
-  plugins: [svelte()],
+  plugins: [
+    svelte({
+      preprocess: vitePreprocess(),
+    }),
+  ],
   build: {
     manifest: true,
-    outDir: '../../viet-template-runtime/target/classes/static/dist',
+    outDir: 'dist',
     rollupOptions: {
       input: {
+        employees: 'src/pages/employees/index.ts',
         counter: 'src/pages/counter/index.ts',
+        payroll: 'src/pages/payroll/Payroll.svelte',
       },
     },
   },

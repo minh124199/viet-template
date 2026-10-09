@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Employee Directory Island</title>
+  $assets.head("src/pages/employees/index.ts")
+</head>
+<body>
+  <main class="employees-page">
+    <h1>Staff Directory</h1>
+
+    <!-- Semantic SSR fallback rendered for all users -->
+    <div id="employees-island">
+      <div class="employees-card">
+        <p>Loading employee directory for $!departmentName...</p>
+        <ul class="ssr-employee-list">
+          #foreach($emp in $employees)
+          <li>$!emp.name - $!emp.role ($!emp.department)</li>
+          #end
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <!-- Script-safe JSON client data for hydration/island mounting -->
+  $clientData.script("employees-data", $pageData)
+
+  <!-- Entry module script -->
+  $assets.body("src/pages/employees/index.ts")
+</body>
+</html>
