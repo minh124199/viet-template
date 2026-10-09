@@ -19,7 +19,7 @@ Java Backend -> Viet Template SSR -> Semantic HTML -> Progressive Enhancement / 
 
 - **No Frontend Compilers in the JVM**: Viet Template does not parse TypeScript, compile Svelte/Vue/React, bundle assets, or run Node.js in the JVM hot path. Build-time frontend compilation is owned entirely by Vite (or other asset bundlers).
 - **Zero Runtime Dependencies on Node/npm**: Production deployments require zero Node runtime or network access. The production asset resolver reads an immutable `manifest.json` emitted at frontend build time.
-- **Pure Java Builds Remain Standalone**: Standard Maven (`./mvnw test`) and Gradle (`./gradlew test`) builds do not require Node.js or npm to build or run tests.
+- **Pure Java Builds Remain Standalone**: Standard Maven (`./mvnw test`, `./mvnw verify`) and Gradle (`./gradlew test`, `./gradlew check`) builds do not require Node.js or npm to build or run tests.
 - **Dependency-Free Runtime Placement**: Vite asset resolution and the client-data bridge are integrated directly into `viet-template-runtime` without third-party dependencies or dedicated micro-artifacts, preserving the 12-module repository topology.
 - **No New Template Grammar**: Asset integration requires no new VTL syntax (such as `#assetScript` directives). Instead, standard VTL context helpers (`$assets` and `$clientData`) are provided by framework integrations.
 
@@ -36,6 +36,28 @@ Provides methods to emit HTML tags and URLs for frontend entries and static asse
 ### `$clientData`
 Provides safe serialization of Java objects into `<script type="application/json">` elements:
 - `$clientData.script("page-state", $pageData)`: Emits an HTML script block containing Unicode-safe JSON that cannot break out into script execution context.
+
+## Testing Strategy & CI Qualification
+
+Viet Template employs a multi-tiered testing strategy to guarantee stability, speed, and real-world compatibility:
+
+1. **Layer 1: Fast Java Unit Tests (No Node Required)**:
+   - Tests in `viet-template-runtime` evaluate `ViteAssetResolver` against checked-in, deterministic JSON manifest fixtures.
+   - These tests execute offline during normal development and CI without requiring Node.js or npm.
+2. **Layer 2: Real Vite & Svelte Compatibility Qualification**:
+   - Pinned CI workflow (`.github/workflows/frontend-compatibility.yml`) verifies end-to-end integration against an authentic, pinned toolchain (`vite` 5.4.2, `svelte` 4.2.19, `@sveltejs/vite-plugin-svelte` 3.1.2, `typescript` 5.5.4) running on Node 22 LTS.
+   - Runs `npm ci`, compiles TypeScript and Svelte components into production bundles, and validates that `ViteAssetResolver` correctly resolves real generated hashes, extracted CSS, shared chunks, and direct `.svelte` entries.
+   - Artifacts generated during this process (`node_modules/`, `dist/`) are strictly build-time artifacts and ignored by version control.
+3. **Layer 3: Framework & Native Image Verification**:
+   - Spring Boot auto-configuration, Quarkus CDI extension, and GraalVM/Mandrel native image execution tests ensure seamless enterprise deployment.
+
+### Local Reproduction
+
+To run the complete real Vite + Svelte qualification locally:
+
+```bash
+./scripts/verify-frontend-vite-svelte.sh
+```
 
 ## Next Steps
 

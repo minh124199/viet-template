@@ -33,7 +33,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
-    manifest: true, // Emits manifest.json in the build output
+    manifest: true, // Emits .vite/manifest.json in outDir (Vite 5+)
     outDir: 'target/classes/static/dist',
     rollupOptions: {
       input: {
@@ -86,3 +86,10 @@ If multiple components or layouts request overlapping entries or shared dependen
 ## Module Placement & Zero Dependencies
 
 The Vite asset provider (`ViteAssetResolver`) is located in `io.github.minh124199.viettemplate.assets.vite` inside `viet-template-runtime`. Because the manifest parsing and URL construction logic is lightweight (under 20 KB) and uses standard JDK JSON parsing facilities with zero external dependencies, it does not require a separate published artifact, avoiding module proliferation while keeping runtime dependencies at zero.
+
+## CI Compatibility Qualification
+
+To safeguard against drift between Vite manifest releases and Viet Template's parser/resolver, the repository tests against both checked-in test fixtures and live Vite builds in CI:
+- **Offline fast tests**: Run during `./mvnw test` / `./gradlew test` with zero Node dependency.
+- **Dedicated CI workflow**: `.github/workflows/frontend-compatibility.yml` builds real Svelte + TypeScript bundles with pinned Vite and validates resolution end-to-end.
+- **Local verification command**: `./scripts/verify-frontend-vite-svelte.sh`.
