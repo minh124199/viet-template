@@ -1,0 +1,48 @@
+{
+  "_client-data-CY6Bac0A.js": {
+    "file": "assets/client-data-CY6Bac0A.js",
+    "name": "client-data"
+  },
+  "_index-IHki7fMi.js": {
+    "file": "assets/index-IHki7fMi.js",
+    "name": "index"
+  },
+  "src/pages/counter/index.ts": {
+    "file": "assets/counter-DNteujF1.js",
+    "name": "counter",
+    "src": "src/pages/counter/index.ts",
+    "isEntry": true,
+    "imports": [
+      "_client-data-CY6Bac0A.js",
+      "_index-IHki7fMi.js"
+    ],
+    "css": [
+      "assets/counter-DIJN7BH1.css"
+    ]
+  },
+  "src/pages/employees/index.ts": {
+    "file": "assets/employees-Bzett4zY.js",
+    "name": "employees",
+    "src": "src/pages/employees/index.ts",
+    "isEntry": true,
+    "imports": [
+      "_client-data-CY6Bac0A.js",
+      "_index-IHki7fMi.js"
+    ],
+    "css": [
+      "assets/employees-CILAsAkH.css"
+    ]
+  },
+  "src/pages/payroll/Payroll.svelte": {
+    "file": "assets/payroll-6AW3eUXM.js",
+    "name": "payroll",
+    "src": "src/pages/payroll/Payroll.svelte",
+    "isEntry": true,
+    "imports": [
+      "_index-IHki7fMi.js"
+    ],
+    "css": [
+      "assets/payroll-BISp2dIo.css"
+    ]
+  }
+}
