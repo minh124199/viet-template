@@ -30,16 +30,24 @@ public final class AssetPathValidator {
     checkForForbiddenCharacters(trimmed, AssetDiagnosticCode.VT_ASSET_008, "Public base URL");
 
     String lower = trimmed.toLowerCase(Locale.ROOT);
-    if (lower.startsWith("javascript:")
+    if (lower.startsWith("//")
+        || lower.startsWith("javascript:")
         || lower.startsWith("vbscript:")
         || lower.startsWith("data:")
         || lower.startsWith("file:")
-        || lower.startsWith("blob:")
-        || lower.startsWith("//")) {
+        || lower.startsWith("blob:")) {
       throw new AssetException(
           AssetDiagnosticCode.VT_ASSET_008,
           trimmed,
           "Public base URL uses a forbidden or scheme-relative protocol: " + trimmed);
+    }
+
+    if (!trimmed.startsWith("/") && !lower.startsWith("http://") && !lower.startsWith("https://")) {
+      throw new AssetException(
+          AssetDiagnosticCode.VT_ASSET_008,
+          trimmed,
+          "Public base URL must be an absolute path starting with '/' or an http/https URL: "
+              + trimmed);
     }
 
     if (lower.contains("..") || lower.contains("\\")) {

@@ -3,31 +3,54 @@ package io.github.minh124199.viettemplate.assets;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.RecordComponent;
+import java.time.temporal.TemporalAccessor;
+import java.util.Collections;
+import java.util.Date;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
 
 /**
  * Built-in, lightweight JSON serializer for standalone usage and tests without third-party JSON
  * libraries.
  *
- * <p>Supports {@code null}, {@link Boolean}, {@link Number}, {@link CharSequence}, {@link Map},
- * {@link Iterable}, Java arrays, records, and basic JavaBeans with public getters.
+ * <p>Supports {@code null}, {@link Boolean}, {@link Number}, {@link CharSequence}, {@link Enum},
+ * {@link Character}, {@link UUID}, {@link TemporalAccessor}, {@link Date}, {@link Map}, {@link
+ * Iterable}, Java arrays, records, and basic JavaBeans with public getters.
  */
 public final class SimpleJsonSerializer implements ClientDataSerializer {
 
   public static final SimpleJsonSerializer INSTANCE = new SimpleJsonSerializer();
 
+  private static final int MAX_DEPTH = 128;
+
   @Override
   public void serialize(Object value, Appendable target) throws ClientDataSerializationException {
     try {
-      writeValue(value, target);
+      writeValue(value, target, Collections.newSetFromMap(new IdentityHashMap<>()), 0);
+    } catch (ClientDataSerializationException e) {
+      throw e;
     } catch (IOException e) {
       throw new ClientDataSerializationException(
-          AssetDiagnosticCode.VT_CLIENT_002, "JSON serialization I/O failure", e.getMessage(), e);
+          AssetDiagnosticCode.VT_CLIENT_002,
+          null,
+          "JSON serialization I/O failure: " + e.getMessage(),
+          e);
     }
   }
 
-  private void writeValue(Object value, Appendable out) throws IOException {
+  private void writeValue(Object value, Appendable out, Set<Object> active, int depth)
+      throws IOException {
+    if (depth > MAX_DEPTH) {
+      throw new ClientDataSerializationException(
+          AssetDiagnosticCode.VT_CLIENT_002,
+          null,
+          "Exceeded maximum JSON serialization depth limit of " + MAX_DEPTH);
+    }
+
     if (value == null) {
       out.append("null");
       return;
@@ -37,6 +60,14 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
       return;
     }
     if (value instanceof Number n) {
+      if (value instanceof Double d && (d.isNaN() || d.isInfinite())) {
+        out.append("null");
+        return;
+      }
+      if (value instanceof Float f && (f.isNaN() || f.isInfinite())) {
+        out.append("null");
+        return;
+      }
       out.append(n.toString());
       return;
     }
@@ -44,24 +75,50 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
       writeJsonString(cs, out);
       return;
     }
-    if (value instanceof Map<?, ?> map) {
-      writeMap(map, out);
+    if (value instanceof Character c) {
+      writeJsonString(c.toString(), out);
       return;
     }
-    if (value instanceof Iterable<?> iter) {
-      writeIterable(iter, out);
+    if (value instanceof Enum<?> e) {
+      writeJsonString(e.name(), out);
       return;
     }
-    if (value.getClass().isArray()) {
-      writeArray(value, out);
+    if (value instanceof UUID || value instanceof TemporalAccessor || value instanceof Date) {
+      writeJsonString(value.toString(), out);
       return;
     }
-    if (value.getClass().isRecord()) {
-      writeRecord(value, out);
-      return;
+
+    // Composite types require circular reference guard
+    if (!active.add(value)) {
+      throw new ClientDataSerializationException(
+          AssetDiagnosticCode.VT_CLIENT_002,
+          null,
+          "Circular reference detected during JSON serialization for object of type: "
+              + value.getClass().getName());
     }
-    // Fallback: bean properties
-    writeBean(value, out);
+
+    try {
+      if (value instanceof Map<?, ?> map) {
+        writeMap(map, out, active, depth);
+        return;
+      }
+      if (value instanceof Iterable<?> iter) {
+        writeIterable(iter, out, active, depth);
+        return;
+      }
+      if (value.getClass().isArray()) {
+        writeArray(value, out, active, depth);
+        return;
+      }
+      if (value.getClass().isRecord()) {
+        writeRecord(value, out, active, depth);
+        return;
+      }
+      // Fallback: bean properties
+      writeBean(value, out, active, depth);
+    } finally {
+      active.remove(value);
+    }
   }
 
   private void writeJsonString(CharSequence cs, Appendable out) throws IOException {
@@ -88,7 +145,8 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
     out.append('"');
   }
 
-  private void writeMap(Map<?, ?> map, Appendable out) throws IOException {
+  private void writeMap(Map<?, ?> map, Appendable out, Set<Object> active, int depth)
+      throws IOException {
     out.append('{');
     boolean first = true;
     for (Map.Entry<?, ?> entry : map.entrySet()) {
@@ -99,12 +157,13 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
       String key = entry.getKey() != null ? entry.getKey().toString() : "null";
       writeJsonString(key, out);
       out.append(':');
-      writeValue(entry.getValue(), out);
+      writeValue(entry.getValue(), out, active, depth + 1);
     }
     out.append('}');
   }
 
-  private void writeIterable(Iterable<?> iter, Appendable out) throws IOException {
+  private void writeIterable(Iterable<?> iter, Appendable out, Set<Object> active, int depth)
+      throws IOException {
     out.append('[');
     Iterator<?> it = iter.iterator();
     boolean first = true;
@@ -113,24 +172,26 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
         out.append(',');
       }
       first = false;
-      writeValue(it.next(), out);
+      writeValue(it.next(), out, active, depth + 1);
     }
     out.append(']');
   }
 
-  private void writeArray(Object array, Appendable out) throws IOException {
+  private void writeArray(Object array, Appendable out, Set<Object> active, int depth)
+      throws IOException {
     out.append('[');
     int len = java.lang.reflect.Array.getLength(array);
     for (int i = 0; i < len; i++) {
       if (i > 0) {
         out.append(',');
       }
-      writeValue(java.lang.reflect.Array.get(array, i), out);
+      writeValue(java.lang.reflect.Array.get(array, i), out, active, depth + 1);
     }
     out.append(']');
   }
 
-  private void writeRecord(Object record, Appendable out) throws IOException {
+  private void writeRecord(Object record, Appendable out, Set<Object> active, int depth)
+      throws IOException {
     out.append('{');
     RecordComponent[] components = record.getClass().getRecordComponents();
     boolean first = true;
@@ -143,7 +204,7 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
         first = false;
         writeJsonString(comp.getName(), out);
         out.append(':');
-        writeValue(val, out);
+        writeValue(val, out, active, depth + 1);
       } catch (ReflectiveOperationException e) {
         throw new IOException("Failed reading record component " + comp.getName(), e);
       }
@@ -151,17 +212,15 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
     out.append('}');
   }
 
-  private void writeBean(Object bean, Appendable out) throws IOException {
+  private void writeBean(Object bean, Appendable out, Set<Object> active, int depth)
+      throws IOException {
     out.append('{');
-    boolean first = true;
+    Map<String, Method> properties = new TreeMap<>();
     for (Method method : bean.getClass().getMethods()) {
-      if (method.getParameterCount() != 0) {
+      if (method.getParameterCount() != 0 || method.getDeclaringClass() == Object.class) {
         continue;
       }
       String name = method.getName();
-      if ("getClass".equals(name)) {
-        continue;
-      }
       String propName = null;
       if (name.startsWith("get") && name.length() > 3) {
         propName = Character.toLowerCase(name.charAt(3)) + name.substring(4);
@@ -169,18 +228,22 @@ public final class SimpleJsonSerializer implements ClientDataSerializer {
         propName = Character.toLowerCase(name.charAt(2)) + name.substring(3);
       }
       if (propName != null) {
-        try {
-          Object val = method.invoke(bean);
-          if (!first) {
-            out.append(',');
-          }
-          first = false;
-          writeJsonString(propName, out);
-          out.append(':');
-          writeValue(val, out);
-        } catch (ReflectiveOperationException ignored) {
-          // Skip unreadable property
+        properties.putIfAbsent(propName, method);
+      }
+    }
+    boolean first = true;
+    for (Map.Entry<String, Method> entry : properties.entrySet()) {
+      try {
+        Object val = entry.getValue().invoke(bean);
+        if (!first) {
+          out.append(',');
         }
+        first = false;
+        writeJsonString(entry.getKey(), out);
+        out.append(':');
+        writeValue(val, out, active, depth + 1);
+      } catch (ReflectiveOperationException ignored) {
+        // Skip unreadable property
       }
     }
     out.append('}');

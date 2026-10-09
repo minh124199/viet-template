@@ -140,7 +140,8 @@ final class ViteManifestParser {
     }
 
     if (file == null || file.isBlank()) {
-      throw error("Manifest entry '" + entryKey + "' is missing required 'file' property");
+      throw invariantError(
+          "Manifest entry '" + entryKey + "' is missing required 'file' property", entryKey);
     }
 
     return new ViteRawEntry(
@@ -195,9 +196,18 @@ final class ViteManifestParser {
               throw error("Invalid hex in unicode escape: \\u" + hex);
             }
           }
-          default -> sb.append(esc);
+          default -> {
+            if (esc <= 0x1F) {
+              throw error(
+                  "Unescaped control character in escape sequence (code point " + (int) esc + ")");
+            }
+            sb.append(esc);
+          }
         }
       } else {
+        if (c <= 0x1F) {
+          throw error("Unescaped control character in JSON string (code point " + (int) c + ")");
+        }
         sb.append(c);
       }
     }
@@ -217,6 +227,9 @@ final class ViteManifestParser {
 
   private List<String> parseStringList() {
     skipWhitespace();
+    if (match("null")) {
+      return Collections.emptyList();
+    }
     if (pos >= length || json.charAt(pos) != '[') {
       throw error("Expected array beginning with '['");
     }
@@ -329,5 +342,9 @@ final class ViteManifestParser {
     }
     return new AssetException(
         AssetDiagnosticCode.VT_ASSET_002, message + " at line " + line + ", column " + col);
+  }
+
+  private AssetException invariantError(String message, String target) {
+    return new AssetException(AssetDiagnosticCode.VT_ASSET_009, target, message);
   }
 }

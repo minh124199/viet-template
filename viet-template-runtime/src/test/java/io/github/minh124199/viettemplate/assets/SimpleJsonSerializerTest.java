@@ -60,4 +60,128 @@ class SimpleJsonSerializerTest {
     assertThat(sb.toString())
         .isEqualTo("\"Line 1\\nLine 2\\tTab \\\"Quotes\\\" and \\\\Backslash\\\\\"");
   }
+
+  enum Status {
+    ACTIVE,
+    INACTIVE
+  }
+
+  static class SelfRef {
+    private final String name;
+    private SelfRef next;
+
+    SelfRef(String name) {
+      this.name = name;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public SelfRef getNext() {
+      return next;
+    }
+
+    public void setNext(SelfRef next) {
+      this.next = next;
+    }
+  }
+
+  static class MultiPropertyBean {
+    public String getZ() {
+      return "3";
+    }
+
+    public String getA() {
+      return "1";
+    }
+
+    public String getM() {
+      return "2";
+    }
+  }
+
+  @Test
+  void serializesEnumAsName() {
+    SimpleJsonSerializer serializer = SimpleJsonSerializer.INSTANCE;
+    StringBuilder sb = new StringBuilder();
+
+    serializer.serialize(Status.ACTIVE, sb);
+    assertThat(sb.toString()).isEqualTo("\"ACTIVE\"");
+  }
+
+  @Test
+  void serializesCharacter() {
+    SimpleJsonSerializer serializer = SimpleJsonSerializer.INSTANCE;
+    StringBuilder sb = new StringBuilder();
+
+    serializer.serialize('A', sb);
+    assertThat(sb.toString()).isEqualTo("\"A\"");
+  }
+
+  @Test
+  void serializesUuidAndTemporalAndDate() {
+    SimpleJsonSerializer serializer = SimpleJsonSerializer.INSTANCE;
+    StringBuilder sb = new StringBuilder();
+
+    java.util.UUID uuid = java.util.UUID.fromString("12345678-1234-1234-1234-123456789abc");
+    serializer.serialize(uuid, sb);
+    assertThat(sb.toString()).isEqualTo("\"12345678-1234-1234-1234-123456789abc\"");
+
+    sb.setLength(0);
+    java.time.Instant instant = java.time.Instant.parse("2026-10-09T00:00:00Z");
+    serializer.serialize(instant, sb);
+    assertThat(sb.toString()).isEqualTo("\"2026-10-09T00:00:00Z\"");
+
+    sb.setLength(0);
+    java.util.Date date = new java.util.Date(1700000000000L);
+    serializer.serialize(date, sb);
+    assertThat(sb.toString()).isNotEmpty();
+  }
+
+  @Test
+  void serializesNanAndInfinitiesAsNull() {
+    SimpleJsonSerializer serializer = SimpleJsonSerializer.INSTANCE;
+    StringBuilder sb = new StringBuilder();
+
+    serializer.serialize(Double.NaN, sb);
+    assertThat(sb.toString()).isEqualTo("null");
+
+    sb.setLength(0);
+    serializer.serialize(Double.POSITIVE_INFINITY, sb);
+    assertThat(sb.toString()).isEqualTo("null");
+
+    sb.setLength(0);
+    serializer.serialize(Float.NaN, sb);
+    assertThat(sb.toString()).isEqualTo("null");
+  }
+
+  @Test
+  void detectsCircularReferencesGracefully() {
+    SimpleJsonSerializer serializer = SimpleJsonSerializer.INSTANCE;
+    StringBuilder sb = new StringBuilder();
+
+    SelfRef a = new SelfRef("A");
+    SelfRef b = new SelfRef("B");
+    a.setNext(b);
+    b.setNext(a);
+
+    org.assertj.core.api.Assertions.assertThatThrownBy(() -> serializer.serialize(a, sb))
+        .isInstanceOf(ClientDataSerializationException.class)
+        .satisfies(
+            e -> {
+              ClientDataSerializationException ex = (ClientDataSerializationException) e;
+              assertThat(ex.code()).isEqualTo(AssetDiagnosticCode.VT_CLIENT_002);
+              assertThat(ex.getMessage()).contains("Circular reference");
+            });
+  }
+
+  @Test
+  void serializesBeanPropertiesInDeterministicOrder() {
+    SimpleJsonSerializer serializer = SimpleJsonSerializer.INSTANCE;
+    StringBuilder sb = new StringBuilder();
+
+    serializer.serialize(new MultiPropertyBean(), sb);
+    assertThat(sb.toString()).isEqualTo("{\"a\":\"1\",\"m\":\"2\",\"z\":\"3\"}");
+  }
 }

@@ -5,6 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.minh124199.viettemplate.api.TemplateEngine;
 import io.github.minh124199.viettemplate.assets.AssetException;
+import io.github.minh124199.viettemplate.assets.AssetResolver;
+import io.github.minh124199.viettemplate.assets.ClientData;
+import io.github.minh124199.viettemplate.assets.ClientDataSerializer;
+import io.github.minh124199.viettemplate.assets.FrontendAssets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -128,6 +132,43 @@ public class QuarkusFrontendAssetsTest {
     assertThatThrownBy(producer::produceTemplateEngine)
         .isInstanceOf(AssetException.class)
         .hasFieldOrPropertyWithValue("code", "VT-ASSET-001");
+  }
+
+  @Test
+  @DisplayName("Quarkus producer produces AssetResolver, FrontendAssets, and ClientData CDI beans")
+  public void cdiProducerBeans() {
+    VietTemplateConfig config =
+        new TestVietTemplateConfig() {
+          @Override
+          public boolean assetsEnabled() {
+            return true;
+          }
+
+          @Override
+          public String assetsMode() {
+            return "production";
+          }
+
+          @Override
+          public String assetsManifestLocation() {
+            return "static/.vite/manifest.json";
+          }
+        };
+
+    VietTemplateProducer producer = new VietTemplateProducer(config);
+    AssetResolver resolver = producer.produceAssetResolver();
+    assertThat(resolver).isNotNull();
+
+    FrontendAssets assets = producer.produceFrontendAssets(resolver);
+    assertThat(assets).isNotNull();
+
+    ClientDataSerializer serializer = producer.produceClientDataSerializer();
+    assertThat(serializer).isNotNull();
+
+    ClientData clientData = producer.produceClientData(serializer);
+    assertThat(clientData).isNotNull();
+    assertThat(clientData.script("test", Map.of("key", "value")))
+        .contains("data-vt-client-data=\"test\"");
   }
 
   private static class TestVietTemplateConfig implements VietTemplateConfig {

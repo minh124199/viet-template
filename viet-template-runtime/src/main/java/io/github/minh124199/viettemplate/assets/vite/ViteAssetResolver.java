@@ -80,9 +80,13 @@ public final class ViteAssetResolver implements AssetResolver {
         cleanEntry = cleanEntry.substring(1);
       }
       AssetScript clientScript = new AssetScript(this.devServerOrigin + "/@vite/client", true);
-      AssetScript entryScript = new AssetScript(this.devServerOrigin + "/" + cleanEntry, true);
+      boolean isCss = isCssFile(cleanEntry);
+      List<AssetStylesheet> stylesheets =
+          isCss ? List.of(new AssetStylesheet(this.devServerOrigin + "/" + cleanEntry)) : List.of();
+      AssetScript entryScript =
+          isCss ? null : new AssetScript(this.devServerOrigin + "/" + cleanEntry, true);
       return new ResolvedFrontendEntry(
-          logicalEntry, List.of(), List.of(), entryScript, clientScript);
+          logicalEntry, stylesheets, List.of(), entryScript, clientScript);
     }
 
     ResolvedFrontendEntry resolved = this.entryMap.get(logicalEntry);
@@ -139,8 +143,13 @@ public final class ViteAssetResolver implements AssetResolver {
 
     // Also check if this asset is registered as an entry
     ResolvedFrontendEntry entry = this.entryMap.get(logicalAsset);
-    if (entry != null && entry.script() != null) {
-      return new ResolvedAsset(logicalAsset, entry.script().url());
+    if (entry != null) {
+      if (entry.script() != null) {
+        return new ResolvedAsset(logicalAsset, entry.script().url());
+      }
+      if (!entry.stylesheets().isEmpty()) {
+        return new ResolvedAsset(logicalAsset, entry.stylesheets().get(0).url());
+      }
     }
 
     List<String> suggestions = findClosestEntries(logicalAsset, this.assetMap.keySet());
@@ -344,6 +353,15 @@ public final class ViteAssetResolver implements AssetResolver {
       for (Map.Entry<String, ViteRawEntry> e : rawEntries.entrySet()) {
         String key = e.getKey();
         ViteRawEntry raw = e.getValue();
+        boolean isCss = isCssFile(raw.file());
+        String entryFileUrl = AssetPathValidator.resolveAssetUrl(validatedPublicBase, raw.file());
+
+        // Register raw entry file, key, and src in assetMap
+        assetMap.put(raw.file(), new ResolvedAsset(raw.file(), entryFileUrl));
+        assetMap.put(key, new ResolvedAsset(key, entryFileUrl));
+        if (raw.src() != null && !raw.src().isBlank()) {
+          assetMap.put(raw.src(), new ResolvedAsset(raw.src(), entryFileUrl));
+        }
 
         // Register static assets defined in raw entry
         for (String assetPath : raw.assets()) {
@@ -351,14 +369,17 @@ public final class ViteAssetResolver implements AssetResolver {
           assetMap.put(assetPath, new ResolvedAsset(assetPath, url));
         }
 
-        // If the entry represents a static asset by filename (e.g. logo.svg)
-        if (isStaticAssetKey(raw.file())) {
-          String url = AssetPathValidator.resolveAssetUrl(validatedPublicBase, raw.file());
-          assetMap.put(key, new ResolvedAsset(key, url));
+        // Register css assets defined in raw entry
+        for (String cssPath : raw.css()) {
+          String url = AssetPathValidator.resolveAssetUrl(validatedPublicBase, cssPath);
+          assetMap.put(cssPath, new ResolvedAsset(cssPath, url));
         }
 
         // Resolve graph for this entry
         LinkedHashSet<String> cssUrls = new LinkedHashSet<>();
+        if (isCss) {
+          cssUrls.add(entryFileUrl);
+        }
         LinkedHashSet<String> preloadUrls = new LinkedHashSet<>();
         Set<String> visited = new HashSet<>();
         Set<String> activePath = new HashSet<>();
@@ -373,7 +394,8 @@ public final class ViteAssetResolver implements AssetResolver {
             activePath,
             cssUrls,
             preloadUrls,
-            true);
+            true,
+            0);
 
         List<AssetStylesheet> stylesheets = new ArrayList<>();
         for (String cssUrl : cssUrls) {
@@ -385,8 +407,7 @@ public final class ViteAssetResolver implements AssetResolver {
           preloads.add(new AssetModulePreload(preloadUrl));
         }
 
-        String entryFileUrl = AssetPathValidator.resolveAssetUrl(validatedPublicBase, raw.file());
-        AssetScript script = new AssetScript(entryFileUrl, true);
+        AssetScript script = isCss ? null : new AssetScript(entryFileUrl, true);
 
         ResolvedFrontendEntry resolvedEntry =
             new ResolvedFrontendEntry(key, stylesheets, preloads, script);
@@ -396,6 +417,8 @@ public final class ViteAssetResolver implements AssetResolver {
       return new ViteAssetResolver(
           ViteAssetMode.PRODUCTION, validatedPublicBase, validatedDevServer, entryMap, assetMap);
     }
+
+    private static final int MAX_TRAVERSAL_DEPTH = 128;
 
     private static void traverseStaticGraph(
         String currentKey,
@@ -407,7 +430,19 @@ public final class ViteAssetResolver implements AssetResolver {
         Set<String> activePath,
         LinkedHashSet<String> cssUrls,
         LinkedHashSet<String> preloadUrls,
-        boolean isRoot) {
+        boolean isRoot,
+        int depth) {
+
+      if (depth > MAX_TRAVERSAL_DEPTH) {
+        throw new AssetException(
+            AssetDiagnosticCode.VT_ASSET_005,
+            currentKey,
+            "Dependency graph exceeds maximum traversal depth limit of "
+                + MAX_TRAVERSAL_DEPTH
+                + " at: '"
+                + currentKey
+                + "'.");
+      }
 
       if (activePath.contains(currentKey)) {
         // Cycle detected: safe dedupe without recursion explosion
@@ -456,27 +491,22 @@ public final class ViteAssetResolver implements AssetResolver {
             activePath,
             cssUrls,
             preloadUrls,
-            false);
+            false,
+            depth + 1);
       }
 
       activePath.remove(currentKey);
     }
+  }
 
-    private static boolean isStaticAssetKey(String filename) {
-      if (filename == null) {
-        return false;
-      }
-      String lower = filename.toLowerCase();
-      return lower.endsWith(".svg")
-          || lower.endsWith(".png")
-          || lower.endsWith(".jpg")
-          || lower.endsWith(".jpeg")
-          || lower.endsWith(".gif")
-          || lower.endsWith(".webp")
-          || lower.endsWith(".woff")
-          || lower.endsWith(".woff2")
-          || lower.endsWith(".ttf")
-          || lower.endsWith(".wasm");
+  private static boolean isCssFile(String path) {
+    if (path == null) {
+      return false;
     }
+    String lower = path.toLowerCase(java.util.Locale.ROOT);
+    return lower.endsWith(".css")
+        || lower.endsWith(".scss")
+        || lower.endsWith(".sass")
+        || lower.endsWith(".less");
   }
 }

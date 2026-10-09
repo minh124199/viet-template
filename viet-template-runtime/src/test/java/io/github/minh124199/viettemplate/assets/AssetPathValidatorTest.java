@@ -32,7 +32,8 @@ class AssetPathValidatorTest {
         "data:text/html,bad",
         "file:///etc/passwd",
         "blob:http://example.com/uuid",
-        "//host.com/assets"
+        "//host.com/assets",
+        "ftp://cdn.example.com/assets"
       })
   void rejectsHostilePublicBase(String hostileBase) {
     assertThatThrownBy(() -> AssetPathValidator.validateAndNormalizePublicBase(hostileBase))

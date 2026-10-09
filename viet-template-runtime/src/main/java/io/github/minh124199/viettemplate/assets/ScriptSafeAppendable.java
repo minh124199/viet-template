@@ -56,6 +56,8 @@ public final class ScriptSafeAppendable implements Appendable {
       csq = "null";
       start = 0;
       end = 4;
+    } else {
+      Objects.checkFromToIndex(start, end, csq.length());
     }
     int chunkStart = start;
     for (int i = start; i < end; i++) {

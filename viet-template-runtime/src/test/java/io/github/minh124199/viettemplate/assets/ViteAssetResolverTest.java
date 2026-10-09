@@ -233,4 +233,113 @@ class ViteAssetResolverTest {
       }
     }
   }
+
+  @Test
+  void resolvesCssEntrypointInProductionMode() {
+    String manifestWithCssEntry =
+        """
+        {
+          "src/styles/theme.css": {
+            "file": "assets/theme-ABC1.css",
+            "src": "src/styles/theme.css",
+            "isEntry": true
+          }
+        }
+        """;
+
+    ViteAssetResolver resolver =
+        ViteAssetResolver.builder()
+            .mode(ViteAssetMode.PRODUCTION)
+            .manifest(manifestWithCssEntry)
+            .build();
+
+    ResolvedFrontendEntry entry = resolver.resolveEntry("src/styles/theme.css");
+    assertThat(entry).isNotNull();
+    assertThat(entry.script()).isNull();
+    assertThat(entry.stylesheets())
+        .extracting(AssetStylesheet::url)
+        .containsExactly("/assets/theme-ABC1.css");
+  }
+
+  @Test
+  void resolvesCssEntrypointInDevelopmentMode() {
+    ViteAssetResolver resolver =
+        ViteAssetResolver.builder()
+            .mode(ViteAssetMode.DEVELOPMENT)
+            .devServer("http://localhost:5173")
+            .build();
+
+    ResolvedFrontendEntry entry = resolver.resolveEntry("src/styles/theme.css");
+    assertThat(entry).isNotNull();
+    assertThat(entry.script()).isNull();
+    assertThat(entry.devClientScript()).isNotNull();
+    assertThat(entry.stylesheets())
+        .extracting(AssetStylesheet::url)
+        .containsExactly("http://localhost:5173/src/styles/theme.css");
+  }
+
+  @Test
+  void resolvesStaticAssetsWithoutExtensionWhitelist() {
+    String manifest =
+        """
+        {
+          "src/icons/fav.ico": {
+            "file": "assets/fav-123.ico",
+            "src": "src/icons/fav.ico"
+          },
+          "src/images/hero.avif": {
+            "file": "assets/hero-456.avif",
+            "src": "src/images/hero.avif"
+          },
+          "src/docs/manual.pdf": {
+            "file": "assets/manual-789.pdf",
+            "src": "src/docs/manual.pdf"
+          }
+        }
+        """;
+
+    ViteAssetResolver resolver =
+        ViteAssetResolver.builder().mode(ViteAssetMode.PRODUCTION).manifest(manifest).build();
+
+    assertThat(resolver.resolveAsset("src/icons/fav.ico").url()).isEqualTo("/assets/fav-123.ico");
+    assertThat(resolver.resolveAsset("src/images/hero.avif").url())
+        .isEqualTo("/assets/hero-456.avif");
+    assertThat(resolver.resolveAsset("src/docs/manual.pdf").url())
+        .isEqualTo("/assets/manual-789.pdf");
+  }
+
+  @Test
+  void deepTraversalExceedingMaxDepthThrowsVtAsset005() {
+    StringBuilder sb = new StringBuilder("{\n");
+    sb.append(
+        "  \"entry.js\": { \"file\": \"assets/entry.js\", \"isEntry\": true, \"imports\":"
+            + " [\"node1.js\"] },\n");
+    for (int i = 1; i <= 135; i++) {
+      sb.append("  \"node")
+          .append(i)
+          .append(".js\": { \"file\": \"assets/node")
+          .append(i)
+          .append(".js\"");
+      if (i < 135) {
+        sb.append(", \"imports\": [\"node").append(i + 1).append(".js\"]");
+      }
+      sb.append(" }");
+      if (i < 135) sb.append(",\n");
+    }
+    sb.append("\n}");
+
+    assertThatThrownBy(
+            () ->
+                ViteAssetResolver.builder()
+                    .mode(ViteAssetMode.PRODUCTION)
+                    .manifest(sb.toString())
+                    .build())
+        .isInstanceOf(AssetException.class)
+        .satisfies(
+            e -> {
+              AssetException ae = (AssetException) e;
+              assertThat(ae.code()).isEqualTo(AssetDiagnosticCode.VT_ASSET_005);
+              assertThat(ae.getMessage()).contains("exceeds maximum traversal depth limit");
+            });
+  }
 }

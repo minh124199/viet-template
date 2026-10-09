@@ -98,4 +98,42 @@ class ViteManifestParserTest {
                 assertThat(((AssetException) e).code())
                     .isEqualTo(AssetDiagnosticCode.VT_ASSET_002));
   }
+
+  @Test
+  void missingFilePropertyThrowsVtAsset009() {
+    assertThatThrownBy(() -> ViteManifestParser.parse("{\"entry\": {\"src\": \"src/main.ts\"}}"))
+        .isInstanceOf(AssetException.class)
+        .satisfies(
+            e ->
+                assertThat(((AssetException) e).code())
+                    .isEqualTo(AssetDiagnosticCode.VT_ASSET_009));
+  }
+
+  @Test
+  void handlesNullArrayGracefully() {
+    String manifest =
+        """
+        {
+          "entry": {
+            "file": "assets/app.js",
+            "imports": null,
+            "css": null
+          }
+        }
+        """;
+    var entries = ViteManifestParser.parse(manifest);
+    assertThat(entries.get("entry").imports()).isEmpty();
+    assertThat(entries.get("entry").css()).isEmpty();
+  }
+
+  @Test
+  void rejectsUnescapedControlCharactersInString() {
+    assertThatThrownBy(
+            () -> ViteManifestParser.parse("{\"entry\": {\"file\": \"assets\u0001test.js\"}}"))
+        .isInstanceOf(AssetException.class)
+        .satisfies(
+            e ->
+                assertThat(((AssetException) e).code())
+                    .isEqualTo(AssetDiagnosticCode.VT_ASSET_002));
+  }
 }

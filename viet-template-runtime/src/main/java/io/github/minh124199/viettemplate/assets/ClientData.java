@@ -46,7 +46,29 @@ public final class ClientData {
           "Failed writing client data script: " + e.getMessage(),
           e);
     }
-    return SafeHtml.of(sb.toString());
+    String rendered = sb.toString();
+    validateScriptSafety(id, rendered);
+    return SafeHtml.of(rendered);
+  }
+
+  private static void validateScriptSafety(String id, String renderedHtml) {
+    int start = renderedHtml.indexOf('>') + 1;
+    int end = renderedHtml.lastIndexOf("</script>");
+    if (start > 0 && end >= start) {
+      String payload = renderedHtml.substring(start, end);
+      if (payload.indexOf('<') != -1 || payload.indexOf('>') != -1) {
+        throw new ClientDataSerializationException(
+            AssetDiagnosticCode.VT_CLIENT_004,
+            id,
+            "Serialized payload contains unescaped markup characters ('<' or '>').");
+      }
+      if (payload.indexOf('\u2028') != -1 || payload.indexOf('\u2029') != -1) {
+        throw new ClientDataSerializationException(
+            AssetDiagnosticCode.VT_CLIENT_004,
+            id,
+            "Serialized payload contains unescaped JavaScript newline separators.");
+      }
+    }
   }
 
   /**

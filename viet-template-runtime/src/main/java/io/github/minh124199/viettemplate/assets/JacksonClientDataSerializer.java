@@ -72,9 +72,8 @@ public class JacksonClientDataSerializer implements ClientDataSerializer {
 
     @Override
     public void write(char[] cbuf, int off, int len) throws IOException {
-      for (int i = off; i < off + len; i++) {
-        appendable.append(cbuf[i]);
-      }
+      Objects.checkFromToIndex(off, off + len, cbuf.length);
+      appendable.append(java.nio.CharBuffer.wrap(cbuf, off, len));
     }
 
     @Override

@@ -102,4 +102,40 @@ class ClientDataTest {
                 assertThat(((ClientDataSerializationException) e).code())
                     .isEqualTo(AssetDiagnosticCode.VT_CLIENT_002));
   }
+
+  @Test
+  void validatesScriptSafetyAgainstUnescapedCharacters() throws Exception {
+    var method =
+        ClientData.class.getDeclaredMethod("validateScriptSafety", String.class, String.class);
+    method.setAccessible(true);
+
+    method.invoke(
+        null,
+        "id",
+        "<script type=\"application/json\" data-vt-client-data=\"id\">{\"ok\":true}</script>");
+
+    try {
+      method.invoke(
+          null,
+          "id",
+          "<script type=\"application/json\" data-vt-client-data=\"id\"><alert></script>");
+      org.junit.jupiter.api.Assertions.fail("Expected exception");
+    } catch (java.lang.reflect.InvocationTargetException e) {
+      assertThat(e.getCause()).isInstanceOf(ClientDataSerializationException.class);
+      ClientDataSerializationException ce = (ClientDataSerializationException) e.getCause();
+      assertThat(ce.code()).isEqualTo(AssetDiagnosticCode.VT_CLIENT_004);
+    }
+
+    try {
+      method.invoke(
+          null,
+          "id",
+          "<script type=\"application/json\" data-vt-client-data=\"id\">\u2028</script>");
+      org.junit.jupiter.api.Assertions.fail("Expected exception");
+    } catch (java.lang.reflect.InvocationTargetException e) {
+      assertThat(e.getCause()).isInstanceOf(ClientDataSerializationException.class);
+      ClientDataSerializationException ce = (ClientDataSerializationException) e.getCause();
+      assertThat(ce.code()).isEqualTo(AssetDiagnosticCode.VT_CLIENT_004);
+    }
+  }
 }
