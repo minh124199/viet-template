@@ -1,4 +1,5 @@
 import './employees.css';
+import { mount } from 'svelte';
 import Employees from './Employees.svelte';
 import type { EmployeePageData } from './types';
 import { readClientData } from '../../client-data';
@@ -10,7 +11,7 @@ if (target) {
   target.innerHTML = '';
 
   const pageData = readClientData<EmployeePageData>('employees-data');
-  new Employees({
+  mount(Employees, {
     target,
     props: {
       departmentName: pageData.departmentName,

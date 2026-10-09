@@ -371,4 +371,34 @@ class ViteAssetResolverTest {
           .containsExactly("/assets/payroll-BISp2dIo.css");
     }
   }
+
+  @Test
+  void resolvesCheckedInVite8RolldownStaticManifest() throws Exception {
+    try (var is = getClass().getResourceAsStream("/assets/vite/vite8/manifest.json")) {
+      assertThat(is).isNotNull();
+      String json = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+      ViteAssetResolver resolver =
+          ViteAssetResolver.builder()
+              .mode(ViteAssetMode.PRODUCTION)
+              .publicBase("/")
+              .manifest(json)
+              .build();
+
+      ResolvedFrontendEntry employees = resolver.resolveEntry("src/pages/employees/index.ts");
+      assertThat(employees.script().url()).isEqualTo("/assets/employees-emSWLR2G.js");
+      assertThat(employees.stylesheets())
+          .extracting(AssetStylesheet::url)
+          .containsExactly("/assets/employees-DhptBPMj.css");
+      assertThat(employees.modulePreloads())
+          .extracting(AssetModulePreload::url)
+          .containsExactly(
+              "/assets/disclose-version-Co18oFQL.js", "/assets/client-data-DFP0J2HC.js");
+
+      ResolvedFrontendEntry payroll = resolver.resolveEntry("src/pages/payroll/Payroll.svelte");
+      assertThat(payroll.script().url()).isEqualTo("/assets/payroll-CE8ed3Mp.js");
+      assertThat(payroll.stylesheets())
+          .extracting(AssetStylesheet::url)
+          .containsExactly("/assets/payroll-DY3Px75B.css");
+    }
+  }
 }
