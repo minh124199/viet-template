@@ -42,3 +42,15 @@ This example demonstrates the canonical **Frontend Asset Integration** architect
    ```
    This compiles TypeScript and Svelte components into hashed production assets and generates `.vite/manifest.json` under `dist/`.
 2. In production mode, Viet Template reads the manifest once at startup and serves hashed, cached assets with preloaded CSS and static imports.
+
+## Toolchain Pinning & Updates
+
+Frontend dependencies (`vite`, `svelte`, `@sveltejs/vite-plugin-svelte`, `typescript`) are pinned with exact versions in `package.json` and locked in `package-lock.json`.
+
+In accordance with repository supply-chain policy (which restricts Dependabot strictly to GitHub Actions), updates to this example are managed through deliberate review:
+1. Audit packages using `npm outdated` and `npm audit`.
+2. Update pinned versions and regenerate `package-lock.json`.
+3. Qualify against the live compatibility suite:
+   ```bash
+   ./scripts/verify-frontend-vite-svelte.sh
+   ```

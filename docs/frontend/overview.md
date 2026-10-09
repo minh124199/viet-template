@@ -59,6 +59,15 @@ To run the complete real Vite + Svelte qualification locally:
 ./scripts/verify-frontend-vite-svelte.sh
 ```
 
+## Dependency Pinning & Dependabot Scope
+
+- **Exact Version Pinning**: All frontend dependencies in `examples/frontend-svelte-islands/package.json` (`vite` 5.4.2, `svelte` 4.2.19, `@sveltejs/vite-plugin-svelte` 3.1.2, `typescript` 5.5.4) are pinned to exact versions with a committed, immutable `package-lock.json`.
+- **Dependabot Policy**: Under repository engineering policy (enforced by `scripts/tests/test_dependabot_config.py`), Dependabot is strictly limited to GitHub Actions to prevent automated supply-chain drift and unvetted dependency updates.
+- **Alternative Maintenance Strategy**: Frontend dependencies are updated through intentional, manual review passes:
+  1. Inspect available updates via `npm outdated` and security advisories via `npm audit`.
+  2. Bump exact versions and regenerate `package-lock.json` via `npm install --package-lock-only`.
+  3. Validate full toolchain compatibility and resolver semantics using `./scripts/verify-frontend-vite-svelte.sh`.
+
 ## Next Steps
 
 - [Vite Integration](vite.md): Details on development HMR and production manifest resolution.

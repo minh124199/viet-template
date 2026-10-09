@@ -32,8 +32,21 @@ public class RealFrontendViteSvelteCompatibilityTest {
   static void locateRealManifest() {
     manifestPath = resolveManifestPath();
     if (manifestPath != null && Files.isRegularFile(manifestPath)) {
-      distDir = manifestPath.getParent().getParent(); // dist/.vite/manifest.json -> dist
+      distDir = determineDistDir(manifestPath);
     }
+  }
+
+  private static Path determineDistDir(Path manifest) {
+    if (manifest == null) {
+      return null;
+    }
+    Path parent = manifest.getParent();
+    if (parent != null
+        && parent.getFileName() != null
+        && ".vite".equals(parent.getFileName().toString())) {
+      return parent.getParent();
+    }
+    return parent;
   }
 
   public static Path resolveManifestPath() {
@@ -99,7 +112,7 @@ public class RealFrontendViteSvelteCompatibilityTest {
     assertThat(entry.script()).isNotNull();
     assertThat(entry.script().module()).isTrue();
     String scriptUrl = entry.script().url();
-    assertThat(scriptUrl).startsWith("/assets/employees-").endsWith(".js");
+    assertThat(scriptUrl).matches("^/assets/employees-[A-Za-z0-9_-]+\\.js$");
     Path scriptFile = distDir.resolve(scriptUrl.substring(1));
     assertThat(Files.isRegularFile(scriptFile))
         .withFailMessage("Generated JS file must exist at: %s", scriptFile)
@@ -110,7 +123,7 @@ public class RealFrontendViteSvelteCompatibilityTest {
         .withFailMessage("Emitted CSS expected for employees island")
         .isNotEmpty();
     for (AssetStylesheet sheet : entry.stylesheets()) {
-      assertThat(sheet.url()).startsWith("/assets/").endsWith(".css");
+      assertThat(sheet.url()).matches("^/assets/employees-[A-Za-z0-9_-]+\\.css$");
       Path cssFile = distDir.resolve(sheet.url().substring(1));
       assertThat(Files.isRegularFile(cssFile))
           .withFailMessage("Generated CSS file must exist at: %s", cssFile)
@@ -122,7 +135,7 @@ public class RealFrontendViteSvelteCompatibilityTest {
         .withFailMessage("Expected preloads for shared module chunks")
         .isNotEmpty();
     for (AssetModulePreload preload : entry.modulePreloads()) {
-      assertThat(preload.url()).startsWith("/assets/").endsWith(".js");
+      assertThat(preload.url()).matches("^/assets/[A-Za-z0-9_.-]+\\.js$");
       Path chunkFile = distDir.resolve(preload.url().substring(1));
       assertThat(Files.isRegularFile(chunkFile))
           .withFailMessage("Emitted chunk file must exist at: %s", chunkFile)
@@ -147,7 +160,7 @@ public class RealFrontendViteSvelteCompatibilityTest {
     assertThat(entry).isNotNull();
     assertThat(entry.logicalEntry()).isEqualTo(logicalEntry);
     assertThat(entry.script()).isNotNull();
-    assertThat(entry.script().url()).startsWith("/assets/counter-").endsWith(".js");
+    assertThat(entry.script().url()).matches("^/assets/counter-[A-Za-z0-9_-]+\\.js$");
 
     Path scriptFile = distDir.resolve(entry.script().url().substring(1));
     assertThat(Files.isRegularFile(scriptFile)).isTrue();
@@ -176,7 +189,7 @@ public class RealFrontendViteSvelteCompatibilityTest {
     assertThat(entry).isNotNull();
     assertThat(entry.logicalEntry()).isEqualTo(directSvelteEntry);
     assertThat(entry.script()).isNotNull();
-    assertThat(entry.script().url()).startsWith("/assets/payroll-").endsWith(".js");
+    assertThat(entry.script().url()).matches("^/assets/payroll-[A-Za-z0-9_-]+\\.js$");
 
     Path scriptFile = distDir.resolve(entry.script().url().substring(1));
     assertThat(Files.isRegularFile(scriptFile)).isTrue();
@@ -200,29 +213,49 @@ public class RealFrontendViteSvelteCompatibilityTest {
 
     FrontendAssets assets = new FrontendAssets(resolver);
 
-    // Multi-entry head rendering
+    // Multi-entry head rendering across overlapping entries
     SafeHtml head = assets.head("src/pages/employees/index.ts", "src/pages/counter/index.ts");
     String headHtml = head.toString();
 
-    // Verify all emitted links exist and each preload appears exactly once
-    Set<String> seenHrefs = new LinkedHashSet<>();
+    // Verify all emitted links exist and each preload/stylesheet appears exactly once
+    Set<String> seenPreloads = new LinkedHashSet<>();
+    Set<String> seenStylesheets = new LinkedHashSet<>();
     for (String line : headHtml.lines().toList()) {
       line = line.trim();
       if (line.startsWith("<link rel=\"modulepreload\"")) {
         int hrefStart = line.indexOf("href=\"") + 6;
         int hrefEnd = line.indexOf("\"", hrefStart);
         String href = line.substring(hrefStart, hrefEnd);
-        assertThat(seenHrefs.add(href))
+        assertThat(seenPreloads.add(href))
             .withFailMessage("Duplicate modulepreload link generated: %s", href)
+            .isTrue();
+      } else if (line.startsWith("<link rel=\"stylesheet\"")) {
+        int hrefStart = line.indexOf("href=\"") + 6;
+        int hrefEnd = line.indexOf("\"", hrefStart);
+        String href = line.substring(hrefStart, hrefEnd);
+        assertThat(seenStylesheets.add(href))
+            .withFailMessage("Duplicate stylesheet link generated: %s", href)
             .isTrue();
       }
     }
+    assertThat(seenPreloads).isNotEmpty();
+    assertThat(seenStylesheets).isNotEmpty();
 
-    // Verify body script tag
-    SafeHtml body = assets.body("src/pages/employees/index.ts");
-    assertThat(body.toString())
-        .startsWith("<script type=\"module\" src=\"/assets/employees-")
-        .endsWith("></script>\n");
+    // Multi-entry deduplication when exact same entry is passed repeatedly
+    SafeHtml repeatedHead =
+        assets.head("src/pages/employees/index.ts", "src/pages/employees/index.ts");
+    SafeHtml singleHead = assets.head("src/pages/employees/index.ts");
+    assertThat(repeatedHead.toString()).isEqualTo(singleHead.toString());
+
+    // Multi-entry body script deduplication when exact same entry is passed repeatedly
+    SafeHtml repeatedBody =
+        assets.body("src/pages/employees/index.ts", "src/pages/employees/index.ts");
+    SafeHtml singleBody = assets.body("src/pages/employees/index.ts");
+    assertThat(repeatedBody.toString()).isEqualTo(singleBody.toString());
+    assertThat(singleBody.toString())
+        .matches(
+            "^<script type=\"module\""
+                + " src=\"/assets/employees-[A-Za-z0-9_-]+\\.js\"></script>\\n$");
   }
 
   @Test
@@ -259,9 +292,14 @@ public class RealFrontendViteSvelteCompatibilityTest {
 
     ResolvedFrontendEntry entry = resolver.resolveEntry("src/pages/employees/index.ts");
     assertThat(entry.script().url())
-        .startsWith("https://cdn.example.com/assets-app/assets/employees-");
+        .matches("^https://cdn\\.example\\.com/assets-app/assets/employees-[A-Za-z0-9_-]+\\.js$");
+    assertThat(entry.stylesheets()).isNotEmpty();
     for (AssetStylesheet sheet : entry.stylesheets()) {
       assertThat(sheet.url()).startsWith("https://cdn.example.com/assets-app/assets/");
+    }
+    assertThat(entry.modulePreloads()).isNotEmpty();
+    for (AssetModulePreload preload : entry.modulePreloads()) {
+      assertThat(preload.url()).startsWith("https://cdn.example.com/assets-app/assets/");
     }
   }
 
@@ -299,7 +337,7 @@ public class RealFrontendViteSvelteCompatibilityTest {
     distDir =
         args.length > 1
             ? Path.of(args[1]).toAbsolutePath().normalize()
-            : manifestPath.getParent().getParent();
+            : determineDistDir(manifestPath);
 
     System.out.println("[INFO] Qualifying Vite manifest at: " + manifestPath);
     System.out.println("[INFO] Assets directory at: " + distDir);
