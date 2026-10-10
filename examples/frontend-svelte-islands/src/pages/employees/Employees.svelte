@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Employee } from './types';
   import { formatCurrency, formatDate } from '../../shared/format';
+  import { readCsrfMetadata } from '../../shared/csrf';
 
   interface Props {
     departmentName?: string;
@@ -25,9 +26,20 @@
 
   async function handleFollow(emp: Employee) {
     try {
-      const response = await fetch(`/api/employees/${emp.id}/follow`, {
+      const csrf = readCsrfMetadata();
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (csrf && csrf.token) {
+        headers[csrf.headerName] = csrf.token;
+      }
+
+      const isSecure = typeof window !== 'undefined' && window.location.pathname.startsWith('/secure');
+      const endpoint = isSecure
+        ? `/secure/api/employees/${emp.id}/follow`
+        : `/api/employees/${emp.id}/follow`;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Accept': 'application/json' },
+        headers,
       });
       if (response.ok) {
         const result = (await response.json()) as { id: string; followers: number };
