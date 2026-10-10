@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.minh124199.viettemplate.api.Template;
 import io.github.minh124199.viettemplate.api.TemplateEngine;
 import io.github.minh124199.viettemplate.api.TemplateId;
+import io.github.minh124199.viettemplate.assets.ClientDataSerializer;
+import io.github.minh124199.viettemplate.quarkus.VietTemplateConfig;
 import io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer;
 import io.quarkus.test.QuarkusUnitTest;
 import jakarta.inject.Inject;
@@ -33,10 +35,37 @@ public class VietTemplateExtensionTest {
 
   @Inject VietTemplateRenderer renderer;
 
+  @Inject VietTemplateConfig config;
+
+  @Inject ClientDataSerializer clientDataSerializer;
+
   @Test
   public void testCdiInjection() {
     assertThat(engine).isNotNull();
     assertThat(renderer).isNotNull();
+    assertThat(config).isNotNull();
+    assertThat(clientDataSerializer).isNotNull();
+  }
+
+  @Test
+  public void testSmallRyeConfigMappingDefaults() {
+    assertThat(config.profile()).isEqualTo("VTL_MIGRATION");
+    assertThat(config.assetsEnabled()).isFalse();
+    assertThat(config.assetsProvider()).isEqualTo("vite");
+    assertThat(config.assetsMode()).isEqualTo("production");
+    assertThat(config.assetsPublicBase()).isEqualTo("/");
+    assertThat(config.assetsModulePreload()).isTrue();
+    assertThat(config.assetsFailFast()).isTrue();
+    assertThat(config.assetsManifestLocation()).isEqualTo("static/.vite/manifest.json");
+    assertThat(config.assetsDevServer()).isEqualTo("http://localhost:5173");
+  }
+
+  @Test
+  public void testClientDataSerializerProducerResolution() {
+    assertThat(clientDataSerializer).isNotNull();
+    StringBuilder sb = new StringBuilder();
+    clientDataSerializer.serialize(Map.of("message", "ok"), sb);
+    assertThat(sb.toString()).contains("\"message\":\"ok\"");
   }
 
   @Test

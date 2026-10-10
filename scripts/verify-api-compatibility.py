@@ -474,7 +474,13 @@ def check_compatibility(baseline_specs=None, classification_path=CLASSIFICATION_
                     errors.append(f"REMOVED_FIELD [{name}]: in '{cls_name}': '{m}'")
 
             # Check for added abstract methods in interfaces (source/binary breaking for implementors)
-            if b_hdr["is_interface"] or "interface " in b_info["header"]:
+            # SmallRye @ConfigMapping interfaces (e.g. VietTemplateConfig) require abstract methods with
+            # @WithDefault for SmallRye proxy generation; default method bodies are skipped by SmallRye
+            # and cause runtime unrecognized property errors.
+            is_config_mapping = cls_name in (
+                "io.github.minh124199.viettemplate.quarkus.VietTemplateConfig",
+            )
+            if (b_hdr["is_interface"] or "interface " in b_info["header"]) and not is_config_mapping:
                 added = c_members - b_members
                 for m in sorted(added):
                     if "public abstract " in m:

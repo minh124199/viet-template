@@ -8,29 +8,29 @@ Configure the `quarkus.viet-template.assets.*` properties in `application.proper
 
 ```properties
 # Enable frontend asset integration (default: false)
-quarkus.viet-template.assets-enabled=true
+quarkus.viet-template.assets.enabled=true
 
 # Asset provider (default: vite)
-quarkus.viet-template.assets-provider=vite
+quarkus.viet-template.assets.provider=vite
 
 # Resolution mode: "development" or "production" (default: production)
-quarkus.viet-template.assets-mode=production
+quarkus.viet-template.assets.mode=production
 
 # Public base URL or CDN path for assets (default: /)
-quarkus.viet-template.assets-public-base=/
+quarkus.viet-template.assets.public-base=/
 
 # Emit <link rel="modulepreload"> tags for transitive dependencies (default: true)
-quarkus.viet-template.assets-module-preload=true
+quarkus.viet-template.assets.module-preload=true
 
 # Fail fast at startup if manifest cannot be loaded in production mode (default: false)
-quarkus.viet-template.assets-fail-fast=true
+quarkus.viet-template.assets.fail-fast=true
 
-# Classpath location of Vite manifest (default: static/dist/.vite/manifest.json)
-quarkus.viet-template.assets-manifest-location=static/dist/.vite/manifest.json
+# Classpath location of Vite manifest (default: static/.vite/manifest.json)
+quarkus.viet-template.assets.manifest-location=static/.vite/manifest.json
 
 # Development server origin for HMR in development mode
 # Default: http://localhost:5173
-quarkus.viet-template.assets-dev-server=http://localhost:5173
+quarkus.viet-template.assets.dev-server=http://localhost:5173
 ```
 
 ## Quarkus Profiles
@@ -39,15 +39,15 @@ Use Quarkus profile prefixes (`%dev`, `%prod`) to configure environments:
 
 ```properties
 # Development profile: Point to Vite dev server
-%dev.quarkus.viet-template.assets-enabled=true
-%dev.quarkus.viet-template.assets-mode=development
-%dev.quarkus.viet-template.assets-dev-server=http://localhost:5173
+%dev.quarkus.viet-template.assets.enabled=true
+%dev.quarkus.viet-template.assets.mode=development
+%dev.quarkus.viet-template.assets.dev-server=http://localhost:5173
 
 # Production profile: Read bundled manifest
-%prod.quarkus.viet-template.assets-enabled=true
-%prod.quarkus.viet-template.assets-mode=production
-%prod.quarkus.viet-template.assets-fail-fast=true
-%prod.quarkus.viet-template.assets-manifest-location=static/dist/.vite/manifest.json
+%prod.quarkus.viet-template.assets.enabled=true
+%prod.quarkus.viet-template.assets.mode=production
+%prod.quarkus.viet-template.assets.fail-fast=true
+%prod.quarkus.viet-template.assets.manifest-location=static/.vite/manifest.json
 ```
 
 ## GraalVM Native Image Support
@@ -70,3 +70,21 @@ The Quarkus producer (`VietTemplateProducer`) automatically inspects Quarkus's A
 - If a custom `ClientDataSerializer` bean is available, it is injected.
 - If Quarkus Jackson is installed, the container's `ObjectMapper` is automatically adapted via `JacksonClientDataSerializer`.
 - If no Jackson bean is available, it cleanly falls back to `ClientData.defaultSerializer()`.
+
+## Deterministic Chromium Browser E2E Qualification
+
+Viet Template verifies complete end-to-end integration with Quarkus in production packaged JVM mode:
+- **Topology**: Packaged fast-jar runner artifact (`target/quarkus-app/quarkus-run.jar`) serving Vite 8 + Svelte 5 production assets.
+- **Full-Stack Loop**: Quarkus REST endpoints -> Viet Template SSR -> Semantic HTML -> `$assets.head/body(...)` -> `$clientData.script(...)` -> Vite 8 production bundle -> Chromium browser -> Svelte 5 island mount -> user DOM click -> Quarkus REST API (`POST /api/employees/42/follow`) -> reactive DOM update.
+- **Parity with Spring Boot**: Exact scenario parity across SSR, asset loading, client data, island mount, REST interaction, DOM update, No-JS fallback (`<form method="post">` redirect), hostile client data script-breakout defense, console health, and network health.
+- **Shared Test Suite**: Executed via Playwright Chromium against `integration-tests/frontend/browser/tests/employee-page.spec.ts` without duplicate test files.
+
+### Local CLI Execution
+
+```bash
+# Qualify Quarkus in packaged JVM production mode
+./scripts/verify-frontend-browser-e2e.sh quarkus
+
+# Qualify both Spring Boot and Quarkus with parity matrix
+./scripts/verify-frontend-browser-e2e.sh all
+```
