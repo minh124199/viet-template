@@ -49,6 +49,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created automated qualification script `scripts/verify-frontend-security-e2e.py` and `scripts/verify-frontend-security-e2e.sh` supporting `spring`, `quarkus`, and `all` profiles with dynamic port assignment, health checking, and report generation in `build/reports/frontend-security-e2e.json`.
   - Added comprehensive test suite `scripts/tests/test_verify_frontend_security_e2e.py` covering CLI parsing, prerequisite checking, process management, report emission, and error handling.
   - Preserved strict Java build isolation: Java surefire tests never execute Node/Playwright.
+- **Frontend Dev Mode & Vite HMR Browser E2E Qualification**:
+  - Added dedicated headless Chromium browser qualification (`.github/workflows/frontend-dev-mode-e2e.yml`) verifying local frontend development mode and Vite HMR workflow side-by-side with Java development servers (Spring Boot DevTools and Quarkus dev mode live reload) in real Chromium.
+  - Verified 10-point sequential development lifecycle parity matrix across both Spring Boot DevTools and Quarkus dev mode: initial SSR + Svelte island mounting, Svelte source HMR (zero main-frame navigations), CSS stylesheet HMR (zero main-frame navigations), VTL template reload, Java source reload/DevTools restart, Vite process survival across Java reload, post-reload Svelte HMR (zero main-frame navigations), ClientData bridge freshness and REST interaction, zero console errors / unhandled rejections, and byte-for-byte source restoration.
+  - Added full test fixtures under `integration-tests/spring/frontend-dev-mode-e2e` (Spring Boot 4.1.1, DevTools, `FilesystemTemplateRepository` with `hotReload(true)`) and `integration-tests/quarkus/frontend-dev-mode-e2e` (Quarkus 3.39.4, `quarkus:dev`) with dedicated standalone surefire server tests.
+  - Preserved zero API additions: 0 new public API or SPI classes introduced (`STABLE_API` / `STABLE_SPI` count remains unchanged).
+  - Maintained strict architectural separation: `viet-template-maven-plugin` and `viet-template-gradle-plugin` do not manage Node or Vite processes; development qualification operates purely without `dist/.vite/manifest.json`.
+  - Created automated qualification script `scripts/verify-frontend-dev-mode-e2e.py` and `scripts/verify-frontend-dev-mode-e2e.sh` supporting `spring`, `quarkus`, and `all` profiles with dynamic port allocation, health polling, process group lifecycle management, and report generation in `build/reports/frontend-dev-mode-e2e.json`.
+  - Added comprehensive unit test suite `scripts/tests/test_verify_frontend_dev_mode_e2e.py` with 15 passing tests.
+  - Preserved strict Java build isolation: Java surefire tests never execute Node/Playwright.
 
 ### Changed
 

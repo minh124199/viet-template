@@ -65,3 +65,18 @@ When `viet-template.assets.enabled=true` is set, `VietTemplateAssetAutoConfigura
 3. **`ClientDataSerializer`**: A `JacksonClientDataSerializer` wrapping Spring's primary `ObjectMapper` (compatible with both Jackson 2.x and Jackson 3.x).
 4. **`ClientData`**: The facade providing `$clientData.script()`.
 5. **`VietTemplateEngineCustomizer`**: Automatically registers `FrontendAssetsRenderContextContributor` on the template engine so `$assets` and `$clientData` are available in all templates.
+
+## Local Development with DevTools & Vite HMR
+
+When developing locally with `spring-boot-devtools` and Vite:
+- Set `viet-template.assets.mode=development` and point `viet-template.assets.dev-server` to your Vite dev server (e.g. `http://localhost:5173`).
+- For dynamic template updates without application restart, configure `FilesystemTemplateRepository` with `hotReload(true)` and a small `watchDebounceMillis`.
+- When Java source files or controller classes are edited, DevTools reloads the application via `RestartClassLoader`.
+- The Vite dev server runs as an independent OS process, preserving active WebSocket connections and Svelte component state across JVM restarts.
+
+### CLI Qualification Command
+
+```bash
+# Execute dev mode & HMR qualification for Spring Boot DevTools
+./scripts/verify-frontend-dev-mode-e2e.sh spring
+```

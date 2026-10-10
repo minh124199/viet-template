@@ -60,6 +60,12 @@ Viet Template employs a multi-tiered testing strategy to guarantee stability, sp
    - **Script-Breakout Protection**: Asserts that hostile script closing tags (`</script><script>...`) in client data remain strictly inert in the browser DOM while deserializing safely into typed frontend models.
    - **Framework Parity**: Enforces complete scenario parity between Spring Boot and Quarkus with unified reporting and matrix output.
 
+5. **Layer 5: Local Frontend Dev Mode & Vite HMR Browser Qualification**:
+   - Dedicated CI workflow (`.github/workflows/frontend-dev-mode-e2e.yml`) qualifies Viet Template local frontend development mode and Vite HMR workflow side-by-side with Java development servers (Spring Boot DevTools and Quarkus dev mode live reload) in real Chromium.
+   - Proves the full 10-point sequential development lifecycle: initial SSR + Svelte island mounting -> Svelte source HMR (0 main-frame navigations) -> CSS HMR (0 main-frame navigations) -> VTL template reload -> Java source reload/restart -> Vite process surviving Java reload -> post-reload Svelte HMR (0 main-frame navigations) -> ClientData freshness -> process-group cleanup and byte-for-byte source restoration.
+   - **Zero Process Coupling**: Viet Template plugins remain pure build tools and do not manage Node or Vite processes. Both processes run independently as standard operating system processes communicating via HTTP and WebSocket.
+   - **Framework Parity**: Enforces complete scenario parity between Spring Boot DevTools and Quarkus Dev Mode with unified JSON reporting and a 10-point parity matrix.
+
 ### Local Reproduction & Prerequisites
 
 Standard Java builds (`./mvnw test`, `./gradlew test`) remain 100% independent of Node and browser tooling. Running the browser E2E qualification requires:
@@ -78,6 +84,15 @@ To run the qualification locally:
 
 # Execute both frameworks sequentially and print the parity matrix
 ./scripts/verify-frontend-browser-e2e.sh all
+
+# Execute dev mode & Vite HMR qualification for Spring Boot DevTools
+./scripts/verify-frontend-dev-mode-e2e.sh spring
+
+# Execute dev mode & Vite HMR qualification for Quarkus Dev Mode
+./scripts/verify-frontend-dev-mode-e2e.sh quarkus
+
+# Execute dev mode qualification for all frameworks sequentially
+./scripts/verify-frontend-dev-mode-e2e.sh all
 
 # Qualify current canonical stack (Vite 8 + Svelte 5)
 ./scripts/verify-frontend-vite-svelte.sh --profile vite8-svelte5

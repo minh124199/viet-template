@@ -88,3 +88,21 @@ Viet Template verifies complete end-to-end integration with Quarkus in productio
 # Qualify both Spring Boot and Quarkus with parity matrix
 ./scripts/verify-frontend-browser-e2e.sh all
 ```
+
+## Local Development with Quarkus Dev Mode & Vite HMR
+
+When developing locally with Quarkus dev mode (`./mvnw quarkus:dev`):
+- Configure `%dev.quarkus.viet-template.assets.mode=development` and point `%dev.quarkus.viet-template.assets.dev-server` to your Vite dev server (e.g. `http://localhost:5173`).
+- Quarkus dev mode detects changes to template resources and Java source files, automatically live-reloading them upon the next incoming HTTP request.
+- The Vite development server runs as an independent OS process, serving HMR updates to Chromium without reloading the browser main frame.
+- Vite process survives Quarkus live-reload cycles and maintains active WebSocket client connections.
+
+### CLI Qualification Command
+
+```bash
+# Execute dev mode & HMR qualification for Quarkus Dev Mode
+./scripts/verify-frontend-dev-mode-e2e.sh quarkus
+
+# Execute dev mode qualification for all frameworks with parity matrix
+./scripts/verify-frontend-dev-mode-e2e.sh all
+```

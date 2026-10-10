@@ -22,6 +22,6 @@ export default defineConfig({
   server: {
     cors: true,
     strictPort: true,
-    origin: 'http://localhost:5173',
+    origin: process.env.VITE_DEV_ORIGIN || 'http://localhost:5173',
   },
 });
