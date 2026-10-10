@@ -81,6 +81,51 @@ public class VietTemplateRendererTest {
           public String encoding() {
             return "UTF-8";
           }
+
+          @Override
+          public String profile() {
+            return "VTL_MIGRATION";
+          }
+
+          @Override
+          public boolean assetsEnabled() {
+            return false;
+          }
+
+          @Override
+          public String assetsProvider() {
+            return "vite";
+          }
+
+          @Override
+          public String assetsMode() {
+            return "production";
+          }
+
+          @Override
+          public String assetsPublicBase() {
+            return "/";
+          }
+
+          @Override
+          public boolean assetsModulePreload() {
+            return true;
+          }
+
+          @Override
+          public boolean assetsFailFast() {
+            return true;
+          }
+
+          @Override
+          public String assetsManifestLocation() {
+            return "static/.vite/manifest.json";
+          }
+
+          @Override
+          public String assetsDevServer() {
+            return "http://localhost:5173";
+          }
         };
 
     renderer = new VietTemplateRenderer(engine, config);

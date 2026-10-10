@@ -172,11 +172,6 @@ public class VietTemplateProducer {
   public ClientDataSerializer produceClientDataSerializer() {
     ArcContainer container = Arc.container();
     if (container != null && container.isRunning()) {
-      InstanceHandle<ClientDataSerializer> serHandle =
-          container.instance(ClientDataSerializer.class);
-      if (serHandle != null && serHandle.isAvailable()) {
-        return serHandle.get();
-      }
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       try {
         Class<?> omClass = Class.forName("com.fasterxml.jackson.databind.ObjectMapper", false, cl);

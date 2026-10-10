@@ -54,9 +54,7 @@ public interface VietTemplateConfig {
    * Supported values: VTL_CORE, VTL_MIGRATION, VTL_DYNAMIC, VTL_SAFE. Defaults to "VTL_MIGRATION".
    */
   @WithDefault("VTL_MIGRATION")
-  default String profile() {
-    return "VTL_MIGRATION";
-  }
+  String profile();
 
   /**
    * Returns effective additional suffixes as a list, or empty list if unconfigured.
@@ -70,46 +68,34 @@ public interface VietTemplateConfig {
   /** Whether frontend asset integration is enabled. Defaults to false. */
   @io.smallrye.config.WithName("assets.enabled")
   @WithDefault("false")
-  default boolean assetsEnabled() {
-    return false;
-  }
+  boolean assetsEnabled();
 
   /** Frontend asset provider type. Defaults to "vite". */
   @io.smallrye.config.WithName("assets.provider")
   @WithDefault("vite")
-  default String assetsProvider() {
-    return "vite";
-  }
+  String assetsProvider();
 
   /** Asset resolution mode: "production" or "development". Defaults to "production". */
   @io.smallrye.config.WithName("assets.mode")
   @WithDefault("production")
-  default String assetsMode() {
-    return "production";
-  }
+  String assetsMode();
 
   /** Public base URL or CDN path prefix for asset tags. Defaults to "/". */
   @io.smallrye.config.WithName("assets.public-base")
   @WithDefault("/")
-  default String assetsPublicBase() {
-    return "/";
-  }
+  String assetsPublicBase();
 
   /** Whether module preload tags are emitted in the HTML head. Defaults to true. */
   @io.smallrye.config.WithName("assets.module-preload")
   @WithDefault("true")
-  default boolean assetsModulePreload() {
-    return true;
-  }
+  boolean assetsModulePreload();
 
   /**
    * Whether to fail startup if the production manifest is missing or malformed. Defaults to true.
    */
   @io.smallrye.config.WithName("assets.fail-fast")
   @WithDefault("true")
-  default boolean assetsFailFast() {
-    return true;
-  }
+  boolean assetsFailFast();
 
   /**
    * Resource location of the Vite production manifest file on classpath. Defaults to
@@ -117,14 +103,10 @@ public interface VietTemplateConfig {
    */
   @io.smallrye.config.WithName("assets.manifest-location")
   @WithDefault("static/.vite/manifest.json")
-  default String assetsManifestLocation() {
-    return "static/.vite/manifest.json";
-  }
+  String assetsManifestLocation();
 
   /** Vite dev server URL when in development mode. Defaults to "http://localhost:5173". */
   @io.smallrye.config.WithName("assets.dev-server")
   @WithDefault("http://localhost:5173")
-  default String assetsDevServer() {
-    return "http://localhost:5173";
-  }
+  String assetsDevServer();
 }
