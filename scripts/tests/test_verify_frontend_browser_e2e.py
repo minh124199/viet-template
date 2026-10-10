@@ -20,6 +20,7 @@ import signal
 import subprocess
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from unittest.mock import MagicMock, call, mock_open, patch
 
@@ -40,7 +41,10 @@ check_tool_version = verify_browser_e2e.check_tool_version
 check_prerequisites = verify_browser_e2e.check_prerequisites
 build_frontend = verify_browser_e2e.build_frontend
 build_spring_app = verify_browser_e2e.build_spring_app
+build_quarkus_app = verify_browser_e2e.build_quarkus_app
 start_server = verify_browser_e2e.start_server
+start_spring_server = verify_browser_e2e.start_spring_server
+start_quarkus_server = verify_browser_e2e.start_quarkus_server
 poll_server_readiness = verify_browser_e2e.poll_server_readiness
 terminate_process_group = verify_browser_e2e.terminate_process_group
 run_playwright_suite = verify_browser_e2e.run_playwright_suite
@@ -48,6 +52,7 @@ extract_playwright_test_records = verify_browser_e2e.extract_playwright_test_rec
 extract_browser_version = verify_browser_e2e.extract_browser_version
 compute_scenarios = verify_browser_e2e.compute_scenarios
 generate_report = verify_browser_e2e.generate_report
+print_parity_matrix = verify_browser_e2e.print_parity_matrix
 main = verify_browser_e2e.main
 
 
@@ -237,6 +242,139 @@ class VerifyFrontendBrowserE2ETests(unittest.TestCase):
 
         jar = build_spring_app(self.test_root, spring_dir, skip_build=True)
         self.assertEqual(real_jar, jar)
+
+    # -------------------------------------------------------------------------
+    # 4b. Quarkus Build & Start Steps
+    # -------------------------------------------------------------------------
+
+    def test_build_quarkus_app_missing_pom(self):
+        with self.assertRaises(FileNotFoundError):
+            build_quarkus_app(self.test_root, self.test_root / "quarkus")
+
+    @patch("subprocess.run")
+    def test_build_quarkus_app_mvn_failure(self, mock_run):
+        quarkus_dir = self.test_root / "quarkus"
+        quarkus_dir.mkdir(parents=True)
+        (quarkus_dir / "pom.xml").write_text("<project/>", encoding="utf-8")
+        (self.test_root / "mvnw").write_text("#!/bin/sh\n", encoding="utf-8")
+
+        mock_run.return_value = MagicMock(returncode=1, stdout="BUILD FAILURE", stderr="")
+
+        with self.assertRaises(RuntimeError) as ctx:
+            build_quarkus_app(self.test_root, quarkus_dir, skip_build=False)
+        self.assertIn("Maven Quarkus packaging failed", str(ctx.exception))
+
+    def test_build_quarkus_app_missing_target_dir(self):
+        quarkus_dir = self.test_root / "quarkus"
+        quarkus_dir.mkdir(parents=True)
+        (quarkus_dir / "pom.xml").write_text("<project/>", encoding="utf-8")
+
+        with self.assertRaises(FileNotFoundError) as ctx:
+            build_quarkus_app(self.test_root, quarkus_dir, skip_build=True)
+        self.assertIn("Target directory missing", str(ctx.exception))
+
+    def test_build_quarkus_app_missing_runner_jar(self):
+        quarkus_dir = self.test_root / "quarkus"
+        quarkus_dir.mkdir(parents=True)
+        (quarkus_dir / "pom.xml").write_text("<project/>", encoding="utf-8")
+        target_dir = quarkus_dir / "target"
+        target_dir.mkdir(parents=True)
+
+        with self.assertRaises(FileNotFoundError) as ctx:
+            build_quarkus_app(self.test_root, quarkus_dir, skip_build=True)
+        self.assertIn("Expected Quarkus runner JAR not found", str(ctx.exception))
+
+    def test_build_quarkus_app_missing_app_dir(self):
+        quarkus_dir = self.test_root / "quarkus"
+        quarkus_dir.mkdir(parents=True)
+        (quarkus_dir / "pom.xml").write_text("<project/>", encoding="utf-8")
+        runner_jar = quarkus_dir / "target" / "quarkus-app" / "quarkus-run.jar"
+        runner_jar.parent.mkdir(parents=True)
+        runner_jar.write_text("fast-jar", encoding="utf-8")
+
+        with self.assertRaises(FileNotFoundError) as ctx:
+            build_quarkus_app(self.test_root, quarkus_dir, skip_build=True)
+        self.assertIn("Expected Quarkus fast-jar app directory not found", str(ctx.exception))
+
+    def test_build_quarkus_app_missing_lib_dir(self):
+        quarkus_dir = self.test_root / "quarkus"
+        quarkus_dir.mkdir(parents=True)
+        (quarkus_dir / "pom.xml").write_text("<project/>", encoding="utf-8")
+        runner_jar = quarkus_dir / "target" / "quarkus-app" / "quarkus-run.jar"
+        runner_jar.parent.mkdir(parents=True)
+        runner_jar.write_text("fast-jar", encoding="utf-8")
+        (runner_jar.parent / "app").mkdir(parents=True)
+
+        with self.assertRaises(FileNotFoundError) as ctx:
+            build_quarkus_app(self.test_root, quarkus_dir, skip_build=True)
+        self.assertIn("Expected Quarkus fast-jar lib directory not found", str(ctx.exception))
+
+    def test_build_quarkus_app_manifest_verification_failure(self):
+        quarkus_dir = self.test_root / "quarkus"
+        quarkus_dir.mkdir(parents=True)
+        (quarkus_dir / "pom.xml").write_text("<project/>", encoding="utf-8")
+        runner_jar = quarkus_dir / "target" / "quarkus-app" / "quarkus-run.jar"
+        runner_jar.parent.mkdir(parents=True)
+        runner_jar.write_text("fast-jar", encoding="utf-8")
+        app_dir = runner_jar.parent / "app"
+        app_dir.mkdir(parents=True)
+        (runner_jar.parent / "lib").mkdir(parents=True)
+
+        # Create real zipfile in app_dir without manifest
+        app_jar = app_dir / "quarkus-app-1.0.jar"
+        with zipfile.ZipFile(app_jar, "w") as zf:
+            zf.writestr("META-INF/MANIFEST.MF", "Manifest-Version: 1.0\n")
+
+        with self.assertRaises(FileNotFoundError) as ctx:
+            build_quarkus_app(self.test_root, quarkus_dir, skip_build=True)
+        self.assertIn("Expected packaged Vite manifest not found in Quarkus application artifact", str(ctx.exception))
+
+    def test_build_quarkus_app_success(self):
+        quarkus_dir = self.test_root / "quarkus"
+        quarkus_dir.mkdir(parents=True)
+        (quarkus_dir / "pom.xml").write_text("<project/>", encoding="utf-8")
+        runner_jar = quarkus_dir / "target" / "quarkus-app" / "quarkus-run.jar"
+        runner_jar.parent.mkdir(parents=True)
+        runner_jar.write_text("fast-jar", encoding="utf-8")
+        app_dir = runner_jar.parent / "app"
+        app_dir.mkdir(parents=True)
+        (runner_jar.parent / "lib").mkdir(parents=True)
+
+        app_jar = app_dir / "quarkus-app-1.0.jar"
+        with zipfile.ZipFile(app_jar, "w") as zf:
+            zf.writestr("META-INF/resources/.vite/manifest.json", "{}")
+
+        jar = build_quarkus_app(self.test_root, quarkus_dir, skip_build=True)
+        self.assertEqual(runner_jar, jar)
+
+    def test_build_spring_app_manifest_verification_failure(self):
+        spring_dir = self.test_root / "spring"
+        spring_dir.mkdir(parents=True)
+        (spring_dir / "pom.xml").write_text("<project/>", encoding="utf-8")
+        target_dir = spring_dir / "target"
+        target_dir.mkdir(parents=True)
+        app_jar = target_dir / "app-1.0.jar"
+        with zipfile.ZipFile(app_jar, "w") as zf:
+            zf.writestr("META-INF/MANIFEST.MF", "Manifest-Version: 1.0\n")
+
+        with self.assertRaises(FileNotFoundError) as ctx:
+            build_spring_app(self.test_root, spring_dir, skip_build=True)
+        self.assertIn("Expected packaged Vite manifest not found in Spring Boot artifact", str(ctx.exception))
+
+    @patch("subprocess.Popen")
+    def test_start_quarkus_server_command(self, mock_popen):
+        fake_jar = self.test_root / "quarkus-run.jar"
+        fake_jar.write_text("jar", encoding="utf-8")
+        log_path = self.test_root / "target" / "server.log"
+
+        start_quarkus_server(fake_jar, 8081, log_path)
+
+        mock_popen.assert_called_once()
+        cmd = mock_popen.call_args[0][0]
+        self.assertEqual("java", cmd[0])
+        self.assertEqual("-Dquarkus.http.port=8081", cmd[1])
+        self.assertEqual("-jar", cmd[2])
+        self.assertEqual(str(fake_jar.resolve()), cmd[3])
 
     # -------------------------------------------------------------------------
     # 5. Server Startup & Readiness Polling
@@ -576,6 +714,230 @@ class VerifyFrontendBrowserE2ETests(unittest.TestCase):
             self.assertEqual(1, exit_code)
             self.assertIn("Captured Server Logs (server.log)", stderr_capture.getvalue())
             self.assertIn("BeanCreationException", stderr_capture.getvalue())
+
+    def test_print_parity_matrix(self):
+        results = [
+            {
+                "framework": "spring",
+                "displayName": "Spring Boot",
+                "status": "PASS",
+                "scenarios": {k: "PASS" for k in [
+                    "ssr", "assetLoading", "clientData", "islandMount",
+                    "restInteraction", "domUpdate", "noJsFallback",
+                    "scriptBreakoutProtection", "consoleHealth", "networkHealth"
+                ]}
+            },
+            {
+                "framework": "quarkus",
+                "displayName": "Quarkus",
+                "status": "PASS",
+                "scenarios": {k: "PASS" for k in [
+                    "ssr", "assetLoading", "clientData", "islandMount",
+                    "restInteraction", "domUpdate", "noJsFallback",
+                    "scriptBreakoutProtection", "consoleHealth", "networkHealth"
+                ]}
+            }
+        ]
+        capture = io.StringIO()
+        with patch("sys.stdout", capture):
+            print_parity_matrix(results)
+        output = capture.getvalue()
+        self.assertIn("Scenario Parity Qualification Matrix", output)
+        self.assertIn("Spring", output)
+        self.assertIn("Quarkus", output)
+        self.assertIn("SSR", output)
+        self.assertIn("Island mount", output)
+
+    def test_main_unknown_framework_choice(self):
+        with self.assertRaises(SystemExit) as ctx:
+            with patch("sys.stderr", io.StringIO()):
+                main(["--framework", "invalid-fw"])
+        self.assertNotEqual(0, ctx.exception.code)
+
+    def test_main_quarkus_success_flow(self):
+        with patch.object(verify_browser_e2e, "check_prerequisites") as mock_check_prereqs, \
+             patch.object(verify_browser_e2e, "build_frontend") as mock_build_fe, \
+             patch.object(verify_browser_e2e, "build_quarkus_app") as mock_build_quarkus, \
+             patch.object(verify_browser_e2e, "start_quarkus_server") as mock_start_quarkus, \
+             patch.object(verify_browser_e2e, "poll_server_readiness") as mock_poll, \
+             patch.object(verify_browser_e2e, "run_playwright_suite") as mock_run_pw, \
+             patch.object(verify_browser_e2e, "terminate_process_group") as mock_terminate:
+
+            mock_check_prereqs.return_value = {"node": "22", "quarkus": "3.39.4"}
+            mock_build_quarkus.return_value = Path("/tmp/quarkus-run.jar")
+            fake_proc = MagicMock()
+            mock_start_quarkus.return_value = fake_proc
+            mock_poll.return_value = True
+            mock_run_pw.return_value = (0, "All passed", "", {
+                "stats": {"expected": 1, "unexpected": 0, "skipped": 0, "flaky": 0},
+                "suites": [{"specs": [{"title": "island test", "ok": True, "tests": []}]}],
+            })
+
+            report_path = self.test_root / "report.json"
+            exit_code = main([
+                "--framework", "quarkus",
+                "--report-path", str(report_path),
+                "--skip-install",
+                "--skip-build",
+                "--port", "8099",
+            ])
+
+            self.assertEqual(0, exit_code)
+            mock_terminate.assert_called_once_with(fake_proc)
+            self.assertTrue(report_path.is_file())
+            with open(report_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual("PASS", data["status"])
+            self.assertEqual("quarkus", data["frameworks"][0]["framework"])
+
+    def test_main_quarkus_playwright_failure(self):
+        with patch.object(verify_browser_e2e, "check_prerequisites") as mock_check_prereqs, \
+             patch.object(verify_browser_e2e, "build_frontend") as mock_build_fe, \
+             patch.object(verify_browser_e2e, "build_quarkus_app") as mock_build_quarkus, \
+             patch.object(verify_browser_e2e, "start_quarkus_server") as mock_start_quarkus, \
+             patch.object(verify_browser_e2e, "poll_server_readiness") as mock_poll, \
+             patch.object(verify_browser_e2e, "run_playwright_suite") as mock_run_pw, \
+             patch.object(verify_browser_e2e, "terminate_process_group") as mock_terminate:
+
+            mock_check_prereqs.return_value = {"node": "22"}
+            mock_build_quarkus.return_value = Path("/tmp/quarkus-run.jar")
+            fake_proc = MagicMock()
+            mock_start_quarkus.return_value = fake_proc
+            mock_poll.return_value = True
+            mock_run_pw.return_value = (1, "Playwright failure", "AssertionError", None)
+
+            report_path = self.test_root / "report.json"
+            exit_code = main([
+                "quarkus",
+                "--report-path", str(report_path),
+                "--skip-install",
+                "--skip-build",
+                "--port", "8099",
+            ])
+
+            self.assertEqual(1, exit_code)
+            mock_terminate.assert_called_once_with(fake_proc)
+            with open(report_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual("FAIL", data["status"])
+            self.assertTrue(any("Playwright browser tests failed" in e for e in data["errors"]))
+
+    def test_main_quarkus_readiness_failure_dumps_server_log(self):
+        with patch.object(verify_browser_e2e, "check_prerequisites") as mock_check_prereqs, \
+             patch.object(verify_browser_e2e, "build_frontend") as mock_build_fe, \
+             patch.object(verify_browser_e2e, "build_quarkus_app") as mock_build_quarkus, \
+             patch.object(verify_browser_e2e, "start_quarkus_server") as mock_start, \
+             patch.object(verify_browser_e2e, "poll_server_readiness", side_effect=TimeoutError("Quarkus timed out")), \
+             patch.object(verify_browser_e2e, "terminate_process_group") as mock_terminate:
+
+            mock_check_prereqs.return_value = {"node": "22"}
+            mock_build_quarkus.return_value = Path("/tmp/quarkus-run.jar")
+            fake_proc = MagicMock()
+            mock_start.return_value = fake_proc
+
+            quarkus_dir = self.test_root / "quarkus"
+            quarkus_dir.mkdir(parents=True)
+            log_file = quarkus_dir / "target" / "server.log"
+            log_file.parent.mkdir(parents=True)
+            log_file.write_text("Quarkus initialization failed: Port in use\n", encoding="utf-8")
+
+            report_path = self.test_root / "report.json"
+            stderr_capture = io.StringIO()
+            with patch("sys.stderr", stderr_capture):
+                exit_code = main([
+                    "quarkus",
+                    "--report-path", str(report_path),
+                    "--quarkus-dir", str(quarkus_dir),
+                    "--skip-install",
+                    "--skip-build",
+                    "--port", "8099",
+                ])
+
+            self.assertEqual(1, exit_code)
+            self.assertIn("Captured Server Logs (server.log)", stderr_capture.getvalue())
+            self.assertIn("Quarkus initialization failed", stderr_capture.getvalue())
+
+    def test_main_all_success_flow(self):
+        with patch.object(verify_browser_e2e, "check_prerequisites") as mock_check_prereqs, \
+             patch.object(verify_browser_e2e, "build_frontend") as mock_build_fe, \
+             patch.object(verify_browser_e2e, "build_spring_app") as mock_build_spring, \
+             patch.object(verify_browser_e2e, "build_quarkus_app") as mock_build_quarkus, \
+             patch.object(verify_browser_e2e, "start_spring_server") as mock_start_spring, \
+             patch.object(verify_browser_e2e, "start_quarkus_server") as mock_start_quarkus, \
+             patch.object(verify_browser_e2e, "poll_server_readiness") as mock_poll, \
+             patch.object(verify_browser_e2e, "run_playwright_suite") as mock_run_pw, \
+             patch.object(verify_browser_e2e, "terminate_process_group") as mock_terminate:
+
+            mock_check_prereqs.return_value = {"node": "22", "springBoot": "4.1.1", "quarkus": "3.39.4"}
+            mock_build_spring.return_value = Path("/tmp/spring.jar")
+            mock_build_quarkus.return_value = Path("/tmp/quarkus-run.jar")
+            fake_spring_proc = MagicMock()
+            fake_quarkus_proc = MagicMock()
+            mock_start_spring.return_value = fake_spring_proc
+            mock_start_quarkus.return_value = fake_quarkus_proc
+            mock_poll.return_value = True
+            mock_run_pw.return_value = (0, "All passed", "", {
+                "stats": {"expected": 1, "unexpected": 0, "skipped": 0, "flaky": 0},
+                "suites": [{"specs": [{"title": "island test", "ok": True, "tests": []}]}],
+            })
+
+            report_path = self.test_root / "report.json"
+            exit_code = main([
+                "all",
+                "--report-path", str(report_path),
+                "--skip-install",
+                "--skip-build",
+            ])
+
+            self.assertEqual(0, exit_code)
+            self.assertEqual(2, mock_terminate.call_count)
+            mock_terminate.assert_has_calls([call(fake_spring_proc), call(fake_quarkus_proc)])
+            with open(report_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual("PASS", data["status"])
+            self.assertEqual(2, len(data["frameworks"]))
+            self.assertEqual("spring", data["frameworks"][0]["framework"])
+            self.assertEqual("quarkus", data["frameworks"][1]["framework"])
+
+    def test_main_all_partial_failure_flow(self):
+        with patch.object(verify_browser_e2e, "check_prerequisites") as mock_check_prereqs, \
+             patch.object(verify_browser_e2e, "build_frontend") as mock_build_fe, \
+             patch.object(verify_browser_e2e, "build_spring_app") as mock_build_spring, \
+             patch.object(verify_browser_e2e, "build_quarkus_app") as mock_build_quarkus, \
+             patch.object(verify_browser_e2e, "start_spring_server") as mock_start_spring, \
+             patch.object(verify_browser_e2e, "start_quarkus_server") as mock_start_quarkus, \
+             patch.object(verify_browser_e2e, "poll_server_readiness") as mock_poll, \
+             patch.object(verify_browser_e2e, "run_playwright_suite") as mock_run_pw, \
+             patch.object(verify_browser_e2e, "terminate_process_group") as mock_terminate:
+
+            mock_check_prereqs.return_value = {"node": "22"}
+            mock_build_spring.return_value = Path("/tmp/spring.jar")
+            mock_build_quarkus.return_value = Path("/tmp/quarkus-run.jar")
+            fake_spring_proc = MagicMock()
+            fake_quarkus_proc = MagicMock()
+            mock_start_spring.return_value = fake_spring_proc
+            mock_start_quarkus.return_value = fake_quarkus_proc
+            mock_poll.return_value = True
+            # Spring passes (code 0), Quarkus fails (code 1)
+            mock_run_pw.side_effect = [
+                (0, "Passed", "", {"stats": {"expected": 1}, "suites": []}),
+                (1, "Failed", "Error", None),
+            ]
+
+            report_path = self.test_root / "report.json"
+            exit_code = main([
+                "--framework", "all",
+                "--report-path", str(report_path),
+                "--skip-install",
+                "--skip-build",
+            ])
+
+            self.assertEqual(1, exit_code)
+            with open(report_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual("FAIL", data["status"])
+            self.assertEqual("PASS", data["frameworks"][0]["status"])
+            self.assertEqual("FAIL", data["frameworks"][1]["status"])
 
 
 if __name__ == "__main__":

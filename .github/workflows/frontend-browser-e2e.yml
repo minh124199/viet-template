@@ -6,10 +6,13 @@ on:
     paths:
       - 'viet-template-spring-boot-starter/**'
       - 'viet-template-spring-boot-autoconfigure/**'
+      - 'viet-template-quarkus/**'
+      - 'viet-template-quarkus-deployment/**'
       - 'viet-template-runtime/**'
       - 'examples/frontend-svelte-islands/**'
       - 'integration-tests/frontend/**'
       - 'integration-tests/spring/frontend-e2e/**'
+      - 'integration-tests/quarkus/frontend-e2e/**'
       - 'scripts/verify-frontend-browser-e2e*'
       - 'scripts/tests/test_verify_frontend_browser_e2e.py'
       - '.github/workflows/frontend-browser-e2e.yml'
@@ -19,10 +22,13 @@ on:
     paths:
       - 'viet-template-spring-boot-starter/**'
       - 'viet-template-spring-boot-autoconfigure/**'
+      - 'viet-template-quarkus/**'
+      - 'viet-template-quarkus-deployment/**'
       - 'viet-template-runtime/**'
       - 'examples/frontend-svelte-islands/**'
       - 'integration-tests/frontend/**'
       - 'integration-tests/spring/frontend-e2e/**'
+      - 'integration-tests/quarkus/frontend-e2e/**'
       - 'scripts/verify-frontend-browser-e2e*'
       - 'scripts/tests/test_verify_frontend_browser_e2e.py'
       - '.github/workflows/frontend-browser-e2e.yml'
@@ -70,18 +76,67 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
-      - name: Run Frontend Browser E2E Qualification
-        run: ./scripts/verify-frontend-browser-e2e.sh
+      - name: Run Spring Boot Browser E2E Qualification
+        run: ./scripts/verify-frontend-browser-e2e.sh spring
 
-      - name: Upload Qualification Report & Artifacts
+      - name: Upload Spring Boot Qualification Report & Artifacts
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: frontend-browser-e2e-report
+          name: spring-frontend-browser-e2e-report
           path: |
             build/reports/frontend-browser-e2e.json
             integration-tests/frontend/browser/playwright-report
             integration-tests/frontend/browser/test-results
             integration-tests/spring/frontend-e2e/target/server.log
+            examples/frontend-svelte-islands/dist/.vite/manifest.json
+          if-no-files-found: ignore
+
+  quarkus-vite-svelte-chromium:
+    name: Quarkus + Vite + Svelte + Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Java 25
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: |
+            examples/frontend-svelte-islands/package-lock.json
+            integration-tests/frontend/browser/package-lock.json
+
+      - name: Bootstrap reactor artifacts for clean-room verification
+        run: ./mvnw install -DskipTests -Dspotless.check.skip=true -B
+
+      - name: Install Playwright Chromium with OS dependencies
+        run: |
+          cd integration-tests/frontend/browser
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run Quarkus Browser E2E Qualification
+        run: ./scripts/verify-frontend-browser-e2e.sh quarkus
+
+      - name: Upload Quarkus Qualification Report & Artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: quarkus-frontend-browser-e2e-report
+          path: |
+            build/reports/frontend-browser-e2e.json
+            integration-tests/frontend/browser/playwright-report
+            integration-tests/frontend/browser/test-results
+            integration-tests/quarkus/frontend-e2e/target/server.log
             examples/frontend-svelte-islands/dist/.vite/manifest.json
           if-no-files-found: ignore

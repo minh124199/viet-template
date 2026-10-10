@@ -33,16 +33,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added checked-in static manifest fixtures for both Vite 5 (`assets/vite/vite5/manifest.json`) and Vite 8 (`assets/vite/vite8/manifest.json`) and verified offline resolution in `ViteAssetResolverTest`.
   - Proved that `ViteAssetResolver` successfully resolves assets from both Rollup-era and Rolldown-era builds with zero production Java runtime changes.
 - **Deterministic Chromium Browser E2E Qualification**:
-  - Added dedicated headless Chromium browser qualification (`.github/workflows/frontend-browser-e2e.yml`) verifying complete end-to-end integration: Spring Boot 4 + Viet Template SSR + `$assets.head/body(...)` + `$clientData.script(...)` + Vite 8 production build + Svelte 5 island mount + DOM interaction + Java REST API (`POST /api/employees/42/follow`) + reactive DOM state update.
-  - Verified progressive enhancement fallback: pages render accessible, readable HTML when client-side JavaScript is disabled.
-  - Verified client data security immunity: hostile script breakout sequences remain strictly inert while deserializing safely.
-  - Added automated orchestration scripts `scripts/verify-frontend-browser-e2e.py` and `scripts/verify-frontend-browser-e2e.sh` with dynamic port binding, health polling, robust process group cleanup, and structured reporting to `build/reports/frontend-browser-e2e.json`.
-  - Added comprehensive orchestration unit test suite `scripts/tests/test_verify_frontend_browser_e2e.py` covering tool validation, build error paths, early server exit, readiness timeout, Playwright failure modes, and process termination.
+  - Added dedicated headless Chromium browser qualification (`.github/workflows/frontend-browser-e2e.yml`) verifying complete end-to-end integration across both Spring Boot 4 and Quarkus 3.39.4 in packaged JVM production mode: Viet Template SSR + `$assets.head/body(...)` + `$clientData.script(...)` + Vite 8 production build + Svelte 5 island mount + DOM interaction + Java REST API (`POST /api/employees/42/follow`) + reactive DOM state update.
+  - Added dedicated Quarkus browser E2E fixture under `integration-tests/quarkus/frontend-e2e` reusing existing Playwright Chromium tests and Vite 8 + Svelte 5 production build without source code duplication.
+  - Verified progressive enhancement fallback: pages render accessible, readable HTML when client-side JavaScript is disabled (`<form method="post">` redirect flow).
+  - Verified client data security immunity: hostile script breakout sequences remain strictly inert while deserializing safely into typed frontend models.
+  - Extended automated orchestration scripts `scripts/verify-frontend-browser-e2e.py` and `scripts/verify-frontend-browser-e2e.sh` to support `spring`, `quarkus`, and `all` framework profiles with dynamic port binding, health polling, robust process group cleanup, structured JSON reporting, and a side-by-side scenario parity matrix.
+  - Extended orchestration unit test suite `scripts/tests/test_verify_frontend_browser_e2e.py` covering Quarkus build artifacts, runner JAR detection, readiness timeout, Playwright failures, multi-framework orchestration, and parity matrix emission.
+  - Configured GitHub Actions workflow (`.github/workflows/frontend-browser-e2e.yml`) with dual-job pipeline (`spring-boot-vite-svelte-chromium` and `quarkus-vite-svelte-chromium`) and path triggers for Quarkus modules.
   - Preserved strict Java build isolation: standard Maven (`./mvnw test`) and Gradle (`./gradlew test`) lifecycles remain completely independent of Node, npm, and Playwright.
 
 ### Changed
 
 ### Fixed
+- **Quarkus SmallRye Config Asset Properties Mapping**: Fixed `VietTemplateConfig.java` where methods with default interface bodies were skipped by SmallRye `@ConfigMapping` bytecode generation and marked as unrecognized properties; converted to abstract methods with `@WithDefault(...)`.
+- **Quarkus Arc CDI Self-Lookup Recursion**: Fixed `StackOverflowError` in `VietTemplateProducer.produceClientDataSerializer()` caused by container self-lookup of `ClientDataSerializer` inside its own `@DefaultBean` producer method.
 
 ## [1.3.0] - 2026-10-09
 
