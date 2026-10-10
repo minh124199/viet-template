@@ -32,6 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Refactored `.github/workflows/frontend-compatibility.yml` into a matrix running both legacy (`Vite 5 + Svelte 4` on Node 22) and current (`Vite 8 + Svelte 5` on Node 24) lanes with lane-specific npm caches.
   - Added checked-in static manifest fixtures for both Vite 5 (`assets/vite/vite5/manifest.json`) and Vite 8 (`assets/vite/vite8/manifest.json`) and verified offline resolution in `ViteAssetResolverTest`.
   - Proved that `ViteAssetResolver` successfully resolves assets from both Rollup-era and Rolldown-era builds with zero production Java runtime changes.
+- **Deterministic Chromium Browser E2E Qualification**:
+  - Added dedicated headless Chromium browser qualification (`.github/workflows/frontend-browser-e2e.yml`) verifying complete end-to-end integration: Spring Boot 4 + Viet Template SSR + `$assets.head/body(...)` + `$clientData.script(...)` + Vite 8 production build + Svelte 5 island mount + DOM interaction + Java REST API (`POST /api/employees/42/follow`) + reactive DOM state update.
+  - Verified progressive enhancement fallback: pages render accessible, readable HTML when client-side JavaScript is disabled.
+  - Verified client data security immunity: hostile script breakout sequences remain strictly inert while deserializing safely.
+  - Added automated orchestration scripts `scripts/verify-frontend-browser-e2e.py` and `scripts/verify-frontend-browser-e2e.sh` with dynamic port binding, health polling, robust process group cleanup, and structured reporting to `build/reports/frontend-browser-e2e.json`.
+  - Added comprehensive orchestration unit test suite `scripts/tests/test_verify_frontend_browser_e2e.py` covering tool validation, build error paths, early server exit, readiness timeout, Playwright failure modes, and process termination.
+  - Preserved strict Java build isolation: standard Maven (`./mvnw test`) and Gradle (`./gradlew test`) lifecycles remain completely independent of Node, npm, and Playwright.
 
 ### Changed
 

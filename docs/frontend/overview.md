@@ -52,12 +52,26 @@ Viet Template employs a multi-tiered testing strategy to guarantee stability, sp
    - Artifacts generated during this process (`node_modules/`, `dist/`) are strictly build-time artifacts and ignored by version control.
 3. **Layer 3: Framework & Native Image Verification**:
    - Spring Boot auto-configuration, Quarkus CDI extension, and GraalVM/Mandrel native image execution tests ensure seamless enterprise deployment.
+4. **Layer 4: Deterministic Chromium Browser E2E Qualification**:
+   - Dedicated CI workflow (`.github/workflows/frontend-browser-e2e.yml`) boots a live Spring Boot application serving production Vite 8 + Svelte 5 assets and executes headless Chromium browser tests via Playwright.
+   - Proves full end-to-end integration: Viet Template SSR -> semantic HTML -> `$assets.head/body(...)` -> `$clientData.script(...)` -> Vite 8 production build -> Chromium -> Svelte 5 island mount -> user DOM click -> Java REST API (`POST /api/employees/42/follow`) -> reactive DOM update.
+   - **SSR-First Architecture & Progressive Enhancement**: Validates that primary semantic content (heading, employee name, department, fallback cards) is rendered server-side prior to client-side JavaScript execution.
+   - **No-JavaScript Behavior**: When client-side JavaScript is disabled (`javaScriptEnabled: false`), the canonical example preserves full document structure, employee directory details, and a functional HTML `<form method="post">` fallback button without relying on Svelte hydration.
+   - **Script-Breakout Protection**: Asserts that hostile script closing tags (`</script><script>...`) in client data remain strictly inert in the browser DOM while deserializing safely into typed frontend models.
 
-### Local Reproduction
+### Local Reproduction & Prerequisites
 
-To run the complete real Vite + Svelte qualification locally:
+Standard Java builds (`./mvnw test`, `./gradlew test`) remain 100% independent of Node and browser tooling. Running the browser E2E qualification requires:
+- **Java 21+**
+- **Node.js 24 LTS** & **npm**
+- **Playwright Chromium & OS dependencies** (`npx playwright install --with-deps chromium` within `integration-tests/frontend/browser`)
+
+To run the qualification locally:
 
 ```bash
+# Execute deterministic Chromium browser E2E qualification
+./scripts/verify-frontend-browser-e2e.sh
+
 # Qualify current canonical stack (Vite 8 + Svelte 5)
 ./scripts/verify-frontend-vite-svelte.sh --profile vite8-svelte5
 
