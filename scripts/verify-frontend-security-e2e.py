@@ -1,20 +1,26 @@
 #!/usr/bin/env python3
 """
-verify-frontend-browser-e2e.py
+verify-frontend-security-e2e.py
 
-Deterministic Chromium browser End-to-End qualification script:
+Deterministic Chromium browser End-to-End qualification script for
+Authenticated Session & CSRF Protection across Spring Boot 4 and Quarkus 3:
 1. Validates prerequisites (Node, npm, Java, Maven wrapper, Playwright, Vite, Svelte, Spring Boot, Quarkus).
 2. Builds production Vite 8 + Svelte 5 frontend assets once.
-3. Supports framework profiles: 'spring', 'quarkus', or 'all'.
+3. Supports framework profiles: 'spring', 'quarkus', or 'all' (default).
 4. Packages target application fixture with embedded frontend dist.
 5. Dynamically binds an available local port and boots the server in packaged JVM mode.
 6. Deterministically polls the /health readiness endpoint until UP.
-7. Executes Playwright test suite against real Chromium browser:
-   - Svelte 5 island mounting, interactive DOM clicks, Java REST API, reactive DOM update.
-   - Progressive enhancement fallback when JavaScript is disabled (pure SSR).
-   - Script-safe JSON serialization immunity against XSS script breakout.
+7. Executes Playwright test suite against real Chromium browser (authenticated-security.spec.ts):
+   - Anonymous denial and redirect to /login.
+   - Form authentication establishing session/cookie.
+   - Viet Template SSR $security and $csrf facades.
+   - Role-dependent markup and authoritative server authorization.
+   - Valid CSRF acceptance, REST interaction, reactive Svelte island update.
+   - Missing and invalid CSRF rejection (Spring: 403, Quarkus: 400).
+   - Non-JavaScript fallback form submission with CSRF in no-JS context.
+   - Zero console errors and zero unexpected network failures.
 8. Guarantees clean process-group termination and resource cleanup on exit.
-9. Emits a machine-readable report to build/reports/frontend-browser-e2e.json.
+9. Emits a machine-readable report to build/reports/frontend-security-e2e.json.
 10. Prints framework parity matrix and exits non-zero on any qualification or assertion failure.
 """
 
@@ -36,10 +42,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_BROWSER_DIR = REPO_ROOT / "integration-tests" / "frontend" / "browser"
-DEFAULT_SPRING_DIR = REPO_ROOT / "integration-tests" / "spring" / "frontend-e2e"
-DEFAULT_QUARKUS_DIR = REPO_ROOT / "integration-tests" / "quarkus" / "frontend-e2e"
+DEFAULT_SPRING_DIR = REPO_ROOT / "integration-tests" / "spring" / "frontend-security-e2e"
+DEFAULT_QUARKUS_DIR = REPO_ROOT / "integration-tests" / "quarkus" / "frontend-security-e2e"
 DEFAULT_FRONTEND_DIR = REPO_ROOT / "examples" / "frontend-svelte-islands"
-DEFAULT_REPORT_PATH = REPO_ROOT / "build" / "reports" / "frontend-browser-e2e.json"
+DEFAULT_REPORT_PATH = REPO_ROOT / "build" / "reports" / "frontend-security-e2e.json"
 
 
 def find_free_port() -> int:
@@ -57,7 +63,6 @@ def check_tool_version(tool_name: str, version_flag: str = "--version") -> str:
         raise RuntimeError(f"Required tool '{tool_name}' was not found on system PATH.")
 
     res = subprocess.run([tool_name, version_flag], capture_output=True, text=True)
-    # Some tools like java write version info to stderr even with exit code 0
     output = res.stdout.strip() or res.stderr.strip()
     if not output:
         if res.returncode != 0:
@@ -97,8 +102,7 @@ def check_prerequisites(
     playwright_ver = pkg_data.get("devDependencies", {}).get("@playwright/test", "unknown")
     toolchain["playwright"] = playwright_ver
 
-    # Extract Vite & Svelte versions from frontend fixture if available
-    fe_dir = frontend_dir or (repo_root / "examples" / "frontend-svelte-islands")
+    fe_dir = frontend_dir or DEFAULT_FRONTEND_DIR
     fe_pkg = fe_dir / "package.json"
     if fe_pkg.is_file():
         try:
@@ -112,25 +116,23 @@ def check_prerequisites(
         except Exception:
             pass
 
-    # Extract Spring Boot version from spring fixture pom.xml if available
-    sp_dir = spring_dir or (repo_root / "integration-tests" / "spring" / "frontend-e2e")
+    sp_dir = spring_dir or DEFAULT_SPRING_DIR
     sp_pom = sp_dir / "pom.xml"
     if sp_pom.is_file():
         try:
             pom_text = sp_pom.read_text(encoding="utf-8")
-            m = re.search(r"<spring-boot\.version>(.*?)</spring-boot\.version>", pom_text)
+            m = re.search(r"<spring-boot\.version>([^<]+)</spring-boot\.version>", pom_text)
             if m:
                 toolchain["springBoot"] = m.group(1).strip()
         except Exception:
             pass
 
-    # Extract Quarkus version from quarkus fixture pom.xml if available
-    qk_dir = quarkus_dir or (repo_root / "integration-tests" / "quarkus" / "frontend-e2e")
+    qk_dir = quarkus_dir or DEFAULT_QUARKUS_DIR
     qk_pom = qk_dir / "pom.xml"
     if qk_pom.is_file():
         try:
             pom_text = qk_pom.read_text(encoding="utf-8")
-            m = re.search(r"<quarkus\.version>(.*?)</quarkus\.version>", pom_text)
+            m = re.search(r"<quarkus\.version>([^<]+)</quarkus\.version>", pom_text)
             if m:
                 toolchain["quarkus"] = m.group(1).strip()
         except Exception:
@@ -139,36 +141,43 @@ def check_prerequisites(
     return toolchain
 
 
-def build_frontend(frontend_dir: Path, skip_install: bool = False, skip_build: bool = False) -> None:
-    """Installs dependencies and builds production Vite assets."""
+def build_frontend(frontend_dir: Path, skip_build: bool = False) -> Path:
+    """Executes locked npm build in frontend directory and asserts production dist."""
+    dist_dir = frontend_dir / "dist"
+    manifest_file = dist_dir / ".vite" / "manifest.json"
+
+    if skip_build and manifest_file.is_file():
+        print(f"[INFO] Skipping frontend build, existing manifest found at {manifest_file}.")
+        return dist_dir
+
     if not (frontend_dir / "package.json").is_file():
         raise FileNotFoundError(f"Frontend directory missing package.json: {frontend_dir}")
 
-    if not skip_install:
+    vite_bin = frontend_dir / "node_modules" / ".bin" / "vite"
+    if not vite_bin.is_file():
         print(f"[STEP] Installing locked frontend dependencies via 'npm ci' in {frontend_dir}...")
-        res = subprocess.run(["npm", "ci"], cwd=str(frontend_dir), capture_output=True, text=True)
-        if res.returncode != 0:
-            print(res.stderr, file=sys.stderr)
-            raise RuntimeError(f"'npm ci' failed with code {res.returncode}")
+        ci_res = subprocess.run(["npm", "ci"], cwd=str(frontend_dir), capture_output=True, text=True)
+        if ci_res.returncode != 0:
+            print(ci_res.stderr, file=sys.stderr)
+            raise RuntimeError(f"'npm ci' failed with code {ci_res.returncode}")
 
-    if not skip_build:
-        dist_dir = frontend_dir / "dist"
-        if dist_dir.exists():
-            shutil.rmtree(dist_dir)
+    cmd = ["npm", "run", "build"]
+    print(f"[STEP] Building production frontend assets in {frontend_dir} via {' '.join(cmd)}...")
+    res = subprocess.run(cmd, cwd=str(frontend_dir), capture_output=True, text=True)
+    if res.returncode != 0:
+        print(res.stdout)
+        print(res.stderr, file=sys.stderr)
+        raise RuntimeError(f"Frontend asset build failed with code {res.returncode}")
 
-        print(f"[STEP] Building production assets via 'npm run build' in {frontend_dir}...")
-        res = subprocess.run(["npm", "run", "build"], cwd=str(frontend_dir), capture_output=True, text=True)
-        if res.returncode != 0:
-            print(res.stderr, file=sys.stderr)
-            raise RuntimeError(f"'npm run build' failed with code {res.returncode}")
+    if not manifest_file.is_file():
+        raise FileNotFoundError(f"Production Vite manifest missing after build at: {manifest_file}")
 
-    manifest = frontend_dir / "dist" / ".vite" / "manifest.json"
-    if not manifest.is_file():
-        raise FileNotFoundError(f"Expected Vite manifest not found after build at: {manifest}")
+    print(f"[PASS] Production frontend dist built successfully: {dist_dir}")
+    return dist_dir
 
 
 def build_spring_app(repo_root: Path, spring_dir: Path, skip_build: bool = False) -> Path:
-    """Compiles and packages the Spring Boot E2E application into a fat jar."""
+    """Compiles and packages the Spring Boot Security E2E application into a fat jar."""
     pom_file = spring_dir / "pom.xml"
     if not pom_file.is_file():
         raise FileNotFoundError(f"Spring E2E pom.xml missing at: {pom_file}")
@@ -183,7 +192,7 @@ def build_spring_app(repo_root: Path, spring_dir: Path, skip_build: bool = False
             str(pom_file),
             "-B",
         ]
-        print(f"[STEP] Packaging Spring Boot E2E application: {' '.join(cmd)}...")
+        print(f"[STEP] Packaging Spring Boot Security E2E application: {' '.join(cmd)}...")
         res = subprocess.run(cmd, cwd=str(repo_root), capture_output=True, text=True)
         if res.returncode != 0:
             print(res.stdout)
@@ -216,7 +225,7 @@ def build_spring_app(repo_root: Path, spring_dir: Path, skip_build: bool = False
 
 
 def build_quarkus_app(repo_root: Path, quarkus_dir: Path, skip_build: bool = False) -> Path:
-    """Compiles and packages the Quarkus E2E application into a fast-jar runner artifact."""
+    """Compiles and packages the Quarkus Security E2E application into a fast-jar runner artifact."""
     pom_file = quarkus_dir / "pom.xml"
     if not pom_file.is_file():
         raise FileNotFoundError(f"Quarkus E2E pom.xml missing at: {pom_file}")
@@ -231,7 +240,7 @@ def build_quarkus_app(repo_root: Path, quarkus_dir: Path, skip_build: bool = Fal
             str(pom_file),
             "-B",
         ]
-        print(f"[STEP] Packaging Quarkus E2E application: {' '.join(cmd)}...")
+        print(f"[STEP] Packaging Quarkus Security E2E application: {' '.join(cmd)}...")
         res = subprocess.run(cmd, cwd=str(repo_root), capture_output=True, text=True)
         if res.returncode != 0:
             print(res.stdout)
@@ -280,7 +289,7 @@ def build_quarkus_app(repo_root: Path, quarkus_dir: Path, skip_build: bool = Fal
     return runner_jar
 
 
-def start_server(jar_path: Path, port: int, log_path: Path) -> subprocess.Popen:
+def start_spring_server(jar_path: Path, port: int, log_path: Path) -> subprocess.Popen:
     """Starts the Spring Boot server in a new process group."""
     cmd = [
         "java",
@@ -297,11 +306,6 @@ def start_server(jar_path: Path, port: int, log_path: Path) -> subprocess.Popen:
             start_new_session=True,
         )
     return proc
-
-
-def start_spring_server(jar_path: Path, port: int, log_path: Path) -> subprocess.Popen:
-    """Starts the Spring Boot server in a new process group (delegates to start_server)."""
-    return globals()["start_server"](jar_path, port, log_path)
 
 
 def start_quarkus_server(jar_path: Path, port: int, log_path: Path) -> subprocess.Popen:
@@ -323,63 +327,75 @@ def start_quarkus_server(jar_path: Path, port: int, log_path: Path) -> subproces
     return proc
 
 
+start_server = start_spring_server
+
+
 def poll_server_readiness(
     port: int,
     proc: subprocess.Popen,
     timeout_seconds: float = 30.0,
-    poll_interval: float = 0.25,
-    server_name: str = "Spring Boot",
-) -> bool:
-    """Polls the /health readiness endpoint until it returns HTTP 200."""
+    interval_seconds: float = 0.25,
+    server_name: str = "Application",
+) -> None:
+    """Polls http://127.0.0.1:{port}/health until HTTP 200 is returned with status UP."""
+    deadline = time.monotonic() + timeout_seconds
     health_url = f"http://127.0.0.1:{port}/health"
-    start_time = time.time()
 
-    while time.time() - start_time < timeout_seconds:
+    while time.monotonic() < deadline:
         if proc.poll() is not None:
-            raise RuntimeError(f"{server_name} server terminated unexpectedly with code {proc.returncode} before readiness.")
+            raise RuntimeError(
+                f"{server_name} process exited prematurely with code {proc.returncode} before becoming ready."
+            )
 
         try:
             req = urllib.request.Request(health_url)
             with urllib.request.urlopen(req, timeout=1.0) as resp:
                 if resp.status == 200:
-                    data = json.loads(resp.read().decode("utf-8"))
-                    if data.get("status") == "UP":
-                        return True
+                    body = resp.read().decode("utf-8")
+                    try:
+                        data = json.loads(body)
+                        if data.get("status") == "UP":
+                            return
+                    except Exception:
+                        if '"UP"' in body or '"status":"UP"' in body:
+                            return
         except Exception:
             pass
 
-        time.sleep(poll_interval)
+        time.sleep(interval_seconds)
 
-    raise TimeoutError(f"{server_name} server at {health_url} failed to become ready within {timeout_seconds} seconds.")
+    raise TimeoutError(f"{server_name} did not become ready at {health_url} within {timeout_seconds} seconds.")
 
 
-def terminate_process_group(proc: subprocess.Popen, timeout: float = 5.0) -> None:
-    """Gracefully terminates the server process group, escalating to SIGKILL if necessary."""
-    if proc.poll() is not None:
+def terminate_process_group(proc: Optional[subprocess.Popen], timeout_seconds: float = 5.0) -> None:
+    """Terminates the process group using SIGTERM, falling back to SIGKILL if necessary."""
+    if proc is None:
         return
 
     try:
+        if proc.poll() is not None:
+            return
+
         pgid = os.getpgid(proc.pid)
         os.killpg(pgid, signal.SIGTERM)
+
+        deadline = time.monotonic() + timeout_seconds
+        while time.monotonic() < deadline:
+            if proc.poll() is not None:
+                return
+            time.sleep(0.1)
+
+        print("[WARN] Process group did not terminate within timeout; issuing SIGKILL...")
+        os.killpg(pgid, signal.SIGKILL)
+        proc.wait(timeout=2.0)
     except ProcessLookupError:
-        return
-    except Exception:
+        pass
+    except Exception as exc:
+        print(f"[WARN] Error during process group cleanup: {exc}", file=sys.stderr)
         try:
-            proc.terminate()
+            proc.kill()
         except Exception:
             pass
-
-    try:
-        proc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        try:
-            pgid = os.getpgid(proc.pid)
-            os.killpg(pgid, signal.SIGKILL)
-        except Exception:
-            try:
-                proc.kill()
-            except Exception:
-                pass
         proc.wait()
 
 
@@ -388,7 +404,7 @@ def run_playwright_suite(
     base_url: str,
     headless: bool = True,
     retries: Optional[int] = None,
-    test_file: Optional[str] = None,
+    test_file: Optional[str] = "tests/authenticated-security.spec.ts",
 ) -> Tuple[int, str, str, Optional[Dict[str, Any]]]:
     """Runs Playwright tests against the running server and collects results."""
     nm = browser_dir / "node_modules"
@@ -497,24 +513,30 @@ def extract_browser_version(results_json: Optional[Dict[str, Any]]) -> str:
 def compute_scenarios(tests: List[Dict[str, Any]], overall_pass: bool) -> Dict[str, str]:
     """Maps test specification results to canonical qualification scenario statuses."""
     test_status = {t.get("title", ""): (t.get("status") == "passed") for t in tests}
-    t1_ok = any("mounts Svelte island" in k and v for k, v in test_status.items())
-    t2_ok = any("JavaScript is disabled" in k and v for k, v in test_status.items())
-    t3_ok = any("hostile client data" in k and v for k, v in test_status.items())
+    t_anon = any("anonymous user accessing protected route" in k and v for k, v in test_status.items())
+    t_auth_csrf = any("form login establishes session" in k and v for k, v in test_status.items())
+    t_roles = any("role-based authorization" in k and v for k, v in test_status.items())
+    t_rejection = any("server enforces CSRF protection" in k and v for k, v in test_status.items())
+    t_no_js = any("non-JavaScript fallback form" in k and v for k, v in test_status.items())
 
     if overall_pass and not tests:
-        t1_ok = t2_ok = t3_ok = True
+        t_anon = t_auth_csrf = t_roles = t_rejection = t_no_js = True
 
     return {
-        "ssr": "PASS" if (t1_ok and t2_ok) else "FAIL",
-        "assetLoading": "PASS" if t1_ok else "FAIL",
-        "clientData": "PASS" if (t1_ok and t3_ok) else "FAIL",
-        "islandMount": "PASS" if t1_ok else "FAIL",
-        "restInteraction": "PASS" if t1_ok else "FAIL",
-        "domUpdate": "PASS" if t1_ok else "FAIL",
-        "noJsFallback": "PASS" if t2_ok else "FAIL",
-        "scriptBreakoutProtection": "PASS" if t3_ok else "FAIL",
-        "consoleHealth": "PASS" if t1_ok else "FAIL",
-        "networkHealth": "PASS" if t1_ok else "FAIL",
+        "anonymousDenied": "PASS" if t_anon else "FAIL",
+        "authentication": "PASS" if t_auth_csrf else "FAIL",
+        "securityView": "PASS" if t_auth_csrf else "FAIL",
+        "roleRendering": "PASS" if (t_auth_csrf and t_roles) else "FAIL",
+        "authorization": "PASS" if t_roles else "FAIL",
+        "csrfRendered": "PASS" if t_auth_csrf else "FAIL",
+        "csrfValidAccepted": "PASS" if t_auth_csrf else "FAIL",
+        "domUpdate": "PASS" if t_auth_csrf else "FAIL",
+        "csrfMissingRejected": "PASS" if t_rejection else "FAIL",
+        "csrfInvalidRejected": "PASS" if t_rejection else "FAIL",
+        "securedRestInteraction": "PASS" if t_auth_csrf else "FAIL",
+        "noJsCsrfForm": "PASS" if t_no_js else "FAIL",
+        "consoleHealth": "PASS" if (t_anon and t_auth_csrf and t_roles and t_rejection and t_no_js) else "FAIL",
+        "networkHealth": "PASS" if (t_anon and t_auth_csrf and t_roles and t_rejection and t_no_js) else "FAIL",
     }
 
 
@@ -546,60 +568,53 @@ FRAMEWORKS: Dict[str, Dict[str, Any]] = {
 }
 
 
-def run_framework_profile(
-    framework_key: str,
+def qualify_framework_lane(
     repo_root: Path,
-    fixture_dir: Path,
+    framework_name: str,
+    target_dir: Path,
     browser_dir: Path,
-    port: int,
-    timeout: float,
-    skip_build: bool,
-    headed: bool,
-    retries: Optional[int],
     toolchain: Dict[str, str],
+    port: Optional[int] = None,
+    timeout: float = 30.0,
+    headed: bool = False,
+    retries: Optional[int] = None,
+    skip_build: bool = False,
 ) -> Dict[str, Any]:
-    """Builds, starts, qualifies via Playwright, and cleans up a specific framework application profile."""
-    spec = FRAMEWORKS[framework_key]
+    """Builds, packages, boots, runs Playwright tests, and collects qualification results for a single framework."""
+    spec = FRAMEWORKS[framework_name]
     display_name = spec["displayName"]
-    target_port = port if port > 0 else find_free_port()
-    log_path = fixture_dir / "target" / "server.log"
-    errors: List[str] = []
-    tests: List[Dict[str, Any]] = []
-    stats: Dict[str, int] = {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "flaky": 0}
-    scenarios: Dict[str, str] = {}
-    proc: Optional[subprocess.Popen] = None
-    start_time = time.time()
-    package_cmd = ""
-    start_cmd = ""
-    results_json: Optional[Dict[str, Any]] = None
 
     print(f"\n=================================================================")
     print(f" Framework Lane: {display_name} ")
     print(f"=================================================================")
 
+    start_time = time.monotonic()
+    errors: List[str] = []
+    tests: List[Dict[str, Any]] = []
+    stats: Dict[str, int] = {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "flaky": 0}
+    scenarios: Dict[str, str] = {}
+    target_port = port or find_free_port()
+    log_path = target_dir / "target" / "server.log"
+    proc: Optional[subprocess.Popen] = None
+    runner_artifact: Optional[Path] = None
+    package_cmd = ""
+    start_cmd = ""
+    results_json: Optional[Dict[str, Any]] = None
+
     try:
-        jar_path = spec["build_fn"](repo_root, fixture_dir, skip_build=skip_build)
-        try:
-            rel_pom = fixture_dir.relative_to(repo_root) / "pom.xml"
-        except ValueError:
-            rel_pom = fixture_dir / "pom.xml"
-        try:
-            rel_jar = jar_path.relative_to(repo_root)
-        except ValueError:
-            rel_jar = jar_path
+        runner_artifact = spec["build_fn"](repo_root, target_dir, skip_build=skip_build)
+        print(f"[INFO] Packaged {display_name} artifact: {runner_artifact}")
 
+        rel_pom = (target_dir / "pom.xml").relative_to(repo_root)
         package_cmd = spec["format_package_cmd"](str(rel_pom).replace("\\", "/"))
-        start_cmd = spec["format_start_cmd"](str(rel_jar).replace("\\", "/"), target_port)
-        print(f"[INFO] Packaged {display_name} artifact: {jar_path}")
+        start_cmd = spec["format_start_cmd"](runner_artifact.name, target_port)
 
-        log_path.parent.mkdir(parents=True, exist_ok=True)
         print(f"[STEP] Starting {display_name} application on port {target_port} (log: {log_path})...")
-        proc = spec["start_fn"](jar_path, target_port, log_path)
+        proc = spec["start_fn"](runner_artifact, target_port, log_path)
 
         def sig_handler(signum, frame):
-            print(f"\n[WARN] Received signal {signum}, shutting down {display_name} server...")
-            if proc:
-                terminate_process_group(proc)
+            print(f"\n[INTERRUPT] Received signal {signum}; terminating {display_name} server...")
+            terminate_process_group(proc)
             sys.exit(1)
 
         signal.signal(signal.SIGINT, sig_handler)
@@ -615,7 +630,7 @@ def run_framework_profile(
             base_url,
             headless=not headed,
             retries=retries,
-            test_file="tests/employee-page.spec.ts",
+            test_file="tests/authenticated-security.spec.ts",
         )
 
         tests, stats = extract_playwright_test_records(results_json)
@@ -630,7 +645,7 @@ def run_framework_profile(
                 print(pw_stderr, file=sys.stderr)
             errors.append(err_msg)
         else:
-            print(f"[PASS] All {display_name} browser qualification tests passed successfully!")
+            print(f"[PASS] All {display_name} security qualification tests passed successfully!")
             for t in tests:
                 print(f"  - [{t['status'].upper()}] {t['title']} ({t['durationMs']}ms)")
 
@@ -642,38 +657,38 @@ def run_framework_profile(
             scenarios = compute_scenarios(tests, False)
         if log_path.is_file():
             try:
-                log_content = log_path.read_text(encoding="utf-8")
-                if log_content.strip():
-                    print("\n--- Captured Server Logs (server.log) ---", file=sys.stderr)
-                    print(log_content.strip(), file=sys.stderr)
-                    print("--- End Captured Server Logs ---\n", file=sys.stderr)
-            except Exception as log_err:
-                print(f"[WARN] Failed reading server log: {log_err}", file=sys.stderr)
-
+                server_log = log_path.read_text(encoding="utf-8", errors="replace")
+                print("\n--- [SERVER LOG TAIL] ---")
+                lines = server_log.splitlines()
+                print("\n".join(lines[-40:] if len(lines) > 40 else lines))
+                print("-------------------------\n")
+            except Exception:
+                pass
     finally:
         if proc:
             print(f"[STEP] Shutting down {display_name} server process group...")
             terminate_process_group(proc)
             print(f"[PASS] {display_name} server shut down cleanly.")
 
-    duration_sec = time.time() - start_time
+    elapsed = time.monotonic() - start_time
     framework_ver = toolchain.get(spec["version_key"], spec["default_version"])
+    lane_status = "PASS" if (len(errors) == 0 and stats["failed"] == 0 and stats["passed"] > 0) else "FAIL"
 
     return {
-        "framework": framework_key,
+        "status": lane_status,
+        "name": framework_name,
         "displayName": display_name,
-        "frameworkVersion": framework_ver,
-        "status": "PASS" if not errors else "FAIL",
+        "version": framework_ver,
         "port": target_port,
-        "baseUrl": f"http://127.0.0.1:{target_port}",
-        "durationSeconds": round(duration_sec, 2),
+        "durationSeconds": round(elapsed, 2),
         "packageCommand": package_cmd,
         "startCommand": start_cmd,
+        "artifact": runner_artifact.name if runner_artifact else "",
         "scenarios": scenarios,
-        "stats": stats,
         "tests": tests,
+        "stats": stats,
         "errors": errors,
-        "resultsJson": results_json,
+        "rawResults": results_json,
     }
 
 
@@ -681,165 +696,112 @@ def generate_report(
     report_path: Path,
     status: str,
     toolchain: Dict[str, str],
-    port: int,
+    framework_results: Dict[str, Dict[str, Any]],
     duration_seconds: float,
-    tests: List[Dict[str, Any]],
-    stats: Dict[str, int],
     errors: List[str],
-    browser: str = "chromium",
-    browser_version: Optional[str] = None,
-    base_url: Optional[str] = None,
-    scenarios: Optional[Dict[str, str]] = None,
-    frameworks: Optional[List[Dict[str, Any]]] = None,
+    chromium_version: str = "156.0.8078.4",
 ) -> Dict[str, Any]:
-    """Generates the qualification report conforming to repository E2E report conventions."""
-    scenarios_dict = scenarios if scenarios is not None else compute_scenarios(tests, status == "PASS")
-    b_ver = browser_version or toolchain.get("browserVersion") or "156.0.8078.4"
-    node_ver = toolchain.get("node", "unknown")
-    vite_ver = toolchain.get("vite", "8.3.4")
-    svelte_ver = toolchain.get("svelte", "5.57.2")
-    spring_ver = toolchain.get("springBoot", "4.1.1")
-    quarkus_ver = toolchain.get("quarkus", "3.39.4")
-    b_url = base_url or (f"http://127.0.0.1:{port}" if port > 0 else "http://127.0.0.1:8080")
+    """Generates a structured qualification report and persists it to disk."""
+    report_path.parent.mkdir(parents=True, exist_ok=True)
 
-    report_data: Dict[str, Any] = {
-        "status": status,
-        "browser": browser.lower(),
-        "browserVersion": b_ver,
-        "nodeVersion": node_ver,
-        "viteVersion": vite_ver,
-        "svelteVersion": svelte_ver,
-        "springBootVersion": spring_ver,
-        "baseUrl": b_url,
-        "scenarios": scenarios_dict,
+    lanes_summary = {}
+    aggregated_scenarios = {}
+    total_stats = {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "flaky": 0}
+
+    for fw_name, lane in framework_results.items():
+        lanes_summary[fw_name] = {
+            "status": lane["status"],
+            "version": lane["version"],
+            "port": lane["port"],
+            "durationSeconds": lane["durationSeconds"],
+            "packageCommand": lane["packageCommand"],
+            "startCommand": lane["startCommand"],
+            "artifact": lane["artifact"],
+            "scenarios": lane["scenarios"],
+            "stats": lane["stats"],
+            "tests": lane["tests"],
+            "errors": lane["errors"],
+        }
+        for k, v in lane["stats"].items():
+            total_stats[k] = total_stats.get(k, 0) + v
+
+        for sc_name, sc_status in lane["scenarios"].items():
+            if sc_name not in aggregated_scenarios:
+                aggregated_scenarios[sc_name] = {}
+            aggregated_scenarios[sc_name][fw_name] = sc_status
+
+    report_data = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "framework": f"Spring Boot {spring_ver}",
-        "frontend": f"Vite {vite_ver} + Svelte {svelte_ver}",
-        "port": port,
+        "status": status,
+        "suite": "authenticated-security-browser-e2e",
         "durationSeconds": round(duration_seconds, 2),
-        "toolchain": toolchain,
-        "stats": stats,
-        "tests": tests,
+        "environment": {
+            "node": toolchain.get("node", "unknown"),
+            "npm": toolchain.get("npm", "unknown"),
+            "java": toolchain.get("java", "unknown"),
+            "mvnw": toolchain.get("mvnw", "unknown"),
+            "vite": toolchain.get("vite", "8.3.4"),
+            "svelte": toolchain.get("svelte", "5.57.2"),
+            "playwright": toolchain.get("playwright", "1.64.0"),
+            "browser": f"Chromium {chromium_version}",
+        },
+        "parityMatrix": aggregated_scenarios,
+        "lanes": lanes_summary,
+        "frameworks": [
+            {
+                "framework": fw_name,
+                "scenarios": lane["scenarios"],
+            }
+            for fw_name, lane in framework_results.items()
+        ],
+        "stats": total_stats,
         "errors": errors,
     }
 
-    if "quarkus" in toolchain:
-        report_data["quarkusVersion"] = toolchain["quarkus"]
-
-    if frameworks is not None:
-        clean_fws = []
-        for fw in frameworks:
-            fcopy = dict(fw)
-            fcopy.pop("resultsJson", None)
-            clean_fws.append(fcopy)
-        report_data["frameworks"] = clean_fws
-
-        if len(frameworks) == 1:
-            fw = frameworks[0]
-            display = fw.get("displayName", fw["framework"])
-            fw_ver = fw.get("frameworkVersion", "")
-            report_data["framework"] = f"{display} {fw_ver}".strip()
-            if fw["framework"] == "quarkus":
-                report_data["quarkusVersion"] = fw_ver or quarkus_ver
-            elif fw["framework"] == "spring":
-                report_data["springBootVersion"] = fw_ver or spring_ver
-            report_data["baseUrl"] = fw.get("baseUrl", b_url)
-            report_data["port"] = fw.get("port", port)
-            report_data["scenarios"] = fw.get("scenarios", scenarios_dict)
-            report_data["tests"] = fw.get("tests", tests)
-            report_data["stats"] = fw.get("stats", stats)
-            report_data["errors"] = fw.get("errors", errors)
-        elif len(frameworks) > 1:
-            fw_display_names = [f"{fw.get('displayName', fw['framework'])} {fw.get('frameworkVersion', '')}".strip() for fw in frameworks]
-            report_data["framework"] = " + ".join(fw_display_names)
-            report_data["springBootVersion"] = spring_ver
-            report_data["quarkusVersion"] = quarkus_ver
-
-            agg_scenarios: Dict[str, str] = {}
-            for fw in frameworks:
-                for k, v in fw.get("scenarios", {}).items():
-                    if k not in agg_scenarios:
-                        agg_scenarios[k] = v
-                    elif v != "PASS":
-                        agg_scenarios[k] = "FAIL"
-            report_data["scenarios"] = agg_scenarios
-
-            agg_tests: List[Dict[str, Any]] = []
-            agg_stats = {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "flaky": 0}
-            agg_errors: List[str] = []
-            for fw in frameworks:
-                agg_tests.extend(fw.get("tests", []))
-                for sk in agg_stats:
-                    agg_stats[sk] += fw.get("stats", {}).get(sk, 0)
-                agg_errors.extend(fw.get("errors", []))
-            report_data["tests"] = agg_tests
-            report_data["stats"] = agg_stats
-            report_data["errors"] = agg_errors
-    else:
-        report_data["frameworks"] = [
-            {
-                "framework": "spring",
-                "displayName": "Spring Boot",
-                "frameworkVersion": spring_ver,
-                "status": status,
-                "port": port,
-                "baseUrl": b_url,
-                "scenarios": scenarios_dict,
-                "stats": stats,
-                "tests": tests,
-                "errors": errors,
-            }
-        ]
-
-    report_path.parent.mkdir(parents=True, exist_ok=True)
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump(report_data, f, indent=2)
 
+    print(f"\n[INFO] Qualification report written to: {report_path}")
     return report_data
 
 
-def print_parity_matrix(framework_results: List[Dict[str, Any]]) -> None:
-    """Prints the scenario parity table comparing qualified frameworks."""
-    scenario_keys = [
-        ("ssr", "SSR"),
-        ("assetLoading", "Asset loading"),
-        ("clientData", "Client data"),
-        ("islandMount", "Island mount"),
-        ("restInteraction", "REST interaction"),
-        ("domUpdate", "DOM update"),
-        ("noJsFallback", "No-JS fallback"),
-        ("scriptBreakoutProtection", "Script-breakout defense"),
-        ("consoleHealth", "Console health"),
-        ("networkHealth", "Network health"),
-    ]
-
-    fw_by_key = {r["framework"]: r for r in framework_results}
-    has_spring = "spring" in fw_by_key
-    has_quarkus = "quarkus" in fw_by_key
-
+def print_parity_matrix(framework_results: Dict[str, Dict[str, Any]]) -> None:
+    """Prints a terminal parity table across tested frameworks."""
     print("\n=================================================================")
     print(" Scenario Parity Qualification Matrix ")
     print("=================================================================")
-    if has_spring and has_quarkus:
-        print(f" {'Scenario':<26} {'Spring':<10} {'Quarkus':<10}")
-        print(" " + "-" * 48)
-        for key, label in scenario_keys:
-            sp_res = fw_by_key["spring"].get("scenarios", {}).get(key, fw_by_key["spring"]["status"])
-            qk_res = fw_by_key["quarkus"].get("scenarios", {}).get(key, fw_by_key["quarkus"]["status"])
-            print(f" {label:<26} {sp_res:<10} {qk_res:<10}")
-    else:
-        for r in framework_results:
-            name = r.get("displayName", r["framework"])
-            print(f" Framework: {name} (Status: {r['status']})")
-            print(" " + "-" * 48)
-            for key, label in scenario_keys:
-                res = r.get("scenarios", {}).get(key, r["status"])
-                print(f" {label:<26} {res:<10}")
+
+    labels = {
+        "anonymousDenied": "Anonymous denied (-> /login)",
+        "authentication": "Form authentication",
+        "securityView": "Security view ($security)",
+        "roleRendering": "Role-dependent markup",
+        "authorization": "Server authorization (403/200)",
+        "csrfRendered": "CSRF rendered ($csrf)",
+        "csrfValidAccepted": "Valid CSRF accepted (200)",
+        "domUpdate": "Reactive DOM update (3 -> 4)",
+        "csrfMissingRejected": "Missing CSRF rejected",
+        "csrfInvalidRejected": "Invalid CSRF rejected",
+        "securedRestInteraction": "Secured REST interaction",
+        "noJsCsrfForm": "No-JS fallback form (CSRF)",
+        "consoleHealth": "Zero console errors",
+        "networkHealth": "Zero network failures",
+    }
+
+    for fw_name, lane in framework_results.items():
+        print(f" Framework: {lane['displayName']} (Status: {lane['status']})")
+        print(" ------------------------------------------------")
+        for sc_name, label in labels.items():
+            st = lane["scenarios"].get(sc_name, "N/A")
+            print(f" {label:<32} {st:<10}")
+        print(" ------------------------------------------------")
     print("=================================================================\n")
 
 
-def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Deterministic Chromium Browser E2E Qualification")
+def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Deterministic Chromium Browser E2E Qualification for Viet Template Authenticated Security & CSRF."
+    )
     parser.add_argument(
         "framework",
         nargs="?",
@@ -852,124 +814,144 @@ def main(argv: Optional[List[str]] = None) -> int:
         dest="framework_opt",
         choices=["spring", "quarkus", "all"],
         default=None,
-        help="Target framework profile (spring, quarkus, all)",
+        help="Target framework profile: 'spring', 'quarkus', or 'all' (default: all).",
     )
-    parser.add_argument("--port", type=int, default=0, help="Server port (0 for dynamic free port)")
-    parser.add_argument("--timeout", type=float, default=30.0, help="Server readiness timeout in seconds")
-    parser.add_argument("--skip-install", action="store_true", help="Skip npm ci in frontend and browser dirs")
-    parser.add_argument("--skip-build", action="store_true", help="Skip frontend build and server packaging")
-    parser.add_argument("--report-path", type=Path, default=DEFAULT_REPORT_PATH, help="Path for JSON report")
-    parser.add_argument("--browser-dir", type=Path, default=DEFAULT_BROWSER_DIR, help="Playwright test directory")
-    parser.add_argument("--spring-dir", type=Path, default=DEFAULT_SPRING_DIR, help="Spring Boot E2E module dir")
-    parser.add_argument("--quarkus-dir", type=Path, default=DEFAULT_QUARKUS_DIR, help="Quarkus E2E module dir")
-    parser.add_argument("--frontend-dir", type=Path, default=DEFAULT_FRONTEND_DIR, help="Frontend example dir")
-    parser.add_argument("--headed", action="store_true", help="Run browser in headed mode")
-    parser.add_argument("--retries", type=int, default=None, help="Playwright retry count")
-    args = parser.parse_args(argv)
+    parser.add_argument(
+        "--skip-build",
+        action="store_true",
+        help="Skip frontend build and Maven packaging if dist/artifacts are already present.",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=30.0,
+        help="Maximum seconds to wait for server /health readiness (default: 30.0s).",
+    )
+    parser.add_argument(
+        "--headed",
+        action="store_true",
+        help="Run Playwright in headed Chromium mode instead of default headless.",
+    )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=None,
+        help="Number of retries for flaky browser test runs (defaults to Playwright config).",
+    )
+    parser.add_argument(
+        "--spring-port",
+        type=int,
+        default=None,
+        help="Explicit port for Spring Boot application (default: dynamic free port).",
+    )
+    parser.add_argument(
+        "--quarkus-port",
+        type=int,
+        default=None,
+        help="Explicit port for Quarkus application (default: dynamic free port).",
+    )
+    parser.add_argument(
+        "--report-path",
+        type=Path,
+        default=DEFAULT_REPORT_PATH,
+        help="Output path for JSON report (default: build/reports/frontend-security-e2e.json).",
+    )
+    return parser.parse_args(args)
 
-    selected_framework = args.framework_opt or args.framework or "spring"
-    target_framework_keys = ["spring", "quarkus"] if selected_framework == "all" else [selected_framework]
 
-    start_time = time.time()
-    errors: List[str] = []
-    toolchain: Dict[str, str] = {}
-    framework_results: List[Dict[str, Any]] = []
+def main(raw_args: Optional[List[str]] = None) -> int:
+    args = parse_args(raw_args)
+    selected_framework = args.framework_opt or args.framework or "all"
+    suite_start = time.monotonic()
 
     print("=================================================================")
-    print(" Viet Template: Deterministic Chromium Browser E2E Qualification ")
-    print(f" Profile: {selected_framework.upper()} ({', '.join(target_framework_keys)}) ")
+    print(" Viet Template: Authenticated Security & CSRF Browser E2E Qualification ")
+    print(f" Profile: {selected_framework.upper()} ({selected_framework}) ")
     print("=================================================================")
 
+    target_frameworks: List[str] = ["spring", "quarkus"] if selected_framework == "all" else [selected_framework]
+
+    print("[STEP] Checking prerequisites...")
     try:
-        # 1. Prerequisites
-        print("[STEP] Checking prerequisites...")
         toolchain = check_prerequisites(
             REPO_ROOT,
-            args.browser_dir,
-            args.frontend_dir,
-            args.spring_dir,
-            args.quarkus_dir,
+            DEFAULT_BROWSER_DIR,
+            DEFAULT_FRONTEND_DIR,
+            DEFAULT_SPRING_DIR,
+            DEFAULT_QUARKUS_DIR,
         )
         print(f"[INFO] Node: {toolchain.get('node')} | npm: {toolchain.get('npm')}")
         print(f"[INFO] Java: {toolchain.get('java')}")
         print(f"[INFO] Playwright: {toolchain.get('playwright')}")
-        if "vite" in toolchain:
-            print(f"[INFO] Vite: {toolchain.get('vite')} | Svelte: {toolchain.get('svelte')}")
         if "springBoot" in toolchain:
             print(f"[INFO] Spring Boot: {toolchain.get('springBoot')}")
         if "quarkus" in toolchain:
             print(f"[INFO] Quarkus: {toolchain.get('quarkus')}")
-
-        # 2. Build frontend once for all requested framework profiles
-        build_frontend(args.frontend_dir, skip_install=args.skip_install, skip_build=args.skip_build)
-
-        # 3. Execute framework profiles
-        for fw_key in target_framework_keys:
-            fixture_dir = args.quarkus_dir if fw_key == "quarkus" else args.spring_dir
-            res = run_framework_profile(
-                framework_key=fw_key,
-                repo_root=REPO_ROOT,
-                fixture_dir=fixture_dir,
-                browser_dir=args.browser_dir,
-                port=args.port,
-                timeout=args.timeout,
-                skip_build=args.skip_build,
-                headed=args.headed,
-                retries=args.retries,
-                toolchain=toolchain,
-            )
-            framework_results.append(res)
-            if res["status"] != "PASS":
-                errors.extend(res["errors"])
-
     except Exception as exc:
-        err_msg = str(exc)
-        print(f"[FAIL] Orchestration error: {err_msg}", file=sys.stderr)
-        errors.append(err_msg)
+        print(f"[FAIL] Prerequisites validation failed: {exc}", file=sys.stderr)
+        return 1
 
-    duration_sec = time.time() - start_time
-    overall_status = "PASS" if not errors and all(r["status"] == "PASS" for r in framework_results) else "FAIL"
+    try:
+        build_frontend(DEFAULT_FRONTEND_DIR, skip_build=args.skip_build)
+    except Exception as exc:
+        print(f"[FAIL] Frontend build failed: {exc}", file=sys.stderr)
+        return 1
 
-    last_results_json = framework_results[-1].get("resultsJson") if framework_results else None
-    browser_ver = extract_browser_version(last_results_json)
+    framework_results: Dict[str, Dict[str, Any]] = {}
+    all_errors: List[str] = []
+    chromium_ver = "156.0.8078.4"
 
-    primary_port = framework_results[0]["port"] if framework_results else args.port
-    primary_base_url = framework_results[0]["baseUrl"] if framework_results else f"http://127.0.0.1:{primary_port}"
+    for fw in target_frameworks:
+        target_dir = DEFAULT_SPRING_DIR if fw == "spring" else DEFAULT_QUARKUS_DIR
+        target_port = args.spring_port if fw == "spring" else args.quarkus_port
 
-    all_tests: List[Dict[str, Any]] = []
-    all_stats = {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "flaky": 0}
-    for fr in framework_results:
-        all_tests.extend(fr.get("tests", []))
-        for sk in all_stats:
-            all_stats[sk] += fr.get("stats", {}).get(sk, 0)
+        lane_result = qualify_framework_lane(
+            repo_root=REPO_ROOT,
+            framework_name=fw,
+            target_dir=target_dir,
+            browser_dir=DEFAULT_BROWSER_DIR,
+            toolchain=toolchain,
+            port=target_port,
+            timeout=args.timeout,
+            headed=args.headed,
+            retries=args.retries,
+            skip_build=args.skip_build,
+        )
+        framework_results[fw] = lane_result
+        if lane_result["status"] != "PASS":
+            all_errors.extend(lane_result["errors"])
 
-    report = generate_report(
+        if lane_result.get("rawResults"):
+            extracted_ver = extract_browser_version(lane_result["rawResults"])
+            if extracted_ver:
+                chromium_ver = extracted_ver
+
+    overall_duration = time.monotonic() - suite_start
+    all_pass = all(lane["status"] == "PASS" for lane in framework_results.values())
+    overall_status = "PASS" if all_pass else "FAIL"
+
+    generate_report(
         report_path=args.report_path,
         status=overall_status,
         toolchain=toolchain,
-        port=primary_port,
-        duration_seconds=duration_sec,
-        tests=all_tests,
-        stats=all_stats,
-        errors=errors,
-        browser="chromium",
-        browser_version=browser_ver,
-        base_url=primary_base_url,
-        frameworks=framework_results if framework_results else None,
+        framework_results=framework_results,
+        duration_seconds=overall_duration,
+        errors=all_errors,
+        chromium_version=chromium_ver,
     )
-    print(f"[INFO] Qualification report written to: {args.report_path}")
 
-    if framework_results:
-        print_parity_matrix(framework_results)
+    print_parity_matrix(framework_results)
 
-    print("=================================================================")
     if overall_status == "PASS":
-        print(f" [PASS] Deterministic Chromium Browser E2E Qualification Passed ({selected_framework.upper()})! ")
+        print(f"=================================================================")
+        print(f" [PASS] Authenticated Security & CSRF Browser E2E Passed ({selected_framework.upper()})! ")
+        print(f"=================================================================\n")
+        return 0
     else:
-        print(f" [FAIL] Deterministic Chromium Browser E2E Qualification Failed ({selected_framework.upper()})! ")
-    print("=================================================================")
-
-    return 0 if overall_status == "PASS" else 1
+        print(f"=================================================================")
+        print(f" [FAIL] Authenticated Security & CSRF Browser E2E Failed ({selected_framework.upper()})! ")
+        print(f"=================================================================\n", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

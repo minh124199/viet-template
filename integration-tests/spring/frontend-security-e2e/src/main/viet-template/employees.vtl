@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Staff Directory - Viet Template</title>
+  #if($csrf)
+  <meta name="csrf-token" content="$csrf.token" data-vt-csrf-token />
+  <meta name="csrf-header" content="$csrf.headerName" data-vt-csrf-header />
+  <meta name="csrf-param" content="$csrf.parameterName" data-vt-csrf-param />
+  <meta name="_csrf" content="$csrf.token" />
+  <meta name="_csrf_header" content="$csrf.headerName" />
+  <meta name="_csrf_param" content="$csrf.parameterName" />
+  #end
+  $assets.head("src/pages/employees/index.ts")
+</head>
+<body>
+  <main class="employees-page">
+    <header class="page-header">
+      <h1 data-testid="ssr-heading">Staff Directory</h1>
+      <div data-testid="security-status">
+        #if($security.authenticated)
+        <span data-testid="security-user">$security.name</span>
+        #if($security.hasAuthority("ROLE_ADMIN"))
+        <a href="/secure/admin" data-testid="admin-link">Admin Dashboard</a>
+        #end
+        #end
+      </div>
+      <h2 data-testid="ssr-employee-name">Employee: $!employee.name</h2>
+      <section class="department-info">
+        <p data-testid="ssr-department">Department: $!departmentName</p>
+      </section>
+    </header>
+
+    <!-- Semantic SSR fallback rendered for all users and no-JS contexts -->
+    <div id="employees-island" data-employee-island data-testid="employees-island">
+      <div class="employees-card" data-testid="ssr-fallback-card">
+        <h2>$!employee.name ($!employee.role)</h2>
+        <p>Department: $!employee.department</p>
+        <p class="ssr-follower-count">Followers: <span data-testid="ssr-followers">$!employee.followers</span></p>
+        <form method="post" action="/secure/employees/$!employee.id/follow" class="ssr-follow-form" data-testid="ssr-fallback-form">
+          #if($csrf)
+          <input type="hidden" name="$csrf.parameterName" value="$csrf.token" data-testid="ssr-csrf-token" />
+          #end
+          <button type="submit" data-testid="ssr-follow-button">Follow</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- Script-safe JSON client data for client-side island mounting -->
+  $clientData.script("employees-data", $pageData)
+
+  <!-- Entry module script -->
+  $assets.body("src/pages/employees/index.ts")
+</body>
+</html>

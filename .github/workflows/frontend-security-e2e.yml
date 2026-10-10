@@ -1,0 +1,140 @@
+name: Frontend Security E2E
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'viet-template-spring-security/**'
+      - 'viet-template-quarkus/**'
+      - 'examples/frontend-svelte-islands/**'
+      - 'integration-tests/frontend/**'
+      - 'integration-tests/spring/frontend-security-e2e/**'
+      - 'integration-tests/quarkus/frontend-security-e2e/**'
+      - 'scripts/verify-frontend-security-e2e*'
+      - 'scripts/tests/test_verify_frontend_security_e2e.py'
+      - '.github/workflows/frontend-security-e2e.yml'
+      - 'docs/security/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'viet-template-spring-security/**'
+      - 'viet-template-quarkus/**'
+      - 'examples/frontend-svelte-islands/**'
+      - 'integration-tests/frontend/**'
+      - 'integration-tests/spring/frontend-security-e2e/**'
+      - 'integration-tests/quarkus/frontend-security-e2e/**'
+      - 'scripts/verify-frontend-security-e2e*'
+      - 'scripts/tests/test_verify_frontend_security_e2e.py'
+      - '.github/workflows/frontend-security-e2e.yml'
+      - 'docs/security/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  spring-boot-security-chromium:
+    name: Spring Boot Security + Vite + Svelte + Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Java 25
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: |
+            examples/frontend-svelte-islands/package-lock.json
+            integration-tests/frontend/browser/package-lock.json
+
+      - name: Bootstrap reactor artifacts for clean-room verification
+        run: ./mvnw install -DskipTests -Dspotless.check.skip=true -B
+
+      - name: Install Playwright Chromium with OS dependencies
+        run: |
+          cd examples/frontend-svelte-islands
+          npm ci
+          cd ../../integration-tests/frontend/browser
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run Spring Boot Security Browser E2E Qualification
+        run: ./scripts/verify-frontend-security-e2e.sh spring
+
+      - name: Upload Spring Boot Qualification Report & Artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: spring-frontend-security-e2e-report
+          path: |
+            build/reports/frontend-security-e2e.json
+            integration-tests/frontend/browser/playwright-report
+            integration-tests/frontend/browser/test-results
+            integration-tests/spring/frontend-security-e2e/target/server.log
+            examples/frontend-svelte-islands/dist/.vite/manifest.json
+          if-no-files-found: ignore
+
+  quarkus-security-chromium:
+    name: Quarkus Security + Vite + Svelte + Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Java 25
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: |
+            examples/frontend-svelte-islands/package-lock.json
+            integration-tests/frontend/browser/package-lock.json
+
+      - name: Bootstrap reactor artifacts for clean-room verification
+        run: ./mvnw install -DskipTests -Dspotless.check.skip=true -B
+
+      - name: Install Playwright Chromium with OS dependencies
+        run: |
+          cd examples/frontend-svelte-islands
+          npm ci
+          cd ../../integration-tests/frontend/browser
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run Quarkus Security Browser E2E Qualification
+        run: ./scripts/verify-frontend-security-e2e.sh quarkus
+
+      - name: Upload Quarkus Qualification Report & Artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: quarkus-frontend-security-e2e-report
+          path: |
+            build/reports/frontend-security-e2e.json
+            integration-tests/frontend/browser/playwright-report
+            integration-tests/frontend/browser/test-results
+            integration-tests/quarkus/frontend-security-e2e/target/server.log
+            examples/frontend-svelte-islands/dist/.vite/manifest.json
+          if-no-files-found: ignore
