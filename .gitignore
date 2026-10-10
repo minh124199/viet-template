@@ -91,3 +91,9 @@ node_modules/
 **/node_modules/
 dist/
 **/dist/
+
+# Playwright
+test-results/
+**/test-results/
+playwright-report/
+**/playwright-report/

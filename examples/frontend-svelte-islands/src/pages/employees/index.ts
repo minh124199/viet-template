@@ -9,6 +9,7 @@ const target = document.getElementById('employees-island');
 if (target) {
   // Clear SSR fallback placeholder before mounting interactive island
   target.innerHTML = '';
+  target.setAttribute('data-mounted', 'true');
 
   const pageData = readClientData<EmployeePageData>('employees-data');
   mount(Employees, {
