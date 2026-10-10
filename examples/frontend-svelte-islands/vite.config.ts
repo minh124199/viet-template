@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
+declare const process: { env: Record<string, string | undefined> };
+
 export default defineConfig({
   plugins: [
     svelte({
