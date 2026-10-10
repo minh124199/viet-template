@@ -87,6 +87,36 @@ If multiple components or layouts request overlapping entries or shared dependen
 
 The Vite asset provider (`ViteAssetResolver`) is located in `io.github.minh124199.viettemplate.assets.vite` inside `viet-template-runtime`. Because the manifest parsing and URL construction logic is lightweight (under 20 KB) and uses standard JDK JSON parsing facilities with zero external dependencies, it does not require a separate published artifact, avoiding module proliferation while keeping runtime dependencies at zero.
 
+## Dev Mode & HMR Browser E2E Qualification
+
+Viet Template qualifies the full development lifecycle in real Chromium via Playwright:
+- **Zero Process Coupling**: Viet Template is strictly a templating engine and asset URL synthesizer, not a Node process supervisor. Neither `viet-template-maven-plugin` nor `viet-template-gradle-plugin` manage Vite or Node lifecycles.
+- **Process Independence**: The Vite development server (`npm run dev`) and Java application server run as independent processes. When Java recompiles or restarts (via Spring Boot DevTools or Quarkus dev mode), the Vite dev server and its active WebSocket connections survive uninterrupted.
+- **Strict Mode Separation**: Dev mode runs against live Vite URLs without requiring `dist/.vite/manifest.json`.
+- **E2E Validation Pipeline**:
+  1. Initial SSR rendering + Svelte island client mounting.
+  2. Svelte source HMR: updates component state in DOM without browser main-frame navigation.
+  3. CSS stylesheet HMR: updates styled rules without browser main-frame navigation.
+  4. VTL template reload: reloads template changes in Java runtime.
+  5. Java class reload / DevTools restart: updates backend logic and REST endpoints.
+  6. Vite process survival: Vite server PID remains alive across Java restarts.
+  7. Post-restart Svelte HMR: subsequent edits continue applying via HMR without browser navigation.
+  8. ClientData bridge freshness: frontend island successfully communicates with updated REST endpoints.
+  9. Zero console errors and zero unexpected network request failures.
+  10. Byte-for-byte source restoration.
+
+- **Local verification commands**:
+  ```bash
+  # Qualify dev mode with Spring Boot DevTools
+  ./scripts/verify-frontend-dev-mode-e2e.sh spring
+
+  # Qualify dev mode with Quarkus Dev Mode
+  ./scripts/verify-frontend-dev-mode-e2e.sh quarkus
+
+  # Qualify both frameworks with side-by-side parity matrix
+  ./scripts/verify-frontend-dev-mode-e2e.sh all
+  ```
+
 ## CI Compatibility Qualification
 
 To safeguard against drift between Vite manifest releases and Viet Template's parser/resolver, the repository tests against checked-in test fixtures and live multi-generation Vite builds in CI:

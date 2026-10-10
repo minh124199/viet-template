@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
+declare const process: { env: Record<string, string | undefined> };
+
 export default defineConfig({
   plugins: [
     svelte({
@@ -22,6 +24,6 @@ export default defineConfig({
   server: {
     cors: true,
     strictPort: true,
-    origin: 'http://localhost:5173',
+    origin: process.env.VITE_DEV_ORIGIN || 'http://localhost:5173',
   },
 });

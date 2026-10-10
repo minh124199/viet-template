@@ -1,4 +1,8 @@
 /* Page-level stylesheet for employee directory island */
+:root {
+  --vt-e2e-marker: 1;
+}
+
 .employees-page {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #1e293b;
