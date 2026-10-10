@@ -10,6 +10,11 @@
   let { departmentName = 'Engineering', employees = [] }: Props = $props();
 
   let filter = $state('');
+  let followerCounts = $state<Record<string, number>>({});
+
+  function getFollowers(emp: Employee): number {
+    return followerCounts[emp.id] ?? emp.followers ?? 0;
+  }
 
   let filteredEmployees = $derived(
     employees.filter((emp) =>
@@ -17,16 +22,32 @@
       emp.role.toLowerCase().includes(filter.toLowerCase())
     )
   );
+
+  async function handleFollow(emp: Employee) {
+    try {
+      const response = await fetch(`/api/employees/${emp.id}/follow`, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+      });
+      if (response.ok) {
+        const result = (await response.json()) as { id: string; followers: number };
+        followerCounts[emp.id] = result.followers;
+      }
+    } catch (e) {
+      console.error('Failed to follow employee', e);
+    }
+  }
 </script>
 
-<div class="employees-island">
+<div class="employees-island" data-employee-island data-mounted="true" data-testid="svelte-island">
   <header class="island-header">
-    <h2>{departmentName} Department ({employees.length} members)</h2>
+    <h2 data-testid="island-heading">{departmentName} Department ({employees.length} members)</h2>
     <input
       type="search"
       bind:value={filter}
       placeholder="Filter by name or role..."
       class="filter-input"
+      data-testid="filter-input"
     />
   </header>
 
@@ -36,22 +57,43 @@
         <th>Name</th>
         <th>Role</th>
         <th>Department</th>
+        <th>Followers</th>
         <th>Salary</th>
         <th>Start Date</th>
+        <th>Action</th>
       </tr>
     </thead>
     <tbody>
       {#each filteredEmployees as emp (emp.id)}
-        <tr>
-          <td><strong>{emp.name}</strong></td>
+        <tr data-testid={`employee-row-${emp.id}`}>
+          <td>
+            <strong>{emp.name}</strong>
+            {#if emp.bio}
+              <div class="employee-bio" data-testid={`employee-bio-${emp.id}`}>{emp.bio}</div>
+            {/if}
+          </td>
           <td><span class="employee-badge">{emp.role}</span></td>
           <td>{emp.department}</td>
+          <td>
+            <span class="follower-count" data-testid={`follower-count-${emp.id}`}>
+              Followers: <span data-testid={`followers-val-${emp.id}`}>{getFollowers(emp)}</span>
+            </span>
+          </td>
           <td>{formatCurrency(emp.salary)}</td>
           <td>{formatDate(emp.startDate)}</td>
+          <td>
+            <button
+              class="follow-btn"
+              data-testid={`follow-btn-${emp.id}`}
+              onclick={() => handleFollow(emp)}
+            >
+              Follow
+            </button>
+          </td>
         </tr>
       {:else}
         <tr>
-          <td colspan="5" class="empty-message">No matching employees found.</td>
+          <td colspan="7" class="empty-message">No matching employees found.</td>
         </tr>
       {/each}
     </tbody>
@@ -82,6 +124,28 @@
     border: 1px solid #cbd5e1;
     border-radius: 6px;
     font-size: 0.875rem;
+  }
+  .employee-bio {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-top: 0.25rem;
+  }
+  .follower-count {
+    font-weight: 500;
+  }
+  .follow-btn {
+    padding: 0.35rem 0.75rem;
+    background-color: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 0.15s ease-in-out;
+  }
+  .follow-btn:hover {
+    background-color: #1d4ed8;
   }
   .empty-message {
     text-align: center;

@@ -5,6 +5,8 @@ export interface Employee {
   department: string;
   salary: number;
   startDate: string;
+  followers?: number;
+  bio?: string;
 }
 
 export interface EmployeePageData {
