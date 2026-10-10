@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign In - Viet Template</title>
+</head>
+<body>
+  <main class="login-page">
+    <h1>Sign In</h1>
+    <form method="post" action="/login" class="login-form" data-testid="login-form">
+      #if($csrf)
+      <input type="hidden" name="$csrf.parameterName" value="$csrf.token" data-testid="login-csrf" />
+      #end
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" data-testid="login-username" required />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" data-testid="login-password" required />
+      </div>
+      <button type="submit" data-testid="login-submit">Sign In</button>
+    </form>
+  </main>
+</body>
+</html>
