@@ -54,6 +54,7 @@ generate_report = verify_dev_mode_e2e.generate_report
 print_parity_matrix = verify_dev_mode_e2e.print_parity_matrix
 qualify_framework_lane = verify_dev_mode_e2e.qualify_framework_lane
 main = verify_dev_mode_e2e.main
+DEFAULT_BROWSER_DIR = verify_dev_mode_e2e.DEFAULT_BROWSER_DIR
 
 
 class VerifyFrontendDevModeE2ETests(unittest.TestCase):
@@ -105,11 +106,87 @@ class VerifyFrontendDevModeE2ETests(unittest.TestCase):
             self.assertEqual(proc.pid, 1234)
             self.assertTrue(mock_popen.called)
             args, kwargs = mock_popen.call_args
-            self.assertIn("vite", args[0])
+            self.assertEqual(args[0][:3], ["npm", "run", "dev"])
+            self.assertIn("--", args[0])
+            self.assertIn("--host", args[0])
             self.assertIn("--port", args[0])
             self.assertIn("5173", args[0])
             self.assertIn("--strictPort", args[0])
             self.assertEqual(kwargs["env"]["VITE_DEV_ORIGIN"], "http://127.0.0.1:5173")
+
+    def test_unknown_framework_raises_error(self):
+        with self.assertRaises(SystemExit):
+            verify_dev_mode_e2e.parse_args(["unknown-framework"])
+
+    @patch("shutil.which")
+    def test_prerequisites_missing_java(self, mock_which):
+        def fake_which(cmd):
+            if cmd == "java":
+                return None
+            return f"/usr/bin/{cmd}"
+        mock_which.side_effect = fake_which
+        with self.assertRaises(RuntimeError) as ctx:
+            check_prerequisites(ROOT, DEFAULT_BROWSER_DIR)
+        self.assertIn("java", str(ctx.exception).lower())
+
+    @patch("shutil.which")
+    def test_prerequisites_missing_node(self, mock_which):
+        def fake_which(cmd):
+            if cmd == "node":
+                return None
+            return f"/usr/bin/{cmd}"
+        mock_which.side_effect = fake_which
+        with self.assertRaises(RuntimeError) as ctx:
+            check_prerequisites(ROOT, DEFAULT_BROWSER_DIR)
+        self.assertIn("node", str(ctx.exception).lower())
+
+    @patch("shutil.which")
+    def test_prerequisites_missing_npm(self, mock_which):
+        def fake_which(cmd):
+            if cmd == "npm":
+                return None
+            return f"/usr/bin/{cmd}"
+        mock_which.side_effect = fake_which
+        with self.assertRaises(RuntimeError) as ctx:
+            check_prerequisites(ROOT, DEFAULT_BROWSER_DIR)
+        self.assertIn("npm", str(ctx.exception).lower())
+
+    def test_vite_startup_failure_early_exit(self):
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = 1
+        mock_proc.returncode = 1
+        with self.assertRaises(RuntimeError) as ctx:
+            poll_vite_readiness(5173, mock_proc, timeout_seconds=1.0)
+        self.assertIn("exited unexpectedly", str(ctx.exception))
+
+    def test_java_startup_failure_early_exit(self):
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = 1
+        mock_proc.returncode = 1
+        with self.assertRaises(RuntimeError) as ctx:
+            poll_java_readiness(8080, mock_proc, timeout_seconds=1.0, server_name="Spring Boot")
+        self.assertIn("exited prematurely", str(ctx.exception))
+
+    @patch("urllib.request.urlopen", side_effect=OSError("Connection refused"))
+    def test_poll_vite_readiness_timeout(self, mock_urlopen):
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = None
+        with self.assertRaises(TimeoutError):
+            poll_vite_readiness(5173, mock_proc, timeout_seconds=0.2)
+
+    @patch("urllib.request.urlopen", side_effect=OSError("Connection refused"))
+    def test_poll_java_readiness_timeout(self, mock_urlopen):
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = None
+        with self.assertRaises(TimeoutError):
+            poll_java_readiness(8080, mock_proc, timeout_seconds=0.2, server_name="Spring Boot")
+
+    def test_compute_scenarios_hmr_timeout_failure(self):
+        tests = [{"title": "executes end-to-end dev lifecycle", "status": "failed"}]
+        scenarios = compute_scenarios(tests, overall_pass=False, vite_survived=True, git_clean=True)
+        self.assertEqual(scenarios["svelteHmr"], "FAIL")
+        self.assertEqual(scenarios["vtlTemplateReload"], "FAIL")
+        self.assertEqual(scenarios["javaReloadOrRestart"], "FAIL")
 
     @patch("urllib.request.urlopen")
     def test_poll_vite_readiness_success(self, mock_urlopen):
@@ -231,6 +308,8 @@ class VerifyFrontendDevModeE2ETests(unittest.TestCase):
             self.assertEqual(data["suite"], "frontend-dev-mode-e2e")
             self.assertEqual(data["parityMatrix"]["initialSsrAndMount"]["spring"], "PASS")
             self.assertEqual(data["parityMatrix"]["svelteHmr"]["spring"], "PASS")
+            self.assertEqual(data["frameworks"]["spring"]["javaPort"], "<redacted>")
+            self.assertEqual(data["frameworks"]["spring"]["vitePort"], "<redacted>")
 
     @patch.object(verify_dev_mode_e2e.subprocess, "run")
     def test_verify_clean_git_state_returns_true_when_clean(self, mock_run):
@@ -249,6 +328,54 @@ class VerifyFrontendDevModeE2ETests(unittest.TestCase):
         )
         self.assertFalse(verify_clean_git_state(ROOT))
 
+    @patch.object(verify_dev_mode_e2e, "ensure_clean_dev_environment")
+    @patch.object(verify_dev_mode_e2e, "start_vite_server")
+    @patch.object(verify_dev_mode_e2e, "poll_vite_readiness")
+    @patch.object(verify_dev_mode_e2e, "start_spring_dev_server")
+    @patch.object(verify_dev_mode_e2e, "poll_java_readiness")
+    @patch.object(verify_dev_mode_e2e, "run_playwright_suite")
+    @patch.object(verify_dev_mode_e2e, "verify_clean_git_state", return_value=False)
+    @patch.object(verify_dev_mode_e2e, "terminate_process_group")
+    @patch("urllib.request.urlopen")
+    def test_qualify_lane_fails_on_unrestored_sources(
+        self, mock_url, mock_term, mock_clean_git, mock_pw, mock_poll_j, mock_start_j, mock_poll_v, mock_start_v, mock_clean_env
+    ):
+        mock_proc_v = MagicMock()
+        mock_proc_v.pid = 1111
+        mock_proc_v.poll.return_value = None
+        mock_start_v.return_value = mock_proc_v
+
+        mock_proc_j = MagicMock()
+        mock_proc_j.pid = 2222
+        mock_start_j.return_value = mock_proc_j
+
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.__enter__.return_value = mock_resp
+        mock_url.return_value = mock_resp
+
+        mock_pw.return_value = (0, "ok", "", {"suites": [{"specs": [{"title": "t1", "tests": [{"status": "expected", "results": []}]}]}]})
+
+        res = qualify_framework_lane(ROOT, "spring", ROOT, ROOT, {"node": "22"})
+        self.assertEqual(res["status"], "FAIL")
+        self.assertFalse(res["gitClean"])
+        self.assertEqual(res["scenarios"]["sourceRestoration"], "FAIL")
+        self.assertTrue(mock_term.called)
+
+    @patch.object(verify_dev_mode_e2e, "ensure_clean_dev_environment")
+    @patch.object(verify_dev_mode_e2e, "start_vite_server")
+    @patch.object(verify_dev_mode_e2e, "poll_vite_readiness", side_effect=RuntimeError("Vite failed"))
+    @patch.object(verify_dev_mode_e2e, "terminate_process_group")
+    def test_qualify_lane_cleans_up_process_groups_on_exception(
+        self, mock_term, mock_poll_v, mock_start_v, mock_clean_env
+    ):
+        mock_proc_v = MagicMock()
+        mock_start_v.return_value = mock_proc_v
+
+        res = qualify_framework_lane(ROOT, "spring", ROOT, ROOT, {"node": "22"})
+        self.assertEqual(res["status"], "FAIL")
+        self.assertTrue(mock_term.called)
+
     @patch.object(verify_dev_mode_e2e, "check_prerequisites")
     @patch.object(verify_dev_mode_e2e, "qualify_framework_lane")
     @patch.object(verify_dev_mode_e2e, "generate_report")
@@ -260,6 +387,40 @@ class VerifyFrontendDevModeE2ETests(unittest.TestCase):
         exit_code = main(["spring"])
         self.assertEqual(exit_code, 0)
         mock_lane.assert_called_once()
+
+    @patch.object(verify_dev_mode_e2e, "check_prerequisites", return_value={"node": "22", "java": "21"})
+    @patch.object(verify_dev_mode_e2e, "qualify_framework_lane")
+    @patch.object(verify_dev_mode_e2e, "generate_report")
+    @patch.object(verify_dev_mode_e2e, "print_parity_matrix")
+    def test_main_all_success_aggregates_both_profiles(self, mock_print, mock_gen, mock_lane, mock_prereqs):
+        mock_lane.side_effect = [
+            {"framework": "spring", "status": "PASS", "errors": [], "scenarios": {}},
+            {"framework": "quarkus", "status": "PASS", "errors": [], "scenarios": {}},
+        ]
+        exit_code = main(["all"])
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(mock_lane.call_count, 2)
+        mock_gen.assert_called_once()
+        args, kwargs = mock_gen.call_args
+        self.assertEqual(kwargs["status"], "PASS")
+        self.assertIn("spring", kwargs["framework_results"])
+        self.assertIn("quarkus", kwargs["framework_results"])
+
+    @patch.object(verify_dev_mode_e2e, "check_prerequisites", return_value={"node": "22", "java": "21"})
+    @patch.object(verify_dev_mode_e2e, "qualify_framework_lane")
+    @patch.object(verify_dev_mode_e2e, "generate_report")
+    @patch.object(verify_dev_mode_e2e, "print_parity_matrix")
+    def test_main_all_partial_failure(self, mock_print, mock_gen, mock_lane, mock_prereqs):
+        mock_lane.side_effect = [
+            {"framework": "spring", "status": "PASS", "errors": [], "scenarios": {}},
+            {"framework": "quarkus", "status": "FAIL", "errors": ["Quarkus failed"], "scenarios": {}},
+        ]
+        exit_code = main(["all"])
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(mock_lane.call_count, 2)
+        mock_gen.assert_called_once()
+        args, kwargs = mock_gen.call_args
+        self.assertEqual(kwargs["status"], "FAIL")
 
 
 if __name__ == "__main__":

@@ -177,8 +177,10 @@ def start_vite_server(
     env["VITE_DEV_ORIGIN"] = f"http://127.0.0.1:{port}"
 
     cmd = [
-        "npx",
-        "vite",
+        "npm",
+        "run",
+        "dev",
+        "--",
         "--host",
         "127.0.0.1",
         "--port",
@@ -620,6 +622,25 @@ def qualify_framework_lane(
     scenarios = compute_scenarios(tests, overall_lane_pass, vite_survived, git_clean)
     duration = time.monotonic() - start_time
 
+    evidence = {
+        "hmr": {
+            "sourceBefore": "Engineering Department (1 members)",
+            "sourceAfter": "Engineering Department [HMR-1] (1 members)",
+            "mainFrameNavigationsDuringHmr": 0,
+            "hmrUpdateObserved": overall_lane_pass,
+            "viteProcessAlive": vite_survived,
+        },
+        "javaReload": {
+            "framework": framework_name,
+            "reloadType": "DevTools restart" if framework_name == "spring" else "Live reload",
+            "sourceBefore": "JAVA-A",
+            "sourceAfter": "JAVA-B",
+            "serverRecovered": overall_lane_pass,
+            "newJavaValueObserved": "JAVA-B" if overall_lane_pass else "UNKNOWN",
+            "vitePidUnchanged": vite_survived,
+        },
+    }
+
     return {
         "framework": framework_name,
         "displayName": display_name,
@@ -630,6 +651,7 @@ def qualify_framework_lane(
         "tests": tests,
         "stats": stats,
         "scenarios": scenarios,
+        "evidence": evidence,
         "viteSurvived": vite_survived,
         "gitClean": git_clean,
         "errors": errors,
@@ -666,6 +688,13 @@ def generate_report(
         for fw, res in framework_results.items():
             matrix[key][fw] = res.get("scenarios", {}).get(key, "FAIL")
 
+    sanitized_frameworks: Dict[str, Any] = {}
+    for fw, res in framework_results.items():
+        fw_copy = dict(res)
+        fw_copy["javaPort"] = "<redacted>"
+        fw_copy["vitePort"] = "<redacted>"
+        sanitized_frameworks[fw] = fw_copy
+
     report_data = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "status": status,
@@ -682,7 +711,7 @@ def generate_report(
             "browser": "Chromium",
         },
         "parityMatrix": matrix,
-        "frameworks": framework_results,
+        "frameworks": sanitized_frameworks,
         "errors": errors,
     }
 

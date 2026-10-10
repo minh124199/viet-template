@@ -53,5 +53,9 @@ class FrontendDevModeServerTest {
     // Assert development mode emits @vite/client and direct entry script
     assertThat(html).contains("<script type=\"module\" src=\"http://127.0.0.1:5173/@vite/client\"></script>");
     assertThat(html).contains("<script type=\"module\" src=\"http://127.0.0.1:5173/src/pages/employees/index.ts\"></script>");
+    int firstIdx = html.indexOf("/@vite/client");
+    int lastIdx = html.lastIndexOf("/@vite/client");
+    assertThat(firstIdx).isGreaterThanOrEqualTo(0);
+    assertThat(firstIdx).isEqualTo(lastIdx);
   }
 }

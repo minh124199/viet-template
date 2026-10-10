@@ -153,6 +153,29 @@ test.describe('Viet Template Frontend Dev Mode & HMR Qualification', () => {
     test.setTimeout(90_000);
     const health = trackPageHealth(page, baseURL);
 
+    // Track network responses to prove @vite/client loads via network
+    let viteClientResponseCount = 0;
+    let viteClientStatus = 0;
+    page.on('response', (response) => {
+      if (response.url().includes('/@vite/client')) {
+        viteClientResponseCount++;
+        viteClientStatus = response.status();
+      }
+    });
+
+    // Track WebSocket connections to prove Vite HMR websocket is genuinely active
+    let viteWsConnected = false;
+    const viteWsMessages: string[] = [];
+    page.on('websocket', (ws) => {
+      if (ws.url().includes('127.0.0.1') || ws.url().includes(viteDevUrl.replace(/^https?:\/\//, ''))) {
+        viteWsConnected = true;
+        ws.on('framereceived', (event) => {
+          const payload = typeof event.payload === 'string' ? event.payload : event.payload.toString();
+          viteWsMessages.push(payload);
+        });
+      }
+    });
+
     // Track frame navigations on the main frame
     let mainFrameNavigations = 0;
     page.on('framenavigated', (frame) => {
@@ -193,6 +216,14 @@ test.describe('Viet Template Frontend Dev Mode & HMR Qualification', () => {
     );
     await expect(viteEntryScript).toHaveCount(1);
 
+    // Assert @vite/client loaded via browser network and returned HTTP 200 (Requirement 14)
+    expect(viteClientResponseCount, 'Expected @vite/client to be loaded via network').toBe(1);
+    expect(viteClientStatus, 'Expected @vite/client response to be HTTP 200').toBe(200);
+
+    // Assert Vite HMR WebSocket connection is active (Requirement 19)
+    await pollUntil(async () => viteWsConnected, 10_000, 200);
+    expect(viteWsConnected, 'Expected Vite HMR WebSocket connection to be active').toBe(true);
+
     // Assert Svelte 5 island mounted
     const svelteIsland = page.locator('[data-testid="svelte-island"]');
     await expect(svelteIsland).toBeVisible();
@@ -222,6 +253,10 @@ test.describe('Viet Template Frontend Dev Mode & HMR Qualification', () => {
     });
     // Critical assertion: zero main-frame navigations during Svelte HMR
     expect(mainFrameNavigations, 'Svelte HMR must not cause a main-frame navigation').toBe(1);
+    expect(
+      viteWsMessages.some((msg) => msg.includes('update') || msg.includes('connected')),
+      'Expected Vite HMR message over WebSocket'
+    ).toBe(true);
 
     // =========================================================================
     // STEP 3: CSS HMR (Zero Main-Frame Navigation)
@@ -269,6 +304,13 @@ test.describe('Viet Template Frontend Dev Mode & HMR Qualification', () => {
     // Assert reloaded VTL template content
     await expect(page.locator('[data-testid="vtl-version"]')).toHaveText('VTL-B');
     await expect(page.locator('[data-testid="java-version"]')).toHaveText('JAVA-A');
+    // Assert clientData script block is preserved without duplication (Requirement 40)
+    const vtlClientDataScript = page.locator(
+      'script[type="application/json"][data-vt-client-data="employees-data"]'
+    );
+    await expect(vtlClientDataScript).toHaveCount(1);
+    const vtlClientData = JSON.parse((await vtlClientDataScript.textContent()) || '{}');
+    expect(vtlClientData.departmentName).toBe('Engineering');
     // Island re-mounted cleanly
     await expect(page.locator('[data-testid="svelte-island"]')).toBeVisible();
 
@@ -322,6 +364,14 @@ test.describe('Viet Template Frontend Dev Mode & HMR Qualification', () => {
     // Assert Java updated and VTL updated
     await expect(page.locator('[data-testid="java-version"]')).toHaveText('JAVA-B');
     await expect(page.locator('[data-testid="vtl-version"]')).toHaveText('VTL-B');
+
+    // Assert clientData script block is fresh and not duplicated after Java reload (Requirement 39)
+    const javaClientDataScript = page.locator(
+      'script[type="application/json"][data-vt-client-data="employees-data"]'
+    );
+    await expect(javaClientDataScript).toHaveCount(1);
+    const javaClientData = JSON.parse((await javaClientDataScript.textContent()) || '{}');
+    expect(javaClientData.departmentName).toBe('Engineering');
 
     // =========================================================================
     // STEP 6: Vite Process Survives Java Reload
