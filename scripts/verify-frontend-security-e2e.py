@@ -153,6 +153,14 @@ def build_frontend(frontend_dir: Path, skip_build: bool = False) -> Path:
     if not (frontend_dir / "package.json").is_file():
         raise FileNotFoundError(f"Frontend directory missing package.json: {frontend_dir}")
 
+    vite_bin = frontend_dir / "node_modules" / ".bin" / "vite"
+    if not vite_bin.is_file():
+        print(f"[STEP] Installing locked frontend dependencies via 'npm ci' in {frontend_dir}...")
+        ci_res = subprocess.run(["npm", "ci"], cwd=str(frontend_dir), capture_output=True, text=True)
+        if ci_res.returncode != 0:
+            print(ci_res.stderr, file=sys.stderr)
+            raise RuntimeError(f"'npm ci' failed with code {ci_res.returncode}")
+
     cmd = ["npm", "run", "build"]
     print(f"[STEP] Building production frontend assets in {frontend_dir} via {' '.join(cmd)}...")
     res = subprocess.run(cmd, cwd=str(frontend_dir), capture_output=True, text=True)

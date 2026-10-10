@@ -180,10 +180,23 @@ class VerifyFrontendSecurityE2ETests(unittest.TestCase):
         self.assertEqual(fe_dir / "dist", dist)
 
     @patch("subprocess.run")
+    def test_build_frontend_npm_ci_failure(self, mock_run):
+        fe_dir = self.test_root / "fe"
+        fe_dir.mkdir(parents=True)
+        (fe_dir / "package.json").write_text("{}")
+        mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="npm ci error")
+
+        with self.assertRaises(RuntimeError) as ctx:
+            build_frontend(fe_dir, skip_build=False)
+        self.assertIn("'npm ci' failed", str(ctx.exception))
+
+    @patch("subprocess.run")
     def test_build_frontend_failure(self, mock_run):
         fe_dir = self.test_root / "fe"
         fe_dir.mkdir(parents=True)
         (fe_dir / "package.json").write_text("{}")
+        (fe_dir / "node_modules" / ".bin").mkdir(parents=True)
+        (fe_dir / "node_modules" / ".bin" / "vite").touch()
         mock_run.return_value = MagicMock(returncode=1, stdout="Build error", stderr="Details")
 
         with self.assertRaises(RuntimeError) as ctx:
