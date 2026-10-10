@@ -41,6 +41,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Extended orchestration unit test suite `scripts/tests/test_verify_frontend_browser_e2e.py` covering Quarkus build artifacts, runner JAR detection, readiness timeout, Playwright failures, multi-framework orchestration, and parity matrix emission.
   - Configured GitHub Actions workflow (`.github/workflows/frontend-browser-e2e.yml`) with dual-job pipeline (`spring-boot-vite-svelte-chromium` and `quarkus-vite-svelte-chromium`) and path triggers for Quarkus modules.
   - Preserved strict Java build isolation: standard Maven (`./mvnw test`) and Gradle (`./gradlew test`) lifecycles remain completely independent of Node, npm, and Playwright.
+- **Authenticated Security & CSRF Browser E2E Qualification**:
+  - Added dedicated headless Chromium browser qualification (`.github/workflows/frontend-security-e2e.yml`) verifying complete authenticated end-to-end integration across both Spring Boot 4 (Spring Security 7) and Quarkus 3.39.4 (Quarkus Security + REST CSRF) in packaged production mode.
+  - Verified 14-point parity matrix across both frameworks: anonymous access denial/redirect to `/login`, form authentication and session cookie establishment, SSR `$security` facade presentation, role-dependent markup (admin links restricted to `ROLE_ADMIN`), server-enforced authorization boundary (403 for unauthorized users, 200 for admins), DOM `$csrf` metadata rendering (`data-vt-csrf-token`, `data-vt-csrf-header`), secured REST interaction with Svelte 5 island (`POST /secure/api/employees/42/follow`), reactive counter updates (3 -> 4), missing and invalid CSRF rejection (Spring: 403, Quarkus: 400) with server state preservation, no-JS fallback form with CSRF protection, and zero console errors/network failures.
+  - Added full test fixtures under `integration-tests/spring/frontend-security-e2e` and `integration-tests/quarkus/frontend-security-e2e` with dedicated standalone surefire server tests.
+  - Added frontend CSRF reader helper `examples/frontend-svelte-islands/src/shared/csrf.ts` and updated employee island to attach CSRF headers on mutation requests.
+  - Created automated qualification script `scripts/verify-frontend-security-e2e.py` and `scripts/verify-frontend-security-e2e.sh` supporting `spring`, `quarkus`, and `all` profiles with dynamic port assignment, health checking, and report generation in `build/reports/frontend-security-e2e.json`.
+  - Added comprehensive test suite `scripts/tests/test_verify_frontend_security_e2e.py` covering CLI parsing, prerequisite checking, process management, report emission, and error handling.
+  - Preserved strict Java build isolation: Java surefire tests never execute Node/Playwright.
 
 ### Changed
 

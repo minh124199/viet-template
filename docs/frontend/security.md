@@ -39,3 +39,67 @@ During local development, your CSP policy must allow the local Vite dev server:
 ```http
 Content-Security-Policy: default-src 'self'; script-src 'self' http://localhost:5173; connect-src 'self' ws://localhost:5173 http://localhost:5173;
 ```
+
+## 5. CSRF & Interactive Island Authentication
+
+> [!WARNING]
+> ### Security Invariant & Authorization Warnings
+> - **$security is presentation metadata, not an authorization mechanism.**
+> - **$csrf exposes framework token metadata; framework filters still validate requests.**
+> - **Client-side role checks do not replace server authorization.**
+>
+> Template security helpers control visual rendering and UI presentation only. All state mutations and protected endpoints must be authoritatively validated and authorized on the server by Spring Security or Quarkus Security.
+
+When client-side islands (such as Svelte, React, or Vue) perform mutating HTTP requests (`POST`, `PUT`, `DELETE`), they must authenticate against backend CSRF defenses:
+
+1. **Server Rendering of CSRF Meta Tags**:
+   Server templates expose the CSRF token via standard `<meta>` tags:
+   ```html
+   #if($csrf)
+   <meta name="csrf-token" content="$csrf.token" data-vt-csrf-token />
+   <meta name="csrf-header" content="$csrf.headerName" data-vt-csrf-header />
+   <meta name="csrf-param" content="$csrf.parameterName" data-vt-csrf-param />
+   #end
+   ```
+
+2. **Frontend CSRF Metadata Extraction**:
+   Use `readCsrfMetadata()` to retrieve token and header names from DOM metadata before issuing API requests:
+   ```typescript
+   export function readCsrfMetadata(): { token: string; headerName: string } | null {
+     const tokenEl = document.querySelector<HTMLMetaElement>('meta[data-vt-csrf-token], meta[name="csrf-token"], meta[name="_csrf"]');
+     const headerEl = document.querySelector<HTMLMetaElement>('meta[data-vt-csrf-header], meta[name="csrf-header"], meta[name="_csrf_header"]');
+     if (!tokenEl || !tokenEl.content) return null;
+     return {
+       token: tokenEl.content,
+       headerName: headerEl?.content || 'X-CSRF-TOKEN',
+     };
+   }
+   ```
+
+3. **Submitting with Mutation Requests**:
+   Attach the CSRF header in fetch calls:
+   ```typescript
+   const csrf = readCsrfMetadata();
+   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+   if (csrf) {
+     headers[csrf.headerName] = csrf.token;
+   }
+   await fetch(url, { method: 'POST', headers, body: JSON.stringify(data) });
+   ```
+
+4. **Progressive Enhancement Non-JS Fallback**:
+   Include a hidden input inside fallback forms for users or environments with JavaScript disabled:
+   ```html
+   <form method="post" action="/secure/action">
+     #if($csrf)
+     <input type="hidden" name="$csrf.parameterName" value="$csrf.token" />
+     #end
+     <button type="submit">Submit</button>
+   </form>
+   ```
+
+5. **Automated Browser E2E Qualification**:
+   Run the qualification script `./scripts/verify-frontend-security-e2e.sh all` to verify that real Chromium interactions correctly enforce CSRF protection across both Spring Security and Quarkus REST CSRF.
+
+6. **Strict Java Build Isolation**:
+   Standard Maven (`./mvnw test`) and Gradle (`./gradlew test`) lifecycles remain completely decoupled from Node, npm, Playwright, and Chromium. Browser E2E qualification runs only via dedicated scripts (`./scripts/verify-frontend-security-e2e.sh`) or GitHub Actions workflows.
