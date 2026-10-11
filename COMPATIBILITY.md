@@ -572,3 +572,50 @@ Following the General Availability release of Viet Template 1.2.0, the `1.2.x` r
   - Every patch fix applied to `release/1.2` is immediately cherry-picked or merged into `main` (`1.3.0-SNAPSHOT`) to prevent regressions in active development.
 - **Active Feature Development**:
   - All new feature evolution, including cross-language navigation and refactoring, occurs exclusively on the `main` branch under the `1.3.0-SNAPSHOT` development line.
+
+---
+
+## 15. Viet Template 1.4.x Maintenance Contract
+
+Following the General Availability release of Viet Template 1.4.0 on 2026-10-11, the `1.4.x` series transitions into strict maintenance and patch governance status governed by [`docs/releases/1.4.x-maintenance-policy.md`](docs/releases/1.4.x-maintenance-policy.md).
+
+### 15.1 Layered Compatibility Architecture
+
+Viet Template governs `1.4.x` using a two-tier baseline model:
+1. **Permanent Backwards-Compatibility Floor (`v1.0.0`)**:
+   - Recorded in [`config/compatibility/1.0.0-compatibility-baseline.json`](config/compatibility/1.0.0-compatibility-baseline.json).
+   - Permanent, historically immutable floor ensuring that any template or code compiling against 1.0.0 continues to function across all future 1.x releases.
+2. **Maintenance-Line Release Snapshot (`v1.4.0`)**:
+   - Recorded in [`config/compatibility/1.4.0-release-baseline.json`](config/compatibility/1.4.0-release-baseline.json) and [`config/api-baseline/1.4.0-*.txt`](config/api-baseline/).
+   - Freezes the exact public surface released at 1.4.0, including all 205 stable API/SPI types, 1,944 member signatures, 5 framework entrypoints, 43 configuration keys, and 14 published Maven coordinates.
+
+### 15.2 Allowed Changes vs Release Routing
+
+- **Allowed in 1.4.x (`PATCH_ALLOWED`)**:
+  - Bug and correctness fixes in existing implementations.
+  - Security vulnerability fixes and input hardening (`PATCH_ALLOWED_SECURITY`).
+  - Semantics-preserving performance optimizations backed by JMH benchmarks (`PATCH_ALLOWED_PERFORMANCE`).
+  - Documentation and test corrections.
+- **Requires Minor Release (`MINOR_RELEASE_REQUIRED` $\to$ 1.5.0+)**:
+  - Any new `STABLE_API` or `STABLE_SPI` type.
+  - Any new public method, constructor, or field added to an existing stable class.
+  - Any new constant added to an existing public enum.
+  - Any new `FRAMEWORK_ENTRYPOINT` (e.g. new auto-configuration class).
+  - Any new public configuration property.
+  - Any new published Maven module.
+- **Requires Major Release (`MAJOR_RELEASE_REQUIRED` $\to$ 2.0.0+)**:
+  - Any removed or renamed stable type or member.
+  - Incompatible signature or modifier changes.
+  - Adding abstract methods to an SPI interface.
+  - Raising the minimum Java baseline above Java 21.
+
+### 15.3 Verification Command
+
+Maintainers verify patch eligibility using:
+
+```bash
+python3 scripts/verify-release-line-compatibility.py \
+  --baseline 1.4.0 \
+  --candidate HEAD \
+  --policy patch
+```

@@ -220,6 +220,9 @@ jobs:
       - name: Run 1.0.0 Canonical Compatibility Baseline Verification
         run: python3 scripts/verify-compatibility-baseline.py
 
+      - name: Run 1.4.x Maintenance Line Compatibility Verification
+        run: python3 scripts/verify-release-line-compatibility.py --baseline 1.4.0 --candidate HEAD --policy patch
+
   release-infrastructure-tier-a:
     name: Tier A — Release Infrastructure Contract
     runs-on: ubuntu-latest
