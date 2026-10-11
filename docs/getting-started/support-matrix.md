@@ -3,7 +3,7 @@
 This document outlines the official environment support matrix for **Viet Template 1.4.0**, including JDK runtimes, build tooling, framework integrations, and execution environments.
 
 Viet Template 1.4.0 is the latest published stable release; the repository's active development
-version is `1.4.1-SNAPSHOT`. Framework minima and tested versions below are sourced from
+version is `1.5.0-SNAPSHOT`. Framework minima and tested versions below are sourced from
 [`framework-support.json`](../../config/compatibility/framework-support.json). Current Spring and
 Quarkus configuration keys are listed in
 [`framework-configuration-keys-1.1.json`](../../config/compatibility/framework-configuration-keys-1.1.json);

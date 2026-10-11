@@ -619,3 +619,26 @@ python3 scripts/verify-release-line-compatibility.py \
   --candidate HEAD \
   --policy patch
 ```
+
+---
+
+## 16. Active Branch Policy Routing: release/1.4 vs main
+
+Following the 1.5.0 development-line transition:
+
+| Branch | Role | Version | Compatibility Baseline | Policy Gate | Additive Features | Breaking Changes |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`release/1.4`** | Maintenance line | `1.4.1-SNAPSHOT` | `1.4.0` | `--policy patch` | **REJECTED** | **REJECTED** |
+| **`main`** | Minor feature line | `1.5.0-SNAPSHOT` | `1.4.0` | `--policy minor` | **ALLOWED** | **REJECTED** |
+
+### 16.1 Maintenance Branch (`release/1.4`)
+- Strictly restricted to `PATCH_ALLOWED` changes (bug fixes, CVE remediation, docs, tests).
+- Automated CI enforces `--policy patch` against baseline `1.4.0`.
+- Any introduction of new `STABLE_API`, `STABLE_SPI`, `FRAMEWORK_ENTRYPOINT`, config property, or published artifact coordinate fails closed with `MINOR_RELEASE_REQUIRED`.
+
+### 16.2 Feature Development Line (`main`)
+- Active development line for Viet Template 1.5.0.
+- Automated CI enforces `--policy minor` against baseline `1.4.0`.
+- Backwards-compatible additions are permitted.
+- Breaking API/SPI changes, removals, and SPI-implementor-breaking abstract methods remain strictly rejected with `MAJOR_RELEASE_REQUIRED`.
+- The permanent `v1.0.0` compatibility floor continues to be independently enforced by `scripts/verify-compatibility-baseline.py`.

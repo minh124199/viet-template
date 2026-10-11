@@ -32,6 +32,7 @@ import shutil
 import subprocess
 import sys
 from typing import Any
+import xml.etree.ElementTree as ET
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -92,6 +93,80 @@ def run_git(args: list[str], cwd: Path = REPO_ROOT) -> str:
     if res.returncode != 0:
         raise RuntimeError(f"git command failed: git {' '.join(args)}\n{res.stderr}")
     return res.stdout.strip()
+
+
+def get_project_version(repo_root: Path = REPO_ROOT) -> str:
+    pom_path = repo_root / "pom.xml"
+    if pom_path.is_file():
+        try:
+            tree = ET.parse(pom_path)
+            root = tree.getroot()
+            ns = {"m": root.tag.split("}")[0].strip("{")} if "}" in root.tag else {}
+            prefix = "m:" if ns else ""
+            v_elem = root.find(f"./{prefix}version", ns)
+            if v_elem is not None and v_elem.text:
+                return v_elem.text.strip()
+        except Exception:
+            pass
+    return ""
+
+
+def resolve_policy(
+    policy_arg: str,
+    repo_root: Path = REPO_ROOT,
+    branch_override: str | None = None,
+    version_override: str | None = None,
+) -> tuple[str, str]:
+    if policy_arg in ("patch", "minor", "major"):
+        return policy_arg, f"explicitly requested policy '{policy_arg}'"
+
+    # Branch inspection:
+    # 1. branch_override if passed (for testing)
+    # 2. TARGET_BRANCH environment variable
+    # 3. GITHUB_BASE_REF (PR target branch in GitHub Actions)
+    # 4. GITHUB_REF_NAME (push branch in GitHub Actions)
+    # 5. git branch --show-current
+    branch = branch_override
+    if not branch:
+        branch = os.environ.get("TARGET_BRANCH")
+    if not branch:
+        branch = os.environ.get("GITHUB_BASE_REF")
+    if not branch:
+        ref_name = os.environ.get("GITHUB_REF_NAME")
+        if ref_name and not ref_name.startswith("refs/tags/"):
+            branch = ref_name
+    if not branch:
+        try:
+            branch = run_git(["branch", "--show-current"], cwd=repo_root).strip()
+        except Exception:
+            branch = ""
+
+    version = version_override if version_override is not None else get_project_version(repo_root)
+
+    # Policy Routing Rules:
+    # Rule 1: release/1.4 maintenance branch -> patch
+    if branch and (branch == "release/1.4" or branch.startswith("release/1.4")):
+        return "patch", f"maintenance branch '{branch}'"
+
+    # Rule 2: other release/1.x maintenance branches (e.g. release/1.1.0, release/1.2.0, release/1.3.0) -> patch
+    if branch and branch.startswith("release/1.") and not branch.startswith("release/1.5"):
+        return "patch", f"maintenance branch '{branch}'"
+
+    # Rule 3: 1.4.x project version -> patch
+    if version and version.startswith("1.4."):
+        return "patch", f"1.4.x line version '{version}'"
+
+    # Rule 4: main branch or 1.5 development branch with 1.5.x+ version -> minor
+    if branch in ("main", "master") or (branch and (branch.startswith("release/1.5") or branch.startswith("chore/begin-1.5") or branch.startswith("feature/"))):
+        if version and (version.startswith("1.5.") or not version.startswith("1.4.")):
+            return "minor", f"development branch '{branch}' with version '{version}'"
+
+    # Rule 5: 1.5.x+ version -> minor
+    if version and version.startswith("1.5."):
+        return "minor", f"feature development version '{version}'"
+
+    # Fallback default: patch (fail-safe)
+    return "patch", f"safety fallback (branch='{branch}', version='{version}')"
 
 
 def parse_classification_file(path: Path) -> dict[str, str]:
@@ -333,7 +408,7 @@ def verify_baseline_provenance(
 def check_candidate_compatibility(
     baseline_path: Path,
     repo_root: Path = REPO_ROOT,
-    policy: str = "patch",
+    policy: str = "auto",
     candidate_surface_override: dict[str, Any] | None = None,
     candidate_classif_override: dict[str, str] | None = None,
     candidate_entrypoints_override: dict[str, Any] | None = None,
@@ -641,21 +716,23 @@ def check_candidate_compatibility(
         classification = "PATCH_ALLOWED"
 
     # Policy gate
-    if policy == "patch":
+    resolved_policy, policy_rationale = resolve_policy(policy, repo_root)
+    if resolved_policy == "patch":
         valid = (classification == "PATCH_ALLOWED")
-    elif policy == "minor":
+    elif resolved_policy == "minor":
         valid = (classification in ("PATCH_ALLOWED", "MINOR_RELEASE_REQUIRED"))
-    elif policy == "major":
+    elif resolved_policy == "major":
         valid = True
     else:
-        raise ValueError(f"Unknown policy '{policy}'. Supported: patch, minor, major")
+        raise ValueError(f"Unknown policy '{resolved_policy}'. Supported: auto, patch, minor, major")
 
     report = {
         "baselineVersion": baseline.get("version", "1.4.0"),
         "baselineSha": baseline.get("provenance", {}).get("sourceCommitSha"),
         "baselineTagObjectSha": baseline.get("provenance", {}).get("tagObjectSha"),
         "candidate": "HEAD",
-        "policy": policy.upper(),
+        "policy": resolved_policy.upper(),
+        "policyResolutionRationale": policy_rationale,
         "stableApiRemovals": len(removed_stable_api),
         "stableSpiRemovals": len(removed_stable_spi),
         "signatureChanges": signature_changes_count,
@@ -679,7 +756,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Verify Viet Template maintenance line patch compatibility")
     parser.add_argument("--baseline", default="1.4.0", help="Baseline version or path (default: 1.4.0)")
     parser.add_argument("--candidate", default="HEAD", help="Candidate revision (default: HEAD)")
-    parser.add_argument("--policy", choices=["patch", "minor", "major"], default="patch", help="Enforcement policy (default: patch)")
+    parser.add_argument("--policy", choices=["auto", "patch", "minor", "major"], default="auto", help="Enforcement policy (default: auto)")
     parser.add_argument("--report", type=Path, default=REPO_ROOT / "build/reports/release-line-compatibility.json", help="Path to write JSON report")
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT, help="Repository root path")
     args = parser.parse_args()
@@ -705,7 +782,7 @@ def main() -> int:
     print("=" * 70)
     print(f"Baseline:                  v{report['baselineVersion']}")
     print(f"Candidate:                 {args.candidate}")
-    print(f"Policy:                    {report['policy']}")
+    print(f"Policy:                    {report['policy']} ({report.get('policyResolutionRationale', '')})")
     print("-" * 70)
     print(f"Stable API removals:       {report['stableApiRemovals']}")
     print(f"Stable SPI removals:       {report['stableSpiRemovals']}")
