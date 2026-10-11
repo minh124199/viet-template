@@ -444,3 +444,8 @@ python3 scripts/verify-release-line-compatibility.py \
 
 This gate enforces that no new `STABLE_API`, `STABLE_SPI`, `FRAMEWORK_ENTRYPOINT`, configuration keys, or published Maven coordinates were introduced, and that zero breaking changes occurred against `v1.4.0`. Full maintenance policy is documented in [`docs/releases/1.4.x-maintenance-policy.md`](releases/1.4.x-maintenance-policy.md).
 
+## Active Branch Topology & Governance
+
+- **`release/1.4` (Maintenance Line)**: Dedicated patch-only maintenance branch tracking `1.4.1-SNAPSHOT`. Governed by `--policy patch` against baseline `1.4.0`.
+- **`main` (Feature Development Line)**: Active development line tracking `1.5.0-SNAPSHOT`. Governed by `--policy minor` against baseline `1.4.0`. Additive backwards-compatible features are permitted; breaking changes remain strictly rejected.
+

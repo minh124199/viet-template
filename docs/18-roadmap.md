@@ -781,7 +781,7 @@ Execute comprehensive release qualification, packaging reconciliation, and publi
 
 ## Completed Milestones (1.4.x Development Line)
 
-Following the completion, qualification, and Maven Central publication of Viet Template 1.4.0 on 2026-10-11, the Frontend Asset Integration milestone (M43) is complete. The active development line is `1.4.1-SNAPSHOT` for maintenance development and patch governance.
+Following the completion, qualification, and Maven Central publication of Viet Template 1.4.0 on 2026-10-11, the Frontend Asset Integration milestone (M43) is complete. The 1.4.x maintenance line is established on branch `release/1.4` (tracking `1.4.1-SNAPSHOT`) under patch policy governance.
 
 ---
 
@@ -809,5 +809,64 @@ Provide a first-class, zero-Node runtime frontend asset pipeline connecting Viet
   - **Authenticated Security & CSRF Browser E2E**: 14-point parity matrix verifying CSRF token presentation (`$csrf`), secured REST mutations, and rejection of invalid/missing CSRF tokens across Spring Security 7 and Quarkus Security + REST CSRF.
   - **Dev Mode & Vite HMR Browser E2E**: 10-point sequential lifecycle matrix verifying local Vite HMR, Svelte source hot reload, stylesheet HMR, and Java restart/live reload without full page reloads.
   - **Build Isolation**: Standard Java builds (`./mvnw test`, `./gradlew test`) remain 100% independent of Node and npm.
+
+---
+
+## Active Development Line (1.5.0-SNAPSHOT)
+
+Following the establishment of the `release/1.4` maintenance line, the repository's `main` branch has transitioned to `1.5.0-SNAPSHOT` for active feature development under minor policy governance.
+
+### 1.5.0 Strategic Thesis: Optional Compile-Time Type Intelligence & Client Contract Projection
+
+> **Viet Template 1.5 focuses on optional compile-time type intelligence, type-safe template parameter contracts, and schema-to-client TypeScript projection—delivering robust compile-time validation and rich IDE typing without compromising 100% dynamic VTL runtime compatibility or introducing external runtime dependencies.**
+
+Full candidate audit, 10-dimension evaluation scoring, architectural invariants, and milestone specifications are documented in [`docs/releases/1.5.0-development-plan.md`](releases/1.5.0-development-plan.md).
+
+---
+
+### Milestone Sequence (1.5 Development Line)
+
+1. **Milestone M44 (Transition & Qualification)**: 1.5.0 Development-Line Transition, Maintenance Branch Establishment & Feature Roadmap Qualification — **COMPLETE**
+2. **Milestone M45**: Optional Typed Template Parameters & Expression Type-Propagation Feasibility / Core SPI
+3. **Milestone M46**: Schema-to-Client TypeScript Contract Projection & Typed Frontend Island Bridges
+4. **Milestone M47**: Framework Model Validation & IDE Language Server Type Intelligence
+5. **Milestone M48**: 1.5.0 Performance, Native Image & Release Qualification
+
+---
+
+### Detailed Milestone Specification: Milestone M44
+
+**Milestone Name**: 1.5.0 Development-Line Transition, Maintenance Branch Establishment & Feature Roadmap Qualification<br>
+**Target Development Line**: `1.5.0-SNAPSHOT`<br>
+**Status**: Completed (`1.5.0-SNAPSHOT`)
+
+#### 1. Goal
+Establish the `release/1.4` maintenance branch with verified post-release patch governance, transition `main` to `1.5.0-SNAPSHOT`, route CI compatibility enforcement so `release/1.4` runs under `--policy patch` while `main` runs under `--policy minor`, and qualify the evidence-backed 1.5 feature roadmap.
+
+#### 2. Scope & Execution Results
+- **Maintenance Branch Establishment (`release/1.4`)**:
+  - Reconciled branch provenance: created `release/1.4` from pre-1.5 `main` (`5498280740cfd6b4cf5711d496c2f2250ada83ba`) containing full PR #95 patch-governance tooling and CI enforcement, maintaining identical `v1.4.0` product behavior and tracking `1.4.1-SNAPSHOT`.
+  - Pushed `release/1.4` to `origin` and verified `--policy patch` gate passes with `PATCH_ALLOWED`.
+- **Development-Line Transition (`1.5.0-SNAPSHOT`)**:
+  - Transitioned versions across root POM, 14 module POMs, Gradle DSL, Quarkus metadata, migration analyzer, and integration fixtures to `1.5.0-SNAPSHOT`.
+  - Preserved latest published stable version as `1.4.0` in `publication-topology.json` and consumer quickstart snippets.
+- **Branch-Aware Compatibility Routing**:
+  - Implemented automated policy routing in `scripts/verify-release-line-compatibility.py` (`--policy auto`) resolving `release/1.4` to `patch` and `main` @ `1.5.0-SNAPSHOT` to `minor`.
+  - Added negative test suite verifying that additive public members fail closed under `patch` but pass under `minor`, while removals and breaking SPI changes fail closed under `minor`.
+- **Roadmap Audit & Qualification**:
+  - Audited all candidate feature families, deferred items, and performance candidates across the repository.
+  - Selected the 1.5 thesis and sequenced Milestones M45–M48 with explicit non-goals.
+  - Documented full candidate scoring and architecture in [`docs/releases/1.5.0-development-plan.md`](releases/1.5.0-development-plan.md).
+
+---
+
+### Explicit Non-Goals for 1.5.0
+- **No VTL syntax breakage**: Existing templates run without syntax modification.
+- **No mandatory static typing**: All typing features are strictly optional; untyped templates remain fully supported.
+- **No Node/npm in normal Java runtime**: Zero-dependency, zero-Node runtime invariant remains inviolable.
+- **No server-side JavaScript execution**: Template rendering remains 100% Java bytecode execution.
+- **No Java baseline elevation**: Java 21 LTS baseline is strictly preserved.
+- **No unevidenced performance optimization**: M19.3 profiling stop rule remains respected.
+- **No JPMS modularization**: Module boundaries remain classpath-based.
 
 
