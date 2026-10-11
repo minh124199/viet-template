@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-11
+
 ### Added
 - **Frontend Asset Integration**:
   - First-class, opt-in Frontend Asset Integration connecting Viet Template SSR to Vite build outputs and development server without requiring Node/npm in the Java build or request hot path.
@@ -993,7 +995,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 1 `VIET_EXTENSION` (`$foreach.stop()` programmatic loop termination)
   - 0 `UNSUPPORTED`, 0 `BUG` (100.00% accounted behavior coverage)
 
-[Unreleased]: https://github.com/minh124199/viet-template/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/minh124199/viet-template/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/minh124199/viet-template/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/minh124199/viet-template/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/minh124199/viet-template/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/minh124199/viet-template/compare/v1.0.1...v1.1.0
