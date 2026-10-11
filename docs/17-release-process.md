@@ -426,3 +426,8 @@ Viet Template 1.2.0 completes the 1.2 feature line, encompassing build-time temp
 ## Release 1.3.0
 
 Viet Template 1.3.0 completes the 1.3 feature line, delivering deep cross-language developer navigation and workspace intelligence between templates and Java code: Java source navigation (M38), cross-language find references and symbol graph (M39), safe cross-language rename and refactoring (M40), workspace schema intelligence and symbol search (M41), and release qualification (M42). Release 1.3.0 is tagged `v1.3.0` on 2026-10-09 on branch `release/1.3.0` with full publication across all 14 public coordinates.
+
+## Release 1.4.0
+
+Viet Template 1.4.0 completes the 1.4 feature line, introducing Frontend Asset Integration and the Safe Client Data Bridge: first-class Vite asset integration for development and production modes, script-safe JSON client data serialization, Spring Boot and Quarkus auto-configuration, and full ecosystem compatibility qualification. Release 1.4.0 is tagged `v1.4.0` on 2026-10-11 on branch `release/1.4.0` (commit `1ee485beee4b7588dd154881ede1e76985e339dc`) with full publication across all 14 public coordinates to Maven Central (deployment ID `3a04d348-3bf7-4db6-92d7-dfee128406f9`) and GitHub Releases (`RE_kwDOUP2wfc4Yaar8`). Following publication, the project advanced to `1.4.1-SNAPSHOT` for active development.
+
