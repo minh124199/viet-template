@@ -1,6 +1,6 @@
 # 18 — Implementation Roadmap (Historical Milestone Record and Current Status)
 
-> **Status note (2026-10-09):** This document preserves the project's milestone history. Viet Template 1.3.0 is the latest published stable release (published 2026-10-09; 1.2.0 published 2026-10-07). Earlier release-phase plans are historical records; unfinished 1.0 RC soak/readiness wording below is closed by the subsequent 1.0.0 GA release, and must not be read as current work.
+> **Status note (2026-10-11):** This document preserves the project's milestone history. Viet Template 1.4.0 is the latest published stable release (published 2026-10-11; 1.3.0 published 2026-10-09; 1.2.0 published 2026-10-07). Earlier release-phase plans are historical records; unfinished 1.0 RC soak/readiness wording below is closed by the subsequent 1.0.0 GA release, and must not be read as current work.
 
 ## Overview
 
