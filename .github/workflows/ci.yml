@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'release/1.4' ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, 'release/1.4' ]
 
 permissions:
   contents: read
@@ -220,8 +220,10 @@ jobs:
       - name: Run 1.0.0 Canonical Compatibility Baseline Verification
         run: python3 scripts/verify-compatibility-baseline.py
 
-      - name: Run 1.4.x Maintenance Line Compatibility Verification
-        run: python3 scripts/verify-release-line-compatibility.py --baseline 1.4.0 --candidate HEAD --policy patch
+      - name: Run Release Line Compatibility Verification
+        env:
+          TARGET_BRANCH: ${{ github.base_ref || github.ref_name }}
+        run: python3 scripts/verify-release-line-compatibility.py --baseline 1.4.0 --candidate HEAD --policy auto
 
   release-infrastructure-tier-a:
     name: Tier A — Release Infrastructure Contract

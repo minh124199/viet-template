@@ -785,6 +785,139 @@ class ReleaseLineCompatibilityTests(unittest.TestCase):
         self.assertFalse(report["valid"])
         self.assertTrue(any("REMOVED_CONSTRUCTOR" in r for r in report["majorReasons"]))
 
+    def test_patch_policy_rejects_new_public_method_while_minor_policy_allows_it(self):
+        cand_classif = {
+            "com.example.StableApiClass": "STABLE_API",
+            "com.example.StableSpiInterface": "STABLE_SPI",
+            "com.example.TestAutoConfiguration": "FRAMEWORK_ENTRYPOINT",
+        }
+        cand_surface = {
+            "com.example.StableApiClass": {
+                "header": "public class com.example.StableApiClass",
+                "members": [
+                    "public com.example.StableApiClass()",
+                    "public java.lang.String doSomething(int)",
+                    "public static final java.lang.String CONSTANT",
+                    "public java.lang.String brandNewFeatureMethod(java.lang.String)",  # Additive method
+                ],
+            },
+            "com.example.StableSpiInterface": self.sample_baseline["members"]["com.example.StableSpiInterface"],
+        }
+
+        # Under patch policy: FAILS closed
+        report_patch = ver.check_candidate_compatibility(
+            baseline_path=self.baseline_file,
+            policy="patch",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report_patch["classification"], "MINOR_RELEASE_REQUIRED")
+        self.assertFalse(report_patch["valid"])
+        self.assertEqual(report_patch["memberAdditions"], 1)
+
+        # Under minor policy: PASSES because backwards-compatible addition is allowed
+        report_minor = ver.check_candidate_compatibility(
+            baseline_path=self.baseline_file,
+            policy="minor",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report_minor["classification"], "MINOR_RELEASE_REQUIRED")
+        self.assertTrue(report_minor["valid"])
+        self.assertEqual(report_minor["memberAdditions"], 1)
+
+    def test_minor_policy_rejects_removed_stable_method(self):
+        cand_classif = {
+            "com.example.StableApiClass": "STABLE_API",
+            "com.example.StableSpiInterface": "STABLE_SPI",
+            "com.example.TestAutoConfiguration": "FRAMEWORK_ENTRYPOINT",
+        }
+        cand_surface = {
+            "com.example.StableApiClass": {
+                "header": "public class com.example.StableApiClass",
+                "members": [
+                    "public com.example.StableApiClass()",
+                    # Removed doSomething(int)
+                    "public static final java.lang.String CONSTANT",
+                ],
+            },
+            "com.example.StableSpiInterface": self.sample_baseline["members"]["com.example.StableSpiInterface"],
+        }
+
+        # Under minor policy: FAILS closed because breaking changes are rejected
+        report_minor = ver.check_candidate_compatibility(
+            baseline_path=self.baseline_file,
+            policy="minor",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report_minor["classification"], "MAJOR_RELEASE_REQUIRED")
+        self.assertFalse(report_minor["valid"])
+        self.assertTrue(any("REMOVED_METHOD" in r for r in report_minor["majorReasons"]))
+
+    def test_minor_policy_rejects_new_abstract_method_on_spi_interface(self):
+        cand_classif = {
+            "com.example.StableApiClass": "STABLE_API",
+            "com.example.StableSpiInterface": "STABLE_SPI",
+            "com.example.TestAutoConfiguration": "FRAMEWORK_ENTRYPOINT",
+        }
+        cand_surface = {
+            "com.example.StableApiClass": self.sample_baseline["members"]["com.example.StableApiClass"],
+            "com.example.StableSpiInterface": {
+                "header": "public interface com.example.StableSpiInterface",
+                "members": [
+                    "public abstract void onEvent(java.lang.String)",
+                    "public default boolean isEnabled()",
+                    "public abstract void breakingNewSpiMethod()",  # New abstract method breaks SPI implementors
+                ],
+            },
+        }
+
+        # Under minor policy: FAILS closed because SPI breaking method is rejected
+        report_minor = ver.check_candidate_compatibility(
+            baseline_path=self.baseline_file,
+            policy="minor",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report_minor["classification"], "MAJOR_RELEASE_REQUIRED")
+        self.assertFalse(report_minor["valid"])
+        self.assertTrue(any("ADDED_ABSTRACT_INTERFACE_METHOD" in r for r in report_minor["majorReasons"]))
+
+    def test_resolve_policy_routing(self):
+        # Explicit policies
+        self.assertEqual(ver.resolve_policy("patch")[0], "patch")
+        self.assertEqual(ver.resolve_policy("minor")[0], "minor")
+        self.assertEqual(ver.resolve_policy("major")[0], "major")
+
+        # release/1.4 maintenance line -> patch
+        p, r = ver.resolve_policy("auto", branch_override="release/1.4", version_override="1.4.1-SNAPSHOT")
+        self.assertEqual(p, "patch")
+        self.assertIn("release/1.4", r)
+
+        # release/1.4 with higher version still -> patch
+        p, _ = ver.resolve_policy("auto", branch_override="release/1.4", version_override="1.5.0-SNAPSHOT")
+        self.assertEqual(p, "patch")
+
+        # main with 1.4.1-SNAPSHOT -> patch
+        p, r = ver.resolve_policy("auto", branch_override="main", version_override="1.4.1-SNAPSHOT")
+        self.assertEqual(p, "patch")
+        self.assertIn("1.4.", r)
+
+        # main with 1.5.0-SNAPSHOT -> minor
+        p, r = ver.resolve_policy("auto", branch_override="main", version_override="1.5.0-SNAPSHOT")
+        self.assertEqual(p, "minor")
+        self.assertIn("1.5.0-SNAPSHOT", r)
+
+        # chore/begin-1.5.0-development with 1.5.0-SNAPSHOT -> minor
+        p, r = ver.resolve_policy("auto", branch_override="chore/begin-1.5.0-development", version_override="1.5.0-SNAPSHOT")
+        self.assertEqual(p, "minor")
+        self.assertIn("1.5.0-SNAPSHOT", r)
+
 
 if __name__ == "__main__":
     unittest.main()
