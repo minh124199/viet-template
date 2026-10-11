@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -103,9 +104,19 @@ class GenerateReleaseBaselineTests(unittest.TestCase):
         # Check all types accounted for
         self.assertEqual(set(all_partitioned), set(stable_types))
 
-    def test_inspect_class_from_cp_extracts_header_and_members(self):
-        cp = str(ROOT / "viet-template-api/build/classes/java/main")
-        info = gen.inspect_class_from_cp("io.github.minh124199.viettemplate.api.TemplateEngine", cp)
+    @patch("subprocess.run")
+    def test_inspect_class_from_cp_extracts_header_and_members(self, mock_run):
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = """
+Compiled from "TemplateEngine.java"
+public interface io.github.minh124199.viettemplate.api.TemplateEngine {
+  public abstract java.lang.String render(java.lang.String, java.util.Map<java.lang.String, java.lang.Object>);
+  public abstract void render(java.lang.String, java.util.Map<java.lang.String, java.lang.Object>, java.io.Writer);
+}
+"""
+        mock_run.return_value = mock_proc
+        info = gen.inspect_class_from_cp("io.github.minh124199.viettemplate.api.TemplateEngine", "/dummy/classpath")
         self.assertIsNotNone(info)
         self.assertIn("interface", info["header"])
         self.assertIn("io.github.minh124199.viettemplate.api.TemplateEngine", info["header"])
