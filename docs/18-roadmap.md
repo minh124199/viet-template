@@ -781,6 +781,33 @@ Execute comprehensive release qualification, packaging reconciliation, and publi
 
 ## Future Milestones (Post-1.3.0 Development Line)
 
-Following the completion and qualification of Milestone M42 and the release of Viet Template 1.3.0 GA, the next feature milestone family is undecided / pending planning. Active maintenance for the 1.3.x series is governed by the maintenance policy.
+Following the completion and qualification of Milestone M42 and the release of Viet Template 1.3.0 GA (latest published stable release), the post-1.3.0 development line introduced the Frontend Asset Integration arc. In accordance with the repository's Semantic Versioning policy, the introduction of backwards-compatible new functionality and 19 new stable public API/SPI contracts establishes `1.4.0` as the target next release line (active development version: `1.4.0-SNAPSHOT`).
+
+---
+
+### Detailed Milestone Specification: Milestone M43
+
+**Milestone Name**: Frontend Asset Integration & Safe Client Data Bridge<br>
+**Target Development Line**: `1.4.0`<br>
+**Status**: Completed (`1.4.0-SNAPSHOT` development line)
+
+#### 1. Goal
+Provide a first-class, zero-Node runtime frontend asset pipeline connecting Viet Template SSR with modern frontend tooling (Vite 5 / Vite 8) and component islands (Svelte 4 / Svelte 5), featuring script-safe JSON bootstrap state (`$clientData`), automated head/body asset injection (`$assets`), and native framework integrations across Spring Boot 4 and Quarkus 3.39.4.
+
+#### 2. Scope & Qualification Results
+- **Core Asset Runtime & SPI (`viet-template-runtime`)**:
+  - Implemented `AssetResolver`, `ResolvedFrontendEntry`, `AssetScript`, `AssetStylesheet`, `AssetModulePreload`, `ResolvedAsset`, and `FrontendAssets` contextual helper.
+  - Implemented `ClientData` with streaming unicode-escaped JSON serializer (`SimpleJsonSerializer`) converting `<`, `>`, `&`, and ECMAScript line terminators (`\u2028`, `\u2029`) into escape sequences to prevent script breakout in `<script type="application/json">` blocks.
+  - Provided `JacksonClientDataSerializer` adapter supporting reflection-based serialization with Jackson 2.x and Jackson 3.x.
+  - Implemented `ViteAssetResolver` supporting both production manifest mode (`.vite/manifest.json`) and development mode (HMR with automatic `@vite/client` injection).
+- **Framework Integrations**:
+  - **Spring Boot 4**: `VietTemplateAssetAutoConfiguration` automatically registers asset and client data beans based on `viet-template.assets.*` configuration properties.
+  - **Quarkus 3.39.4**: `VietTemplateProducer` provides CDI wiring; `VietTemplateProcessor` embeds manifest build items for Mandrel/GraalVM native compilation.
+- **Multi-Layer Qualification & Build Isolation**:
+  - **Vite & Svelte Matrix**: Dual-profile compatibility verified against Vite 5.4.2 / Svelte 4.2.19 (Node 22) and Vite 8.3.4 / Svelte 5.57.2 (Node 24).
+  - **Browser E2E Qualification**: Headless Chromium Playwright E2E verifies complete production SSR + Vite assets + Svelte 5 island mounting + REST API interaction across Spring Boot and Quarkus.
+  - **Authenticated Security & CSRF Browser E2E**: 14-point parity matrix verifying CSRF token presentation (`$csrf`), secured REST mutations, and rejection of invalid/missing CSRF tokens across Spring Security 7 and Quarkus Security + REST CSRF.
+  - **Dev Mode & Vite HMR Browser E2E**: 10-point sequential lifecycle matrix verifying local Vite HMR, Svelte source hot reload, stylesheet HMR, and Java restart/live reload without full page reloads.
+  - **Build Isolation**: Standard Java builds (`./mvnw test`, `./gradlew test`) remain 100% independent of Node and npm.
 
 
