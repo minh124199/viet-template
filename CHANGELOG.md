@@ -10,12 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Frontend Asset Integration**:
   - First-class, opt-in Frontend Asset Integration connecting Viet Template SSR to Vite build outputs and development server without requiring Node/npm in the Java build or request hot path.
-  - Core SPI and runtime in `viet-template-runtime`: `AssetResolver`, `ResolvedFrontendEntry`, `AssetScript`, `AssetStylesheet`, `AssetModulePreload`, `ResolvedAsset`, `FrontendAssets`, `ClientDataSerializer`, `ClientData`, and `FrontendAssetsRenderContextContributor`.
-  - Vite Provider (`io.github.minh124199.viettemplate.assets.vite`): Support for both development mode (HMR with automatic `@vite/client` injection) and production mode (fast in-memory `manifest.json` resolution with multi-entry deduplication and CSS preloads). Integrated directly into `viet-template-runtime` with zero external dependencies.
+  - Core SPI and runtime in `viet-template-runtime`: `AssetResolver`, `ResolvedFrontendEntry`, `AssetScript`, `AssetStylesheet`, `AssetModulePreload`, `ResolvedAsset`, `FrontendAssets`, `ClientDataSerializer`, `ClientData`, `FrontendAssetsRenderContextContributor`, `AssetDiagnosticCode`, `AssetException`, `ClientDataSerializationException`, and `JacksonClientDataSerializer`.
+  - Vite Provider (`io.github.minh124199.viettemplate.assets.vite`): `ViteAssetResolver`, `ViteAssetResolver$Builder`, and `ViteAssetMode`. Support for both development mode (HMR with automatic `@vite/client` injection) and production mode (fast in-memory `manifest.json` resolution with multi-entry deduplication and CSS preloads). Integrated directly into `viet-template-runtime` with zero external dependencies.
   - Script-Safe Client Data Bridge: Streaming unicode-escaped JSON serializer converting `<`, `>`, `&`, and ECMAScript line terminators (`\u2028`, `\u2029`) into escape sequences, preventing script breakout and XSS in `<script type="application/json">` blocks.
   - Built-in Zero-Dependency Serializer: `ClientData.defaultSerializer()` exposes standard primitive, collection, date (ISO-8601 UTC), and reflective JavaBean/record serialization with package-private containment.
-  - Jackson Serializer Adapter: Generic reflection-based adapter supporting both Jackson 2.x and Jackson 3.x `ObjectMapper` without hard compile-time binding.
-  - Spring Boot Auto-Configuration (`viet-template-spring-boot-autoconfigure`): Automatic registration of `AssetResolver`, `FrontendAssets`, `ClientData`, and `FrontendAssetsRenderContextContributor` based on `viet-template.assets.*` configuration properties, classified as `FRAMEWORK_ENTRYPOINT`.
+  - Jackson Serializer Adapter: Generic reflection-based adapter supporting both Jackson 2.x and Jackson 3.x `ObjectMapper` without hard compile-time binding via `JacksonClientDataSerializer`.
+  - Spring Boot Auto-Configuration (`viet-template-spring-boot-autoconfigure`): Automatic registration of `AssetResolver`, `FrontendAssets`, `ClientData`, and `FrontendAssetsRenderContextContributor` based on `viet-template.assets.*` configuration properties via `VietTemplateAssetProperties`, `VietTemplateAssetProperties$Vite`, and `VietTemplateAssetAutoConfiguration` (classified as `FRAMEWORK_ENTRYPOINT`).
   - Quarkus Extension (`viet-template-quarkus` & `viet-template-quarkus-deployment`): Seamless CDI wiring in `VietTemplateProducer` and GraalVM native image manifest resource embedding via `NativeImageResourceBuildItem` in `VietTemplateProcessor`.
   - Canonical Svelte Island Example: Example fixture demonstrating SSR fallback HTML, script-safe JSON state, and Svelte island mounting.
   - Comprehensive documentation under `docs/frontend/` covering architecture, Vite configuration, client data, framework islands, Spring Boot, Quarkus, and security best practices.
@@ -58,8 +58,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created automated qualification script `scripts/verify-frontend-dev-mode-e2e.py` and `scripts/verify-frontend-dev-mode-e2e.sh` supporting `spring`, `quarkus`, and `all` profiles with dynamic port allocation, health polling, process group lifecycle management, and report generation in `build/reports/frontend-dev-mode-e2e.json`.
   - Added comprehensive unit test suite `scripts/tests/test_verify_frontend_dev_mode_e2e.py` with 15 passing tests.
   - Preserved strict Java build isolation: Java surefire tests never execute Node/Playwright.
-
-### Changed
 
 ### Fixed
 - **Quarkus SmallRye Config Asset Properties Mapping**: Fixed `VietTemplateConfig.java` where methods with default interface bodies were skipped by SmallRye `@ConfigMapping` bytecode generation and marked as unrecognized properties; converted to abstract methods with `@WithDefault(...)`.
