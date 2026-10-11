@@ -82,6 +82,35 @@ class GenerateReleaseBaselineTests(unittest.TestCase):
                 idx_beta = i
         self.assertTrue(idx_alpha != -1 and idx_beta != -1 and idx_alpha < idx_beta)
 
+    def test_parse_classification_file_handles_missing_file(self):
+        with self.assertRaises(FileNotFoundError):
+            gen.parse_classification_file(Path("/nonexistent/public-surface-classification.txt"))
+
+    def test_duplicate_and_disjoint_categorization(self):
+        stable_types = [
+            "io.github.minh124199.viettemplate.api.TemplateEngine",
+            "io.github.minh124199.viettemplate.aot.TemplateAotCompiler",
+            "io.github.minh124199.viettemplate.spring.web.servlet.VietTemplateView",
+            "io.github.minh124199.viettemplate.spring.security.SecurityView",
+            "io.github.minh124199.viettemplate.quarkus.VietTemplateRenderer",
+        ]
+        groups = gen.categorize_types_into_baselines(stable_types)
+        all_partitioned = []
+        for g_name, g_types in groups.items():
+            all_partitioned.extend(g_types)
+        # Check no duplicates
+        self.assertEqual(len(all_partitioned), len(set(all_partitioned)))
+        # Check all types accounted for
+        self.assertEqual(set(all_partitioned), set(stable_types))
+
+    def test_inspect_class_from_cp_extracts_header_and_members(self):
+        cp = str(ROOT / "viet-template-api/build/classes/java/main")
+        info = gen.inspect_class_from_cp("io.github.minh124199.viettemplate.api.TemplateEngine", cp)
+        self.assertIsNotNone(info)
+        self.assertIn("interface", info["header"])
+        self.assertIn("io.github.minh124199.viettemplate.api.TemplateEngine", info["header"])
+        self.assertTrue(any("render(" in m for m in info["members"]))
+
 
 if __name__ == "__main__":
     unittest.main()

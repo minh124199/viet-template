@@ -469,6 +469,322 @@ class ReleaseLineCompatibilityTests(unittest.TestCase):
         errors = ver.verify_baseline_provenance(bad_baseline, ROOT)
         self.assertTrue(any("does not exist" in e for e in errors))
 
+    def test_baseline_integrity_detects_tampered_baseline_file(self):
+        tampered_baseline = dict(self.sample_baseline)
+        tampered_file = self.path / "config/compatibility/1.4.0-release-baseline.json"
+        tampered_file.parent.mkdir(parents=True, exist_ok=True)
+        tampered_file.write_text("tampered bytes", encoding="utf-8")
+
+        errors = ver.verify_baseline_provenance(tampered_baseline, ROOT, baseline_path=tampered_file)
+        self.assertTrue(any("BASELINE_INTEGRITY_VIOLATION" in e for e in errors))
+
+    def test_static_method_added_to_interface_is_minor_not_major(self):
+        cand_classif = {
+            "com.example.StableApiClass": "STABLE_API",
+            "com.example.StableSpiInterface": "STABLE_SPI",
+            "com.example.TestAutoConfiguration": "FRAMEWORK_ENTRYPOINT",
+        }
+        cand_surface = {
+            "com.example.StableApiClass": self.sample_baseline["members"]["com.example.StableApiClass"],
+            "com.example.StableSpiInterface": {
+                "header": "public interface com.example.StableSpiInterface",
+                "members": [
+                    "public abstract void onEvent(java.lang.String)",
+                    "public default boolean isEnabled()",
+                    "public static com.example.StableSpiInterface create()",  # Static method on interface: MINOR, not MAJOR!
+                ],
+            },
+        }
+
+        report = ver.check_candidate_compatibility(
+            baseline_path=self.baseline_file,
+            policy="patch",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report["classification"], "MINOR_RELEASE_REQUIRED")
+        self.assertFalse(report["valid"])
+        self.assertEqual(report["memberAdditions"], 1)
+
+    def test_reduced_member_visibility_requires_major_release(self):
+        cand_classif = {
+            "com.example.StableApiClass": "STABLE_API",
+            "com.example.StableSpiInterface": "STABLE_SPI",
+            "com.example.TestAutoConfiguration": "FRAMEWORK_ENTRYPOINT",
+        }
+        cand_surface = {
+            "com.example.StableApiClass": {
+                "header": "public class com.example.StableApiClass",
+                "members": [
+                    "public com.example.StableApiClass()",
+                    "protected java.lang.String doSomething(int)",  # Reduced visibility from public to protected!
+                    "public static final java.lang.String CONSTANT",
+                ],
+            },
+            "com.example.StableSpiInterface": self.sample_baseline["members"]["com.example.StableSpiInterface"],
+        }
+
+        report = ver.check_candidate_compatibility(
+            baseline_path=self.baseline_file,
+            policy="patch",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report["classification"], "MAJOR_RELEASE_REQUIRED")
+        self.assertFalse(report["valid"])
+        self.assertTrue(any("REDUCED_MEMBER_VISIBILITY" in r for r in report["majorReasons"]))
+
+    def test_non_final_method_becoming_final_requires_major_release(self):
+        cand_classif = {
+            "com.example.StableApiClass": "STABLE_API",
+            "com.example.StableSpiInterface": "STABLE_SPI",
+            "com.example.TestAutoConfiguration": "FRAMEWORK_ENTRYPOINT",
+        }
+        cand_surface = {
+            "com.example.StableApiClass": {
+                "header": "public class com.example.StableApiClass",
+                "members": [
+                    "public com.example.StableApiClass()",
+                    "public final java.lang.String doSomething(int)",  # Became final!
+                    "public static final java.lang.String CONSTANT",
+                ],
+            },
+            "com.example.StableSpiInterface": self.sample_baseline["members"]["com.example.StableSpiInterface"],
+        }
+
+        report = ver.check_candidate_compatibility(
+            baseline_path=self.baseline_file,
+            policy="patch",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report["classification"], "MAJOR_RELEASE_REQUIRED")
+        self.assertFalse(report["valid"])
+        self.assertTrue(any("non-final method became final" in r for r in report["majorReasons"]))
+
+    def test_non_abstract_class_becoming_abstract_requires_major_release(self):
+        cand_classif = {
+            "com.example.StableApiClass": "STABLE_API",
+            "com.example.StableSpiInterface": "STABLE_SPI",
+            "com.example.TestAutoConfiguration": "FRAMEWORK_ENTRYPOINT",
+        }
+        cand_surface = {
+            "com.example.StableApiClass": {
+                "header": "public abstract class com.example.StableApiClass",  # Became abstract!
+                "members": self.sample_baseline["members"]["com.example.StableApiClass"]["members"],
+            },
+            "com.example.StableSpiInterface": self.sample_baseline["members"]["com.example.StableSpiInterface"],
+        }
+
+        report = ver.check_candidate_compatibility(
+            baseline_path=self.baseline_file,
+            policy="patch",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report["classification"], "MAJOR_RELEASE_REQUIRED")
+        self.assertFalse(report["valid"])
+        self.assertTrue(any("non-abstract class became abstract" in r for r in report["majorReasons"]))
+
+    def test_removed_implemented_interface_requires_major_release(self):
+        baseline_with_impl = dict(self.sample_baseline)
+        baseline_with_impl["members"] = dict(self.sample_baseline["members"])
+        baseline_with_impl["members"]["com.example.StableApiClass"] = {
+            "header": "public class com.example.StableApiClass implements java.io.Serializable, java.lang.Cloneable",
+            "members": self.sample_baseline["members"]["com.example.StableApiClass"]["members"],
+        }
+        baseline_file = self.path / "impl-baseline.json"
+        baseline_file.write_text(json.dumps(baseline_with_impl, indent=2), encoding="utf-8")
+
+        cand_classif = {
+            "com.example.StableApiClass": "STABLE_API",
+            "com.example.StableSpiInterface": "STABLE_SPI",
+            "com.example.TestAutoConfiguration": "FRAMEWORK_ENTRYPOINT",
+        }
+        cand_surface = {
+            "com.example.StableApiClass": {
+                "header": "public class com.example.StableApiClass implements java.io.Serializable",  # Removed Cloneable!
+                "members": self.sample_baseline["members"]["com.example.StableApiClass"]["members"],
+            },
+            "com.example.StableSpiInterface": self.sample_baseline["members"]["com.example.StableSpiInterface"],
+        }
+
+        report = ver.check_candidate_compatibility(
+            baseline_path=baseline_file,
+            policy="patch",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report["classification"], "MAJOR_RELEASE_REQUIRED")
+        self.assertFalse(report["valid"])
+        self.assertTrue(any("REMOVED_IMPLEMENTED_INTERFACE" in r for r in report["majorReasons"]))
+
+    def test_changed_superclass_requires_major_release(self):
+        baseline_with_super = dict(self.sample_baseline)
+        baseline_with_super["members"] = dict(self.sample_baseline["members"])
+        baseline_with_super["members"]["com.example.StableApiClass"] = {
+            "header": "public class com.example.StableApiClass extends com.example.BaseClass",
+            "members": self.sample_baseline["members"]["com.example.StableApiClass"]["members"],
+        }
+        baseline_file = self.path / "super-baseline.json"
+        baseline_file.write_text(json.dumps(baseline_with_super, indent=2), encoding="utf-8")
+
+        cand_classif = {
+            "com.example.StableApiClass": "STABLE_API",
+            "com.example.StableSpiInterface": "STABLE_SPI",
+            "com.example.TestAutoConfiguration": "FRAMEWORK_ENTRYPOINT",
+        }
+        cand_surface = {
+            "com.example.StableApiClass": {
+                "header": "public class com.example.StableApiClass extends com.example.DifferentBase",
+                "members": self.sample_baseline["members"]["com.example.StableApiClass"]["members"],
+            },
+            "com.example.StableSpiInterface": self.sample_baseline["members"]["com.example.StableSpiInterface"],
+        }
+
+        report = ver.check_candidate_compatibility(
+            baseline_path=baseline_file,
+            policy="patch",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report["classification"], "MAJOR_RELEASE_REQUIRED")
+        self.assertFalse(report["valid"])
+        self.assertTrue(any("INCOMPATIBLE_SUPERCLASS" in r for r in report["majorReasons"]))
+
+    def test_enum_constant_addition_requires_minor_release(self):
+        cand_classif = {
+            "com.example.StableEnum": "STABLE_API",
+            "com.example.TestAutoConfiguration": "FRAMEWORK_ENTRYPOINT",
+        }
+        enum_baseline = {
+            "version": "1.4.0",
+            "publicSurface": {
+                "stableApiTypes": ["com.example.StableEnum"],
+                "stableSpiTypes": [],
+                "stableTypes": ["com.example.StableEnum"],
+            },
+            "members": {
+                "com.example.StableEnum": {
+                    "header": "public final class com.example.StableEnum extends java.lang.Enum<com.example.StableEnum>",
+                    "members": [
+                        "public static final com.example.StableEnum ALPHA",
+                        "public static final com.example.StableEnum BETA",
+                    ],
+                }
+            },
+            "frameworkEntrypoints": {"frameworkEntrypointTypes": ["com.example.TestAutoConfiguration"]},
+            "frameworkConfigurationKeys": {"keys": []},
+            "publicationTopology": {"coordinates": []},
+        }
+        b_file = self.path / "enum-baseline.json"
+        b_file.write_text(json.dumps(enum_baseline, indent=2), encoding="utf-8")
+
+        cand_surface = {
+            "com.example.StableEnum": {
+                "header": "public final class com.example.StableEnum extends java.lang.Enum<com.example.StableEnum>",
+                "members": [
+                    "public static final com.example.StableEnum ALPHA",
+                    "public static final com.example.StableEnum BETA",
+                    "public static final com.example.StableEnum GAMMA",  # New enum constant!
+                ],
+            }
+        }
+
+        report = ver.check_candidate_compatibility(
+            baseline_path=b_file,
+            policy="patch",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report["classification"], "MINOR_RELEASE_REQUIRED")
+        self.assertFalse(report["valid"])
+        self.assertEqual(report["memberAdditions"], 1)
+
+    def test_enum_constant_removal_requires_major_release(self):
+        cand_classif = {
+            "com.example.StableEnum": "STABLE_API",
+            "com.example.TestAutoConfiguration": "FRAMEWORK_ENTRYPOINT",
+        }
+        enum_baseline = {
+            "version": "1.4.0",
+            "publicSurface": {
+                "stableApiTypes": ["com.example.StableEnum"],
+                "stableSpiTypes": [],
+                "stableTypes": ["com.example.StableEnum"],
+            },
+            "members": {
+                "com.example.StableEnum": {
+                    "header": "public final class com.example.StableEnum extends java.lang.Enum<com.example.StableEnum>",
+                    "members": [
+                        "public static final com.example.StableEnum ALPHA",
+                        "public static final com.example.StableEnum BETA",
+                    ],
+                }
+            },
+            "frameworkEntrypoints": {"frameworkEntrypointTypes": ["com.example.TestAutoConfiguration"]},
+            "frameworkConfigurationKeys": {"keys": []},
+            "publicationTopology": {"coordinates": []},
+        }
+        b_file = self.path / "enum-baseline.json"
+        b_file.write_text(json.dumps(enum_baseline, indent=2), encoding="utf-8")
+
+        cand_surface = {
+            "com.example.StableEnum": {
+                "header": "public final class com.example.StableEnum extends java.lang.Enum<com.example.StableEnum>",
+                "members": [
+                    "public static final com.example.StableEnum ALPHA",
+                    # Removed BETA!
+                ],
+            }
+        }
+
+        report = ver.check_candidate_compatibility(
+            baseline_path=b_file,
+            policy="patch",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report["classification"], "MAJOR_RELEASE_REQUIRED")
+        self.assertFalse(report["valid"])
+
+    def test_removed_constructor_requires_major_release(self):
+        cand_classif = {
+            "com.example.StableApiClass": "STABLE_API",
+            "com.example.StableSpiInterface": "STABLE_SPI",
+            "com.example.TestAutoConfiguration": "FRAMEWORK_ENTRYPOINT",
+        }
+        cand_surface = {
+            "com.example.StableApiClass": {
+                "header": "public class com.example.StableApiClass",
+                "members": [
+                    # Removed constructor com.example.StableApiClass()
+                    "public java.lang.String doSomething(int)",
+                    "public static final java.lang.String CONSTANT",
+                ],
+            },
+            "com.example.StableSpiInterface": self.sample_baseline["members"]["com.example.StableSpiInterface"],
+        }
+
+        report = ver.check_candidate_compatibility(
+            baseline_path=self.baseline_file,
+            policy="patch",
+            candidate_surface_override=cand_surface,
+            candidate_classif_override=cand_classif,
+            skip_provenance=True,
+        )
+        self.assertEqual(report["classification"], "MAJOR_RELEASE_REQUIRED")
+        self.assertFalse(report["valid"])
+        self.assertTrue(any("REMOVED_CONSTRUCTOR" in r for r in report["majorReasons"]))
+
 
 if __name__ == "__main__":
     unittest.main()

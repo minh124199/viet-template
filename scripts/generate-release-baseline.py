@@ -73,6 +73,15 @@ KNOWN_RELEASE_PROVENANCE = {
         "treeSha": "8ddc255797a8bfce88ee30e1815d8f56e809b61e",
         "releaseDate": "2026-10-11",
         "maintenanceLine": "1.4.x",
+        "baselineFilesSha256": {
+            "config/compatibility/1.4.0-release-baseline.json": "51405237cf9ba8050172d2ad80515bfbe741e740ef4571ef29a5a49dc5cf9596",
+            "config/compatibility/framework-configuration-keys-1.4.json": "8919f29e7a6f9a1879110182ee797dac7ba64cb7d738111cc19b3b7b02cccfd8",
+            "config/api-baseline/1.4.0-core-public-api.txt": "0f2686e599848b65618055682374f2f8bfef51e18a690bdf5a3cb19725c35657",
+            "config/api-baseline/1.4.0-aot-public-api.txt": "dc56406c9d76fb2817cf067a04e5b2e0d1651f22cbc841499dc8f6ed65c12fd7",
+            "config/api-baseline/1.4.0-spring-public-api.txt": "ca162cf44546a7d65486583df2589978ed2ab106fee6cd33344e9dc6432a583d",
+            "config/api-baseline/1.4.0-spring-security-public-api.txt": "6eeb4ae45c5471ed49904faf5036e0d20a8435b037a23e53df7518768283b46a",
+            "config/api-baseline/1.4.0-quarkus-public-api.txt": "b34c7b47bf30b3d8f5845b78cabffbaab6ec854027b7d4dd9c05617e6af9f646",
+        },
     }
 }
 

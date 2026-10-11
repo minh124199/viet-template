@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -65,6 +66,26 @@ MODULES = [
     "viet-template-quarkus",
 ]
 
+KNOWN_RELEASE_PROVENANCE: dict[str, dict[str, Any]] = {
+    "1.4.0": {
+        "tag": "v1.4.0",
+        "tagObjectSha": "615ffa9ea291fbd9226e040fd321f7ed018bd01a",
+        "sourceCommitSha": "1ee485beee4b7588dd154881ede1e76985e339dc",
+        "treeSha": "8ddc255797a8bfce88ee30e1815d8f56e809b61e",
+        "releaseDate": "2026-10-11",
+        "maintenanceLine": "1.4.x",
+        "baselineFilesSha256": {
+            "config/compatibility/1.4.0-release-baseline.json": "51405237cf9ba8050172d2ad80515bfbe741e740ef4571ef29a5a49dc5cf9596",
+            "config/compatibility/framework-configuration-keys-1.4.json": "8919f29e7a6f9a1879110182ee797dac7ba64cb7d738111cc19b3b7b02cccfd8",
+            "config/api-baseline/1.4.0-core-public-api.txt": "0f2686e599848b65618055682374f2f8bfef51e18a690bdf5a3cb19725c35657",
+            "config/api-baseline/1.4.0-aot-public-api.txt": "dc56406c9d76fb2817cf067a04e5b2e0d1651f22cbc841499dc8f6ed65c12fd7",
+            "config/api-baseline/1.4.0-spring-public-api.txt": "ca162cf44546a7d65486583df2589978ed2ab106fee6cd33344e9dc6432a583d",
+            "config/api-baseline/1.4.0-spring-security-public-api.txt": "6eeb4ae45c5471ed49904faf5036e0d20a8435b037a23e53df7518768283b46a",
+            "config/api-baseline/1.4.0-quarkus-public-api.txt": "b34c7b47bf30b3d8f5845b78cabffbaab6ec854027b7d4dd9c05617e6af9f646",
+        },
+    }
+}
+
 
 def run_git(args: list[str], cwd: Path = REPO_ROOT) -> str:
     res = subprocess.run(["git"] + args, cwd=str(cwd), capture_output=True, text=True)
@@ -99,6 +120,8 @@ def parse_header(header: str) -> dict[str, Any]:
             "is_record": False,
             "is_interface": False,
             "permits": set(),
+            "extends": None,
+            "implements": set(),
         }
     h = header.strip().rstrip(" {")
     permits = set()
@@ -107,13 +130,19 @@ def parse_header(header: str) -> dict[str, Any]:
         h = prefix.strip()
         permits = {p.strip().rstrip(";") for p in permits_part.split(",") if p.strip().rstrip(";")}
 
-    decl_part = h
-    if " implements " in decl_part:
-        decl_part = decl_part.split(" implements ", 1)[0].strip()
-    if " extends " in decl_part:
-        decl_part = decl_part.split(" extends ", 1)[0].strip()
+    implements = set()
+    if " implements " in h:
+        prefix, impl_part = h.split(" implements ", 1)
+        h = prefix.strip()
+        implements = {i.strip().rstrip(";") for i in impl_part.split(",") if i.strip().rstrip(";")}
 
-    before_name = decl_part
+    extends = None
+    if " extends " in h:
+        prefix, ext_part = h.split(" extends ", 1)
+        h = prefix.strip()
+        extends = ext_part.strip().rstrip(";")
+
+    before_name = h
     if "(" in before_name:
         before_name = before_name.split("(", 1)[0].strip()
 
@@ -144,6 +173,8 @@ def parse_header(header: str) -> dict[str, Any]:
         "is_record": is_record,
         "is_interface": is_interface,
         "permits": permits,
+        "extends": extends,
+        "implements": implements,
     }
 
 
@@ -151,8 +182,10 @@ def parse_member(m: str) -> dict[str, Any]:
     clean_m = m.strip().rstrip(";")
     is_method = "(" in clean_m
     clean_without_throws = clean_m
+    throws_exceptions = set()
     if " throws " in clean_without_throws:
-        clean_without_throws = clean_without_throws.split(" throws ", 1)[0].strip()
+        clean_without_throws, throws_part = clean_without_throws.split(" throws ", 1)
+        throws_exceptions = {e.strip() for e in throws_part.split(",") if e.strip()}
 
     parts = clean_without_throws.split()
     mods = []
@@ -175,6 +208,7 @@ def parse_member(m: str) -> dict[str, Any]:
         "is_method": is_method,
         "modifiers": modifiers,
         "remainder": remainder,
+        "throws": throws_exceptions,
     }
 
 
@@ -206,12 +240,19 @@ def inspect_class(cls_name: str, classpath: str) -> dict[str, Any] | None:
     }
 
 
-def verify_baseline_provenance(baseline_data: dict[str, Any], repo_root: Path) -> list[str]:
+def verify_baseline_provenance(
+    baseline_data: dict[str, Any],
+    repo_root: Path,
+    baseline_path: Path | None = None,
+) -> list[str]:
     errors = []
     prov = baseline_data.get("provenance", {})
     tag = prov.get("tag")
     if not tag:
         return ["Baseline missing 'provenance.tag' field."]
+
+    release_ver = baseline_data.get("version") or prov.get("releaseVersion")
+    known = KNOWN_RELEASE_PROVENANCE.get(release_ver or "")
 
     try:
         tags = run_git(["tag", "-l", tag], cwd=repo_root).split()
@@ -234,6 +275,55 @@ def verify_baseline_provenance(baseline_data: dict[str, Any], repo_root: Path) -
                 errors.append(
                     f"Tree SHA mismatch for {tag}: stored={prov['treeSha']}, git={tree_sha}"
                 )
+
+            if known:
+                if tag != known["tag"]:
+                    errors.append(f"Release tag mismatch: expected '{known['tag']}', got '{tag}'")
+                if commit_sha != known["sourceCommitSha"]:
+                    errors.append(
+                        f"Commit SHA mismatch for {tag}: expected {known['sourceCommitSha']}, got {commit_sha}"
+                    )
+                if tag_object_sha != known["tagObjectSha"]:
+                    errors.append(
+                        f"Tag object SHA mismatch for {tag}: expected {known['tagObjectSha']}, got {tag_object_sha}"
+                    )
+                if tree_sha != known["treeSha"]:
+                    errors.append(
+                        f"Tree SHA mismatch for {tag}: expected {known['treeSha']}, got {tree_sha}"
+                    )
+
+                expected_files = known.get("baselineFilesSha256", {})
+                if baseline_path is not None and baseline_path.is_file():
+                    matched_expected_sha = None
+                    try:
+                        rel = str(baseline_path.resolve().relative_to(repo_root.resolve()))
+                        if rel in expected_files:
+                            matched_expected_sha = (rel, expected_files[rel])
+                    except ValueError:
+                        pass
+                    if not matched_expected_sha:
+                        for k, v in expected_files.items():
+                            if k.endswith("/" + baseline_path.name):
+                                matched_expected_sha = (k, v)
+                                break
+                    if matched_expected_sha:
+                        rel_name, exp_sha = matched_expected_sha
+                        actual_sha = hashlib.sha256(baseline_path.read_bytes()).hexdigest()
+                        if actual_sha != exp_sha:
+                            errors.append(
+                                f"BASELINE_INTEGRITY_VIOLATION: Baseline file '{rel_name}' sha256 mismatch: "
+                                f"expected {exp_sha}, got {actual_sha}. Baseline files are immutable historical records."
+                            )
+
+                for rel_path_str, expected_sha in expected_files.items():
+                    fpath = repo_root / rel_path_str
+                    if fpath.is_file() and (baseline_path is None or fpath.resolve() != baseline_path.resolve()):
+                        actual_sha = hashlib.sha256(fpath.read_bytes()).hexdigest()
+                        if actual_sha != expected_sha:
+                            errors.append(
+                                f"BASELINE_INTEGRITY_VIOLATION: Baseline file '{rel_path_str}' sha256 mismatch: "
+                                f"expected {expected_sha}, got {actual_sha}. Baseline files are immutable historical records."
+                            )
     except Exception as e:
         errors.append(f"Failed to query git for provenance verification: {e}")
 
@@ -258,7 +348,7 @@ def check_candidate_compatibility(
 
     provenance_errors = []
     if not skip_provenance:
-        provenance_errors = verify_baseline_provenance(baseline, repo_root)
+        provenance_errors = verify_baseline_provenance(baseline, repo_root, baseline_path=baseline_path)
 
     major_reasons: list[str] = list(provenance_errors)
     minor_reasons: list[str] = []
@@ -373,8 +463,15 @@ def check_candidate_compatibility(
         major_reasons.append(f"REMOVED_PUBLISHED_COORDINATE: Artifact '{c}' removed from publication.")
 
     # 5. Member-level Signature Inspection
-    class_dirs = [repo_root / m / "build/classes/java/main" for m in MODULES]
-    full_cp = ":".join(str(d) for d in class_dirs if d.is_dir())
+    class_dirs = []
+    for m in MODULES:
+        gradle_dir = repo_root / m / "build/classes/java/main"
+        maven_dir = repo_root / m / "target/classes"
+        if gradle_dir.is_dir():
+            class_dirs.append(str(gradle_dir))
+        if maven_dir.is_dir():
+            class_dirs.append(str(maven_dir))
+    full_cp = ":".join(class_dirs)
 
     baseline_members = baseline.get("members", {})
     signature_changes_count = 0
@@ -415,16 +512,60 @@ def check_candidate_compatibility(
             major_reasons.append(f"INCOMPATIBLE_TYPE_MODIFIER in '{cls}': non-sealed type became sealed.")
             signature_changes_count += 1
 
+        # Visibility reduction check
+        if "public" in b_hdr["modifiers"] and "public" not in c_hdr["modifiers"]:
+            major_reasons.append(f"REDUCED_TYPE_VISIBILITY in '{cls}': public type became protected.")
+            signature_changes_count += 1
+
+        # Abstractness check for classes
+        if b_hdr["kind"] == "class" and "abstract" not in b_hdr["modifiers"] and "abstract" in c_hdr["modifiers"]:
+            major_reasons.append(f"INCOMPATIBLE_TYPE_MODIFIER in '{cls}': non-abstract class became abstract.")
+            signature_changes_count += 1
+
+        # Superclass check for classes
+        if b_hdr["kind"] == "class" and b_hdr["extends"] != c_hdr["extends"]:
+            major_reasons.append(
+                f"INCOMPATIBLE_SUPERCLASS in '{cls}': superclass changed from '{b_hdr['extends']}' to '{c_hdr['extends']}'"
+            )
+            signature_changes_count += 1
+
+        # Implemented interfaces removal check
+        removed_interfaces = b_hdr["implements"] - c_hdr["implements"]
+        for ri in sorted(removed_interfaces):
+            major_reasons.append(f"REMOVED_IMPLEMENTED_INTERFACE in '{cls}': removed interface '{ri}'")
+            signature_changes_count += 1
+
+        # Extended interface removal check for interfaces
+        if b_hdr["is_interface"] and b_hdr["extends"]:
+            b_ext_set = {x.strip() for x in b_hdr["extends"].split(",") if x.strip()}
+            c_ext_set = {x.strip() for x in (c_hdr["extends"] or "").split(",") if x.strip()}
+            removed_ext = b_ext_set - c_ext_set
+            for re in sorted(removed_ext):
+                major_reasons.append(f"REMOVED_EXTENDED_INTERFACE in '{cls}': removed extended interface '{re}'")
+                signature_changes_count += 1
+
         b_mem_set = set(b_info.get("members", []))
         c_mem_set = set(c_info.get("members", []))
 
         b_methods = {parse_member(m)["remainder"]: parse_member(m) for m in b_mem_set if "(" in m}
         c_methods = {parse_member(m)["remainder"]: parse_member(m) for m in c_mem_set if "(" in m}
 
-        # Check method modifier changes on matching methods
+        # Check method modifier and signature changes on matching methods
         for sig, b_m in b_methods.items():
             if sig in c_methods:
                 c_m = c_methods[sig]
+                # Visibility reduction (public -> protected)
+                if "public" in b_m["modifiers"] and "public" not in c_m["modifiers"]:
+                    major_reasons.append(
+                        f"REDUCED_MEMBER_VISIBILITY in '{cls}': public method became protected: '{b_m['raw']}'"
+                    )
+                    signature_changes_count += 1
+                # Non-final method becoming final
+                if "final" not in b_m["modifiers"] and "final" in c_m["modifiers"] and not b_hdr["is_final"]:
+                    major_reasons.append(
+                        f"INCOMPATIBLE_MEMBER_MODIFIER in '{cls}': non-final method became final: '{b_m['raw']}'"
+                    )
+                    signature_changes_count += 1
                 if ("static" in b_m["modifiers"]) != ("static" in c_m["modifiers"]):
                     major_reasons.append(
                         f"INCOMPATIBLE_MEMBER_MODIFIER in '{cls}': static modifier changed for '{b_m['raw']}'"
@@ -440,6 +581,14 @@ def check_candidate_compatibility(
                         f"INCOMPATIBLE_MEMBER_MODIFIER in '{cls}': concrete method became abstract: '{b_m['raw']}'"
                     )
                     signature_changes_count += 1
+                # Checked exceptions for SPI methods
+                if cand_classif.get(cls) == "STABLE_SPI":
+                    added_throws = c_m["throws"] - b_m["throws"]
+                    if added_throws:
+                        major_reasons.append(
+                            f"INCOMPATIBLE_THROWS in '{cls}': added checked exception(s) {sorted(added_throws)} to SPI method: '{c_m['raw']}'"
+                        )
+                        signature_changes_count += 1
 
         # Removed members (MAJOR)
         removed_members = b_mem_set - c_mem_set
@@ -465,7 +614,13 @@ def check_candidate_compatibility(
 
         for am in sorted(added_members):
             member_additions_count += 1
-            if ("abstract" in am or b_hdr["is_interface"]) and "default " not in am and not is_config_mapping:
+            is_method = "(" in am
+            is_abstract = is_method and (
+                "abstract" in am
+                or (b_hdr["is_interface"] and "default " not in am and "static " not in am)
+            )
+
+            if is_abstract and not is_config_mapping:
                 # Abstract method added to interface / SPI breaks external implementors -> MAJOR
                 major_reasons.append(
                     f"ADDED_ABSTRACT_INTERFACE_METHOD in '{cls}': '{am}' (breaks external SPI implementors)"
