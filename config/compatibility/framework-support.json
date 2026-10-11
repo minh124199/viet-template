@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "version": "1.0",
-  "description": "Authoritative framework support and compatibility matrix for Viet Template 1.3.0, the latest published stable release. Version coverage records declared minima and explicitly tested versions; it does not imply every intermediate version is independently qualified.",
-  "latestPublishedStableVersion": "1.3.0",
-  "currentDevelopmentVersion": "1.4.0",
-  "qualificationRelease": "1.3.0",
+  "description": "Authoritative framework support and compatibility matrix for Viet Template 1.4.0, the latest published stable release. Version coverage records declared minima and explicitly tested versions; it does not imply every intermediate version is independently qualified.",
+  "latestPublishedStableVersion": "1.4.0",
+  "currentDevelopmentVersion": "1.4.1-SNAPSHOT",
+  "qualificationRelease": "1.4.0",
   "springBoot": {
     "declaredMinimum": "3.3.0",
     "testedVersions": ["3.3.5", "4.1.1"],

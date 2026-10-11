@@ -1,9 +1,9 @@
 # Support Matrix & Compatibility
 
-This document outlines the official environment support matrix for **Viet Template 1.3.0**, including JDK runtimes, build tooling, framework integrations, and execution environments.
+This document outlines the official environment support matrix for **Viet Template 1.4.0**, including JDK runtimes, build tooling, framework integrations, and execution environments.
 
-Viet Template 1.3.0 is the latest published stable release; the repository's active development
-version is `1.4.0`. Framework minima and tested versions below are sourced from
+Viet Template 1.4.0 is the latest published stable release; the repository's active development
+version is `1.4.1-SNAPSHOT`. Framework minima and tested versions below are sourced from
 [`framework-support.json`](../../config/compatibility/framework-support.json). Current Spring and
 Quarkus configuration keys are listed in
 [`framework-configuration-keys-1.1.json`](../../config/compatibility/framework-configuration-keys-1.1.json);
@@ -30,8 +30,8 @@ Both Apache Maven and Gradle are supported as first-class build tools with verif
 
 | Build Tool | Declared Minimum | Verified Versions | Canonical Version | Plugin Coordinates |
 |---|---|---|---|---|
-| **Apache Maven** | `3.8.0` | `3.9.9` | `3.9.9` (wrapper) | `io.github.minh124199:viet-template-maven-plugin:1.3.0` |
-| **Gradle** | `8.5` | `9.7.1` | `9.7.1` (wrapper) | `io.github.minh124199.viet-template:1.3.0` |
+| **Apache Maven** | `3.8.0` | `3.9.9` | `3.9.9` (wrapper) | `io.github.minh124199:viet-template-maven-plugin:1.4.0` |
+| **Gradle** | `8.5` | `9.7.1` | `9.7.1` (wrapper) | `io.github.minh124199.viet-template:1.4.0` |
 
 ---
 
