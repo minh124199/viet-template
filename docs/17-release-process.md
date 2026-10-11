@@ -431,3 +431,16 @@ Viet Template 1.3.0 completes the 1.3 feature line, delivering deep cross-langua
 
 Viet Template 1.4.0 completes the 1.4 feature line, introducing Frontend Asset Integration and the Safe Client Data Bridge: first-class Vite asset integration for development and production modes, script-safe JSON client data serialization, Spring Boot and Quarkus auto-configuration, and full ecosystem compatibility qualification. Release 1.4.0 is tagged `v1.4.0` on 2026-10-11 on branch `release/1.4.0` (commit `1ee485beee4b7588dd154881ede1e76985e339dc`) with full publication across all 14 public coordinates to Maven Central (deployment ID `3a04d348-3bf7-4db6-92d7-dfee128406f9`) and GitHub Releases (`RE_kwDOUP2wfc4Yaar8`). Following publication, the project advanced to `1.4.1-SNAPSHOT` for active development.
 
+## 1.4.x Maintenance Line Compatibility Gate
+
+Before publishing any future patch release in the 1.4.x line (`1.4.1`, `1.4.2`, etc.), the release candidate must pass the machine-enforced patch compatibility gate:
+
+```bash
+python3 scripts/verify-release-line-compatibility.py \
+  --baseline 1.4.0 \
+  --candidate HEAD \
+  --policy patch
+```
+
+This gate enforces that no new `STABLE_API`, `STABLE_SPI`, `FRAMEWORK_ENTRYPOINT`, configuration keys, or published Maven coordinates were introduced, and that zero breaking changes occurred against `v1.4.0`. Full maintenance policy is documented in [`docs/releases/1.4.x-maintenance-policy.md`](releases/1.4.x-maintenance-policy.md).
+

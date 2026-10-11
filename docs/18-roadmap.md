@@ -779,9 +779,9 @@ Execute comprehensive release qualification, packaging reconciliation, and publi
 
 ---
 
-## Future Milestones (Post-1.3.0 Development Line)
+## Completed Milestones (1.4.x Development Line)
 
-Following the completion and qualification of Milestone M42 and the release of Viet Template 1.3.0 GA (latest published stable release), the post-1.3.0 development line introduced the Frontend Asset Integration arc. In accordance with the repository's Semantic Versioning policy, the introduction of backwards-compatible new functionality and 19 new stable public API/SPI contracts establishes `1.4.0` as the target release line (active release preparation: `1.4.0`).
+Following the completion, qualification, and Maven Central publication of Viet Template 1.4.0 on 2026-10-11, the Frontend Asset Integration milestone (M43) is complete. The active development line is `1.4.1-SNAPSHOT` for maintenance development and patch governance.
 
 ---
 
@@ -789,7 +789,7 @@ Following the completion and qualification of Milestone M42 and the release of V
 
 **Milestone Name**: Frontend Asset Integration & Safe Client Data Bridge<br>
 **Target Development Line**: `1.4.0`<br>
-**Status**: Prepared for Release (`1.4.0`)
+**Status**: Completed (`1.4.0`)
 
 #### 1. Goal
 Provide a first-class, zero-Node runtime frontend asset pipeline connecting Viet Template SSR with modern frontend tooling (Vite 5 / Vite 8) and component islands (Svelte 4 / Svelte 5), featuring script-safe JSON bootstrap state (`$clientData`), automated head/body asset injection (`$assets`), and native framework integrations across Spring Boot 4 and Quarkus 3.39.4.
