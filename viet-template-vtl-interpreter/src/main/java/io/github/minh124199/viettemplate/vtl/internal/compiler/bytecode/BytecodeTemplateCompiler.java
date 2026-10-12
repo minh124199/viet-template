@@ -321,10 +321,13 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       render.bindLabel(seedDoneLabel);
 
       for (IrSlotLayout.SlotMetadata meta : seededSlots) {
-        if (meta.kind() == IrSlotLayout.BindingKind.TEMPLATE_PARAMETER
-            && meta.slot() < optimized.parameters().size()) {
-          IrParameter param = optimized.parameters().get(meta.slot());
-          if (param.defaultValue().isPresent()) {
+        if (meta.kind() == IrSlotLayout.BindingKind.TEMPLATE_PARAMETER) {
+          IrParameter param =
+              optimized.parameters().stream()
+                  .filter(p -> p.slot() == meta.slot())
+                  .findFirst()
+                  .orElse(null);
+          if (param != null && param.defaultValue().isPresent()) {
             ClassFileWriter.Label notNullLabel = render.newLabel();
             render.aload(meta.slot() + SLOT_OFFSET);
             render.ifnonnull(notNullLabel);

@@ -123,7 +123,7 @@ public final class VtlParser {
   public static VtlParseResult parse(SourceText source, VtlParserOptions options) {
     Objects.requireNonNull(source, "source must not be null");
     Objects.requireNonNull(options, "options must not be null");
-    VtlLexerOptions lexOptions = new VtlLexerOptions(false, options.allowHyphenatedIdentifiers());
+    VtlLexerOptions lexOptions = new VtlLexerOptions(options.allowHyphenatedIdentifiers(), false);
     VtlLexResult lexResult = VtlLexer.lex(source, lexOptions);
     return parse(source, lexResult, options);
   }

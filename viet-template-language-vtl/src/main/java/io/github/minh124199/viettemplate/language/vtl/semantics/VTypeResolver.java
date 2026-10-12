@@ -55,15 +55,16 @@ final class VTypeResolver {
 
     // 1. Wildcards: ? extends T, ? super T, ?
     if (trimmed.startsWith("?")) {
-      if (trimmed.startsWith("? extends ")) {
-        String bound = trimmed.substring(10).trim();
+      String afterQ = trimmed.substring(1).trim();
+      if (afterQ.startsWith("extends ") || afterQ.startsWith("extends\t")) {
+        String bound = afterQ.substring(8).trim();
         Optional<VType> boundType = resolve(bound, false, modelSchema, classLoader);
         return boundType.map(b -> b.withNullability(nullability));
       }
-      if (trimmed.startsWith("? super ")) {
+      if (afterQ.startsWith("super ") || afterQ.startsWith("super\t")) {
         return Optional.of(VTypes.OBJECT.withNullability(nullability));
       }
-      if (trimmed.equals("?")) {
+      if (afterQ.isEmpty()) {
         return Optional.of(VTypes.DYNAMIC.withNullability(nullability));
       }
       return Optional.empty();
@@ -229,7 +230,22 @@ final class VTypeResolver {
     if (loaded != null) {
       return loaded;
     }
-    // Handle nested classes e.g. Outer.Inner -> Outer$Inner
+    // Handle nested classes e.g. Outer.Inner -> Outer$Inner, Outer.Middle.Inner ->
+    // Outer$Middle$Inner
+    int dot = name.indexOf('.');
+    while (dot > 0) {
+      String prefix = name.substring(0, dot);
+      Class<?> prefixClass = doLoadClass(prefix, classLoader);
+      if (prefixClass != null) {
+        String suffix = name.substring(dot + 1).replace('.', '$');
+        loaded = doLoadClass(prefix + "$" + suffix, classLoader);
+        if (loaded != null) {
+          return loaded;
+        }
+      }
+      dot = name.indexOf('.', dot + 1);
+    }
+    // Fallback: replace dot from the right
     int lastDot = name.lastIndexOf('.');
     while (lastDot > 0) {
       String candidate = name.substring(0, lastDot) + "$" + name.substring(lastDot + 1);

@@ -253,4 +253,17 @@ class VtlParamDirectiveParserTest {
         r3.diagnostics().stream()
             .anyMatch(d -> "VTLS:2110".equals(d.code().category() + ":" + d.code().id())));
   }
+
+  @Test
+  void parsesTemplateWithAllowHyphenatedIdentifiersOption() {
+    SourceText source =
+        SourceText.from(
+            "#param(String $user-name)\nHello $user-name!", TemplateId.of("hyphen_param_test"));
+    VtlParserOptions options = VtlParserOptions.DEFAULT.withAllowHyphenatedIdentifiers(true);
+    VtlParseResult result = VtlParser.parse(source, options);
+
+    assertFalse(result.hasErrors(), () -> "Diagnostics: " + result.diagnostics());
+    assertEquals(1, result.template().parameters().size());
+    assertEquals("user-name", result.template().parameters().get(0).name());
+  }
 }

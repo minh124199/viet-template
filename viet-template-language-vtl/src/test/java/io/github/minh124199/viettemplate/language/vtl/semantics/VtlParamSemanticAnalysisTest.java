@@ -364,4 +364,35 @@ class VtlParamSemanticAnalysisTest {
     assertThat(result.hasErrors()).isFalse();
     assertThat(result.diagnostics()).isEmpty();
   }
+
+  @Test
+  @DisplayName("Multi-dimensional primitive array: Propagates component types through index chain")
+  void multiDimensionalArraySemanticPropagation() {
+    String template =
+        """
+        #param(int[][] $matrix)
+        $matrix[0][1]
+        Length: $matrix.length
+        """;
+    SemanticAnalysisResult result = analyze(template);
+
+    assertThat(result.hasErrors()).isFalse();
+    assertThat(result.diagnostics()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("Wildcard bounds: Resolves upper bounds in generics correctly")
+  void wildcardBoundsResolution() {
+    String template =
+        """
+        #param(java.util.List<? extends %s> $employees)
+        #foreach($emp in $employees)
+          $emp.name
+        #end
+        """
+            .formatted(EMPLOYEE_CLASS);
+    SemanticAnalysisResult result = analyze(template);
+
+    assertThat(result.hasErrors()).isFalse();
+  }
 }

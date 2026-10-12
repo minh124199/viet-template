@@ -1486,11 +1486,17 @@ final class IrInterpreter {
     return getDefaultValue(template, slot) != null;
   }
 
-  private static IrExpression getDefaultValue(IrTemplate template, int slot) {
-    if (slot >= 0 && slot < template.parameters().size()) {
-      IrParameter p = template.parameters().get(slot);
-      return p.defaultValue().orElse(null);
+  private static IrParameter findParameter(IrTemplate template, int slot) {
+    for (IrParameter p : template.parameters()) {
+      if (p.slot() == slot) {
+        return p;
+      }
     }
     return null;
+  }
+
+  private static IrExpression getDefaultValue(IrTemplate template, int slot) {
+    IrParameter p = findParameter(template, slot);
+    return p != null ? p.defaultValue().orElse(null) : null;
   }
 }
