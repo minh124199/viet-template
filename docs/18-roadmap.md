@@ -827,10 +827,11 @@ Full candidate audit, 10-dimension evaluation scoring, architectural invariants,
 ### Milestone Sequence (1.5 Development Line)
 
 1. **Milestone M44 (Transition & Qualification)**: 1.5.0 Development-Line Transition, Maintenance Branch Establishment & Feature Roadmap Qualification — **COMPLETE**
-2. **Milestone M45**: Optional Typed Template Parameters & Expression Type-Propagation Feasibility / Core SPI
-3. **Milestone M46**: Schema-to-Client TypeScript Contract Projection & Typed Frontend Island Bridges
-4. **Milestone M47**: Framework Model Validation & IDE Language Server Type Intelligence
-5. **Milestone M48**: 1.5.0 Performance, Native Image & Release Qualification
+2. **Milestone M45A (Architecture Qualification)**: Optional Typed Template Parameters & Expression Type-Propagation Qualification — **COMPLETE** (`GO`)
+3. **Milestone M45B (Implementation)**: Optional Typed Template Parameters & Expression Type Propagation Implementation — **NEXT**
+4. **Milestone M46**: Schema-to-Client TypeScript Contract Projection & Typed Frontend Island Bridges (Svelte 4/5 primary, React/Vue examples)
+5. **Milestone M47**: Framework Model Validation & IDE Language Server Type Intelligence
+6. **Milestone M48**: 1.5.0 Performance, Native Image & Release Qualification
 
 ---
 
@@ -857,6 +858,34 @@ Establish the `release/1.4` maintenance branch with verified post-release patch 
   - Audited all candidate feature families, deferred items, and performance candidates across the repository.
   - Selected the 1.5 thesis and sequenced Milestones M45–M48 with explicit non-goals.
   - Documented full candidate scoring and architecture in [`docs/releases/1.5.0-development-plan.md`](releases/1.5.0-development-plan.md).
+
+---
+
+### Detailed Milestone Specification: Milestone M45A
+
+**Milestone Name**: Optional Typed Template Parameters & Expression Type Propagation Architecture Qualification<br>
+**Target Development Line**: `1.5.0-SNAPSHOT`<br>
+**Status**: Completed (`GO` Verdict, Branch `research/m45a-typed-template-intelligence`)
+
+#### 1. Goal
+Determine the smallest, safest, backwards-compatible type-intelligence architecture supporting optional template parameter declarations, compile-time expression type propagation, compile-time diagnostics, LSP type intelligence, and future TypeScript projection, while preserving 100% dynamic VTL compatibility, runtime dispatch fallback, existing security policies (`MemberAccessPolicy`), Java 21 baseline, GraalVM native image compatibility, and zero Node runtime dependency.
+
+#### 2. Scope & Execution Results
+- **Candidate Syntax Qualification**:
+  - Evaluated 6 candidate syntaxes; selected **Candidate A (`#param(Type $var)`)** as the definitive winner (evaluation score 4.8/5.0).
+  - Validated parenthesized syntax, leading `$var` token boundary, balanced generics/arrays/nullables, default values, and template prologue placement invariant (candidate VTLS-2111 / PARAM_AFTER_PROLOGUE).
+- **Semantic Analysis & Flow Refinement Prototype**:
+  - Leveraged existing `TemplateContract`, `VType`, `ModelSchema`, and `VtlSemanticAnalyzer` infrastructure.
+  - Implemented 38 automated qualification tests proving flow-sensitive property/method typing, subclass inheritance, `#foreach` element inference, Levenshtein typo suggestions, and cascade error suppression.
+- **Fail-Closed Security Sandbox Parity**:
+  - Proved zero privilege escalation: typed receivers strictly enforce `MemberAccessPolicy` at compile time emitting `VTLSEC:2401` on denied members (`getClass()`, `class`, `ClassLoader`, `wait`, `notify`), matching runtime `LinkerAccessPolicy` behavior. Denied members are excluded from typo suggestions to prevent information leakage.
+- **Performance & Microbenchmarks**:
+  - Demonstrated zero runtime overhead on untyped templates; sub-millisecond compilation on small/medium templates (< 0.5 ms small, < 1.0 ms medium, < 5.0 ms large).
+- **Architecture Qualification Deliverables**:
+  - Established [`docs/adr/0021-optional-template-type-intelligence.md`](adr/0021-optional-template-type-intelligence.md) (ADR-0021).
+  - Published authoritative qualification report [`docs/releases/1.5.0-m45a-type-intelligence-qualification.md`](releases/1.5.0-m45a-type-intelligence-qualification.md).
+  - Reconciled React/Vue positioning as explicit `QUALIFY_FIRST` (examples only in M46) while preserving Svelte 4/5 as primary.
+  - Zero public API/SPI changes (`STABLE_API +0`, `STABLE_SPI +0`, `FRAMEWORK_ENTRYPOINT +0`).
 
 ---
 
