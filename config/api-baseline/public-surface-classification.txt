@@ -162,6 +162,7 @@ io.github.minh124199.viettemplate.language.vtl.ast.VtlMapEntry INTERNAL_CROSS_MO
 io.github.minh124199.viettemplate.language.vtl.ast.VtlMapLiteralExpression PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.language.vtl.ast.VtlNode INTERNAL_CROSS_MODULE
 io.github.minh124199.viettemplate.language.vtl.ast.VtlNullLiteralExpression PUBLIC_BUT_INTERNAL_ACCIDENT
+io.github.minh124199.viettemplate.language.vtl.ast.VtlParamDeclarationNode INTERNAL_CROSS_PACKAGE
 io.github.minh124199.viettemplate.language.vtl.ast.VtlParseDirectiveNode PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.language.vtl.ast.VtlRangeExpression PUBLIC_BUT_INTERNAL_ACCIDENT
 io.github.minh124199.viettemplate.language.vtl.ast.VtlRawTextNode PUBLIC_BUT_INTERNAL_ACCIDENT

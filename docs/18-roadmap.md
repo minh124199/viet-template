@@ -828,8 +828,8 @@ Full candidate audit, 10-dimension evaluation scoring, architectural invariants,
 
 1. **Milestone M44 (Transition & Qualification)**: 1.5.0 Development-Line Transition, Maintenance Branch Establishment & Feature Roadmap Qualification — **COMPLETE**
 2. **Milestone M45A (Architecture Qualification)**: Optional Typed Template Parameters & Expression Type-Propagation Qualification — **COMPLETE** (`GO`)
-3. **Milestone M45B (Implementation)**: Optional Typed Template Parameters & Expression Type Propagation Implementation — **NEXT**
-4. **Milestone M46**: Schema-to-Client TypeScript Contract Projection & Typed Frontend Island Bridges (Svelte 4/5 primary, React/Vue examples)
+3. **Milestone M45B (Implementation)**: Optional Typed Template Parameters & Expression Type Propagation Implementation — **COMPLETE**
+4. **Milestone M46**: Schema-to-Client TypeScript Contract Projection & Typed Frontend Island Bridges (Svelte 4/5 primary, React/Vue examples) — **NEXT**
 5. **Milestone M47**: Framework Model Validation & IDE Language Server Type Intelligence
 6. **Milestone M48**: 1.5.0 Performance, Native Image & Release Qualification
 
@@ -886,6 +886,35 @@ Determine the smallest, safest, backwards-compatible type-intelligence architect
   - Published authoritative qualification report [`docs/releases/1.5.0-m45a-type-intelligence-qualification.md`](releases/1.5.0-m45a-type-intelligence-qualification.md).
   - Reconciled React/Vue positioning as explicit `QUALIFY_FIRST` (examples only in M46) while preserving Svelte 4/5 as primary.
   - Zero public API/SPI changes (`STABLE_API +0`, `STABLE_SPI +0`, `FRAMEWORK_ENTRYPOINT +0`).
+
+---
+
+### Detailed Milestone Specification: Milestone M45B
+
+**Milestone Name**: Optional Typed Template Parameters & Expression Type Propagation Implementation<br>
+**Target Development Line**: `1.5.0-SNAPSHOT`<br>
+**Status**: Completed (`1.5.0-SNAPSHOT`)
+
+#### 1. Goal
+Implement production support for optional template parameter declarations (`#param(Type $var [= default])`) and expression type propagation across AST, IR, and AOT compilation pipelines with 100% dynamic fallback for untyped/undeclared variables and zero performance regression on existing untyped templates.
+
+#### 2. Scope & Execution Results
+- **Parser & AST (`#param` Prologue Enforcement)**:
+  - Added `VtlTokenKind.QUESTION` (`'?'`) to lexer for nullable syntax.
+  - Implemented `VtlParamDeclarationNode` in AST and attached parameter list to `VtlTemplate`.
+  - Added `#param` to `SpaceGobbler` with standalone directive whitespace consumption (0 bytes rendered).
+  - Enforced prologue-only placement (`VTLS:2111`), duplicate parameter detection (`VTLS:2108`), and syntax validation (`VTLS:2110`).
+- **Semantic Analysis & Type Resolver**:
+  - Implemented canonical `VTypeResolver` supporting primitives, boxed types, aliases, arrays (`T[]`), generics (`List<T>`, `Map<K, V>`), wildcards, nullable markers, companion schemas, and dot-notation nested classes.
+  - Extended `ModelSchema` with open schema support (`open`, `isOpen()`, `withOpen(boolean)`).
+  - Integrated `#param` declarations into `VtlSemanticAnalyzer`, resolving parameter types, validating default value expressions (`VTLS:2103`), emitting `VTLS:2109` on unknown types, and providing dynamic fallback in open schema mode.
+- **IR Lowering & Runtime Execution Parity**:
+  - Lowered `#param` declarations to `IrParameter` with default values and resolved types.
+  - Updated AST interpreter, IR interpreter, and AOT bytecode compiler to evaluate and seed default values when parameters are omitted from context.
+  - Verified comprehensive execution test suite (`VtlParamExecutionTest`) covering zero bytes output, prologue placement, partial typing, default values, and nested bean/record access across AST, IR, and AOT execution tiers.
+- **Diagnostic Governance & Compatibility Parity**:
+  - Registered `VTLS:2108`, `VTLS:2109`, `VTLS:2110`, `VTLS:2111` in baseline and error catalog.
+  - Maintained zero additions to stable public APIs/SPIs (`STABLE_API +0`, `STABLE_SPI +0`).
 
 ---
 

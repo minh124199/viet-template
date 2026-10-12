@@ -30,6 +30,7 @@ import io.github.minh124199.viettemplate.language.vtl.ast.VtlMapEntry;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlMapLiteralExpression;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlNullLiteralExpression;
+import io.github.minh124199.viettemplate.language.vtl.ast.VtlParamDeclarationNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlParseDirectiveNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlRangeExpression;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlRawTextNode;
@@ -53,9 +54,11 @@ import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Handwritten recursive-descent and Pratt precedence parser for the VTL frontend.
@@ -66,6 +69,9 @@ import java.util.Optional;
 public final class VtlParser {
 
   private static final String DIAG_CATEGORY = "PARSER";
+  private static final DiagnosticCode CODE_DUPLICATE_PARAM = DiagnosticCode.of("VTLS", "2108");
+  private static final DiagnosticCode CODE_INVALID_PARAM_SYNTAX = DiagnosticCode.of("VTLS", "2110");
+  private static final DiagnosticCode CODE_PARAM_AFTER_PROLOGUE = DiagnosticCode.of("VTLS", "2111");
 
   private final SourceText source;
   private final VtlParserOptions options;
@@ -163,18 +169,69 @@ public final class VtlParser {
   // =========================================================================
 
   private VtlTemplate parseTemplate() {
+    List<VtlParamDeclarationNode> parameters = new ArrayList<>();
     List<VtlNode> children = new ArrayList<>();
+    Set<String> seenParamNames = new LinkedHashSet<>();
+    boolean prologueEnded = false;
+
     while (!cursor.isAtEnd()) {
       if (limitExceeded) {
         break;
       }
+
+      if (!prologueEnded && isDirective("param")) {
+        parseParamDirective(parameters, seenParamNames);
+        continue;
+      }
+
+      if (!prologueEnded && cursor.check(VtlTokenKind.TEXT)) {
+        VtlToken token = cursor.current();
+        String text = cursor.text(token);
+        if (text.isBlank() && hasParamDirectiveAhead()) {
+          cursor.advance();
+          continue;
+        }
+      }
+
+      prologueEnded = true;
       VtlNode node = parseTemplateItem();
       if (node != null) {
         children.add(node);
       }
     }
     SourceSpan span = source.fullSpan();
-    return new VtlTemplate(source.templateId(), span, children);
+    return new VtlTemplate(source.templateId(), span, parameters, children);
+  }
+
+  private boolean hasParamDirectiveAhead() {
+    int lookahead = 0;
+    while (true) {
+      VtlToken tok = cursor.peek(lookahead);
+      if (tok.kind() == VtlTokenKind.EOF) {
+        return false;
+      }
+      if (tok.kind() == VtlTokenKind.TEXT) {
+        if (cursor.text(tok).isBlank()) {
+          lookahead++;
+          continue;
+        }
+        return false;
+      }
+      if (tok.kind() == VtlTokenKind.HASH) {
+        VtlToken next = cursor.peek(lookahead + 1);
+        if (next.kind() == VtlTokenKind.IDENTIFIER && "param".equalsIgnoreCase(cursor.text(next))) {
+          return true;
+        }
+        if (next.kind() == VtlTokenKind.LEFT_BRACE) {
+          VtlToken idTok = cursor.peek(lookahead + 2);
+          if (idTok.kind() == VtlTokenKind.IDENTIFIER
+              && "param".equalsIgnoreCase(cursor.text(idTok))) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
   }
 
   private VtlNode parseTemplateItem() {
@@ -373,6 +430,25 @@ public final class VtlParser {
       case "evaluate" -> parseEvaluateDirective(startOffset);
       case "define" -> parseDefineDirective(startOffset);
       case "macro" -> parseMacroDirective(startOffset);
+      case "param" -> {
+        SourceSpan errSpan = source.spanAt(startOffset, cursor.previous().span().endOffset());
+        reportError(
+            CODE_PARAM_AFTER_PROLOGUE,
+            "#param directive must appear only in the template prologue",
+            errSpan);
+        if (cursor.match(VtlTokenKind.LEFT_PAREN)) {
+          int parenDepth = 1;
+          while (!cursor.isAtEnd() && parenDepth > 0) {
+            if (cursor.check(VtlTokenKind.LEFT_PAREN)) {
+              parenDepth++;
+            } else if (cursor.check(VtlTokenKind.RIGHT_PAREN)) {
+              parenDepth--;
+            }
+            cursor.advance();
+          }
+        }
+        yield new VtlErrorNode("Invalid #param after prologue", errSpan);
+      }
       case "end", "else", "elseif" -> {
         // Orphan block terminator at template top-level
         SourceSpan errSpan = source.spanAt(startOffset, cursor.previous().span().endOffset());
@@ -946,5 +1022,209 @@ public final class VtlParser {
 
   private void reportError(String code, String message, SourceSpan span) {
     diagnostics.add(Diagnostic.error(DiagnosticCode.of(DIAG_CATEGORY, code), message, span));
+  }
+
+  private void reportError(DiagnosticCode code, String message, SourceSpan span) {
+    diagnostics.add(Diagnostic.error(code, message, span));
+  }
+
+  private void parseParamDirective(
+      List<VtlParamDeclarationNode> parameters, Set<String> seenParamNames) {
+    int startOffset = cursor.advance().span().startOffset(); // consume HASH
+
+    boolean braced = cursor.match(VtlTokenKind.LEFT_BRACE);
+    if (!cursor.check(VtlTokenKind.IDENTIFIER)) {
+      reportError(
+          CODE_INVALID_PARAM_SYNTAX,
+          "Expected 'param' identifier after '#'",
+          cursor.current().span());
+      return;
+    }
+
+    VtlToken nameTok = cursor.advance(); // consume "param"
+    if (braced) {
+      expect(VtlTokenKind.RIGHT_BRACE, "Expected '}' after braced directive name");
+    }
+
+    if (!cursor.match(VtlTokenKind.LEFT_PAREN)) {
+      reportError(CODE_INVALID_PARAM_SYNTAX, "Expected '(' after #param", cursor.current().span());
+      return;
+    }
+
+    if (cursor.check(VtlTokenKind.RIGHT_PAREN)) {
+      reportError(
+          CODE_INVALID_PARAM_SYNTAX,
+          "Empty #param directive: expected parameter declaration",
+          cursor.current().span());
+      cursor.advance(); // consume ')'
+      return;
+    }
+
+    while (!cursor.isAtEnd() && !cursor.check(VtlTokenKind.RIGHT_PAREN)) {
+      if (!cursor.check(VtlTokenKind.IDENTIFIER)) {
+        reportError(
+            CODE_INVALID_PARAM_SYNTAX,
+            "Expected type name in #param declaration",
+            cursor.current().span());
+        synchronizeParam();
+        break;
+      }
+
+      int typeStart = cursor.current().span().startOffset();
+      cursor.advance(); // first identifier
+      while (cursor.match(VtlTokenKind.DOT)) {
+        if (cursor.check(VtlTokenKind.IDENTIFIER)) {
+          cursor.advance();
+        } else {
+          reportError(
+              CODE_INVALID_PARAM_SYNTAX,
+              "Expected identifier after '.' in type name",
+              cursor.current().span());
+          break;
+        }
+      }
+
+      if (cursor.check(VtlTokenKind.LESS)) {
+        int angleDepth = 0;
+        while (!cursor.isAtEnd()) {
+          if (cursor.check(VtlTokenKind.LESS)) {
+            angleDepth++;
+            cursor.advance();
+          } else if (cursor.check(VtlTokenKind.GREATER)) {
+            angleDepth--;
+            cursor.advance();
+            if (angleDepth == 0) {
+              break;
+            }
+          } else if (cursor.check(VtlTokenKind.RIGHT_PAREN)
+              || (cursor.check(VtlTokenKind.COMMA) && angleDepth == 0)) {
+            break;
+          } else {
+            cursor.advance();
+          }
+        }
+        if (angleDepth > 0) {
+          reportError(
+              CODE_INVALID_PARAM_SYNTAX,
+              "Unclosed '<' in generic type declaration",
+              cursor.current().span());
+        }
+      }
+
+      while (cursor.match(VtlTokenKind.LEFT_BRACKET)) {
+        if (!cursor.match(VtlTokenKind.RIGHT_BRACKET)) {
+          reportError(
+              CODE_INVALID_PARAM_SYNTAX,
+              "Expected ']' after '[' in array type declaration",
+              cursor.current().span());
+        }
+      }
+
+      boolean nullable = false;
+      if (cursor.match(VtlTokenKind.QUESTION)) {
+        nullable = true;
+      }
+
+      int typeEnd = cursor.previous().span().endOffset();
+      SourceSpan typeSpan = source.spanAt(typeStart, typeEnd);
+      String typeText = source.content().substring(typeStart, typeEnd).trim();
+      if (typeText.endsWith("?")) {
+        typeText = typeText.substring(0, typeText.length() - 1).trim();
+        nullable = true;
+      }
+
+      if (!cursor.match(VtlTokenKind.DOLLAR)) {
+        reportError(
+            CODE_INVALID_PARAM_SYNTAX,
+            "Expected '$' followed by parameter name in #param declaration",
+            cursor.current().span());
+        synchronizeParam();
+        break;
+      }
+
+      if (!cursor.check(VtlTokenKind.IDENTIFIER)) {
+        reportError(
+            CODE_INVALID_PARAM_SYNTAX,
+            "Expected parameter identifier after '$' in #param declaration",
+            cursor.current().span());
+        synchronizeParam();
+        break;
+      }
+
+      VtlToken idTok = cursor.advance();
+      String paramName = cursor.text(idTok);
+      SourceSpan nameSpan = idTok.span();
+
+      if (cursor.match(VtlTokenKind.QUESTION)) {
+        nullable = true;
+      }
+
+      Optional<VtlExpression> defaultValue = Optional.empty();
+      if (cursor.match(VtlTokenKind.EQUAL)) {
+        defaultValue = Optional.of(parseExpression(0));
+      }
+
+      int paramEnd = cursor.previous().span().endOffset();
+      SourceSpan paramSpan = source.spanAt(typeStart, paramEnd);
+      VtlParamDeclarationNode paramNode =
+          new VtlParamDeclarationNode(
+              paramName, typeText, nullable, defaultValue, paramSpan, typeSpan, nameSpan);
+
+      if (seenParamNames.contains(paramName)) {
+        reportError(
+            CODE_DUPLICATE_PARAM,
+            "Duplicate template parameter '$" + paramName + "' declared in #param",
+            nameSpan);
+      } else {
+        seenParamNames.add(paramName);
+        parameters.add(paramNode);
+      }
+
+      if (cursor.match(VtlTokenKind.COMMA)) {
+        // continue loop
+      } else {
+        break;
+      }
+    }
+
+    if (cursor.match(VtlTokenKind.RIGHT_PAREN)) {
+      // cleanly closed
+    } else {
+      reportError(
+          CODE_INVALID_PARAM_SYNTAX,
+          "Expected ')' to close #param directive",
+          cursor.current().span());
+      synchronizeToRightParen();
+    }
+  }
+
+  private void synchronizeParam() {
+    while (!cursor.isAtEnd()) {
+      if (cursor.check(VtlTokenKind.RIGHT_PAREN)) {
+        cursor.advance();
+        break;
+      }
+      if (cursor.check(VtlTokenKind.COMMA)) {
+        cursor.advance();
+        break;
+      }
+      cursor.advance();
+    }
+  }
+
+  private void synchronizeToRightParen() {
+    int parenDepth = 0;
+    while (!cursor.isAtEnd()) {
+      if (cursor.check(VtlTokenKind.LEFT_PAREN)) {
+        parenDepth++;
+      } else if (cursor.check(VtlTokenKind.RIGHT_PAREN)) {
+        if (parenDepth == 0) {
+          cursor.advance();
+          break;
+        }
+        parenDepth--;
+      }
+      cursor.advance();
+    }
   }
 }

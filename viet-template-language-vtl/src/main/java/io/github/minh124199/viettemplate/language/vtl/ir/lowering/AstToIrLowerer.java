@@ -25,6 +25,7 @@ import io.github.minh124199.viettemplate.language.vtl.ast.VtlMacroDefinitionNode
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlMacroParameter;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlNullLiteralExpression;
+import io.github.minh124199.viettemplate.language.vtl.ast.VtlParamDeclarationNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlParseDirectiveNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlRangeExpression;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlRawTextNode;
@@ -42,6 +43,7 @@ import io.github.minh124199.viettemplate.language.vtl.internal.ir.plan.DynamicKi
 import io.github.minh124199.viettemplate.language.vtl.internal.semantics.model.ModelParameter;
 import io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MemberResolution;
 import io.github.minh124199.viettemplate.language.vtl.internal.semantics.resolve.MethodResolution;
+import io.github.minh124199.viettemplate.language.vtl.internal.semantics.scope.Symbol;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrBlock;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrFunction;
 import io.github.minh124199.viettemplate.language.vtl.ir.IrLocal;
@@ -175,20 +177,54 @@ public final class AstToIrLowerer {
   }
 
   private IrTemplate run(VtlTemplate template) {
-    // 1. Seed parameters from model schema
+    // 1. Seed parameters from model schema and inline declarations
     int paramSlot = 0;
+    Scope lowerScope = new Scope(null);
+
+    // Companion schema parameters first
     for (ModelParameter p : options.modelSchema().parameters().values()) {
-      IrParameter param = new IrParameter(p.name(), p.type(), paramSlot++, template.span());
-      parameters.put(p.name(), param);
+      VtlParamDeclarationNode inlineDecl =
+          template.parameters().stream()
+              .filter(param -> param.name().equals(p.name()))
+              .findFirst()
+              .orElse(null);
+
+      VType type = p.type();
+      SourceSpan span = template.span();
+      Optional<IrExpression> defaultValue = Optional.empty();
+
+      if (inlineDecl != null) {
+        span = inlineDecl.span();
+        type = analysis.symbolTable().resolve(p.name()).map(Symbol::type).orElse(p.type());
+        defaultValue = inlineDecl.defaultValue().map(d -> lowerExpression(d, lowerScope));
+      }
+
+      IrParameter irParam = new IrParameter(p.name(), type, paramSlot++, defaultValue, span);
+      parameters.put(p.name(), irParam);
+      lowerScope.defineParam(p.name(), irParam);
     }
+
+    // Inline parameters not present in companion schema
+    for (VtlParamDeclarationNode inlineDecl : template.parameters()) {
+      if (!parameters.containsKey(inlineDecl.name())) {
+        VType type =
+            analysis
+                .symbolTable()
+                .resolve(inlineDecl.name())
+                .map(Symbol::type)
+                .orElse(VTypes.DYNAMIC);
+        Optional<IrExpression> defaultValue =
+            inlineDecl.defaultValue().map(d -> lowerExpression(d, lowerScope));
+        IrParameter irParam =
+            new IrParameter(inlineDecl.name(), type, paramSlot++, defaultValue, inlineDecl.span());
+        parameters.put(inlineDecl.name(), irParam);
+        lowerScope.defineParam(inlineDecl.name(), irParam);
+      }
+    }
+
     this.nextLocalSlot = paramSlot;
 
     // 2. Lower root statements with local scoping
-    Scope lowerScope = new Scope(null);
-    for (IrParameter param : parameters.values()) {
-      lowerScope.defineParam(param.name(), param);
-    }
-
     IrBlock rootBlock = lowerBlock(template.children(), lowerScope, template.span());
 
     // 3. Assemble IR Template

@@ -200,6 +200,13 @@ public final class VtlInterpreter {
             0,
             0);
 
+    for (VtlParamDeclarationNode p : template.parameters()) {
+      if (p.defaultValue().isPresent() && state.context.lookup(p.name()).isUndefined()) {
+        EvaluationValue defVal = evaluateExpression(p.defaultValue().get(), state);
+        state.context.set(p.name(), defVal);
+      }
+    }
+
     try {
       executeNodes(template.children(), state);
     } catch (StopSignal | BreakSignal ignored) {

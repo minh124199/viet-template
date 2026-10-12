@@ -13,6 +13,10 @@ final class VtlSemanticDiagnosticCodes {
   public static final DiagnosticCode TYPE_MISMATCH = DiagnosticCode.of("VTLS", "2103");
   public static final DiagnosticCode INVALID_ITERABLE = DiagnosticCode.of("VTLS", "2106");
   public static final DiagnosticCode NULLABLE_DEREFERENCE = DiagnosticCode.of("VTLS", "2107");
+  public static final DiagnosticCode DUPLICATE_PARAM = DiagnosticCode.of("VTLS", "2108");
+  public static final DiagnosticCode UNKNOWN_TYPE = DiagnosticCode.of("VTLS", "2109");
+  public static final DiagnosticCode INVALID_PARAM_SYNTAX = DiagnosticCode.of("VTLS", "2110");
+  public static final DiagnosticCode PARAM_AFTER_PROLOGUE = DiagnosticCode.of("VTLS", "2111");
 
   private VtlSemanticDiagnosticCodes() {}
 }

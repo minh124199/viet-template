@@ -13,6 +13,9 @@ public final class VtlAstInvariantWalker {
 
   public static void assertInvariants(VtlTemplate template, SourceText source) {
     assertSpanValid(template.span(), source);
+    for (VtlParamDeclarationNode param : template.parameters()) {
+      assertNodeInvariants(param, template.span(), source);
+    }
     for (VtlNode child : template.children()) {
       assertNodeInvariants(child, template.span(), source);
     }
@@ -22,7 +25,13 @@ public final class VtlAstInvariantWalker {
     assertSpanValid(node.span(), source);
     assertContained(parentSpan, node.span(), "Node within parent");
 
-    if (node instanceof VtlReferenceOutputNode refOut) {
+    if (node instanceof VtlParamDeclarationNode param) {
+      assertSpanValid(param.typeSpan(), source);
+      assertSpanValid(param.nameSpan(), source);
+      assertContained(node.span(), param.typeSpan(), "Param type within declaration");
+      assertContained(node.span(), param.nameSpan(), "Param name within declaration");
+      param.defaultValue().ifPresent(def -> assertExpressionInvariants(def, node.span(), source));
+    } else if (node instanceof VtlReferenceOutputNode refOut) {
       assertReferenceInvariants(refOut.reference(), node.span(), source);
     } else if (node instanceof VtlSetDirectiveNode set) {
       if (set.target() instanceof VtlAssignmentTarget.ReferenceTarget refTarget) {

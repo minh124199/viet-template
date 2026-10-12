@@ -30,6 +30,7 @@ import io.github.minh124199.viettemplate.language.vtl.ast.VtlMacroParameter;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlMapLiteralExpression;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlNullLiteralExpression;
+import io.github.minh124199.viettemplate.language.vtl.ast.VtlParamDeclarationNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlParseDirectiveNode;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlRangeExpression;
 import io.github.minh124199.viettemplate.language.vtl.ast.VtlRawTextNode;
@@ -86,26 +87,101 @@ public final class VtlSemanticAnalyzer {
   private final Map<VtlAccessStep.MethodCall, MethodResolution> methodResolutions =
       new LinkedHashMap<>();
 
-  private VtlSemanticAnalyzer(VtlSemanticOptions options) {
+  private final boolean openSchema;
+
+  private VtlSemanticAnalyzer(VtlTemplate template, VtlSemanticOptions options) {
     this.options = Objects.requireNonNull(options, "options must not be null");
     this.symbolTable = new SymbolTable();
+    this.openSchema = options.modelSchema().isOpen() || options.modelSchema().isEmpty();
   }
 
   public static SemanticAnalysisResult analyze(VtlTemplate template, VtlSemanticOptions options) {
     Objects.requireNonNull(template, "template must not be null");
     Objects.requireNonNull(options, "options must not be null");
 
-    VtlSemanticAnalyzer analyzer = new VtlSemanticAnalyzer(options);
+    VtlSemanticAnalyzer analyzer = new VtlSemanticAnalyzer(template, options);
     return analyzer.run(template);
   }
 
   private SemanticAnalysisResult run(VtlTemplate template) {
-    // 1. Seed root model scope
-    for (ModelParameter param : options.modelSchema().parameters().values()) {
-      symbolTable.defineInRoot(Symbol.rootModel(param.name(), param.type()));
+    // 1. Process inline parameter declarations (#param)
+    Map<String, VType> inlineParamTypes = new LinkedHashMap<>();
+    for (VtlParamDeclarationNode param : template.parameters()) {
+      Optional<VType> resolved =
+          VTypeResolver.resolve(param.typeText(), param.nullable(), options.modelSchema());
+      VType paramType;
+      if (resolved.isPresent()) {
+        paramType = resolved.get();
+      } else {
+        diagnostics.add(
+            Diagnostic.error(
+                VtlSemanticDiagnosticCodes.UNKNOWN_TYPE,
+                "Unknown type '" + param.typeText() + "' for parameter '$" + param.name() + "'",
+                param.typeSpan()));
+        paramType = VTypes.ERROR;
+      }
+      inlineParamTypes.put(param.name(), paramType);
+
+      // Check default value expression type compatibility
+      if (param.defaultValue().isPresent()) {
+        VType defaultType = analyzeExpression(param.defaultValue().get());
+        if (!(paramType instanceof VType.ErrorType)
+            && !(defaultType instanceof VType.ErrorType)
+            && !defaultType.isAssignableTo(paramType)) {
+          diagnostics.add(
+              Diagnostic.error(
+                  VtlSemanticDiagnosticCodes.TYPE_MISMATCH,
+                  "Default value of type "
+                      + defaultType.typeName()
+                      + " is not assignable to declared parameter type "
+                      + paramType.typeName(),
+                  param.defaultValue().get().span()));
+        }
+      }
     }
 
-    // 2. Traverse template nodes
+    // 2. Seed root model scope with 4-tier precedence:
+    // Companion schema parameters first...
+    for (ModelParameter schemaParam : options.modelSchema().parameters().values()) {
+      if (inlineParamTypes.containsKey(schemaParam.name())) {
+        VType inlineType = inlineParamTypes.get(schemaParam.name());
+        // If conflicting types, inline wins and emit VTLS:2103
+        if (!(inlineType instanceof VType.ErrorType)
+            && !schemaParam.type().equals(inlineType)
+            && !inlineType.typeName().equals(schemaParam.type().typeName())) {
+          VtlParamDeclarationNode declNode =
+              template.parameters().stream()
+                  .filter(p -> p.name().equals(schemaParam.name()))
+                  .findFirst()
+                  .orElse(null);
+          SourceSpan span = declNode != null ? declNode.span() : template.span();
+          diagnostics.add(
+              Diagnostic.error(
+                  VtlSemanticDiagnosticCodes.TYPE_MISMATCH,
+                  "Type of parameter '$"
+                      + schemaParam.name()
+                      + "' ("
+                      + inlineType.typeName()
+                      + ") conflicts with companion schema type ("
+                      + schemaParam.type().typeName()
+                      + ")",
+                  span));
+        }
+        symbolTable.defineInRoot(Symbol.rootModel(schemaParam.name(), inlineType));
+      } else {
+        symbolTable.defineInRoot(Symbol.rootModel(schemaParam.name(), schemaParam.type()));
+      }
+    }
+
+    // Then inline parameters not present in companion schema...
+    for (VtlParamDeclarationNode param : template.parameters()) {
+      if (!options.modelSchema().contains(param.name())) {
+        symbolTable.defineInRoot(
+            Symbol.rootModel(param.name(), inlineParamTypes.get(param.name())));
+      }
+    }
+
+    // 3. Traverse template nodes
     for (VtlNode child : template.children()) {
       analyzeNode(child);
     }
@@ -508,7 +584,9 @@ public final class VtlSemanticAnalyzer {
       currentType = optSym.get().type();
     } else {
       capabilitiesBuilder.setUsesUnknownModelTypes(true);
-      if (options.typeCheckingMode().isEnabled() && !options.modelSchema().isEmpty()) {
+      if (!openSchema
+          && options.typeCheckingMode().isEnabled()
+          && !options.modelSchema().isEmpty()) {
         Optional<String> suggestion =
             LevenshteinDistance.findClosestMatch(rootName, options.modelSchema().parameterNames());
         String msg = "Root reference '$" + rootName + "' is not declared in the model schema";

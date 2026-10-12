@@ -19,7 +19,9 @@ public final class SpaceGobbler {
   }
 
   private static final Set<String> GOBBLE_DIRECTIVES =
-      Set.of("if", "elseif", "else", "end", "foreach", "macro", "define", "set", "break", "stop");
+      Set.of(
+          "if", "elseif", "else", "end", "foreach", "macro", "define", "set", "break", "stop",
+          "param");
 
   private SpaceGobbler() {}
 

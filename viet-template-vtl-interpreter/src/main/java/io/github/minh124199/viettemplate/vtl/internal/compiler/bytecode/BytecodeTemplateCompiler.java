@@ -319,6 +319,33 @@ public final class BytecodeTemplateCompiler implements TemplateBackend {
       }
 
       render.bindLabel(seedDoneLabel);
+
+      for (IrSlotLayout.SlotMetadata meta : seededSlots) {
+        if (meta.kind() == IrSlotLayout.BindingKind.TEMPLATE_PARAMETER
+            && meta.slot() < optimized.parameters().size()) {
+          IrParameter param = optimized.parameters().get(meta.slot());
+          if (param.defaultValue().isPresent()) {
+            ClassFileWriter.Label notNullLabel = render.newLabel();
+            render.aload(meta.slot() + SLOT_OFFSET);
+            render.ifnonnull(notNullLabel);
+            compileExpression(param.defaultValue().get(), render, context, 0);
+            render.astore(meta.slot() + SLOT_OFFSET);
+            if (OutputSpecializationDecider.isIntegerType(param.type())) {
+              ClassFileWriter.Label notNumLabel = render.newLabel();
+              render.aload(meta.slot() + SLOT_OFFSET);
+              render.instanceofOp("java/lang/Number");
+              render.ifeq(notNumLabel);
+              render.aload(meta.slot() + SLOT_OFFSET);
+              render.checkcast("java/lang/Number");
+              render.invokevirtual("java/lang/Number", "intValue", "()I");
+              render.invokestatic("java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;");
+              render.astore(meta.slot() + SLOT_OFFSET);
+              render.bindLabel(notNumLabel);
+            }
+            render.bindLabel(notNullLabel);
+          }
+        }
+      }
     }
 
     // Compile root block statements
