@@ -146,4 +146,56 @@ public class VtlParamExecutionTest {
     assertThat(irRes).isEqualTo(astRes);
     assertThat(aotRes).isEqualTo(astRes);
   }
+
+  public static class Level1 {
+    public static class Level2 {
+      public record ValueHolder(String val) {}
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(ExecutionTier.class)
+  @DisplayName("Multi-dimensional primitive array execution across all execution tiers")
+  void testMultiDimensionalArray(ExecutionTier tier) throws IOException {
+    String template = "#param(int[][] $matrix)\nVal: $matrix[0][1], Rows: $matrix.length";
+    int[][] matrix = new int[][] {{10, 20}, {30, 40}};
+    String result = renderWithTier(template, Map.of("matrix", matrix), tier);
+    assertThat(result).isEqualTo("Val: 20, Rows: 2");
+  }
+
+  @ParameterizedTest
+  @EnumSource(ExecutionTier.class)
+  @DisplayName("Deeply nested generic parameter execution across all execution tiers")
+  void testDeeplyNestedGenerics(ExecutionTier tier) throws IOException {
+    String template =
+        "#param(java.util.Map<java.lang.String, java.util.List<java.util.Map<java.lang.String,"
+            + " java.util.Set<java.lang.Integer>>>> $deep)\n"
+            + "$deep['root'][0]['inner'].size()";
+    Map<String, Object> deep = Map.of("root", List.of(Map.of("inner", java.util.Set.of(1, 2, 3))));
+    String result = renderWithTier(template, Map.of("deep", deep), tier);
+    assertThat(result).isEqualTo("3");
+  }
+
+  @ParameterizedTest
+  @EnumSource(ExecutionTier.class)
+  @DisplayName("Doubly-nested static inner class resolution in #param")
+  void testDoublyNestedClassResolution(ExecutionTier tier) throws IOException {
+    String template =
+        "#param(io.github.minh124199.viettemplate.vtl.interpreter.VtlParamExecutionTest.Level1.Level2.ValueHolder"
+            + " $holder)\n"
+            + "Value: $holder.val";
+    String result =
+        renderWithTier(
+            template, Map.of("holder", new Level1.Level2.ValueHolder("nested-success")), tier);
+    assertThat(result).isEqualTo("Value: nested-success");
+  }
+
+  @ParameterizedTest
+  @EnumSource(ExecutionTier.class)
+  @DisplayName("Wildcard parameter execution across tiers")
+  void testWildcardParameter(ExecutionTier tier) throws IOException {
+    String template = "#param(Comparable<? super String> $comp)\nResult: $comp.compareTo('hello')";
+    String result = renderWithTier(template, Map.of("comp", "hello"), tier);
+    assertThat(result).isEqualTo("Result: 0");
+  }
 }
