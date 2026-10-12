@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Optional Typed Template Parameters & Expression Type Propagation (Milestone M45B)**:
+  - First-class, opt-in `#param(Type $variable [= defaultValue])` declaration syntax for VTL templates, restricted strictly to template prologues.
+  - Full expression type propagation through property chains, method calls, record components, array indices, and foreach collection iterations.
+  - Zero-byte rendering output for standalone `#param` directives across AST, IR, and AOT bytecode execution backends via `SpaceGobbler`.
+  - Canonical `VTypeResolver` supporting primitives, boxed types, aliases (`String`, `Integer`, `List`, `Map`, `Set`, `Collection`, `Iterable`), arrays (`T[]`), generics (`List<T>`, `Map<K, V>`), wildcards (`? extends T`), nullable markers (`?`), companion schema types, and dot-notation nested classes.
+  - Open schema dynamic fallback: templates with `#param` declarations or open model schemas statically check declared parameters while preserving 100% dynamic fallback for undeclared variables without false-positive diagnostics.
+  - Fail-closed security parity with `MemberAccessPolicy`: compile-time rejection of restricted reflective access (`getClass()`, `wait()`, `notify()`) with diagnostic `VTLSEC:2401`.
+  - Diagnostic code governance: registered canonical diagnostic codes `VTLS:2108` (`DUPLICATE_PARAM`), `VTLS:2109` (`UNKNOWN_TYPE`), `VTLS:2110` (`INVALID_PARAM_SYNTAX`), and `VTLS:2111` (`PARAM_AFTER_PROLOGUE`).
+  - Preserved strict backwards compatibility: existing untyped templates execute with zero behavioral change or performance regression.
+
 ## [1.4.0] - 2026-10-11
 
 ### Added

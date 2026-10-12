@@ -169,10 +169,15 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetAutoConfiguration",
     "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties",
     "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties$Vite",
+    "io.github.minh124199.viettemplate.language.vtl.ast.VtlParamDeclarationNode",
 }
 
 ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {
     "VTLS:2107",
+    "VTLS:2108",
+    "VTLS:2109",
+    "VTLS:2110",
+    "VTLS:2111",
 }
 
 ALLOWED_ADDITIVE_1_X_ABI_METHODS: set[str] = {

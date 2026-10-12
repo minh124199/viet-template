@@ -24,6 +24,9 @@ final class VtlAstDumper {
           .append("..")
           .append(t.span().endOffset())
           .append("]\n");
+      for (VtlParamDeclarationNode param : t.parameters()) {
+        dumpNode(param, indent + 1, sb, source);
+      }
       for (VtlNode child : t.children()) {
         dumpNode(child, indent + 1, sb, source);
       }
@@ -53,6 +56,22 @@ final class VtlAstDumper {
           .append(ro.span().endOffset())
           .append("]\n");
       dumpReference(ro.reference(), indent + 1, sb, source);
+    } else if (node instanceof VtlParamDeclarationNode param) {
+      sb.append(pad)
+          .append("ParamDeclaration [")
+          .append(param.span().startOffset())
+          .append("..")
+          .append(param.span().endOffset())
+          .append("] ")
+          .append(param.typeText())
+          .append(param.nullable() ? "?" : "")
+          .append(" $")
+          .append(param.name())
+          .append("\n");
+      if (param.defaultValue().isPresent()) {
+        sb.append(pad).append("  Default:\n");
+        dumpExpression(param.defaultValue().get(), indent + 2, sb, source);
+      }
     } else if (node instanceof VtlSetDirectiveNode set) {
       sb.append(pad)
           .append("SetDirective [")

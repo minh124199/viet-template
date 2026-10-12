@@ -13,4 +13,5 @@ public sealed interface VtlDirectiveNode extends VtlNode
         VtlDefineDirectiveNode,
         VtlMacroDefinitionNode,
         VtlDirectiveCallNode,
-        VtlBlockDirectiveCallNode {}
+        VtlBlockDirectiveCallNode,
+        VtlParamDeclarationNode {}

@@ -23,6 +23,7 @@ public enum VtlTokenKind {
   DOT, // '.'
   COMMA, // ','
   COLON, // ':'
+  QUESTION, // '?'
 
   // Operators
   EQUAL, // '='

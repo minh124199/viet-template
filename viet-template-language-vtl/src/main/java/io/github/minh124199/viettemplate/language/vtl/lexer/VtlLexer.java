@@ -662,6 +662,11 @@ public final class VtlLexer {
       offset++;
       return;
     }
+    if (c == '?') {
+      emitToken(VtlTokenKind.QUESTION, offset, offset + 1);
+      offset++;
+      return;
+    }
     if (c == '.') {
       if (offset + 1 < len && content.charAt(offset + 1) == '.') {
         emitToken(VtlTokenKind.RANGE, offset, offset + 2);

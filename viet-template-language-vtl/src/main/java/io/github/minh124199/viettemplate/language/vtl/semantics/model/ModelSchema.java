@@ -30,23 +30,30 @@ import java.util.Set;
  */
 public final class ModelSchema {
 
-  private static final ModelSchema EMPTY = new ModelSchema(Map.of(), Map.of());
+  private static final ModelSchema EMPTY = new ModelSchema(Map.of(), Map.of(), false);
 
   private final Map<String, ModelParameter> parameters;
   private final Map<String, Map<String, VType>> types;
+  private final boolean open;
 
   private ModelSchema(
-      Map<String, ModelParameter> parameters, Map<String, Map<String, VType>> types) {
+      Map<String, ModelParameter> parameters, Map<String, Map<String, VType>> types, boolean open) {
     this.parameters = Collections.unmodifiableMap(new LinkedHashMap<>(parameters));
     Map<String, Map<String, VType>> copy = new LinkedHashMap<>();
     for (Map.Entry<String, Map<String, VType>> entry : types.entrySet()) {
       copy.put(entry.getKey(), Collections.unmodifiableMap(new LinkedHashMap<>(entry.getValue())));
     }
     this.types = Collections.unmodifiableMap(copy);
+    this.open = open;
+  }
+
+  private ModelSchema(
+      Map<String, ModelParameter> parameters, Map<String, Map<String, VType>> types) {
+    this(parameters, types, false);
   }
 
   private ModelSchema(Map<String, ModelParameter> parameters) {
-    this(parameters, Map.of());
+    this(parameters, Map.of(), false);
   }
 
   public static ModelSchema empty() {
@@ -242,9 +249,25 @@ public final class ModelSchema {
     return types;
   }
 
+  public boolean isOpen() {
+    return open;
+  }
+
+  public boolean isClosed() {
+    return !open;
+  }
+
+  public ModelSchema withOpen(boolean open) {
+    if (this.open == open) {
+      return this;
+    }
+    return new ModelSchema(this.parameters, this.types, open);
+  }
+
   public String fingerprint() {
     try {
       MessageDigest md = MessageDigest.getInstance("SHA-256");
+      md.update((byte) (open ? 1 : 0));
       for (Map.Entry<String, ModelParameter> entry : parameters.entrySet()) {
         md.update(entry.getKey().getBytes(StandardCharsets.UTF_8));
         md.update((byte) ':');
@@ -279,12 +302,12 @@ public final class ModelSchema {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (!(o instanceof ModelSchema that)) return false;
-    return parameters.equals(that.parameters) && types.equals(that.types);
+    return open == that.open && parameters.equals(that.parameters) && types.equals(that.types);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(parameters, types);
+    return Objects.hash(parameters, types, open);
   }
 
   public static Builder builder() {
@@ -294,8 +317,14 @@ public final class ModelSchema {
   public static final class Builder {
     private final Map<String, ModelParameter> params = new LinkedHashMap<>();
     private final Map<String, Map<String, VType>> types = new LinkedHashMap<>();
+    private boolean open = false;
 
     Builder() {}
+
+    public Builder open(boolean open) {
+      this.open = open;
+      return this;
+    }
 
     public Builder add(String name, VType type) {
       params.put(name, ModelParameter.of(name, type));
@@ -328,11 +357,12 @@ public final class ModelSchema {
       Objects.requireNonNull(schema, "schema must not be null");
       params.putAll(schema.parameters());
       addTypes(schema.types());
+      this.open = schema.isOpen();
       return this;
     }
 
     public ModelSchema build() {
-      return new ModelSchema(params, types);
+      return new ModelSchema(params, types, open);
     }
   }
 }

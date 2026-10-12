@@ -177,16 +177,39 @@ final class IrInterpreter {
         if (meta.kind() == IrSlotLayout.BindingKind.TEMPLATE_PARAMETER
             && meta.slot() < slotted.slotCount()) {
           Object value = slotted.getBySlot(meta.slot());
-          frame.seedLocal(
-              meta.slot(),
-              value != null ? EvaluationValue.of(value) : EvaluationValue.definedNull());
+          if (value == null && hasDefaultValue(template, meta.slot())) {
+            frame.seedLocal(
+                meta.slot(),
+                EvaluationValue.of(
+                    evaluateExpression(getDefaultValue(template, meta.slot()), frame)));
+          } else {
+            frame.seedLocal(
+                meta.slot(),
+                value != null ? EvaluationValue.of(value) : EvaluationValue.definedNull());
+          }
         } else {
-          frame.seedLocal(meta.slot(), context.lookup(meta.name()));
+          EvaluationValue val = context.lookup(meta.name());
+          if (val.isUndefined() && hasDefaultValue(template, meta.slot())) {
+            frame.seedLocal(
+                meta.slot(),
+                EvaluationValue.of(
+                    evaluateExpression(getDefaultValue(template, meta.slot()), frame)));
+          } else {
+            frame.seedLocal(meta.slot(), val);
+          }
         }
       }
     } else {
       for (IrSlotLayout.SlotMetadata meta : seeded) {
-        frame.seedLocal(meta.slot(), context.lookup(meta.name()));
+        EvaluationValue val = context.lookup(meta.name());
+        if (val.isUndefined() && hasDefaultValue(template, meta.slot())) {
+          frame.seedLocal(
+              meta.slot(),
+              EvaluationValue.of(
+                  evaluateExpression(getDefaultValue(template, meta.slot()), frame)));
+        } else {
+          frame.seedLocal(meta.slot(), val);
+        }
       }
     }
 
@@ -1457,5 +1480,17 @@ final class IrInterpreter {
     LOGGER.log(
         System.Logger.Level.WARNING,
         () -> "[" + (frame != null ? frame.templateId : "?") + "] " + message + " at " + span);
+  }
+
+  private static boolean hasDefaultValue(IrTemplate template, int slot) {
+    return getDefaultValue(template, slot) != null;
+  }
+
+  private static IrExpression getDefaultValue(IrTemplate template, int slot) {
+    if (slot >= 0 && slot < template.parameters().size()) {
+      IrParameter p = template.parameters().get(slot);
+      return p.defaultValue().orElse(null);
+    }
+    return null;
   }
 }

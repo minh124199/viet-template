@@ -145,6 +145,56 @@ Emitted during static semantic analysis when typed model declarations (`#* @vtlv
 - **Likely Cause**: Navigating properties or invoking methods on a potentially null receiver without null-safe syntax or flow guards.
 - **Recommended Fix**: Use quiet reference syntax (`$!user.name`), navigate inside a null check (`#if($user)` or `#if($user != null)`), or declare receiver as non-nullable if null is impossible.
 
+#### `VTLS:2108` (`DUPLICATE_PARAM`)
+- **Category**: `VTLS`
+- **Phase**: Compile-Time / Semantic
+- **Exception**: `TemplateSemanticException`
+- **When Emitted**: Multiple `#param` directives declare the same parameter variable name.
+- **Example**:
+  ```vtl
+  #param(String $user)
+  #param(Integer $user)
+  ```
+- **Likely Cause**: Duplicate parameter declaration in template prologue.
+- **Recommended Fix**: Ensure each `#param` declaration has a unique variable name.
+
+#### `VTLS:2109` (`UNKNOWN_TYPE`)
+- **Category**: `VTLS`
+- **Phase**: Compile-Time / Semantic
+- **Exception**: `TemplateSemanticException`
+- **When Emitted**: Declared type in `#param` cannot be resolved against primitives, aliases, companion schemas, or the compilation classpath.
+- **Example**:
+  ```vtl
+  #param(com.example.NonExistentType $item)
+  ```
+- **Likely Cause**: Typo in type name, missing classpath dependency, or unimported class package.
+- **Recommended Fix**: Use fully qualified Java class names or standard aliases (`String`, `Integer`, `List`, `Map`, etc.).
+
+#### `VTLS:2110` (`INVALID_PARAM_SYNTAX`)
+- **Category**: `VTLS`
+- **Phase**: Compile-Time / Parser
+- **Exception**: `VtlParserException`
+- **When Emitted**: `#param` directive arguments violate the expected `(Type $var [= default])` syntax.
+- **Example**:
+  ```vtl
+  #param($user)
+  ```
+- **Likely Cause**: Missing type token, invalid variable identifier, or malformed syntax.
+- **Recommended Fix**: Follow the format `#param(Type $variable)` or `#param(Type $variable = defaultValue)`.
+
+#### `VTLS:2111` (`PARAM_AFTER_PROLOGUE`)
+- **Category**: `VTLS`
+- **Phase**: Compile-Time / Parser
+- **Exception**: `VtlParserException`
+- **When Emitted**: `#param` directive is placed after the template prologue (after literal text, variable reference, or executable directive).
+- **Example**:
+  ```vtl
+  <h1>Title</h1>
+  #param(String $name)
+  ```
+- **Likely Cause**: Placing `#param` inside template body or nested blocks (`#if`, `#foreach`).
+- **Recommended Fix**: Move all `#param` declarations to the top of the template (prologue only, preceded only by comments or whitespace).
+
 ---
 
 ### 2.3 SECURITY Diagnostics (Compile-Time & Runtime)
