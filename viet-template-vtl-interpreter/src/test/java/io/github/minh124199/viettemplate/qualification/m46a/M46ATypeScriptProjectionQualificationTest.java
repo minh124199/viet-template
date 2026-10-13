@@ -12,6 +12,7 @@ import io.github.minh124199.viettemplate.assets.ClientDataSerializer;
 import io.github.minh124199.viettemplate.qualification.m46a.model.DepartmentRecord;
 import io.github.minh124199.viettemplate.qualification.m46a.model.EmployeeBean;
 import io.github.minh124199.viettemplate.qualification.m46a.model.EmployeeRecord;
+import io.github.minh124199.viettemplate.qualification.m46a.model.NestedContainerRecord;
 import io.github.minh124199.viettemplate.qualification.m46a.model.RecursiveNode;
 import io.github.minh124199.viettemplate.qualification.m46a.model.SecuritySensitiveBean;
 import io.github.minh124199.viettemplate.qualification.m46a.model.StatusEnum;
@@ -37,7 +38,7 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * Comprehensive M46A Architecture Qualification Test Suite.
  *
- * <p>Validates all 15 bounded qualification prototypes:
+ * <p>Validates all 16 bounded qualification prototypes:
  *
  * <ol>
  *   <li>Real {@code tsc --noEmit} execution proving generated .d.ts is valid TypeScript.
@@ -55,6 +56,7 @@ import org.junit.jupiter.api.io.TempDir;
  *   <li>Performance scaling (< 2ms for 10 contracts, < 20ms for 100).
  *   <li>Frontend framework neutrality (0 framework imports).
  *   <li>Bidirectional round-trip projection and re-import via TypeScriptSchemaImporter.
+ *   <li>Nested and multi-nested Java classes projection ({@code Outer_Inner}).
  * </ol>
  */
 class M46ATypeScriptProjectionQualificationTest {
@@ -499,15 +501,17 @@ class M46ATypeScriptProjectionQualificationTest {
       "Prototype 09: cleanStaleOutputs deletes only owned stale files, leaving user files"
           + " untouched")
   void prototype09_staleOutputCleanupSafety(@TempDir Path tempDir) throws Exception {
-    Path fileA = tempDir.resolve("owned-a.d.ts");
-    Path fileB = tempDir.resolve("owned-b.d.ts");
+    Path fileA = tempDir.resolve("owned-a.vtl.d.ts");
+    Path fileB = tempDir.resolve("owned-b.vtl.d.ts");
     Path userCustomFile = tempDir.resolve("user-custom-island.ts");
+    Path foreignDataFile = tempDir.resolve("foreign-data.json");
 
     Files.writeString(fileA, "// A", StandardCharsets.UTF_8);
     Files.writeString(fileB, "// B", StandardCharsets.UTF_8);
     Files.writeString(userCustomFile, "// Custom user island", StandardCharsets.UTF_8);
+    Files.writeString(foreignDataFile, "{}", StandardCharsets.UTF_8);
 
-    Set<Path> previousOwned = Set.of(fileA, fileB);
+    Set<Path> previousOwned = Set.of(fileA, fileB, foreignDataFile);
     Set<Path> currentOutputs = Set.of(fileA); // fileB removed in this run
 
     int deleted =
@@ -517,6 +521,7 @@ class M46ATypeScriptProjectionQualificationTest {
     assertThat(Files.exists(fileA)).isTrue();
     assertThat(Files.exists(fileB)).isFalse();
     assertThat(Files.exists(userCustomFile)).isTrue(); // Foreign file strictly preserved!
+    assertThat(Files.exists(foreignDataFile)).isTrue(); // Non-declaration file strictly preserved!
   }
 
   // =========================================================================
@@ -535,7 +540,7 @@ class M46ATypeScriptProjectionQualificationTest {
 
     assertThat(winPath).isEqualTo(unixPath);
     assertThat(winPath.toString())
-        .endsWith("templates/users/index.d.ts".replace('/', java.io.File.separatorChar));
+        .endsWith("templates/users/index.vtl.d.ts".replace('/', java.io.File.separatorChar));
 
     // Path traversal attempt
     assertThatThrownBy(
@@ -727,6 +732,58 @@ class M46ATypeScriptProjectionQualificationTest {
     // Verify types registered in schema
     assertThat(importedSchema.types()).containsKey("EmployeeRecord");
     assertThat(importedSchema.types()).containsKey("DepartmentRecord");
+  }
+
+  // =========================================================================
+  // Prototype 16: Nested and Multi-Nested Java Classes Projection
+  // =========================================================================
+
+  @Test
+  @DisplayName(
+      "Prototype 16: Nested and multi-nested classes project cleanly (Outer_Inner) with real tsc"
+          + " validation")
+  void prototype16_nestedClassesWithRealTsc(@TempDir Path tempDir) throws Exception {
+    M46APrototypeTypeScriptProjector projector = new M46APrototypeTypeScriptProjector();
+
+    String dts = projector.projectClass(NestedContainerRecord.class, "nested/item.vtl");
+    assertThat(dts).contains("export interface NestedContainerRecord_NestedItem {");
+    assertThat(dts).contains("export interface NestedContainerRecord {");
+    assertThat(dts).contains("item: NestedContainerRecord_NestedItem | null;");
+    assertThat(dts).contains("export interface NestedItemTemplateParameters {");
+
+    Files.writeString(tempDir.resolve("nested.vtl.d.ts"), dts, StandardCharsets.UTF_8);
+
+    Path consumerTs = tempDir.resolve("nested_consumer.ts");
+    String tsCode =
+        """
+        import type {
+          NestedContainerRecord,
+          NestedContainerRecord_NestedItem,
+          NestedItemTemplateParameters
+        } from "./nested.vtl";
+
+        const item: NestedContainerRecord_NestedItem = {
+          label: "Item A",
+          value: 42
+        };
+
+        const container: NestedContainerRecord = {
+          id: "c-100",
+          item: item
+        };
+
+        const params: NestedItemTemplateParameters = {
+          id: "c-100",
+          item: item
+        };
+
+        const v: number = item.value;
+        const l: string | null = container.item ? container.item.label : null;
+        """;
+    Files.writeString(consumerTs, tsCode, StandardCharsets.UTF_8);
+    if (canRunTsc()) {
+      runTscCompilation(tempDir, consumerTs, true);
+    }
   }
 
   // =========================================================================

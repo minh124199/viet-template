@@ -7,7 +7,7 @@ Schema-to-Client TypeScript Contract Projection Architecture Qualification.
 
 Mission:
 1. Verifies availability of Node.js and TypeScript compiler (tsc).
-2. Verifies execution and PASS status of all 15 bounded qualification prototypes:
+2. Verifies execution and PASS status of all 16 bounded qualification prototypes:
    - Prototype 01: Real tsc --noEmit validation of generated declarations.
    - Prototype 02: Negative test proving intentional typo 'employee.nmae' is rejected by tsc.
    - Prototype 03: Nullability and optionality mapping (T | null).
@@ -23,6 +23,7 @@ Mission:
    - Prototype 13: Performance scaling benchmark.
    - Prototype 14: Frontend framework neutrality (zero framework imports).
    - Prototype 15: Bidirectional round-trip projection and re-import via TypeScriptSchemaImporter.
+   - Prototype 16: Nested and multi-nested classes projection (Outer_Inner).
 3. Writes machine-readable JSON report to build/reports/typescript-contract-projection-qualification.json.
 4. Exits 0 on PASS, non-zero on failure.
 """
@@ -61,6 +62,7 @@ EXPECTED_PROTOTYPES = [
     "Prototype 13: Generator scales well (< 500ms for 10 contracts, < 2000ms for 100 contracts)",
     "Prototype 14: Generated .d.ts has exactly zero framework imports",
     "Prototype 15: Round-trip projection into .d.ts and re-import via TypeScriptSchemaImporter preserves contract",
+    "Prototype 16: Nested and multi-nested classes project cleanly (Outer_Inner) with real tsc validation",
 ]
 
 

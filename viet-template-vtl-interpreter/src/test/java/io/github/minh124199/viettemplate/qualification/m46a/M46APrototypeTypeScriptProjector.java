@@ -169,11 +169,17 @@ public final class M46APrototypeTypeScriptProjector {
   public String projectSchema(CanonicalSchema schema) {
     Objects.requireNonNull(schema, "schema must not be null");
 
+    String templateParamsName = deriveTemplateParametersName(schema.templateId());
+
     // Deduplicate simple-name alias entries where FQCN exists
     Set<String> fqcnSimpleNames = new HashSet<>();
     for (String key : schema.types().keySet()) {
       if (key.contains(".")) {
         fqcnSimpleNames.add(extractSimpleName(key));
+        int dollar = key.lastIndexOf('$');
+        if (dollar >= 0 && dollar < key.length() - 1) {
+          fqcnSimpleNames.add(key.substring(dollar + 1));
+        }
       }
     }
     Map<String, TypeDef> canonicalTypes = new LinkedHashMap<>();
@@ -185,7 +191,8 @@ public final class M46APrototypeTypeScriptProjector {
       canonicalTypes.put(key, entry.getValue());
     }
 
-    Map<String, String> typeSymbolTable = resolveTypeNames(canonicalTypes.keySet());
+    Map<String, String> typeSymbolTable =
+        resolveTypeNames(canonicalTypes.keySet(), Set.of("TemplateParameters", templateParamsName));
     // Map simple name aliases into symbol table only when the simple name is unique
     Map<String, List<String>> fqcnsBySimpleName = new LinkedHashMap<>();
     for (String key : typeSymbolTable.keySet()) {
@@ -198,6 +205,13 @@ public final class M46APrototypeTypeScriptProjector {
         List<String> matchingFqcns = fqcnsBySimpleName.get(key);
         if (matchingFqcns != null && matchingFqcns.size() == 1) {
           simpleNameAliases.put(key, typeSymbolTable.get(matchingFqcns.get(0)));
+        } else {
+          for (String fqcn : typeSymbolTable.keySet()) {
+            if (fqcn.endsWith("$" + key)) {
+              simpleNameAliases.put(key, typeSymbolTable.get(fqcn));
+              break;
+            }
+          }
         }
       }
     }
@@ -251,7 +265,6 @@ public final class M46APrototypeTypeScriptProjector {
     }
 
     // 2. Project Root TemplateParameters interface
-    String templateParamsName = deriveTemplateParametersName(schema.templateId());
     sb.append("export interface ").append(templateParamsName);
     if (schema.parameters().isEmpty()) {
       sb.append(" {}\n");
@@ -298,9 +311,15 @@ public final class M46APrototypeTypeScriptProjector {
     while (normalized.startsWith("/")) {
       normalized = normalized.substring(1);
     }
-    int dot = normalized.lastIndexOf('.');
-    if (dot > 0) {
-      normalized = normalized.substring(0, dot);
+    if (normalized.endsWith(".vtl.html")) {
+      normalized = normalized.substring(0, normalized.length() - ".vtl.html".length());
+    } else if (normalized.endsWith(".vtl")) {
+      normalized = normalized.substring(0, normalized.length() - ".vtl".length());
+    } else {
+      int dot = normalized.lastIndexOf('.');
+      if (dot > 0) {
+        normalized = normalized.substring(0, dot);
+      }
     }
     String[] parts = normalized.split("[/_\\-\\.]");
     StringBuilder sb = new StringBuilder();
@@ -535,6 +554,11 @@ public final class M46APrototypeTypeScriptProjector {
         // Outside outputDir: security violation, skip
         continue;
       }
+      String fileName = normalized.getFileName().toString();
+      if (!fileName.endsWith(".vtl.d.ts") && !fileName.endsWith(".d.ts")) {
+        // Only clean up declaration files
+        continue;
+      }
       if (!currentOutputs.contains(prev) && Files.exists(normalized)) {
         Files.delete(normalized);
         deletedCount++;
@@ -545,7 +569,7 @@ public final class M46APrototypeTypeScriptProjector {
 
   /**
    * Derives declaration file path safely relative to base output directory, guarding against
-   * traversal.
+   * traversal. Preserves .vtl.d.ts extension per ADR-0022 and M46 specification.
    */
   public static Path deriveDeclarationFilePath(Path baseOutputDir, String templatePath) {
     Objects.requireNonNull(baseOutputDir, "baseOutputDir must not be null");
@@ -555,9 +579,16 @@ public final class M46APrototypeTypeScriptProjector {
     while (normalized.startsWith("/")) {
       normalized = normalized.substring(1);
     }
-    int dot = normalized.lastIndexOf('.');
-    String baseName = (dot > 0) ? normalized.substring(0, dot) : normalized;
-    String dtsRelativePath = baseName + ".d.ts";
+    String dtsRelativePath;
+    if (normalized.endsWith(".vtl.d.ts")) {
+      dtsRelativePath = normalized;
+    } else if (normalized.endsWith(".vtl")) {
+      dtsRelativePath = normalized + ".d.ts";
+    } else {
+      int dot = normalized.lastIndexOf('.');
+      String baseName = (dot > 0) ? normalized.substring(0, dot) : normalized;
+      dtsRelativePath = baseName + ".vtl.d.ts";
+    }
 
     Path resolved = baseOutputDir.resolve(dtsRelativePath).normalize();
     Path normalizedBase = baseOutputDir.toAbsolutePath().normalize();
@@ -570,6 +601,14 @@ public final class M46APrototypeTypeScriptProjector {
 
   /** Disambiguates simple type name collisions across packages deterministically. */
   public static Map<String, String> resolveTypeNames(Set<String> fqcns) {
+    return resolveTypeNames(fqcns, Set.of("TemplateParameters"));
+  }
+
+  /**
+   * Disambiguates simple type name collisions across packages deterministically with reserved
+   * names.
+   */
+  public static Map<String, String> resolveTypeNames(Set<String> fqcns, Set<String> reservedNames) {
     Map<String, String> candidateNames = new LinkedHashMap<>();
     Map<String, List<String>> byCandidate = new LinkedHashMap<>();
 
@@ -583,15 +622,14 @@ public final class M46APrototypeTypeScriptProjector {
     }
 
     Map<String, String> resolved = new LinkedHashMap<>();
-    Set<String> assignedNames = new HashSet<>();
-    assignedNames.add("TemplateParameters");
+    Set<String> assignedNames = new HashSet<>(reservedNames);
 
     for (String fqcn : sortedFqcns) {
       String candidate = candidateNames.get(fqcn);
       List<String> collisions = byCandidate.get(candidate);
 
       String finalName;
-      if (collisions.size() == 1 && !"TemplateParameters".equals(candidate)) {
+      if (collisions.size() == 1 && !reservedNames.contains(candidate)) {
         finalName = sanitizeTypeName(candidate);
       } else {
         finalName = deriveDisambiguatedName(fqcn, collisions);
@@ -661,15 +699,9 @@ public final class M46APrototypeTypeScriptProjector {
   }
 
   public static String extractSimpleName(String fqcn) {
-    int dollar = fqcn.lastIndexOf('$');
-    if (dollar >= 0 && dollar < fqcn.length() - 1) {
-      return fqcn.substring(dollar + 1);
-    }
     int dot = fqcn.lastIndexOf('.');
-    if (dot >= 0 && dot < fqcn.length() - 1) {
-      return fqcn.substring(dot + 1);
-    }
-    return fqcn;
+    String afterDot = (dot >= 0 && dot < fqcn.length() - 1) ? fqcn.substring(dot + 1) : fqcn;
+    return afterDot.replace('$', '_');
   }
 
   public static String sanitizeTypeName(String raw) {
