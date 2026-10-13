@@ -829,9 +829,11 @@ Full candidate audit, 10-dimension evaluation scoring, architectural invariants,
 1. **Milestone M44 (Transition & Qualification)**: 1.5.0 Development-Line Transition, Maintenance Branch Establishment & Feature Roadmap Qualification — **COMPLETE**
 2. **Milestone M45A (Architecture Qualification)**: Optional Typed Template Parameters & Expression Type-Propagation Qualification — **COMPLETE** (`GO`)
 3. **Milestone M45B (Implementation)**: Optional Typed Template Parameters & Expression Type Propagation Implementation — **COMPLETE**
-4. **Milestone M46**: Schema-to-Client TypeScript Contract Projection & Typed Frontend Island Bridges (Svelte 4/5 primary, React/Vue examples) — **NEXT**
-5. **Milestone M47**: Framework Model Validation & IDE Language Server Type Intelligence
-6. **Milestone M48**: 1.5.0 Performance, Native Image & Release Qualification
+4. **Milestone M46A (Architecture Qualification)**: Schema-to-Client TypeScript Contract Projection Architecture Qualification — **COMPLETE** (`GO`)
+5. **Milestone M46B (Implementation)**: TypeScript Contract Generator & Build Tool Integration — **NEXT**
+6. **Milestone M46C (Frontend Consumption)**: Typed Frontend Island Bridges (Svelte 4/5 primary, React/Vue examples)
+7. **Milestone M47**: Framework Model Validation & IDE Language Server Type Intelligence
+8. **Milestone M48**: 1.5.0 Performance, Native Image & Release Qualification
 
 ---
 
@@ -915,6 +917,43 @@ Implement production support for optional template parameter declarations (`#par
 - **Diagnostic Governance & Compatibility Parity**:
   - Registered `VTLS:2108`, `VTLS:2109`, `VTLS:2110`, `VTLS:2111` in baseline and error catalog.
   - Maintained zero additions to stable public APIs/SPIs (`STABLE_API +0`, `STABLE_SPI +0`).
+
+---
+
+### Detailed Milestone Specification: Milestone M46A
+
+**Milestone Name**: Schema-to-Client TypeScript Contract Projection Architecture Qualification<br>
+**Target Development Line**: `1.5.0-SNAPSHOT`<br>
+**Status**: Completed (`GO` Verdict, Branch `research/m46a-typescript-projection`)
+
+#### 1. Goal
+Qualify the smallest, deterministic, frontend-framework-neutral architecture projecting canonical server-side template/model contracts into high-quality TypeScript declarations (`.d.ts`), proving byte-for-byte repeatability, safe incremental/no-op generation, collision handling, recursive types, nullability, serialization parity with `ClientData`, and safe generated-output ownership.
+
+#### 2. Scope & Execution Results
+- **Pipeline Architecture & Candidate Selection**:
+  - Qualified Candidate D (Hybrid Normalization via Canonical Schema Model): `TemplateContract` -> `CanonicalSchemaModel` via `JavaModelSchemaImporter` -> deterministic pure-Java `.d.ts` emitter.
+  - Established Per-Template output strategy alongside templates (`detail.vtl.d.ts`) containing contract interfaces.
+- **Contract Projection & Verification Record**:
+  - Implemented 14 automated prototype tests in `M46ATypeScriptProjectionQualificationTest.java`:
+    1. Real `tsc --noEmit` validation against generated declarations (PASSED).
+    2. Negative typo test (`employee.nmae` rejected with TS2551) (PASSED).
+    3. Strict nullability mapping (`T | null`) enforcing null checks under TS `--strict` (PASSED).
+    4. Map type projection (`Record<string, V>`) (PASSED).
+    5. Recursive types (`RecursiveNode`) projecting safely without circularity/overflow (PASSED).
+    6. Deterministic package collision disambiguation (`ModelA_ConflictModel` vs `ModelB_ConflictModel`) (PASSED).
+    7. 100 consecutive generations byte-for-byte identical (stable SHA-256) (PASSED).
+    8. Incremental write avoidance (`writeIfChanged`) preserving file `mtime` on unchanged content (PASSED).
+    9. Safe output cleanup (`cleanStaleOutputs`) removing only owned stale outputs while preserving foreign user files (PASSED).
+    10. Windows backslash normalization and path traversal guards (PASSED).
+    11. Fail-closed `MemberAccessPolicy` security filtering (`getClass`, `ClassLoader`, `Thread` omitted) (PASSED).
+    12. 1:1 runtime shape parity with `SimpleJsonSerializer` and `ClientData` (PASSED).
+    13. Sub-second performance scaling benchmark (PASSED).
+    14. Frontend framework neutrality with zero framework imports (PASSED).
+- **Architecture Qualification Deliverables**:
+  - Established [`docs/adr/0022-canonical-typescript-contract-projection.md`](adr/0022-canonical-typescript-contract-projection.md) (ADR-0022).
+  - Published authoritative qualification report [`docs/releases/1.5.0-m46a-typescript-projection-qualification.md`](releases/1.5.0-m46a-typescript-projection-qualification.md).
+  - Created automated verification script `scripts/verify-typescript-contract-projection.py` and unit tests `scripts/tests/test_verify_typescript_contract_projection.py`.
+  - Preserved zero public API/SPI additions (`STABLE_API +0`, `STABLE_SPI +0`, `FRAMEWORK_ENTRYPOINT +0`).
 
 ---
 
