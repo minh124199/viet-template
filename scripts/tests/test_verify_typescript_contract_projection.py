@@ -39,8 +39,9 @@ class VerifyTypeScriptContractProjectionTests(unittest.TestCase):
 
     def test_parse_valid_xml_all_pass(self):
         import xml.sax.saxutils
-        xml_content = """<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="M46ATest" tests="14" skipped="0" failures="0" errors="0">
+        total = len(verify_ts.EXPECTED_PROTOTYPES)
+        xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="M46ATest" tests="{total}" skipped="0" failures="0" errors="0">
 """
         for proto in verify_ts.EXPECTED_PROTOTYPES:
             xml_content += f'  <testcase name={xml.sax.saxutils.quoteattr(proto)} time="0.05"/>\n'
@@ -51,15 +52,16 @@ class VerifyTypeScriptContractProjectionTests(unittest.TestCase):
 
         res = verify_ts.parse_qualification_test_results(xml_file)
         self.assertEqual(res["status"], "PASS")
-        self.assertEqual(res["total"], 14)
-        self.assertEqual(res["passed"], 14)
+        self.assertEqual(res["total"], total)
+        self.assertEqual(res["passed"], total)
         self.assertEqual(res["failed"], 0)
         self.assertEqual(len(res["missing_prototypes"]), 0)
 
     def test_parse_xml_with_failure(self):
         import xml.sax.saxutils
-        xml_content = """<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="M46ATest" tests="14" skipped="0" failures="1" errors="0">
+        total = len(verify_ts.EXPECTED_PROTOTYPES)
+        xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="M46ATest" tests="{total}" skipped="0" failures="1" errors="0">
 """
         for i, proto in enumerate(verify_ts.EXPECTED_PROTOTYPES):
             attr = xml.sax.saxutils.quoteattr(proto)
@@ -75,7 +77,7 @@ class VerifyTypeScriptContractProjectionTests(unittest.TestCase):
         res = verify_ts.parse_qualification_test_results(xml_file)
         self.assertEqual(res["status"], "FAIL")
         self.assertEqual(res["failed"], 1)
-        self.assertEqual(res["passed"], 13)
+        self.assertEqual(res["passed"], total - 1)
 
     def test_parse_missing_xml(self):
         missing = self.temp_path / "nonexistent.xml"
@@ -84,9 +86,10 @@ class VerifyTypeScriptContractProjectionTests(unittest.TestCase):
         self.assertIn("error", res)
 
     def test_generate_report(self):
+        total = len(verify_ts.EXPECTED_PROTOTYPES)
         results = {
             "status": "PASS",
-            "passed": 14,
+            "passed": total,
             "failed": 0,
             "prototypes": {"proto1": {"status": "PASSED", "time_seconds": 0.05}},
         }
@@ -98,7 +101,7 @@ class VerifyTypeScriptContractProjectionTests(unittest.TestCase):
         self.assertEqual(data["milestone"], "M46A")
         self.assertEqual(data["verdict"], "GO")
         self.assertEqual(data["status"], "PASS")
-        self.assertEqual(data["passed_prototypes"], 14)
+        self.assertEqual(data["passed_prototypes"], total)
 
 
 if __name__ == "__main__":

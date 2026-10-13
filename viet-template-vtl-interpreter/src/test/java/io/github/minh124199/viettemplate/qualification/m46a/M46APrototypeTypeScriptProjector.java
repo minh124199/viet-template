@@ -17,7 +17,6 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -187,14 +186,18 @@ public final class M46APrototypeTypeScriptProjector {
     }
 
     Map<String, String> typeSymbolTable = resolveTypeNames(canonicalTypes.keySet());
-    // Also map simple name aliases into symbol table so lookups by simple name work
-    Map<String, String> simpleNameAliases = new HashMap<>();
+    // Map simple name aliases into symbol table only when the simple name is unique
+    Map<String, List<String>> fqcnsBySimpleName = new LinkedHashMap<>();
+    for (String key : typeSymbolTable.keySet()) {
+      fqcnsBySimpleName.computeIfAbsent(extractSimpleName(key), k -> new ArrayList<>()).add(key);
+    }
+
+    Map<String, String> simpleNameAliases = new LinkedHashMap<>();
     for (String key : schema.types().keySet()) {
       if (!key.contains(".")) {
-        for (Map.Entry<String, String> resolved : typeSymbolTable.entrySet()) {
-          if (extractSimpleName(resolved.getKey()).equals(key)) {
-            simpleNameAliases.putIfAbsent(key, resolved.getValue());
-          }
+        List<String> matchingFqcns = fqcnsBySimpleName.get(key);
+        if (matchingFqcns != null && matchingFqcns.size() == 1) {
+          simpleNameAliases.put(key, typeSymbolTable.get(matchingFqcns.get(0)));
         }
       }
     }
@@ -274,6 +277,12 @@ public final class M46APrototypeTypeScriptProjector {
       sb.append("}\n");
     }
 
+    if (!"TemplateParameters".equals(templateParamsName)) {
+      sb.append("\nexport interface TemplateParameters extends ")
+          .append(templateParamsName)
+          .append(" {}\n");
+    }
+
     return sb.toString();
   }
 
@@ -350,6 +359,7 @@ public final class M46APrototypeTypeScriptProjector {
             "java.util.Date",
             "java.util.UUID" ->
             "string";
+        case "java.util.Optional" -> "unknown | null";
         case "java.util.List",
             "java.util.Collection",
             "java.lang.Iterable",
@@ -425,6 +435,10 @@ public final class M46APrototypeTypeScriptProjector {
     if (type instanceof CanonicalSchemaModel.ParameterizedTypeRef pt) {
       String raw = pt.rawType();
       List<TypeRef> args = pt.arguments();
+      if ("java.util.Optional".equals(raw)) {
+        if (args.isEmpty()) return "unknown | null";
+        return projectCanonicalTypeRef(args.get(0), typeSymbolTable) + " | null";
+      }
       if (isListType(raw)) {
         if (args.isEmpty()) return "unknown[]";
         return wrapArrayElement(projectCanonicalTypeRef(args.get(0), typeSymbolTable)) + "[]";
@@ -467,7 +481,10 @@ public final class M46APrototypeTypeScriptProjector {
     }
 
     if (type instanceof CanonicalSchemaModel.WildcardTypeRef wt) {
-      return wt.bound().map(b -> projectCanonicalTypeRef(b, typeSymbolTable)).orElse("unknown");
+      if ("extends".equalsIgnoreCase(wt.boundKind()) && wt.bound().isPresent()) {
+        return projectCanonicalTypeRef(wt.bound().get(), typeSymbolTable);
+      }
+      return "unknown";
     }
 
     return "unknown";
@@ -565,7 +582,7 @@ public final class M46APrototypeTypeScriptProjector {
       byCandidate.computeIfAbsent(candidate, k -> new ArrayList<>()).add(fqcn);
     }
 
-    Map<String, String> resolved = new HashMap<>();
+    Map<String, String> resolved = new LinkedHashMap<>();
     Set<String> assignedNames = new HashSet<>();
     assignedNames.add("TemplateParameters");
 
@@ -577,8 +594,7 @@ public final class M46APrototypeTypeScriptProjector {
       if (collisions.size() == 1 && !"TemplateParameters".equals(candidate)) {
         finalName = sanitizeTypeName(candidate);
       } else {
-        // Disambiguate by converting package/nesting separators into valid identifier
-        finalName = sanitizeTypeName(fqcn.replace('.', '_').replace('$', '_'));
+        finalName = deriveDisambiguatedName(fqcn, collisions);
       }
 
       String uniqueName = finalName;
@@ -591,6 +607,57 @@ public final class M46APrototypeTypeScriptProjector {
     }
 
     return resolved;
+  }
+
+  static String deriveDisambiguatedName(String fqcn, List<String> collidingFqcns) {
+    int lastDot = fqcn.lastIndexOf('.');
+    if (lastDot < 0) {
+      return sanitizeTypeName(fqcn);
+    }
+    String pkg = fqcn.substring(0, lastDot);
+    String simpleName = extractSimpleName(fqcn);
+    String[] segments = pkg.split("\\.");
+
+    int minSegs = (segments.length > 1 && segments[segments.length - 1].length() <= 1) ? 2 : 1;
+
+    for (int numSegs = minSegs; numSegs <= segments.length; numSegs++) {
+      String prefix = buildPascalCasePrefix(segments, numSegs);
+      String candidate = prefix + "_" + simpleName;
+      boolean unique = true;
+      for (String other : collidingFqcns) {
+        if (!other.equals(fqcn)) {
+          int otherDot = other.lastIndexOf('.');
+          if (otherDot >= 0) {
+            String otherPkg = other.substring(0, otherDot);
+            String[] otherSegs = otherPkg.split("\\.");
+            String otherPrefix = buildPascalCasePrefix(otherSegs, numSegs);
+            if (prefix.equals(otherPrefix)) {
+              unique = false;
+              break;
+            }
+          }
+        }
+      }
+      if (unique) {
+        return sanitizeTypeName(candidate);
+      }
+    }
+    return sanitizeTypeName(fqcn.replace('.', '_').replace('$', '_'));
+  }
+
+  private static String buildPascalCasePrefix(String[] segments, int count) {
+    int start = Math.max(0, segments.length - count);
+    StringBuilder sb = new StringBuilder();
+    for (int i = start; i < segments.length; i++) {
+      String seg = segments[i];
+      if (!seg.isEmpty()) {
+        sb.append(Character.toUpperCase(seg.charAt(0)));
+        if (seg.length() > 1) {
+          sb.append(seg.substring(1));
+        }
+      }
+    }
+    return sb.toString();
   }
 
   public static String extractSimpleName(String fqcn) {
@@ -660,14 +727,22 @@ public final class M46APrototypeTypeScriptProjector {
         || "java.util.Collection".equals(fqcn)
         || "java.lang.Iterable".equals(fqcn)
         || "java.util.Iterable".equals(fqcn)
-        || "java.util.ArrayList".equals(fqcn);
+        || "java.util.ArrayList".equals(fqcn)
+        || "java.util.LinkedList".equals(fqcn);
   }
 
   private static boolean isSetType(String fqcn) {
-    return "java.util.Set".equals(fqcn) || "java.util.HashSet".equals(fqcn);
+    return "java.util.Set".equals(fqcn)
+        || "java.util.HashSet".equals(fqcn)
+        || "java.util.LinkedHashSet".equals(fqcn)
+        || "java.util.TreeSet".equals(fqcn);
   }
 
   private static boolean isMapType(String fqcn) {
-    return "java.util.Map".equals(fqcn) || "java.util.HashMap".equals(fqcn);
+    return "java.util.Map".equals(fqcn)
+        || "java.util.HashMap".equals(fqcn)
+        || "java.util.LinkedHashMap".equals(fqcn)
+        || "java.util.TreeMap".equals(fqcn)
+        || "java.util.concurrent.ConcurrentHashMap".equals(fqcn);
   }
 }

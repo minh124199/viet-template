@@ -15,6 +15,7 @@ import io.github.minh124199.viettemplate.qualification.m46a.model.EmployeeRecord
 import io.github.minh124199.viettemplate.qualification.m46a.model.RecursiveNode;
 import io.github.minh124199.viettemplate.qualification.m46a.model.SecuritySensitiveBean;
 import io.github.minh124199.viettemplate.qualification.m46a.model.StatusEnum;
+import io.github.minh124199.viettemplate.schema.TypeScriptSchemaImporter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -36,7 +37,7 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * Comprehensive M46A Architecture Qualification Test Suite.
  *
- * <p>Validates all 14 bounded qualification prototypes:
+ * <p>Validates all 15 bounded qualification prototypes:
  *
  * <ol>
  *   <li>Real {@code tsc --noEmit} execution proving generated .d.ts is valid TypeScript.
@@ -53,6 +54,7 @@ import org.junit.jupiter.api.io.TempDir;
  *   <li>Serialization parity with {@code SimpleJsonSerializer}.
  *   <li>Performance scaling (< 2ms for 10 contracts, < 20ms for 100).
  *   <li>Frontend framework neutrality (0 framework imports).
+ *   <li>Bidirectional round-trip projection and re-import via TypeScriptSchemaImporter.
  * </ol>
  */
 class M46ATypeScriptProjectionQualificationTest {
@@ -220,6 +222,36 @@ class M46ATypeScriptProjectionQualificationTest {
         """;
     Files.writeString(testTs, testCode, StandardCharsets.UTF_8);
     runTscCompilation(tempDir, testTs, true);
+
+    // Wildcard upper bound (? extends T -> T) and lower bound (? super T -> unknown)
+    String extendsTs =
+        M46APrototypeTypeScriptProjector.projectCanonicalTypeRef(
+            new io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.WildcardTypeRef(
+                "extends",
+                new io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.ClassTypeRef(
+                    EmployeeBean.class.getName())),
+            Map.of(EmployeeBean.class.getName(), "EmployeeBean"));
+    assertThat(extendsTs).isEqualTo("EmployeeBean");
+
+    String superTs =
+        M46APrototypeTypeScriptProjector.projectCanonicalTypeRef(
+            new io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.WildcardTypeRef(
+                "super",
+                new io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.ClassTypeRef(
+                    EmployeeBean.class.getName())),
+            Map.of(EmployeeBean.class.getName(), "EmployeeBean"));
+    assertThat(superTs).isEqualTo("unknown");
+
+    // Optional<T> -> T | null
+    String optionalTs =
+        M46APrototypeTypeScriptProjector.projectCanonicalTypeRef(
+            new io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.ParameterizedTypeRef(
+                "java.util.Optional",
+                List.of(
+                    new io.github.minh124199.viettemplate.schema.CanonicalSchemaModel.ClassTypeRef(
+                        EmployeeBean.class.getName()))),
+            Map.of(EmployeeBean.class.getName(), "EmployeeBean"));
+    assertThat(optionalTs).isEqualTo("EmployeeBean | null");
   }
 
   // =========================================================================
@@ -346,11 +378,9 @@ class M46ATypeScriptProjectionQualificationTest {
     assertThat(dts).contains("ConflictModel");
     assertThat(dts).contains("modelA:");
     assertThat(dts).contains("modelB:");
-    // Disambiguation pattern replaces dots/dollars with underscores
-    assertThat(dts)
-        .contains("io_github_minh124199_viettemplate_qualification_m46a_model_a_ConflictModel");
-    assertThat(dts)
-        .contains("io_github_minh124199_viettemplate_qualification_m46a_model_b_ConflictModel");
+    // Package-derived prefix disambiguation
+    assertThat(dts).contains("ModelA_ConflictModel");
+    assertThat(dts).contains("ModelB_ConflictModel");
 
     Files.writeString(tempDir.resolve("collision.d.ts"), dts, StandardCharsets.UTF_8);
 
@@ -358,8 +388,8 @@ class M46ATypeScriptProjectionQualificationTest {
     String tsCode =
         """
         import type {
-          io_github_minh124199_viettemplate_qualification_m46a_model_a_ConflictModel as ModelA,
-          io_github_minh124199_viettemplate_qualification_m46a_model_b_ConflictModel as ModelB,
+          ModelA_ConflictModel as ModelA,
+          ModelB_ConflictModel as ModelB,
           CollisionTestTemplateParameters
         } from "./collision";
 
@@ -625,6 +655,54 @@ class M46ATypeScriptProjectionQualificationTest {
     assertThat(dts).doesNotContain("vite");
     assertThat(dts).doesNotContain("@viet-template");
     assertThat(dts).doesNotContain("import "); // Zero imports in self-contained declaration
+  }
+
+  // =========================================================================
+  // Prototype 15: Bidirectional Round-Trip with TypeScriptSchemaImporter
+  // =========================================================================
+
+  @Test
+  @DisplayName(
+      "Prototype 15: Round-trip projection into .d.ts and re-import via TypeScriptSchemaImporter"
+          + " preserves contract")
+  void prototype15_bidirectionalRoundTripWithTypeScriptSchemaImporter(@TempDir Path tempDir)
+      throws Exception {
+    M46APrototypeTypeScriptProjector projector = new M46APrototypeTypeScriptProjector();
+
+    TemplateContract contract =
+        TemplateContract.builder(TemplateId.of("reports/annual.vtl"))
+            .parameter(
+                TemplateParameter.of("employee", TemplateType.of(EmployeeRecord.class), false))
+            .parameter(
+                TemplateParameter.of("department", TemplateType.of(DepartmentRecord.class), true))
+            .build();
+
+    String dts = projector.projectContract(contract);
+    assertThat(dts).contains("export interface ReportsAnnualTemplateParameters");
+    assertThat(dts)
+        .contains("export interface TemplateParameters extends ReportsAnnualTemplateParameters");
+
+    // Write to disk
+    Path dtsFile = tempDir.resolve("annual.d.ts");
+    Files.writeString(dtsFile, dts, StandardCharsets.UTF_8);
+
+    // Re-import using offline TypeScriptSchemaImporter
+    TypeScriptSchemaImporter schemaImporter = new TypeScriptSchemaImporter();
+    var importResult = schemaImporter.importPath(dtsFile, "reports/annual.vtl");
+
+    assertThat(importResult.hasErrors()).isFalse();
+    assertThat(importResult.schemas()).containsKey("reports/annual.vtl");
+
+    var importedSchema = importResult.schemas().get("reports/annual.vtl");
+    // Verify parameters survived round-trip through TypeScript declarations
+    assertThat(importedSchema.parameters()).containsKey("employee");
+    assertThat(importedSchema.parameters()).containsKey("department");
+    assertThat(importedSchema.parameters().get("department").nullable()).isTrue();
+    assertThat(importedSchema.parameters().get("employee").nullable()).isFalse();
+
+    // Verify types registered in schema
+    assertThat(importedSchema.types()).containsKey("EmployeeRecord");
+    assertThat(importedSchema.types()).containsKey("DepartmentRecord");
   }
 
   // =========================================================================
