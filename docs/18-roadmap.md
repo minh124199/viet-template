@@ -934,7 +934,7 @@ Qualify the smallest, deterministic, frontend-framework-neutral architecture pro
   - Qualified Candidate D (Hybrid Normalization via Canonical Schema Model): `TemplateContract` -> `CanonicalSchemaModel` via `JavaModelSchemaImporter` -> deterministic pure-Java `.d.ts` emitter.
   - Established Per-Template output strategy alongside templates (`detail.vtl.d.ts`) containing contract interfaces.
 - **Contract Projection & Verification Record**:
-  - Implemented 14 automated prototype tests in `M46ATypeScriptProjectionQualificationTest.java`:
+  - Implemented 15 automated prototype tests in `M46ATypeScriptProjectionQualificationTest.java`:
     1. Real `tsc --noEmit` validation against generated declarations (PASSED).
     2. Negative typo test (`employee.nmae` rejected with TS2551) (PASSED).
     3. Strict nullability mapping (`T | null`) enforcing null checks under TS `--strict` (PASSED).
@@ -949,6 +949,7 @@ Qualify the smallest, deterministic, frontend-framework-neutral architecture pro
     12. 1:1 runtime shape parity with `SimpleJsonSerializer` and `ClientData` (PASSED).
     13. Sub-second performance scaling benchmark (PASSED).
     14. Frontend framework neutrality with zero framework imports (PASSED).
+    15. Bidirectional round-trip projection and re-import via `TypeScriptSchemaImporter` (PASSED).
 - **Architecture Qualification Deliverables**:
   - Established [`docs/adr/0022-canonical-typescript-contract-projection.md`](adr/0022-canonical-typescript-contract-projection.md) (ADR-0022).
   - Published authoritative qualification report [`docs/releases/1.5.0-m46a-typescript-projection-qualification.md`](releases/1.5.0-m46a-typescript-projection-qualification.md).
