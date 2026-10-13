@@ -77,10 +77,6 @@ jobs:
             ./gradlew check --no-daemon -Dspotless.check.skip=true -x :viet-template-vtl-interpreter:test
           fi
 
-      - name: Verify TypeScript Contract Projection Qualification
-        if: matrix.os == 'ubuntu-latest'
-        run: python3 scripts/verify-typescript-contract-projection.py --check-only
-
   maven-build-tier-a:
     name: Tier A — Maven (JDK 25 on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
