@@ -124,6 +124,18 @@
       "description": "Maven Mojo goal generating TypeScript declaration files (*.d.ts) during process-classes phase."
     },
     {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateTypeScriptContractsMojo",
+      "module": "viet-template-maven-plugin",
+      "entrypointKind": "MAVEN_MOJO",
+      "metadataSource": "@Mojo(name = \"generate-typescript-contracts\") / META-INF/maven/plugin.xml",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": false,
+      "userJavaApi": false,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Maven Mojo goal generating deterministic TypeScript declaration contracts (*.vtl.d.ts) during process-classes phase."
+    },
+    {
       "fqcn": "io.github.minh124199.viettemplate.tooling.maven.VietTemplateValidateMojo",
       "module": "viet-template-maven-plugin",
       "entrypointKind": "MAVEN_MOJO",
@@ -196,6 +208,18 @@
       "description": "Gradle task type generating TypeScript declaration files (*.d.ts) Ahead-Of-Time."
     },
     {
+      "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateTypeScriptContractsTask",
+      "module": "viet-template-gradle-plugin",
+      "entrypointKind": "GRADLE_TASK",
+      "metadataSource": "Registered by VietTemplatePlugin as generateTypeScriptContracts task",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": true,
+      "userJavaApi": true,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Gradle task type generating deterministic TypeScript declaration contracts (*.vtl.d.ts) Ahead-Of-Time."
+    },
+    {
       "fqcn": "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateValidateTask",
       "module": "viet-template-gradle-plugin",
       "entrypointKind": "GRADLE_TASK",
@@ -242,6 +266,18 @@
       "userJavaApi": true,
       "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
       "description": "Gradle extension DSL defining user-configurable properties for template compilation."
+    },
+    {
+      "fqcn": "io.github.minh124199.viettemplate.aot.TypeScriptContractProjector",
+      "module": "viet-template-vtl-interpreter",
+      "entrypointKind": "BUILD_TOOL_HELPER",
+      "metadataSource": "Invoked by VietTemplateGenerateTypeScriptContractsMojo and VietTemplateGenerateTypeScriptContractsTask",
+      "mustBePublic": true,
+      "mustHavePublicConstructor": true,
+      "fqcnStabilityRequired": false,
+      "userJavaApi": false,
+      "stableApiClassification": "BUILD_TOOL_ENTRYPOINT",
+      "description": "Ahead-of-time TypeScript contract projector (*.vtl.d.ts) entrypoint used by Maven and Gradle build plugins."
     },
     {
       "fqcn": "io.github.minh124199.viettemplate.aot.TypeScriptDeclarationProjector",

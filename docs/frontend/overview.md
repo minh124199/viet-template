@@ -123,3 +123,4 @@ Viet Template Frontend Asset Integration is continuously qualified against repre
 - [Spring Boot Integration](spring-boot.md): Setting up with Spring Boot.
 - [Quarkus Integration](quarkus.md): Setting up with Quarkus and GraalVM native image.
 - [Security Model](security.md): Path validation, JSON escaping, and CSP headers.
+- [TypeScript Contract Generation](typescript-contract-generation.md): Ahead-Of-Time pure-Java `.vtl.d.ts` contract generation for Maven and Gradle.

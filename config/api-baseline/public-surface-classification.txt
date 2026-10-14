@@ -12,7 +12,7 @@
 #   STABLE_API: Supported application API under strict 1.0 backward compatibility guarantee
 #   STABLE_SPI: Supported extension/contributor interfaces for third-party implementors under strict 1.0 guarantee
 # BENCHMARK_SUPPORT_INTERNAL: 3
-# BUILD_TOOL_ENTRYPOINT: 18
+# BUILD_TOOL_ENTRYPOINT: 21
 # Categories:
 # EXPERIMENTAL: 5
 # FRAMEWORK_ENTRYPOINT: 5
@@ -32,6 +32,7 @@ io.github.minh124199.viettemplate.aot.TemplateAotDiagnostic STABLE_API
 io.github.minh124199.viettemplate.aot.TemplateAotRequest STABLE_API
 io.github.minh124199.viettemplate.aot.TemplateAotRequest$Builder STABLE_API
 io.github.minh124199.viettemplate.aot.TemplateAotResult STABLE_API
+io.github.minh124199.viettemplate.aot.TypeScriptContractProjector BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.aot.TypeScriptDeclarationProjector BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.api.ClasspathTemplateRepository STABLE_API
 io.github.minh124199.viettemplate.api.CompiledTemplate STABLE_API
@@ -393,6 +394,7 @@ io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExplainTask BUILD_T
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateExtension BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateFacadesTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateSchemasTask BUILD_TOOL_ENTRYPOINT
+io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateTypeScriptContractsTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateTypeScriptTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplateMigrationReportTask BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.gradle.VietTemplatePlugin BUILD_TOOL_ENTRYPOINT
@@ -401,6 +403,7 @@ io.github.minh124199.viettemplate.tooling.maven.VietTemplateCompileMojo BUILD_TO
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateExplainMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateFacadesMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateSchemasMojo BUILD_TOOL_ENTRYPOINT
+io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateTypeScriptContractsMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateTypeScriptMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateMigrationReportMojo BUILD_TOOL_ENTRYPOINT
 io.github.minh124199.viettemplate.tooling.maven.VietTemplateValidateMojo BUILD_TOOL_ENTRYPOINT

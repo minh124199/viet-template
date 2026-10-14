@@ -2,9 +2,11 @@ name: TypeScript Contract Projection Qualification
 
 on:
   push:
-    branches: [ main, 'research/m46a-typescript-projection' ]
+    branches: [ main, 'research/m46a-typescript-projection', 'feat/m46b-*' ]
     paths:
       - 'viet-template-vtl-interpreter/**'
+      - 'viet-template-maven-plugin/**'
+      - 'viet-template-gradle-plugin/**'
       - 'scripts/verify-typescript-contract-projection*'
       - 'scripts/tests/test_verify_typescript_contract_projection.py'
       - '.github/workflows/typescript-contract-projection.yml'
@@ -12,6 +14,8 @@ on:
     branches: [ main ]
     paths:
       - 'viet-template-vtl-interpreter/**'
+      - 'viet-template-maven-plugin/**'
+      - 'viet-template-gradle-plugin/**'
       - 'scripts/verify-typescript-contract-projection*'
       - 'scripts/tests/test_verify_typescript_contract_projection.py'
       - '.github/workflows/typescript-contract-projection.yml'

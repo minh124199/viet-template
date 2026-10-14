@@ -170,6 +170,9 @@ ALLOWED_ADDITIVE_1_X_TYPES: set[str] = {
     "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties",
     "io.github.minh124199.viettemplate.spring.boot.autoconfigure.VietTemplateAssetProperties$Vite",
     "io.github.minh124199.viettemplate.language.vtl.ast.VtlParamDeclarationNode",
+    "io.github.minh124199.viettemplate.aot.TypeScriptContractProjector",
+    "io.github.minh124199.viettemplate.tooling.maven.VietTemplateGenerateTypeScriptContractsMojo",
+    "io.github.minh124199.viettemplate.tooling.gradle.VietTemplateGenerateTypeScriptContractsTask",
 }
 
 ALLOWED_ADDITIVE_1_X_DIAGNOSTIC_CODES: set[str] = {
