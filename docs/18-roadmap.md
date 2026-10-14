@@ -830,8 +830,8 @@ Full candidate audit, 10-dimension evaluation scoring, architectural invariants,
 2. **Milestone M45A (Architecture Qualification)**: Optional Typed Template Parameters & Expression Type-Propagation Qualification — **COMPLETE** (`GO`)
 3. **Milestone M45B (Implementation)**: Optional Typed Template Parameters & Expression Type Propagation Implementation — **COMPLETE**
 4. **Milestone M46A (Architecture Qualification)**: Schema-to-Client TypeScript Contract Projection Architecture Qualification — **COMPLETE** (`GO`)
-5. **Milestone M46B (Implementation)**: TypeScript Contract Generator & Build Tool Integration — **NEXT**
-6. **Milestone M46C (Frontend Consumption)**: Typed Frontend Island Bridges (Svelte 4/5 primary, React/Vue examples)
+5. **Milestone M46B (Implementation)**: TypeScript Contract Generator & Build Tool Integration — **COMPLETE**
+6. **Milestone M46C (Frontend Consumption)**: Typed Frontend Island Bridges (Svelte 4/5 primary, React/Vue examples) — **NEXT**
 7. **Milestone M47**: Framework Model Validation & IDE Language Server Type Intelligence
 8. **Milestone M48**: 1.5.0 Performance, Native Image & Release Qualification
 
@@ -956,6 +956,31 @@ Qualify the smallest, deterministic, frontend-framework-neutral architecture pro
   - Published authoritative qualification report [`docs/releases/1.5.0-m46a-typescript-projection-qualification.md`](releases/1.5.0-m46a-typescript-projection-qualification.md).
   - Created automated verification script `scripts/verify-typescript-contract-projection.py` and unit tests `scripts/tests/test_verify_typescript_contract_projection.py`.
   - Preserved zero public API/SPI additions (`STABLE_API +0`, `STABLE_SPI +0`, `FRAMEWORK_ENTRYPOINT +0`).
+
+---
+
+### Detailed Milestone Specification: Milestone M46B
+
+**Milestone Name**: Production TypeScript Contract Generator & Maven/Gradle Build Integration<br>
+**Target Development Line**: `1.5.0-SNAPSHOT`<br>
+**Status**: Completed (`1.5.0-SNAPSHOT`)
+
+- **Candidate D Production Pipeline**:
+  - Implemented canonical pure-Java AOT projector `TypeScriptContractProjector` in `viet-template-vtl-interpreter`.
+  - Normalizes inline `#param` directives, companion contracts, Java models, and canonical schemas through `CanonicalSchemaModel`.
+  - Projects deterministic, client-visible serialized JSON shapes (`*.vtl.d.ts`) matching `SimpleJsonSerializer`.
+  - Implements incremental `writeIfChanged` write avoidance to preserve filesystem `mtime` for watch tools.
+  - Implements manifest-owned safe stale cleanup (`.viet-template-typescript-manifest.json`) strictly protecting foreign user files.
+  - Hardens path traversal prevention and symlink escape boundaries.
+  - Eliminates duplicate prototype logic by refactoring M46A qualification tests to exercise production generator.
+- **Maven & Gradle Build Tool Integration**:
+  - Implemented `VietTemplateGenerateTypeScriptContractsMojo` (`generate-typescript-contracts`) in `viet-template-maven-plugin` (default phase: `process-classes`).
+  - Implemented `VietTemplateGenerateTypeScriptContractsTask` (`generateTypeScriptContracts`) in `viet-template-gradle-plugin` wired into Java `classes` lifecycle with cacheability and incrementality.
+  - Proved byte-for-byte and SHA-256 parity between Maven and Gradle outputs via `VietTemplateMavenGradleParityTest`.
+  - Verified 100% pure Java execution with zero Node/npm requirement for normal build and generation.
+- **Documentation & Quality**:
+  - Published comprehensive user documentation in `docs/frontend/typescript-contract-generation.md` and linked from `docs/frontend/overview.md`.
+  - All CI gates, baseline checks, script tests, and qualification suites passing with zero defects.
 
 ---
 

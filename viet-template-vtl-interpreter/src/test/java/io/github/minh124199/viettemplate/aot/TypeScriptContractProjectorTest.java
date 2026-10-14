@@ -8,6 +8,7 @@ import io.github.minh124199.viettemplate.api.TemplateContract;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateParameter;
 import io.github.minh124199.viettemplate.api.TemplateType;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -153,7 +154,7 @@ class TypeScriptContractProjectorTest {
   }
 
   @Test
-  @DisplayName("Security: path traversal attempts are rejected")
+  @DisplayName("Security: path traversal and absolute escapes are rejected")
   void testPathTraversalRejected(@TempDir Path tempDir) {
     Path outDir = tempDir.resolve("output");
 
@@ -168,6 +169,38 @@ class TypeScriptContractProjectorTest {
             () ->
                 TypeScriptContractProjector.deriveDeclarationFilePath(
                     outDir, "sub/../../outside/hack.vtl"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Path traversal detected");
+
+    assertThatThrownBy(
+            () ->
+                TypeScriptContractProjector.deriveDeclarationFilePath(outDir, "/absolute/path.vtl"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Path traversal detected");
+
+    assertThatThrownBy(
+            () ->
+                TypeScriptContractProjector.deriveDeclarationFilePath(
+                    outDir, "C:\\outside\\evil.vtl"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Path traversal detected");
+
+    assertThatThrownBy(
+            () ->
+                TypeScriptContractProjector.deriveDeclarationFilePath(
+                    outDir, "\\windows\\system32\\evil.vtl"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Path traversal detected");
+
+    assertThatThrownBy(
+            () ->
+                TypeScriptContractProjector.deriveDeclarationFilePath(
+                    outDir, "sub\\..\\..\\outside.vtl"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Path traversal detected");
+
+    assertThatThrownBy(
+            () -> TypeScriptContractProjector.deriveDeclarationFilePath(outDir, "%2e%2e/evil.vtl"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Path traversal detected");
   }
@@ -213,5 +246,102 @@ class TypeScriptContractProjectorTest {
     assertThat(resolved.get("com.example.billing.Invoice")).isEqualTo("Billing_Invoice");
     assertThat(resolved.get("com.example.shipping.Invoice")).isEqualTo("Shipping_Invoice");
     assertThat(resolved.get("org.other.Invoice")).isEqualTo("Other_Invoice");
+  }
+
+  @Test
+  @DisplayName("Security: manifest tampering attempting to target external files is blocked")
+  void testManifestTamperingRejected(@TempDir Path tempDir) throws Exception {
+    Path outDir = tempDir.resolve("out");
+    Files.createDirectories(outDir);
+
+    Path victimFile = tempDir.resolve("victim.vtl.d.ts");
+    Files.writeString(victimFile, "// victim file outside output dir", StandardCharsets.UTF_8);
+
+    // Write a tampered manifest pointing outside outDir
+    String tamperedManifest =
+        """
+        {
+          "schemaVersion": 1,
+          "files": {
+            "external.vtl": {
+              "output": "../victim.vtl.d.ts",
+              "fingerprint": "abc"
+            }
+          }
+        }
+        """;
+    Files.writeString(
+        outDir.resolve(".viet-template-typescript-manifest.json"),
+        tamperedManifest,
+        StandardCharsets.UTF_8);
+
+    Path dummyTemplateDir = tempDir.resolve("templates");
+    Files.createDirectories(dummyTemplateDir);
+
+    TypeScriptContractProjector projector = TypeScriptContractProjector.create();
+    projector.projectTemplates(
+        dummyTemplateDir,
+        outDir,
+        List.of("**/*.vtl"),
+        List.of(),
+        StandardCharsets.UTF_8,
+        getClass().getClassLoader(),
+        true);
+
+    // Victim file must NOT be deleted
+    assertThat(victimFile).isRegularFile();
+  }
+
+  @Test
+  @DisplayName("Security: symlinked directories escaping output root are protected from deletion")
+  void testSymlinkEscapePrevention(@TempDir Path tempDir) throws Exception {
+    Path outDir = tempDir.resolve("out");
+    Path externalDir = tempDir.resolve("external-sensitive");
+    Files.createDirectories(outDir);
+    Files.createDirectories(externalDir);
+
+    Path externalFile = externalDir.resolve("sensitive.vtl.d.ts");
+    Files.writeString(externalFile, "// do not delete me", StandardCharsets.UTF_8);
+
+    // Create a symlink inside outDir pointing to externalDir
+    Path symlinkDir = outDir.resolve("symlinked-dir");
+    try {
+      Files.createSymbolicLink(symlinkDir, externalDir);
+    } catch (UnsupportedOperationException | IOException e) {
+      // If filesystem does not support symlinks, skip symlink creation check
+      return;
+    }
+
+    Set<Path> previousOwned = Set.of(symlinkDir.resolve("sensitive.vtl.d.ts"));
+    Set<Path> currentOutputs = Set.of();
+
+    int deleted =
+        TypeScriptContractProjector.cleanStaleOutputs(outDir, currentOutputs, previousOwned);
+
+    assertThat(deleted).isEqualTo(0);
+    assertThat(externalFile).isRegularFile(); // External sensitive file strictly protected
+  }
+
+  @Test
+  @DisplayName(
+      "Robustness: unusual template names with spaces and symbols produce valid TypeScript"
+          + " identifiers")
+  void testUnusualTemplateNamesSanitization() {
+    assertThat(TypeScriptContractProjector.deriveTemplateParametersName("users/my profile.vtl"))
+        .isEqualTo("UsersMyProfileTemplateParameters");
+
+    assertThat(TypeScriptContractProjector.deriveTemplateParametersName("123/items.vtl"))
+        .matches("^[a-zA-Z_$][a-zA-Z0-9_$]*$");
+
+    assertThat(TypeScriptContractProjector.deriveTemplateParametersName("special!@#$/test.vtl"))
+        .matches("^[a-zA-Z_$][a-zA-Z0-9_$]*$");
+
+    assertThat(TypeScriptContractProjector.deriveTemplateParametersName("default/export.vtl"))
+        .matches("^[a-zA-Z_$][a-zA-Z0-9_$]*$");
+
+    assertThat(TypeScriptContractProjector.deriveTemplateParametersName(null))
+        .isEqualTo("TemplateParameters");
+    assertThat(TypeScriptContractProjector.deriveTemplateParametersName(""))
+        .isEqualTo("TemplateParameters");
   }
 }

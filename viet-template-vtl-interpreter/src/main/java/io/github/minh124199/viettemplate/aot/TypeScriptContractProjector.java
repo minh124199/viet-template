@@ -619,7 +619,7 @@ public final class TypeScriptContractProjector {
           owned.add(target);
         }
       }
-    } catch (Exception ignored) {
+    } catch (IOException ignored) {
     }
     return owned;
   }
@@ -709,15 +709,15 @@ public final class TypeScriptContractProjector {
         // Only clean up declaration files
         continue;
       }
-      // Symlink safeguard
-      if (Files.isSymbolicLink(normalized)) {
+      // Symlink safeguard: strictly verify real path never escapes normalizedOutputDir
+      if (Files.exists(normalized)) {
         try {
           Path real = normalized.toRealPath();
           if (!real.startsWith(normalizedOutputDir.toRealPath())) {
-            continue;
+            continue; // Symlink escape outside outputDir: skip deletion
           }
         } catch (IOException e) {
-          continue;
+          continue; // Unresolvable or broken symlink: skip deletion safely
         }
       }
       if (!currentOutputs.contains(normalized) && Files.exists(normalized)) {
@@ -736,10 +736,26 @@ public final class TypeScriptContractProjector {
     Objects.requireNonNull(baseOutputDir, "baseOutputDir must not be null");
     Objects.requireNonNull(templatePath, "templatePath must not be null");
 
-    String normalized = templatePath.replace('\\', '/').trim();
-    while (normalized.startsWith("/")) {
-      normalized = normalized.substring(1);
+    if (templatePath.startsWith("/")
+        || templatePath.startsWith("\\")
+        || templatePath.contains(":")
+        || (templatePath.length() >= 2
+            && Character.isLetter(templatePath.charAt(0))
+            && templatePath.charAt(1) == ':')) {
+      throw new IllegalArgumentException(
+          "Path traversal detected in templatePath: " + templatePath);
     }
+    String lower = templatePath.toLowerCase(Locale.ROOT);
+    if (lower.contains("%2e")
+        || lower.contains("%2f")
+        || lower.contains("%5c")
+        || lower.contains("%00")
+        || templatePath.indexOf('\0') >= 0) {
+      throw new IllegalArgumentException(
+          "Path traversal detected in templatePath: " + templatePath);
+    }
+
+    String normalized = templatePath.replace('\\', '/').trim();
     String dtsRelativePath;
     if (normalized.endsWith(".vtl.d.ts")) {
       dtsRelativePath = normalized;
@@ -785,20 +801,26 @@ public final class TypeScriptContractProjector {
         normalized = normalized.substring(0, dot);
       }
     }
-    String[] parts = normalized.split("[/_\\-\\.]");
+    String[] parts = normalized.split("[/_\\-\\.\\s]+");
     StringBuilder sb = new StringBuilder();
     for (String part : parts) {
       if (!part.isBlank()) {
-        sb.append(Character.toUpperCase(part.charAt(0)));
-        if (part.length() > 1) {
-          sb.append(part.substring(1));
+        String clean = sanitizeTypeName(part);
+        while (clean.startsWith("_")) {
+          clean = clean.substring(1);
+        }
+        if (!clean.isBlank()) {
+          sb.append(Character.toUpperCase(clean.charAt(0)));
+          if (clean.length() > 1) {
+            sb.append(clean.substring(1));
+          }
         }
       }
     }
     if (sb.isEmpty()) {
       return "TemplateParameters";
     }
-    return sb.toString() + "TemplateParameters";
+    return sanitizeTypeName(sb.toString() + "TemplateParameters");
   }
 
   /** Projects a canonical TypeRef into TypeScript type syntax. */
