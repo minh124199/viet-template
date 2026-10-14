@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.minh124199.viettemplate.aot.TemplateAotCompiler;
 import io.github.minh124199.viettemplate.aot.TemplateAotRequest;
+import io.github.minh124199.viettemplate.aot.TypeScriptContractProjector;
 import io.github.minh124199.viettemplate.aot.TypeScriptDeclarationProjector;
 import io.github.minh124199.viettemplate.explanation.ExpressionExplanation;
 import io.github.minh124199.viettemplate.explanation.SingleTemplateExplanation;
@@ -220,6 +221,108 @@ class VietTemplateMavenGradleParityTest {
     assertThat(gradleSha256)
         .as("Maven and Gradle TypeScript outputs must have identical SHA-256 digests")
         .isEqualTo(mavenSha256);
+  }
+
+  @Test
+  @DisplayName(
+      "Maven and Gradle generate byte-for-byte and SHA-256 identical TypeScript contract"
+          + " declarations (*.vtl.d.ts) and manifests")
+  void testMavenGradleTypeScriptContractsParity(@TempDir Path projectDir) throws Exception {
+    Files.writeString(
+        projectDir.resolve("settings.gradle.kts"),
+        "rootProject.name = \"parity-ts-contracts-project\"\n",
+        StandardCharsets.UTF_8);
+
+    Files.writeString(
+        projectDir.resolve("build.gradle.kts"),
+        "plugins {\n"
+            + "    java\n"
+            + "    id(\"io.github.minh124199.viet-template\")\n"
+            + "}\n"
+            + "repositories {\n"
+            + "    mavenCentral()\n"
+            + "}\n",
+        StandardCharsets.UTF_8);
+
+    Path srcDir = projectDir.resolve("src/main/viet-template");
+    Files.createDirectories(srcDir.resolve("orders"));
+
+    Files.writeString(
+        srcDir.resolve("orders/detail.vtl"),
+        """
+        #param(String $customer)
+        #param(long $orderId)
+        #param(double $total)
+        <div>Order #$orderId for $customer ($total USD)</div>
+        """,
+        StandardCharsets.UTF_8);
+
+    // 1. Run Gradle TypeScript contract generation
+    BuildResult gradleResult =
+        createRunner(projectDir)
+            .withArguments(VietTemplatePlugin.GENERATE_TYPESCRIPT_CONTRACTS_TASK_NAME)
+            .build();
+
+    assertThat(gradleResult.task(":" + VietTemplatePlugin.GENERATE_TYPESCRIPT_CONTRACTS_TASK_NAME))
+        .isNotNull();
+    assertThat(
+            gradleResult
+                .task(":" + VietTemplatePlugin.GENERATE_TYPESCRIPT_CONTRACTS_TASK_NAME)
+                .getOutcome())
+        .isEqualTo(TaskOutcome.SUCCESS);
+
+    Path gradleDtsFile =
+        projectDir.resolve("build/generated/viet-template/typescript/orders/detail.vtl.d.ts");
+    Path gradleManifestFile =
+        projectDir.resolve(
+            "build/generated/viet-template/typescript/.viet-template-typescript-manifest.json");
+
+    assertThat(gradleDtsFile).isRegularFile();
+    assertThat(gradleManifestFile).isRegularFile();
+
+    byte[] gradleDtsBytes = Files.readAllBytes(gradleDtsFile);
+    String gradleDtsSha256 = sha256Hex(gradleDtsBytes);
+    byte[] gradleManifestBytes = Files.readAllBytes(gradleManifestFile);
+    String gradleManifestSha256 = sha256Hex(gradleManifestBytes);
+
+    // 2. Run Maven TypeScript contract generation logic on identical input source directory
+    Path mavenTsOutputDir = projectDir.resolve("target/generated-sources/viet-template/typescript");
+    TypeScriptContractProjector projector = new TypeScriptContractProjector();
+    projector.projectTemplates(
+        srcDir,
+        mavenTsOutputDir,
+        List.of("**/*.vtl", "**/*.vm", "**/*.vtl.html"),
+        List.of(),
+        StandardCharsets.UTF_8,
+        Thread.currentThread().getContextClassLoader(),
+        true);
+
+    Path mavenDtsFile = mavenTsOutputDir.resolve("orders/detail.vtl.d.ts");
+    Path mavenManifestFile = mavenTsOutputDir.resolve(".viet-template-typescript-manifest.json");
+
+    assertThat(mavenDtsFile).isRegularFile();
+    assertThat(mavenManifestFile).isRegularFile();
+
+    byte[] mavenDtsBytes = Files.readAllBytes(mavenDtsFile);
+    String mavenDtsSha256 = sha256Hex(mavenDtsBytes);
+    byte[] mavenManifestBytes = Files.readAllBytes(mavenManifestFile);
+    String mavenManifestSha256 = sha256Hex(mavenManifestBytes);
+
+    // 3. Verify exact byte-for-byte and SHA-256 parity for .vtl.d.ts declarations
+    assertThat(gradleDtsBytes)
+        .as("Maven and Gradle TypeScript contract declarations must be byte-for-byte identical")
+        .isEqualTo(mavenDtsBytes);
+    assertThat(gradleDtsSha256)
+        .as("Maven and Gradle TypeScript contract declarations must have identical SHA-256 digests")
+        .isEqualTo(mavenDtsSha256);
+
+    // 4. Verify exact byte-for-byte and SHA-256 parity for manifest files
+    assertThat(gradleManifestBytes)
+        .as("Maven and Gradle TypeScript manifests must be byte-for-byte identical")
+        .isEqualTo(mavenManifestBytes);
+    assertThat(gradleManifestSha256)
+        .as("Maven and Gradle TypeScript manifests must have identical SHA-256 digests")
+        .isEqualTo(mavenManifestSha256);
   }
 
   @Test

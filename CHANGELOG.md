@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **AOT TypeScript Contract Generator & Maven/Gradle Build Integration (Milestone M46B)**:
+  - Canonical pure-Java AOT TypeScript Contract Generator (`TypeScriptContractProjector`) projecting `#param` directives, companion contracts, Java models, and canonical schemas into deterministic `.vtl.d.ts` declaration files without requiring Node or npm.
+  - Maven Plugin Mojo `generate-typescript-contracts` (`VietTemplateGenerateTypeScriptContractsMojo`) bound by default to `process-classes` lifecycle phase.
+  - Gradle Plugin Task `generateTypeScriptContracts` (`VietTemplateGenerateTypeScriptContractsTask`) wired to Java `classes` lifecycle with incremental caching and input normalization.
+  - Exact byte-for-byte and SHA-256 parity between Maven and Gradle outputs, verified by `VietTemplateMavenGradleParityTest`.
+  - Incremental `writeIfChanged` write avoidance to preserve file `mtime` for downstream bundler and compiler watch cycles.
+  - Safe stale cleanup strictly bounded by generator manifest ownership (`.viet-template-typescript-manifest.json`), preserving non-generated foreign files in the output directory.
+  - Strict security enforcement against reflection sandbox leaks: prohibited access to `getClass()`, `ClassLoader`, `Thread`, and reflective internals.
 - **Optional Typed Template Parameters & Expression Type Propagation (Milestone M45B)**:
   - First-class, opt-in `#param(Type $variable [= defaultValue])` declaration syntax for VTL templates, restricted strictly to template prologues.
   - Full expression type propagation through property chains, method calls, record components, array indices, and foreach collection iterations.

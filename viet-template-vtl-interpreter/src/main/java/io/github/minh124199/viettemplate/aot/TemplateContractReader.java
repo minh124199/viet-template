@@ -3,8 +3,15 @@ package io.github.minh124199.viettemplate.aot;
 import io.github.minh124199.viettemplate.api.TemplateContract;
 import io.github.minh124199.viettemplate.api.TemplateId;
 import io.github.minh124199.viettemplate.api.TemplateParameter;
+import io.github.minh124199.viettemplate.api.TemplateType;
+import io.github.minh124199.viettemplate.language.vtl.ast.VtlParamDeclarationNode;
+import io.github.minh124199.viettemplate.language.vtl.ast.VtlTemplate;
+import io.github.minh124199.viettemplate.language.vtl.parser.VtlParseResult;
+import io.github.minh124199.viettemplate.language.vtl.parser.VtlParser;
+import io.github.minh124199.viettemplate.language.vtl.source.SourceText;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -241,9 +248,116 @@ final class TemplateContractReader {
               return Class.forName("java.math." + name, false, loader);
             } catch (ClassNotFoundException ignored) {
             }
+            try {
+              return Class.forName("java.time." + name, false, loader);
+            } catch (ClassNotFoundException ignored) {
+            }
           }
           throw e;
         }
+    }
+  }
+
+  public static Optional<TemplateContract> extractFromTemplate(
+      Path templateFile, TemplateId templateId, Charset charset, ClassLoader classLoader)
+      throws IOException {
+    String sourceText = Files.readString(templateFile, charset);
+    return extractFromSource(sourceText, templateId, classLoader);
+  }
+
+  public static Optional<TemplateContract> extractFromSource(
+      String sourceText, TemplateId templateId, ClassLoader classLoader) {
+    if (!sourceText.contains("#param")) {
+      return Optional.empty();
+    }
+    SourceText source = SourceText.of(templateId, sourceText);
+    VtlParseResult parseResult = VtlParser.parse(source);
+    if (parseResult.hasErrors()) {
+      throw new IllegalStateException(
+          "Failed to parse template " + templateId.value() + ": " + parseResult.diagnostics());
+    }
+    VtlTemplate parsedTemplate = parseResult.template();
+    if (parsedTemplate.parameters().isEmpty()) {
+      return Optional.empty();
+    }
+    ClassLoader loader =
+        classLoader != null ? classLoader : Thread.currentThread().getContextClassLoader();
+    if (loader == null) {
+      loader = TemplateContractReader.class.getClassLoader();
+    }
+    TemplateContract.Builder cb = TemplateContract.builder(templateId);
+    for (VtlParamDeclarationNode node : parsedTemplate.parameters()) {
+      String name = node.name();
+      String typeDesc = node.typeText().trim();
+      boolean nullable = node.nullable();
+      TemplateType tt = parseTypeDescription(typeDesc, loader);
+      cb.parameter(TemplateParameter.of(name, tt, nullable));
+    }
+    return Optional.of(cb.build());
+  }
+
+  private static TemplateType parseTypeDescription(String typeDesc, ClassLoader loader) {
+    String trimmed = typeDesc.trim();
+    if (trimmed.endsWith("[]")) {
+      String compStr = trimmed.substring(0, trimmed.length() - 2).trim();
+      TemplateType compType = parseTypeDescription(compStr, loader);
+      return TemplateType.array(compType);
+    }
+
+    int angle = trimmed.indexOf('<');
+    if (angle < 0) {
+      Class<?> raw = resolveModelClass(trimmed, loader);
+      return TemplateType.of(raw);
+    }
+
+    String rawName = trimmed.substring(0, angle).trim();
+    String argsPart = trimmed.substring(angle + 1, trimmed.lastIndexOf('>')).trim();
+    Class<?> raw = resolveModelClass(rawName, loader);
+    List<TemplateType> args = new ArrayList<>();
+    for (String arg : splitTypeArguments(argsPart)) {
+      args.add(parseTypeArgument(arg, loader));
+    }
+    return TemplateType.parameterized(raw, args);
+  }
+
+  private static TemplateType parseTypeArgument(String arg, ClassLoader loader) {
+    String trimmed = arg.trim();
+    if (trimmed.equals("?")) {
+      return TemplateType.wildcard();
+    }
+    if (trimmed.startsWith("? extends ")) {
+      String bound = trimmed.substring("? extends ".length()).trim();
+      return TemplateType.wildcardExtends(parseTypeDescription(bound, loader));
+    }
+    if (trimmed.startsWith("? super ")) {
+      String bound = trimmed.substring("? super ".length()).trim();
+      return TemplateType.wildcardSuper(parseTypeDescription(bound, loader));
+    }
+    return parseTypeDescription(trimmed, loader);
+  }
+
+  private static Class<?> resolveModelClass(String name, ClassLoader loader) {
+    try {
+      return resolveClass(name, loader);
+    } catch (ClassNotFoundException e) {
+      if (name.contains(".")) {
+        String candidate = name;
+        int lastDot;
+        while ((lastDot = candidate.lastIndexOf('.')) > 0) {
+          candidate = candidate.substring(0, lastDot) + "$" + candidate.substring(lastDot + 1);
+          try {
+            return Class.forName(candidate, false, loader);
+          } catch (ClassNotFoundException ignored) {
+          }
+        }
+      }
+      for (String pkg : List.of("java.lang.", "java.util.", "java.time.", "java.math.")) {
+        try {
+          return Class.forName(pkg + name, false, loader);
+        } catch (ClassNotFoundException ignored) {
+        }
+      }
+      throw new IllegalArgumentException("Cannot resolve model class for parameter: " + name, e);
     }
   }
 }

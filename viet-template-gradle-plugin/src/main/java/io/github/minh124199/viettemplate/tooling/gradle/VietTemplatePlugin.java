@@ -15,6 +15,8 @@ public class VietTemplatePlugin implements Plugin<Project> {
   public static final String GENERATE_FACADES_TASK_NAME = "generateVietTemplateFacades";
   public static final String GENERATE_SCHEMAS_TASK_NAME = "generateVietTemplateSchemas";
   public static final String GENERATE_TYPESCRIPT_TASK_NAME = "generateVietTemplateTypeScript";
+  public static final String GENERATE_TYPESCRIPT_CONTRACTS_TASK_NAME =
+      "generateTypeScriptContracts";
   public static final String VALIDATE_TASK_NAME = "validateVietTemplates";
   public static final String EXPLAIN_TASK_NAME = "explainVietTemplates";
   public static final String MIGRATION_REPORT_TASK_NAME = "migrationReport";
@@ -154,6 +156,32 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   typeScriptTask.dependsOn(generateSchemasTask);
                 });
 
+    TaskProvider<VietTemplateGenerateTypeScriptContractsTask> generateTypeScriptContractsTask =
+        project
+            .getTasks()
+            .register(
+                GENERATE_TYPESCRIPT_CONTRACTS_TASK_NAME,
+                VietTemplateGenerateTypeScriptContractsTask.class,
+                tsContractsTask -> {
+                  tsContractsTask.setDescription(
+                      "Generates deterministic TypeScript contract declaration files (*.vtl.d.ts)"
+                          + " for Viet Template contracts Ahead-Of-Time.");
+                  tsContractsTask.setGroup("build");
+
+                  tsContractsTask.getSourceDirectory().convention(extension.getSourceDirectory());
+                  tsContractsTask
+                      .getTypeScriptOutputDirectory()
+                      .convention(extension.getTypeScriptOutputDirectory());
+                  tsContractsTask
+                      .getSchemaDirectory()
+                      .convention(extension.getSchemaOutputDirectory());
+                  tsContractsTask.getIncludes().convention(extension.getIncludes());
+                  tsContractsTask.getExcludes().convention(extension.getExcludes());
+                  tsContractsTask.getEncoding().convention(extension.getEncoding());
+                  tsContractsTask.getCleanStaleOutputs().convention(true);
+                  tsContractsTask.dependsOn(generateSchemasTask);
+                });
+
     TaskProvider<VietTemplateValidateTask> validateTask =
         project
             .getTasks()
@@ -271,6 +299,20 @@ public class VietTemplatePlugin implements Plugin<Project> {
                   .getTasks()
                   .named(JavaPlugin.CLASSES_TASK_NAME)
                   .configure(t -> t.dependsOn(typeScriptTask));
+
+              VietTemplateGenerateTypeScriptContractsTask tsContractsTask =
+                  generateTypeScriptContractsTask.get();
+              tsContractsTask
+                  .getClasspath()
+                  .from(
+                      mainSourceSet.getCompileClasspath(),
+                      mainSourceSet.getOutput().getClassesDirs());
+              tsContractsTask.dependsOn(JavaPlugin.COMPILE_JAVA_TASK_NAME);
+              tsContractsTask.dependsOn(schemasTask);
+              project
+                  .getTasks()
+                  .named(JavaPlugin.CLASSES_TASK_NAME)
+                  .configure(t -> t.dependsOn(tsContractsTask));
 
               VietTemplateValidateTask vTask = validateTask.get();
               vTask
